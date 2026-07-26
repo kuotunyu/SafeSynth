@@ -47,7 +47,7 @@ dotenv: "../.env"
 # ---------------------------------------------------------------------------
 dataset:
   kaggle_handle: "andrewmvd/hard-hat-detection"
-  pinned_version: null        # M2 fills this in, then the handle becomes ".../versions/<N>"
+  pinned_version: 1        # M2 fills this in, then the handle becomes ".../versions/<N>"
   classes: ["helmet", "head", "person"]   # order defines category_id 1, 2, 3
 
 split:
