@@ -37,7 +37,7 @@
     特別是第 2 列必須印出 `2.13.0+cu130 13.0 True NVIDIA GeForce RTX 4090`
     （若 `cuda.is_available()` 是 False，幾乎一定是裝到 CPU-only 的 PyPI wheel，見 K-01）；
     `uv.lock` 存在並進 git；`uv lock --check` 無輸出
-  - **驗證於**：`9c89368` @ 2026-07-27
+  - **驗證於**：`6587a83` @ 2026-07-27
     實測輸出：Python `3.12.13`｜`2.13.0+cu130 13.0 True NVIDIA GeForce RTX 4090`｜
     `transformers 5.14.1`｜`Sam2Model` 可匯入｜`cv2/scipy/imagehash/pycocotools/kagglehub` 全可匯入｜
     `uv lock --check` 通過｜`KAGGLE_API_TOKEN` 是 opaque string（非 JSON blob，

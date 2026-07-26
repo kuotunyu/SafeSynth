@@ -103,9 +103,18 @@ Test-Path splits\split_manifest.json, splits\MANIFEST.sha256, uv.lock
 ```
   - **驗證於**：`<sha>` @ YYYY-MM-DD
 ```
-sha 是**這次 commit 之後**的實際值，所以這一步和 commit 是連動的：
-先 commit 拿到 sha，再回填，再用一個小 commit 收尾；
-或先寫好其餘內容，commit 後補上 sha 再 amend。**不要編造 sha。**
+**⚠️ 順序很重要，而且只有一種正確做法：**
+
+1. 先把實質內容 commit，拿到 sha
+2. **再開一筆新的小 commit** 把 sha 填進 `PLAN.md`
+
+**絕對不要用 `git commit --amend` 回填 sha。** amend 會產生新的 sha，
+於是你剛填進去的那個值當場失效——這是自我指涉，必然失敗。
+（實際踩過：amend 後 `PLAN.md` 指向的 sha 變成 dangling object，
+`git cat-file -e` 還查得到，但 `git log` 裡沒有，gc 之後就消失。）
+
+**不要編造 sha**，也不要填一個只存在於 reflog 的值。
+自查：`git log --format=%h | grep -q <sha>` 必須成立。
 
 **3. 更新 `docs/worklog.md`**
 
