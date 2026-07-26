@@ -36,6 +36,8 @@
 - `Co-Authored-By:` trailer 為 0；沒有 remote、push 或其他 contributors
 - 完整稽核結果在 `reports/phase1_preflight.md`；建立 remote 前可重跑
   `uv run python -m scripts.audit_phase1_handoff`
+- repo 已啟用 `.githooks/commit-msg`：身份不符或訊息含
+  `Co-Authored-By:` 時，commit 會在進入歷史前被拒絕
 
 ### 3. 建立 GitHub repo（等你決定後才做）
 
