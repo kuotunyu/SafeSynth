@@ -12,6 +12,7 @@ from src.synthetic.composition import (
     inpaint_masked_object,
     match_high_frequency_noise,
     placement_slices,
+    poisson_composite,
     recompute_visible_annotations,
     seam_energy_ratio,
     tight_bbox,
@@ -133,6 +134,39 @@ def test_warp_and_alpha_composite_are_geometry_safe() -> None:
 
     assert inside == 1
     assert output.sum() > 0
+
+
+def test_poisson_composite_is_deterministic_and_preserves_shape() -> None:
+    frame = np.full((64, 64, 3), [40, 70, 100], dtype=np.uint8)
+    patch = np.zeros((24, 24, 3), dtype=np.uint8)
+    patch[..., 0] = np.arange(24, dtype=np.uint8)[:, None] * 8
+    patch[..., 1] = np.arange(24, dtype=np.uint8)[None, :] * 8
+    alpha = np.zeros((24, 24), dtype=np.uint8)
+    alpha[3:21, 3:21] = 255
+    frame_slice, patch_slice, _ = placement_slices(
+        frame_shape=frame.shape[:2],
+        patch_shape=patch.shape[:2],
+        center_xy=(32, 32),
+    )
+
+    first = poisson_composite(
+        frame,
+        patch,
+        alpha,
+        frame_slice=frame_slice,
+        patch_slice=patch_slice,
+    )
+    second = poisson_composite(
+        frame,
+        patch,
+        alpha,
+        frame_slice=frame_slice,
+        patch_slice=patch_slice,
+    )
+
+    assert first.shape == frame.shape
+    assert np.array_equal(first, second)
+    assert not np.array_equal(first, frame)
 
 
 def test_inpaint_covers_dilated_helmet_mask() -> None:

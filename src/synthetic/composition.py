@@ -311,6 +311,39 @@ def alpha_composite(
     return output
 
 
+def poisson_composite(
+    background_rgb: np.ndarray,
+    patch_rgb: np.ndarray,
+    alpha: np.ndarray,
+    *,
+    frame_slice: tuple[slice, slice],
+    patch_slice: tuple[slice, slice],
+) -> np.ndarray:
+    """Composite one clipped patch with OpenCV NORMAL_CLONE."""
+
+    source = np.ascontiguousarray(patch_rgb[patch_slice], dtype=np.uint8)
+    mask = np.ascontiguousarray(
+        (alpha[patch_slice] >= 128).astype(np.uint8) * 255
+    )
+    if source.size == 0 or not np.any(mask):
+        raise ValueError("Poisson clone requires a non-empty source and mask")
+    top = int(frame_slice[0].start or 0)
+    bottom = int(frame_slice[0].stop or background_rgb.shape[0])
+    left = int(frame_slice[1].start or 0)
+    right = int(frame_slice[1].stop or background_rgb.shape[1])
+    if source.shape[:2] != (bottom - top, right - left):
+        raise ValueError("Poisson source and destination slices disagree")
+    center = ((left + right) // 2, (top + bottom) // 2)
+    output_bgr = cv2.seamlessClone(
+        cv2.cvtColor(source, cv2.COLOR_RGB2BGR),
+        cv2.cvtColor(background_rgb, cv2.COLOR_RGB2BGR),
+        mask,
+        center,
+        cv2.NORMAL_CLONE,
+    )
+    return cv2.cvtColor(output_bgr, cv2.COLOR_BGR2RGB)
+
+
 def inpaint_masked_object(
     image_rgb: np.ndarray,
     mask: np.ndarray,

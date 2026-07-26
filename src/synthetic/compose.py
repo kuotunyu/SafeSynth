@@ -35,6 +35,7 @@ from src.synthetic.composition import (
     inpaint_masked_object,
     match_high_frequency_noise,
     placement_slices,
+    poisson_composite,
     recompute_visible_annotations,
     seam_energy_ratio,
     tight_bbox,
@@ -652,13 +653,25 @@ def _render_pastes(
                 rng=rng,
             )
         rgb[paste.patch_slice] = patch_rgb
-        output = alpha_composite(
-            output,
-            rgb,
-            alpha,
-            frame_slice=paste.frame_slice,
-            patch_slice=paste.patch_slice,
-        )
+        blending_method = str(config["compose"]["blending"]["method"])
+        if blending_method == "feathered_alpha":
+            output = alpha_composite(
+                output,
+                rgb,
+                alpha,
+                frame_slice=paste.frame_slice,
+                patch_slice=paste.patch_slice,
+            )
+        elif blending_method == "poisson":
+            output = poisson_composite(
+                output,
+                rgb,
+                paste.rgba[..., 3],
+                frame_slice=paste.frame_slice,
+                patch_slice=paste.patch_slice,
+            )
+        else:
+            raise ValueError(f"Unknown blending method: {blending_method}")
         # The real object is already in the background. Restore it whenever its
         # geometric layer is in front of this paste.
         for existing in existing_layers:
@@ -1149,9 +1162,12 @@ def generate(
     output_tag: str,
     selected_scenarios: Sequence[str] | None,
     draw_boxes: bool,
+    blending_method: str | None = None,
 ) -> dict[str, Any]:
     config, filter_config = _load_configs()
     config["seed"] = seed
+    if blending_method is not None:
+        config["compose"]["blending"]["method"] = blending_method
     rng = np.random.default_rng(seed)
     coco, bank, train_images, annotations, frozen, _ = _load_context(paths)
     categories = {
@@ -1340,6 +1356,7 @@ def generate(
         ),
         "coco_self_map": self_map,
         "hard_negative_status": "blocked_pending_kuotunyu_signoff",
+        "blending_method": str(config["compose"]["blending"]["method"]),
         "person_crowded_fallback": person_crowded_fallback,
         "scenario_class_size": {
             "|".join(key): value
@@ -1447,6 +1464,10 @@ def parse_args() -> argparse.Namespace:
         choices=(*SCENARIO_ORDER, *EXPERIMENTAL_SCENARIOS),
     )
     parser.add_argument("--stats-report-tag", default="synthetic_stats")
+    parser.add_argument(
+        "--blending-method",
+        choices=("feathered_alpha", "poisson"),
+    )
     return parser.parse_args()
 
 
@@ -1467,6 +1488,7 @@ def main() -> None:
         output_tag=args.output_tag,
         selected_scenarios=args.scenario,
         draw_boxes=args.draw_boxes,
+        blending_method=args.blending_method,
     )
     _write_stats_report(summary, paths, report_tag=args.stats_report_tag)
     print(json.dumps(summary, indent=2, sort_keys=True))
