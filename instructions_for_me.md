@@ -28,6 +28,8 @@
   比基準更差，已保存證據並排除，沒有拿測試結果偷調門檻
 - Poisson blending 也依預註冊方法測過，AUC 0.8869 且會洗掉安全帽顏色，
   已排除；預設仍保留較好的 feathered alpha
+- H4 的下一步已整理在 `docs/h4_next_decision.md`；需要你選擇是否把規格
+  擴張到生成式 inpainting，或把目前結果凍結成誠實的負結果
 - 遠端 GitHub repo 仍未建立，也沒有 remote 或 push
 - 本機所有 commit author 都是
   `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`
