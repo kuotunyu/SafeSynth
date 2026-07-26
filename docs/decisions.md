@@ -543,13 +543,14 @@ copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
 - M12 完成：300 = 196 pass + 104 reject，ledger 與 enum 七項檢查全過，
   12 pass／12 reject 圖已目視。
 - M13 全量生成仍被 M11 硬阻擋；也同時等待 M9 的使用者 H6 簽核。
-- 下一輪 H4 應優先處理 helmet/head 的 HOG 邊緣／重採樣訊號；
-  不得改用較弱分類器或放寬 0.60 來過關。
+- 下一輪 H4 應預先登記人物脈絡錨定的構圖方法，並在新的 frozen group
+  fold 驗證；不得改用較弱分類器或放寬 0.60 來過關。
 
 ### 證據
 
 - [H4 報告](../reports/h4_artifact_gate.md)
 - [H4 controlled ablations](../reports/h4_ablation.md)
+- [H4 person-context diagnostic](../reports/h4_context_diagnostic.md)
 - [H4 ROC 與 ranked patches](../reports/figures/h4_artifact_roc.png)
 - [M12 ledger](../reports/filter_ledger.md)
 - [M12 sensitivity](../reports/threshold_sensitivity.md)

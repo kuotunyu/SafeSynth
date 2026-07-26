@@ -1,0 +1,28 @@
+{
+  "anchored_pasted_vs_real_score_auc": 0.7561877209900354,
+  "counts": {
+    "anchored_pasted": 17,
+    "real": 183,
+    "unanchored_pasted": 166
+  },
+  "scope": "held-out head/helmet examples; existing H4 classifier scores",
+  "score_p10_p50_p90": {
+    "anchored_pasted": [
+      0.008390665706247092,
+      0.9941987991333008,
+      0.9998773217201233
+    ],
+    "real": [
+      5.387692453950871e-07,
+      0.011250993236899376,
+      0.9979622483253479
+    ],
+    "unanchored_pasted": [
+      0.007955799112096429,
+      0.9987066388130188,
+      1.0
+    ]
+  },
+  "source_h4": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\h4_artifact_gate.json",
+  "unanchored_pasted_vs_real_score_auc": 0.8134011455658701
+}

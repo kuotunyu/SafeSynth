@@ -32,7 +32,7 @@ The ablations do establish two useful facts:
 
 One read-only diagnostic points to composition context: on the final H4
 classifier scores, pasted headlike boxes anchored near a `person` have score-AUC
-0.7168 against real controls, versus 0.8094 for unanchored boxes. This is not a
+0.7562 against real controls, versus 0.8134 for unanchored boxes. This is not a
 replacement gate result, but it is a stronger next-step clue than further edge
 tuning. The next attempt should pre-register a context-anchored composition
 method and evaluate it on a new frozen group fold.
