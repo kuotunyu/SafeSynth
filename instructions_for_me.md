@@ -7,15 +7,36 @@
 
 ## 醒來後先看
 
-### 1. 本專案目前不用你操作
+### 1. 請先簽核 M9 的 hard-negative 候選
 
-- M0–M5 已完成，資料與 split 已凍結；遠端 GitHub repo 仍未建立
+- 打開 `reports/figures/h6_hard_negative_candidates.png`
+- 只數**青色框內其實是真正安全帽**的格數（共 64 格）
+- 回覆：「真正安全帽 N 格，批准／不批准」
+
+這是目前唯一不能由程式代替的資料決策。圖的 SHA256 已綁定為
+`0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739`；
+若檔案被改過，簽核會 hard fail。超過 6 格（10%）時，規格要求改為程序生成為主。
+
+### 2. 目前完成度與硬阻擋
+
+- M0–M8、M10、M12 已完成；資料、split、7,255 個 cutout 與 300 張 H4/M12
+  候選均已有可重現證據
+- M9 只差上面的人工簽核
+- M11 H4 **沒有通過**：paste-artifact classifier AUC 0.7964
+  （門檻 0.60），因此程式正確地阻擋 M13 全量生成
+- 遠端 GitHub repo 仍未建立，也沒有 remote 或 push
 - 本機所有 commit author 都是
   `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`
 - `Co-Authored-By:` trailer 為 0；沒有 remote、push 或其他 contributors
-- M6 起可繼續本機施工，不需要 Colab
 
-### 2. 可選的人眼複核（不阻塞後續）
+### 3. 建立 GitHub repo（等你決定後才做）
+
+本機 repo 已完整存在。醒來後若要發佈，先在 GitHub 建一個**空 repo**
+（不要勾 README、LICENSE 或 `.gitignore`），再把 URL 給我；我才會加 remote、
+再次掃 author/trailer，並在你確認後 push。這能確保 Contributors 只會有
+`kuotunyu`。
+
+### 4. 可選的人眼複核（不阻塞後續）
 
 我已逐張檢查過，結論已記在 ADR-007；你起床後若想複核，依序看：
 
@@ -24,10 +45,12 @@
 2. `reports/figures/h3_clip_largest_groups.png`：同一列應是連拍或保守合併的同構場景
 3. `reports/figures/h5_placement_priors.png`：head/helmet 有中央水平帶，person 較發散
 4. `reports/figures/class_distribution.png`：Train/Val/Test 與三類分布沒有離譜偏斜
+5. `reports/figures/filter_pass_reject_grid.png`：上半 12 pass、下半 12 reject
+6. `reports/figures/h4_ranked_patches.png`：H4 最易／最難辨識的貼上與真實 patch
 
 若看到問題，回覆「檔名／第幾列第幾格／問題」即可。
 
-### 3. 其他兩個 repo 的學校信箱仍要你親自處理
+### 5. 其他兩個 repo 的學校信箱仍要你親自處理
 
 | repo | 受影響的 commit | 現況 |
 |---|---|---|
@@ -62,9 +85,9 @@ git config --global user.email "61350295+kuotunyu@users.noreply.github.com"
 |---|---|---|
 | M3 | `helmet` 與 `head` 的 contact sheet | **框的是安全帽本體，還是整顆戴著安全帽的頭？** 這決定合規邏輯怎麼寫 |
 | M5 | `reports/figures/class_distribution.png` | 分布是否合理、有沒有離譜的離群值 |
-| M8 | `reports/figures/bank_<class>_grid.png`（洋紅色背景） | cutout 有沒有背景滲漏、光暈、或第二個物件入鏡 |
+| M8 | `reports/figures/bank_<class>_grid.png`（洋紅色背景） | 已檢查：cutout 有沒有背景滲漏、光暈、或第二個物件入鏡 |
 | **M9** | hard negative 的 8×8 contact sheet | **裡面有幾張其實是真正的安全帽？** 這是必須人工簽核的一關 |
-| M12 | 12 通過 vs 12 被拒 並排圖 | **被拒的樣本看起來有問題嗎？** 若沒問題就是門檻設錯了 |
+| M12 | 12 通過 vs 12 被拒 並排圖 | 已檢查並修正 pHash 自身背景混淆；最終 196 pass / 104 reject |
 | M14 | 各情境的 `preview_<scenario>.png` | 合成結果像不像真的、框有沒有貼對 |
 
 ### 回饋格式

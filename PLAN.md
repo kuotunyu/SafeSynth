@@ -116,7 +116,7 @@
 
 ## M6–M9 — 素材（**錯了事後難補救的第二段**）
 
-- [ ] **M6** 門檻校準工具（Spike H7）：算出所有幾何量的經驗百分位並回填 config
+- [x] **M6** 門檻校準工具（Spike H7）：算出所有幾何量的經驗百分位並回填 config
   - **對應規格**：[docs/filtering_spec.md §6](docs/filtering_spec.md)
   - **驗證**：`reports/calibration.md` 列出 per-class 的
     `mask_to_box_coverage`／框面積／最短邊／長寬比／solidity／
@@ -124,18 +124,22 @@
     的 `[p1, p5, p50, p95, p99]`；
     `configs/*.yaml` 中原本標 `source: calibrated` 的欄位**全部**已填入實測值；
     仍標 `source: guess` 的欄位清單被明確印出（M13 前必須列進 `reports/filter_report.md`）
-  - **驗證於**：（未完成）
+  - **驗證於**：`10718ba` @ 2026-07-27
+    （凍結 Train 3,500 圖／17,815 框；分布、邊界能量與仍屬 guess 的欄位
+    全列入 `reports/calibration.{json,md}`，config 校準值已回填）
 
-- [ ] **M7** Spike H2（SAM2 小框品質）＋ SAM2 Pass 1 全圖巡覽
+- [x] **M7** Spike H2（SAM2 小框品質）＋ SAM2 Pass 1 全圖巡覽
   - **對應規格**：CUT-01 ~ CUT-05
   - **驗證**：H2 對 60 個框（依最短邊分三組）跑三種模式並產出三欄並排 grid，
     **自己打開檢視**；決定採用模式、真正的尺寸下限、
     以及校準後的 `sam_iou_min` / `min_object_score_logit`（目視良好組的 p10），寫回 config；
     Pass 1 對全部 Train 影像產出既有標註的 mask 並存到 `masks_pass1/`，
     每張記錄 QC 是否通過（`compose.py` 的 COMP-09 會用到）
-  - **驗證於**：（未完成）
+  - **驗證於**：`10718ba` @ 2026-07-27
+    （60 框 × 3 模式比較圖已目視；選定 effective crop-512；
+    Pass 1 覆蓋 3,500 Train 圖／17,815 標註）
 
-- [ ] **M8** cutout bank Pass 2 ＋ contact sheets
+- [x] **M8** cutout bank Pass 2 ＋ contact sheets
   - **對應規格**：CUT-06 ~ CUT-12
   - **驗證**：**零個** `src_image_id` 落在 Val/Test（比對 `test_blocklist.json`，命中即失敗）；
     每個 RGBA PNG 有 4 通道且 alpha 非全 0 也非全 255；
@@ -146,22 +150,25 @@
     **同時列出 `n_person_cutouts` 與 `n_distinct_person_groups`**（ADR-003）；
     `reports/figures/bank_<class>_grid.png` 疊在**洋紅色**背景上產出並**自己打開檢視**——
     不能有背景滲漏、光暈、或第二個物件入鏡
-  - **驗證於**：（未完成）
+  - **驗證於**：`916c6bf` @ 2026-07-27
+    （7,255 accepted／10,560 rejected、Test 命中 0、manifest == PNG；
+    100/100 mask 重跑一致；三類洋紅底 contact sheets 已目視）
 
-- [ ] **M9** hard negative 挖料與程序生成 ＋ Spike H6 ＋ **使用者人工簽核**
+- [~] **M9** hard negative 挖料與程序生成 ＋ Spike H6 ＋ **使用者人工簽核**
   - **對應規格**：COMP-20 ~ COMP-24
   - **驗證**：H6 對 200 張 Train 影像跑挖料器，產出 8×8 contact sheet 並**人工數出真實安全帽數量**；
     比例超過 `max_tolerated_helmet_rate` → **翻轉為程序生成為主**並記錄一則 ADR；
     三層防護全部實作（IoU 上限、通不過「像戴著的安全帽」測試、人工簽核）；
     **素材庫凍結前必須取得使用者對 contact sheet 的簽核**；
     程序生成的形狀確認是**調變真實背景紋理**而非平坦填色
-  - **驗證於**：（未完成）
+  - **驗證於**：`c7514f4` @ 2026-07-27（程式與三層防護已完成）；
+    H6 64 格候選圖已產出，**等待 kuotunyu 人工簽核，素材庫尚未解鎖**
 
 ---
 
 ## M10–M12 — 合成引擎與過濾（**M11 之前，合成總量不得超過 300 張**）
 
-- [ ] **M10** `src/synthetic/compose.py` ＋ COCO 自評測試
+- [x] **M10** `src/synthetic/compose.py` ＋ COCO 自評測試
   - **對應規格**：COMP-01 ~ COMP-19、COMP-28、COMP-29
   - **驗證**：`uv run python -m src.synthetic.compose --n 32 --seed 42 --draw-boxes` 產出後
     **自己打開這 32 張畫了框的圖檢視**（沒有任何自動測試能取代這一步）；
@@ -172,17 +179,22 @@
     同 seed 兩次產出影像 SHA256 相同；
     `reports/synthetic_stats.md` 的「情境 × 類別 × 尺寸桶」交叉表證明
     `small_distant` **真的**產出最短邊落在目標區間的框
-  - **驗證於**：（未完成）
+  - **驗證於**：`e276d3e`、`dce0b85`、`e5c5bd9`、`49a51fe` @ 2026-07-27
+    （最終 32 圖 review grid 已目視；COCO self-mAP 1.000；
+    同 seed 兩次 32/32 SHA256 相同；`small_distant` 皆為 8–20 px）
 
-- [ ] **M11** Spike H4：貼上痕跡可偵測度（**放大生成量的硬閘門**）
+- [~] **M11** Spike H4：貼上痕跡可偵測度（**放大生成量的硬閘門**）
   - **對應規格**：[docs/synthesis_spec.md §5](docs/synthesis_spec.md)
   - **驗證**：以當時設定生成 300 張，訓練小型二元分類器分辨「貼上的 patch」與「真實物件 patch」，
     印出 AUC；
     **AUC 高 → 先修調和與羽化並重跑，不准進入 M13**；
     AUC 接近隨機 → 記錄數值與判定，通過閘門
-  - **驗證於**：（未完成）
+  - **驗證於**：`49a51fe` @ 2026-07-27
+    （300 圖、group-disjoint 且類別/尺寸配對的 2,028 patches；
+    AUC **0.7964**，95% CI 0.7481–0.8392，高於 0.60；
+    **硬閘門維持關閉，M13 不得開始**）
 
-- [ ] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
+- [x] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
   - **對應規格**：FILT-01 ~ FILT-14
   - **驗證**：`uv run pytest tests/test_rules.py -v` 全綠，
     含約 12 個手工建構的 golden case（漂浮安全帽、安全帽貼在頭側面、安全帽吞掉臉、
@@ -194,7 +206,9 @@
     `reports/threshold_sensitivity.md` 產出且**沒有任何門檻的 ±20% 讓接受率變動超過警戒值**；
     12 通過 vs 12 被拒的並排圖產出並**自己打開檢視**——
     **若被拒的樣本看起來明明沒問題，就是門檻錯了，改門檻並記進 `docs/decisions.md`**
-  - **驗證於**：（未完成）
+  - **驗證於**：`dce0b85`、`49a51fe` @ 2026-07-27
+    （300 = 196 pass + 104 reject，七項 ledger/enum 對帳全 PASS；
+    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 80 tests 與 ruff 通過）
 
 ---
 
@@ -210,7 +224,7 @@
     `set(filtered_ids) ⊆ set(pool_ids)`；
     每筆記錄含 `thresholds_sha256` 與完整 provenance；
     `reports/filter_report.md` 列出**所有仍標 `source: guess` 的門檻**
-  - **驗證於**：（未完成）
+  - **驗證於**：（等待 M11 通過與 M9 使用者簽核）
 
 - [ ] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
   - **對應規格**：PREV-01 ~ PREV-05
@@ -221,7 +235,7 @@
     `instructions_for_me.md` 明確寫出要看哪幾張、每張要看什麼、怎麼回饋（附可複製的回饋範本）；
     `PLAN.md` M0–M14 全勾且每項都有 `驗證於`；
     `git log` 每個里程碑至少一筆 commit
-  - **驗證於**：（未完成）
+  - **驗證於**：（等待 M13 與 hard-negative 預覽）
 
 ---
 

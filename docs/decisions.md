@@ -503,3 +503,54 @@ config 分別取 0.82 與 19.5。8–20 px 層沒有整體崩潰，因此硬下�
 
 - [H2 報告](../reports/h2_sam2_spike.md)
 - `reports/figures/h2_sam2_{very_small,medium,larger}.png`
+
+---
+
+## ADR-009 — H4 維持硬阻擋；FILT-11 排除自身背景
+
+### 脈絡
+
+M11 以當時設定產生上限內的 300 張候選圖。初版 H4 有兩個會灌高 AUC
+的混淆因子：合成圖使用 JPEG、真實圖使用 PNG；以及真實對照只按類別抽樣，
+未控制物件像素尺寸與 frozen group。兩者都修正後，另加入 soft-alpha
+邊緣去污染，仍需判斷剩餘訊號是否足以關閉 scale-up gate。
+
+同一輪 M12 顯示，若 pHash 把合成圖和「它自己的 Train 背景」比較，
+copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
+另外，cutout 已在素材庫經過 p1–p99 mask coverage gate，下游再次使用同一個
+緊上限，會讓 ±20% 敏感度測試由該重複門檻主導。
+
+### 決策
+
+1. **M11 不通過。** 最終 H4 使用 lossless PNG、C=1 的 L2 logistic
+   regression、frozen-group disjoint split，並在每個 fold 內按類別與
+   log(pixel width, pixel height) 配對真實對照。2,028 個 patch 的
+   HOG+HSV AUC 為 **0.7964**（bootstrap 95% CI 0.7481–0.8392），
+   高於預先登記的 0.60。即使已修正 soft-alpha source-background halo，
+   訊號仍明顯存在，因此不得用調寬門檻宣稱通過。
+2. **FILT-11 的 real-image pHash 比較排除該合成樣本自己的背景 image id，**
+   但仍和其餘所有 split 的真實影像比較。這使無意義的
+   `NEAR_DUPLICATE_REAL` 首因由 169 降到 7，同時保留跨影像撞樣防護。
+3. **下游 `helmet`／`head` mask coverage 上限設為 0.95。**
+   素材庫的嚴格 p99 gate 不變；0.95 只作最後一道「mask 直接回傳 prompt box」
+   的防護。調整後 300 張的 ±20% sensitivity alarm 為 0。
+4. **每個 `sample_id` 使用由 root seed 與 sample index 經 SHA256 派生的獨立 RNG。**
+   noise matching 即使不需加噪也消耗固定亂數 draw，避免某個光度分支把後續樣本
+   的 cutout、位置或 post-effect 全部洗牌。H4 羽化消融因此能固定幾何與 fold。
+
+### 後果
+
+- M12 完成：300 = 196 pass + 104 reject，ledger 與 enum 七項檢查全過，
+  12 pass／12 reject 圖已目視。
+- M13 全量生成仍被 M11 硬阻擋；也同時等待 M9 的使用者 H6 簽核。
+- 下一輪 H4 應優先處理 helmet/head 的 HOG 邊緣／重採樣訊號；
+  不得改用較弱分類器或放寬 0.60 來過關。
+
+### 證據
+
+- [H4 報告](../reports/h4_artifact_gate.md)
+- [H4 controlled ablations](../reports/h4_ablation.md)
+- [H4 ROC 與 ranked patches](../reports/figures/h4_artifact_roc.png)
+- [M12 ledger](../reports/filter_ledger.md)
+- [M12 sensitivity](../reports/threshold_sensitivity.md)
+- `reports/figures/filter_pass_reject_grid.png`

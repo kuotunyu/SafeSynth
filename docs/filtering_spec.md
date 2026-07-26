@@ -39,21 +39,21 @@ IoU 會嚴重低報「小框完全落在大框裡面」這種情形——而那�
 **拒絕原因**：`OUT_OF_BOUNDS`
 **實作**：`src/filtering/rules.py`，函式上方需有錨點 `# spec: FILT-01`
 **驗證**：`uv run pytest tests/test_rules.py -k filt_01`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-02 — 標註物件必須大到是個真的目標
 **判定**：`area(B_i)` 達下限。
 **參數**：`rules.min_visible_area.min_area_px`（校準目標：真實框面積的 p1）
 **拒絕原因**：`BOX_TOO_SMALL`
 **驗證**：`uv run pytest tests/test_rules.py -k filt_02`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-03 — 物件必須有足夠比例是看得見的
 **判定**：`visible_fraction(i)` 達 per-class 下限。
 **參數**：`rules.visible_fraction.{helmet, head, person}`
 **拒絕原因**：`LOW_VISIBLE_FRACTION`
 **驗證**：`uv run pytest tests/test_rules.py -k filt_03`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-04 — 物件不得互相堆疊
 **判定**：同類別的 `overlap_score` 與 `overlap_iou` 都在上限內。
@@ -61,7 +61,7 @@ IoU 會嚴重低報「小框完全落在大框裡面」這種情形——而那�
 **參數**：`rules.overlap.*`（校準目標：真實資料的 p99）
 **拒絕原因**：`EXCESSIVE_OVERLAP`
 **驗證**：`uv run pytest tests/test_rules.py -k filt_04`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-05 — mask 必須合理地填滿它的框
 **判定**：`mask_to_box_coverage(i)` 落在 per-class 的 `[下限, 上限]` 內。
@@ -69,14 +69,14 @@ IoU 會嚴重低報「小框完全落在大框裡面」這種情形——而那�
 **參數**：`rules.mask_to_box_coverage.{helmet, head, person}`（校準目標：p1–p99）
 **拒絕原因**：`BAD_MASK_COVERAGE`
 **驗證**：`uv run pytest tests/test_rules.py -k filt_05`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-06 — SAM2 mask 品質（承接自 cutout bank）
 **判定**：該實例所用 cutout 在建庫時通過了 [CUT-09](synthesis_spec.md) 的全部判據。
 分數隨 provenance 一路帶進合成記錄，不重算。
 **參數**：`cutout_bank.mask_quality.*`（在 `configs/compose.yaml`）
 **拒絕原因**：`SAM2_MASK_REJECTED`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-07 — 戴著的 Helmet 必須位於 Head 上方的合理範圍
 
@@ -114,7 +114,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 否則（helmet 只框帽殼、底下另有 head），就從真實配對取 p1–p99 再放寬 10%。
 
 **驗證**：`uv run pytest tests/test_rules.py -k filt_07`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-08 — Person / Head / Helmet 尺寸比例
 **判定**：當 helmet/head 框被 person 框包含（包含比例達門檻）時，
@@ -125,7 +125,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 但**上界刻意放寬**，因為工地場景的 `person` 框常常是半身裁切，會把比例推到 0.15–0.25。
 751 個真實 person 實例足以算出誠實的百分位——**用實測，不要用這裡的先驗值**。
 **驗證**：`uv run pytest tests/test_rules.py -k filt_08`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-09 — 穿模與接縫瑕疵
 **判定（兩項）**：
@@ -139,7 +139,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 **接縫門檻的校準方法**：量**真實**物件邊界的同一個統計量，取其 p95。
 那才是這個資料集的自然分布——用猜的會系統性偏離。
 **驗證**：`uv run pytest tests/test_rules.py -k filt_09`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-10 — Hard negative 不得汙染真實標註
 **判定**：hard negative 與任何標註的 IoU 在上限內，
@@ -149,7 +149,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 **理由**：用一塊**無標註**的色塊遮住一個真實標註物件，是**汙染標籤**而不是磨銳決策邊界
 （[ADR-004](decisions.md#adr-004)）。
 **驗證**：`uv run pytest tests/test_rules.py -k filt_10`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-11 — 近似樣本去重
 **判定（三項）**：
@@ -161,7 +161,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 **預期**：因為合成圖共用背景，碰撞會很多——**那是機制正常運作**，
 也正是 `compose.max_composites_per_background` 存在的理由（在上游就分散背景）。
 **驗證**：`uv run pytest tests/test_rules.py -k filt_11`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-12 — 不變式（斷言，不是過濾）
 以下違反時**必須讓程式 crash**，不可以只是拒絕該樣本：
@@ -174,7 +174,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 **理由**：這些違反代表 `compose.py` 有 bug。若只是「過濾掉這個樣本」，
 **bug 會藏進拒絕統計裡看不見**，然後你會以為過濾器很嚴格，其實是生成器壞了。
 **驗證**：`uv run pytest tests/test_rules.py -k filt_12`
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ### FILT-13 — filtered / unfiltered 兩版輸出
 **判定**：像素**只寫一次**到 `${data_root}/synthetic/images/`；
@@ -182,7 +182,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 兩組**必須等量**（見 [COMP-26](synthesis_spec.md)）。
 **理由**：一份磁碟拷貝，且消融變成「同一個生成器、不同的接受遮罩」，是最乾淨的比較。
 **驗證**：`set(filtered_ids) ⊆ set(pool_ids)`；兩份 JSON 的 `images` 指向同一批檔案。
-**狀態**：未實作
+**狀態**：[~] 由 M13 產生等量 filtered / unfiltered COCO 交付物
 
 ### FILT-14 — 門檻敏感度表
 **判定**：對每一個門檻**獨立**做 ±20% 擾動並重算接受率。
@@ -193,7 +193,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 一堆看起來合理的門檻裡可能只有一個在做事，而你不會知道是哪一個。
 **驗證**：`reports/threshold_sensitivity.md` 存在，且沒有任何門檻超標
 （超標就必須先校準或在報告中明確說明理由）。
-**狀態**：未實作
+**狀態**：[x] M12 已實作並驗證
 
 ---
 

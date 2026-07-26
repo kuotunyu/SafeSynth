@@ -31,10 +31,15 @@ the experiment is the *data*, not the model:
 
 ## Status
 
-Phase 1 builds the data pipeline: split freeze, SAM 2.1 cutout bank, composition
-engine, quality filter, preview grids. Phase 2 runs the five-arm RT-DETRv2
-comparison and publishes the results table, the trained weights, and the
-synthetic dataset.
+Phase 1 has frozen the guarded split, built and visually verified a 7,255-item
+SAM 2.1 cutout bank, implemented the deterministic compositor and filter, and
+verified the 300-image filter ledger (196 pass / 104 reject; zero threshold
+sensitivity alarms). The scale-up gate remains intentionally closed: the
+group-disjoint H4 paste-artifact classifier reaches AUC 0.7964 against the
+pre-registered maximum of 0.60. Full generation will not begin until that is
+fixed, and hard-negative material also awaits the repository owner's contact-
+sheet signoff. Phase 2 will run the five-arm RT-DETRv2 comparison only after
+those gates pass.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.
