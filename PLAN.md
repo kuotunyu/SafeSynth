@@ -181,7 +181,8 @@
     `small_distant` **真的**產出最短邊落在目標區間的框
   - **驗證於**：`e276d3e`、`dce0b85`、`e5c5bd9`、`49a51fe` @ 2026-07-27
     （最終 32 圖 review grid 已目視；COCO self-mAP 1.000；
-    同 seed 兩次 32/32 SHA256 相同；`small_distant` 皆為 8–20 px）
+    同 seed 兩次 32/32 SHA256 相同；加入 H4 實驗分支後再回歸仍為
+    32/32 SHA256 相同；`small_distant` 皆為 8–20 px）
 
 - [~] **M11** Spike H4：貼上痕跡可偵測度（**放大生成量的硬閘門**）
   - **對應規格**：[docs/synthesis_spec.md §5](docs/synthesis_spec.md)

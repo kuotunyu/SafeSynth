@@ -59,6 +59,8 @@
     COCO self-map 1.000、per-sample SHA256 RNG 已完成。
   - 同 seed 32/32 影像 SHA256 重現；最終 M12 ledger：
     300 = 196 pass + 104 reject，七項對帳全過，門檻敏感度警報 0。
+  - 加入 context replacement／Poisson 實驗分支後重新生成正式預設路徑，
+    與原 M10 32/32 SHA256 相同，確認實驗分支沒有污染 frozen compositor。
   - 修正 FILT-11：只排除合成樣本自己的 Train 背景，仍比較其他所有真實圖。
 - **M11 / H4**
   - 最終公平 gate：lossless PNG、同類別/同 fold/最近 log 尺寸真實對照、
