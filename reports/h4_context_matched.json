@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "person_context_matching": true,
+  "reason": "No real controls for class=head, fold=4, person_context=True, targets=5",
+  "run_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\m11_h4_seed42",
+  "seed": 1729,
+  "status": "infeasible"
+}

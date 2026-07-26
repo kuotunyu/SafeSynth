@@ -41,3 +41,11 @@ because its real controls are not matched on nearby `person` context?
   frozen-group fold.
 - No feature weakening, threshold widening, fold reselection, or post-result
   parameter tuning is allowed.
+
+## Registered outcome
+
+This method was frozen in commit `ddec0c7` before execution. It then stopped
+as **infeasible**: `head`, fold 4, `person_context=true` had 5 pasted targets
+but zero real controls. Per the rule above, no AUC was computed, the fold was
+not reselected, and matching was not relaxed. See
+[`reports/h4_context_matched.md`](../reports/h4_context_matched.md).

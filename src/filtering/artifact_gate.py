@@ -80,6 +80,32 @@ def _geometry_descriptor(bbox_xywh: Sequence[float]) -> np.ndarray:
     return np.log(np.asarray((width, height), dtype=np.float64))
 
 
+def has_person_context(
+    headlike_xywh: Sequence[float],
+    person_boxes: Sequence[Sequence[float]],
+) -> bool:
+    """Return whether a headlike centre lies near a person's upper body."""
+
+    head_x = float(headlike_xywh[0]) + float(headlike_xywh[2]) / 2
+    head_y = float(headlike_xywh[1]) + float(headlike_xywh[3]) / 2
+    head_width = float(headlike_xywh[2])
+    head_height = float(headlike_xywh[3])
+    for person_xywh in person_boxes:
+        person_x, person_y, person_width, person_height = (
+            float(value) for value in person_xywh
+        )
+        if (
+            person_x - head_width
+            <= head_x
+            <= person_x + person_width + head_width
+            and person_y - head_height
+            <= head_y
+            <= person_y + 0.65 * person_height + head_height
+        ):
+            return True
+    return False
+
+
 def _match_real_annotations(
     target_boxes: Sequence[Sequence[float]],
     candidates: Sequence[Mapping[str, Any]],
@@ -123,6 +149,7 @@ def build_patch_examples(
     run_dir: Path,
     config: Mapping[str, Any],
     seed: int,
+    match_person_context: bool = False,
 ) -> list[PatchExample]:
     """Build class/geometry/fold-matched real and pasted examples."""
 
@@ -140,7 +167,20 @@ def build_patch_examples(
     }
     images = {int(record["id"]): record for record in coco["images"]}
     annotations = {int(record["id"]): record for record in coco["annotations"]}
-    real_by_class_fold: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    annotations_by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for annotation in coco["annotations"]:
+        annotations_by_image[int(annotation["image_id"])].append(annotation)
+    person_boxes_by_image = {
+        image_id: [
+            annotation["bbox"]
+            for annotation in image_annotations
+            if categories[int(annotation["category_id"])] == "person"
+        ]
+        for image_id, image_annotations in annotations_by_image.items()
+    }
+    real_by_class_fold: dict[
+        tuple[str, int, bool | None], list[dict[str, Any]]
+    ] = defaultdict(list)
     for annotation in coco["annotations"]:
         image_id = int(annotation["image_id"])
         if frozen[image_id]["split"] != "train":
@@ -148,18 +188,31 @@ def build_patch_examples(
         class_name = categories[int(annotation["category_id"])]
         group_key = f"frozen-group:{int(frozen[image_id]['group_id'])}"
         fold = _stable_fold(group_key, seed=seed)
-        real_by_class_fold[(class_name, fold)].append(annotation)
+        person_context = (
+            has_person_context(
+                annotation["bbox"],
+                person_boxes_by_image.get(image_id, []),
+            )
+            if match_person_context and class_name in {"head", "helmet"}
+            else None
+        )
+        real_by_class_fold[(class_name, fold, person_context)].append(annotation)
     for candidates in real_by_class_fold.values():
         candidates.sort(key=lambda item: int(item["id"]))
 
     examples: list[PatchExample] = []
     synthetic_targets: dict[
-        tuple[str, int], list[tuple[Sequence[float], str]]
+        tuple[str, int, bool | None], list[tuple[Sequence[float], str]]
     ] = defaultdict(list)
     for record in records:
         image = np.asarray(
             Image.open(run_dir / record["file_name"]).convert("RGB")
         )
+        person_boxes = [
+            instance["bbox_xywh"]
+            for instance in record["instances"]
+            if instance["class_name"] == "person" and instance.get("kept", True)
+        ]
         for instance in record["instances"]:
             if instance["kind"] != "pasted":
                 continue
@@ -183,7 +236,12 @@ def build_patch_examples(
                 raise RuntimeError("H4 source class disagrees with the pasted class")
             group_key = f"frozen-group:{source_group_id}"
             fold = _stable_fold(group_key, seed=seed)
-            synthetic_targets[(class_name, fold)].append(
+            person_context = (
+                has_person_context(instance["bbox_xywh"], person_boxes)
+                if match_person_context and class_name in {"head", "helmet"}
+                else None
+            )
+            synthetic_targets[(class_name, fold, person_context)].append(
                 (instance["bbox_xywh"], str(record["sample_id"]))
             )
             examples.append(
@@ -197,9 +255,15 @@ def build_patch_examples(
             )
 
     for key, targets in sorted(synthetic_targets.items()):
-        class_name, fold = key
+        class_name, fold, person_context = key
         target_boxes = [target[0] for target in targets]
         candidates = real_by_class_fold[key]
+        if not candidates:
+            raise ValueError(
+                "No real controls for "
+                f"class={class_name}, fold={fold}, "
+                f"person_context={person_context}, targets={len(targets)}"
+            )
         matched_annotations = _match_real_annotations(target_boxes, candidates)
         for target_index, annotation in enumerate(matched_annotations):
             image_id = int(annotation["image_id"])

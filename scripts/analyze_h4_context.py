@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from src.data.paths import load_project_paths
-from src.filtering.artifact_gate import roc_auc
+from src.filtering.artifact_gate import has_person_context, roc_auc
 
 
 def _read_json(path: Path) -> Any:
@@ -22,27 +22,6 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-
-
-def _near_person_anchor(
-    headlike_xywh: list[float],
-    person_xywh: list[float],
-) -> bool:
-    """Return whether a headlike centre lies near a person's upper body."""
-
-    head_x = float(headlike_xywh[0]) + float(headlike_xywh[2]) / 2
-    head_y = float(headlike_xywh[1]) + float(headlike_xywh[3]) / 2
-    person_x, person_y, person_width, person_height = (
-        float(value) for value in person_xywh
-    )
-    return (
-        person_x - float(headlike_xywh[2])
-        <= head_x
-        <= person_x + person_width + float(headlike_xywh[2])
-        and person_y - float(headlike_xywh[3])
-        <= head_y
-        <= person_y + 0.65 * person_height + float(headlike_xywh[3])
-    )
 
 
 def _percentiles(values: list[float]) -> list[float]:
@@ -88,10 +67,7 @@ def main() -> None:
         ]
         key = (
             "anchored_pasted"
-            if any(
-                _near_person_anchor(instance["bbox_xywh"], person_box)
-                for person_box in person_boxes
-            )
+            if has_person_context(instance["bbox_xywh"], person_boxes)
             else "unanchored_pasted"
         )
         scores[key].append(float(score))

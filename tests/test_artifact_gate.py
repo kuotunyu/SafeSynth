@@ -5,6 +5,7 @@ import numpy as np
 from src.filtering.artifact_gate import (
     _context_crop,
     _match_real_annotations,
+    has_person_context,
     patch_feature,
     roc_auc,
 )
@@ -48,3 +49,11 @@ def test_real_controls_are_geometry_matched_without_replacement() -> None:
     )
 
     assert [item["id"] for item in matched] == [3, 2]
+
+
+def test_person_context_uses_upper_body_and_horizontal_expansion() -> None:
+    person_boxes = [[35.0, 20.0, 30.0, 100.0]]
+
+    assert has_person_context([45.0, 15.0, 10.0, 10.0], person_boxes)
+    assert not has_person_context([100.0, 15.0, 10.0, 10.0], person_boxes)
+    assert not has_person_context([45.0, 100.0, 10.0, 10.0], person_boxes)

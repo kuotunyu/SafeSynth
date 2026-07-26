@@ -21,6 +21,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-tag", default="m11_h4_seed42")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--match-person-context", action="store_true")
+    parser.add_argument("--report-tag", default="h4_artifact_gate")
     return parser.parse_args()
 
 
@@ -63,12 +65,48 @@ def main() -> None:
     )
     if int(summary["n_images"]) != 300:
         raise RuntimeError("H4 requires exactly 300 generated images")
-    examples = build_patch_examples(
-        paths=paths,
-        run_dir=run_dir,
-        config=config,
-        seed=args.seed,
-    )
+    try:
+        examples = build_patch_examples(
+            paths=paths,
+            run_dir=run_dir,
+            config=config,
+            seed=args.seed,
+            match_person_context=args.match_person_context,
+        )
+    except ValueError as error:
+        if not args.match_person_context:
+            raise
+        result = {
+            "run_dir": str(run_dir),
+            "seed": args.seed,
+            "person_context_matching": True,
+            "status": "infeasible",
+            "reason": str(error),
+            "passed": False,
+        }
+        (paths.reports / f"{args.report_tag}.json").write_text(
+            json.dumps(result, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        lines = [
+            "# Spike H4 — context-matched feasibility",
+            "",
+            "- Status: **INFEASIBLE**",
+            f"- Frozen seed: `{args.seed}`",
+            f"- Reason: `{error}`",
+            "",
+            "The pre-registration forbids fold reselection or silently relaxing",
+            "class/fold/context matching. The original H4 failure remains binding.",
+            "",
+        ]
+        (paths.reports / f"{args.report_tag}.md").write_text(
+            "\n".join(lines),
+            encoding="utf-8",
+            newline="\n",
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        raise SystemExit(3) from error
     result = train_artifact_classifier(
         examples,
         seed=args.seed,
@@ -86,9 +124,10 @@ def main() -> None:
                 "same class + same fold + nearest log(pixel width, pixel height)"
             ),
             "labels": {"0": "real", "1": "pasted"},
+            "person_context_matching": bool(args.match_person_context),
         }
     )
-    output_json = paths.reports / "h4_artifact_gate.json"
+    output_json = paths.reports / f"{args.report_tag}.json"
     output_json.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -97,7 +136,7 @@ def main() -> None:
     _render_roc(
         np.asarray(result["test_labels"]),
         np.asarray(result["test_scores"]),
-        paths.figures / "h4_artifact_roc.png",
+        paths.figures / f"{args.report_tag}_roc.png",
     )
     status = "PASS — scale-up gate open" if result["passed"] else "FAIL — fix blending first"
     lines = [
@@ -113,12 +152,20 @@ def main() -> None:
         f"- Scale-up maximum AUC: {threshold:.2f}",
         f"- Decision: **{status}**",
         "",
-        "Real controls match class, H4 fold, and nearest log pixel width/height.",
+        (
+            "Real controls match class, H4 fold, "
+            + (
+                "person-context state, and "
+                if args.match_person_context
+                else ""
+            )
+            + "nearest log pixel width/height."
+        ),
         "Both labels use the same frozen-group hash, so video near-duplicates cannot",
         "cross the split; fold-level class and target-resolution counts are paired.",
         "",
     ]
-    (paths.reports / "h4_artifact_gate.md").write_text(
+    (paths.reports / f"{args.report_tag}.md").write_text(
         "\n".join(lines), encoding="utf-8", newline="\n"
     )
     print(
