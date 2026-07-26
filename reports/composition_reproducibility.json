@@ -1,0 +1,8 @@
+{
+  "first_images": 32,
+  "first_summary": "D:\\sdg-data\\02-safesynth\\synthetic\\m10_seed42\\summary.json",
+  "mismatches": [],
+  "passed": true,
+  "second_images": 32,
+  "second_summary": "D:\\sdg-data\\02-safesynth\\synthetic\\m10_repro\\summary.json"
+}
