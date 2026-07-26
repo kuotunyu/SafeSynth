@@ -8,27 +8,32 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-27
-- **最後 commit**：`d29405d` feat(data): freeze guarded group split
-- **目前里程碑**：`M0`–`M5` `[x]`；下一步 M6 SAM2 calibration harness。
-- **⚠️ 未 commit 的改動**：M3–M5 驗證紀錄與醒來後交接文件。
+- **更新時間**：2026-07-27 06:28 +08:00
+- **最後驗證 commit**：`15ec811` docs(synthetic): record failed H4 Poisson spike
+- **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 等使用者 H6
+  簽核；`M11` H4 未通過；`M13`/`M14` 依硬閘門暫停。
+- **⚠️ 未 commit 的改動**：只有本次 worklog／preflight 更新。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
-- **資料落地**：Kaggle version 1 已下載到 `D:\sdg-data\02-safesynth`；
-  原始 archive、解壓資料與 `interim/coco_all.json` 齊備，來源 SHA256 已記錄。
+- **資料與素材落地**：Kaggle version 1、Pass-1 masks、7,255 個通過素材、
+  300 張 final H4/M12 候選與診斷 run 都在 `D:\sdg-data\02-safesynth`；
+  Test 洩漏為 0，cutout 重現抽查 100/100。
 - **環境**：已安裝並驗證。`.venv/` ＋ `uv.lock` 已存在，
   Python 3.12.13、torch 2.13.0+cu130、torchvision 0.28.0+cu130、transformers 5.14.1。
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
-  SAM2 權重還沒下載。
-- **下一個動作（一句話、可直接動手）**：先實作 M6 calibration harness；
-  等 GPU 空出後下載／載入 SAM2 並跑 30 個 stratified instances。
-- **卡住的事**：無
-- **等使用者做的事**：醒來後可選擇複核 M3/M5 圖；遠端 repo 仍未建立。
+  SAM2 2-pass 推論已完成，權重存在既有 Hugging Face cache。
+- **下一個動作（一句話、可直接動手）**：使用者先簽核 H6 64 格圖；
+  H4 則需另行預註冊能同時解決空間重採樣與色彩訊號的新生成架構。
+- **卡住的事**：H4 feathered-alpha AUC 0.7964 > 0.60；M13 硬阻擋。
+- **等使用者做的事**：數 H6 青框內真正安全帽格數並批准／不批准；
+  遠端 repo 仍未建立，醒來後再決定。
 - **驗證本快照的指令**：
   ```
-  git log --oneline -5; git status --porcelain; (Get-Content CLAUDE.md).Count
+  uv run python -m scripts.audit_phase1_handoff
+  uv run ruff check .
+  uv run pytest -q
   ```
 
 ---
@@ -36,6 +41,43 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-27 · M6–M12 · 素材、合成、filter 與 H4 硬閘門
+
+- **M6–M8**
+  - SAM2.1 Hiera Large 兩趟推論與 calibration 完成；H2 選定 contextual crop
+    resize 512、edge-replicate 到 1024。
+  - 素材庫 7,255 個：helmet 5,578、head 1,564、person 113；person 跨
+    77 groups，依 ADR-003 使用 fallback；Test 洩漏 0。
+  - 100 個 cutout 重新建置 SHA256 100/100 一致；三類洋紅底 grid 已目視。
+- **M9**
+  - 64 格 H6 候選與固定 SHA256
+    `0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739`
+    已完成；不得代替 `kuotunyu` 建立簽核。
+- **M10/M12**
+  - 決定性 scenario compositor、bbox/visibility 重算、完整 provenance、
+    COCO self-map 1.000、per-sample SHA256 RNG 已完成。
+  - 同 seed 32/32 影像 SHA256 重現；最終 M12 ledger：
+    300 = 196 pass + 104 reject，七項對帳全過，門檻敏感度警報 0。
+  - 修正 FILT-11：只排除合成樣本自己的 Train 背景，仍比較其他所有真實圖。
+- **M11 / H4**
+  - 最終公平 gate：lossless PNG、同類別/同 fold/最近 log 尺寸真實對照、
+    group-disjoint HOG+HSV C=1；2,028 patches，AUC 0.7964
+    （CI 0.7481–0.8392），高於 0.60，M13 維持關閉。
+  - controlled alpha／multiband 變體都沒有可靠改善；feature-family 診斷：
+    HOG-only 0.7792、HSV-only 0.6816。
+  - 預註冊 context matching 因 frozen fold 缺真實對照而按規則停止；
+    同類別原位替換 AUC 0.8312；Poisson AUC 0.8869 且明顯洗掉物件顏色。
+    三條路都如實保存，沒有調弱分類器或放寬門檻。
+- **品質與交接**
+  - `uv run ruff check .` → PASS；`uv run pytest -q` → 91 passed
+    （僅 pycocotools/Numpy 已知 deprecation warning）。
+  - prepublication audit：所有 local refs 的 author/committer 只有
+    `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`；
+    `Co-Authored-By:` 0、remote 0。
+  - 主要 commits：`10718ba`、`916c6bf`、`e276d3e`、`dce0b85`、
+    `49a51fe`、`6d0d13e`、`15ec811`。
+- **外部動作**：沒有建立 GitHub repo、remote、push、發佈或寫入兄弟專案。
 
 ### 2026-07-27 · M3–M5 · 資料語意、近似分群與 split 凍結
 
