@@ -1,0 +1,152 @@
+# Worklog — 02-safesynth-ppe 施工日誌
+
+<!-- 收工時做兩件事：(1) 覆寫「現況快照」 (2) 在「工作日誌」最上面插入一筆。 -->
+<!-- 快照是待證偽的假設，不是真相。真相以 git log 為準——開工時務必交叉驗證。 -->
+<!-- 本檔超過約 18 KB 時把舊日誌摺疊或歸檔（publish-repo gate 2 的門檻是 ~20 KB）。 -->
+
+## 現況快照
+
+*每次收工覆寫，只留最新一份。*
+
+- **更新時間**：2026-07-27
+- **最後 commit**：**還沒有任何 commit**（`git init` 都還沒做）
+- **目前里程碑**：`M0` `[~]`——**Phase 1 與 Phase 2 的文件全部寫完**，一致性自檢全綠，
+  等使用者執行 `git init` 與首批 commit 即可勾掉
+- **已凍結不得再動**：（無）
+- **資料落地**：（無）。`D:\sdg-data\02-safesynth` 還沒建立
+- **環境**：**還沒建**。本機只有 anaconda 3.10.9 與 uv 管的 3.10.9／3.14.5，缺 3.12。
+  `uv.lock` 不存在。SAM2 權重沒下載
+- **下一個動作（一句話、可直接動手）**：使用者執行 `git init` 與三筆 commit，
+  然後開 `M1`（`uv python install 3.12` → `uv sync`）
+- **卡住的事**：無
+- **等使用者做的事**：執行 git 寫入動作（本專案所有 git 寫入由使用者親自執行）
+- **驗證本快照的指令**：
+  ```
+  git log --oneline -5; git status --porcelain; (Get-Content CLAUDE.md).Count
+  ```
+
+---
+
+## 工作日誌
+
+*append-only，新的插在最上面。*
+
+### 2026-07-27 · M0（續）· 補上 Phase 2 規格
+
+- **對應規格**：EVAL-01~18、DEMO-01~05、PUB-01~11、EXP-01~03
+- **背景**：使用者決定把 Phase 2 的規格也一次寫完，目標是「按圖施工」的完整度。
+  原先 M0 的決定是暫緩 Phase 2 規格以免被 Phase 1 實測推翻——
+  折衷作法是**照寫，但把受 Phase 1 影響的部分標成 config 旗標的兩條分支**
+  （例如合規邏輯的 `class_direct` vs `geometric_pairing` 由 Spike H1 決定）
+- **做了什麼**
+  - `docs/evaluation_spec.md`（EVAL-01~18）：合規邏輯兩模式、指標、錯誤分析
+  - `docs/release_spec.md`（DEMO-01~05、PUB-01~11）：Gradio demo、README、HF 發佈
+  - `configs/evaluation.yaml`：合規操作點、COCO 面積桶、效能量測、錯誤分析參數
+  - `PLAN_PHASE2.md`：M15–M24。**另開一份檔**是因為 `PLAN.md` 已 16 KB，
+    合併會超過 `publish-repo` 第 2 關的 ~20 KB 門檻
+  - `CLAUDE.md` 加入【去哪找】路由表；把「五組」修正為「四組」並說明原因
+  - `docs/experiment_protocol.md` 從存根擴充為完整協定層
+
+- **從原始 Phase 2 prompt 修正的三處**
+  1. **第 4 項的 YOLO11s 移除**：Ultralytics 是 AGPL-3.0，會傳染到 `import` 它的程式碼，
+     與 MIT repo 牴觸——ADR-001 早已因同一理由否決它，只在 README 註明授權擋不住這件事。
+     使用者選擇改用寬鬆授權的偵測器，選型待 ADR-005
+  2. **第 5 項的「WSL2」移除**：本專案原生 Windows（ADR-002）
+  3. **「五組」修正為「四組」**：本專案的 Real-only 本來就吃全部真實 Train，
+     沒有更高的「Full-real 上限」可言。README 要主動說明，否則讀者會以為漏做一組
+
+- **本階段新寫進規格的兩個陷阱**
+  - **`AP_small` 必須在原始 416×416 座標下計算**（EVAL-07）。影像在 416 標註、
+    在 640 訓練，若在 640 算面積，每個物件膨脹約 2.37 倍，
+    大量原本 small 的物件會被歸到 medium——主敘事指標會**安靜地**變成在測量另一件事。
+    `head` 平均約 34×34 ≈ 1,156 px²，正好卡在 32²=1024 的邊界附近，特別敏感
+  - **合規操作點只能在 Validation 上選**（EVAL-04），在 Test 上選等於用測試集調參
+
+- **使用者決定**：速度對照改用寬鬆授權模型；Colab 是 **500 units/月**方案（非 100）；
+  demo 做上傳圖片/影片的 Gradio（不做 webcam）；無人值守的邊界由 Claude 自行判斷
+- **無人值守邊界（Claude 自訂並記錄）**：會停下來等使用者的是——花錢、>2GB 下載、
+  git push／發佈、以及結果與規格假設牴觸而需要決定範圍的時刻。
+  需要看圖判斷的事自己看（H1、H5、預覽圖品質），記進 worklog 隔天複核。
+  M9 的 hard negative 簽核先自己數一遍，只有落在灰色地帶才叫人
+- **查證結果（RT-DETRv2 訓練 API，已寫進 `training_spec.md` §1.1–1.3 與 ADR-005/006）**
+  - **`transformers` 已進入 v5**（5.14.1）。v5 把 image processor 的快慢版合併並改名：
+    `RTDetrImageProcessor` 現在**就是**快版，`RTDetrImageProcessorFast` 不存在了。
+    2025 年的教學抄下來會 ImportError 或行為悄悄不同 → **下限提高到 5.14.1（ADR-006）**
+  - **`RTDetrV2ImageProcessor` 根本不存在**（`rt_detr_v2/` 目錄裡沒有任何 image processing 檔案）。
+    HF 官方文件的 autodoc 範例區塊連類別名帶 checkpoint id 都是錯的 →
+    **一律用 `AutoImageProcessor` / `AutoModelForObjectDetection`**
+  - **RT-DETR 不做 ImageNet 正規化**（`do_normalize: false`，只除以 255）。
+    自己加正規化會安靜地毀掉模型
+  - checkpoint 的預設 size 已經是 640×640，`do_convert_annotations: true`
+    會自動把 COCO xywh 轉成正規化 cxcywh——兩者都不要覆寫
+  - 六個會安靜出錯的訓練設定：`eval_do_concat_batches=False`（強制）、
+    `ignore_mismatched_sizes=True`、`remove_unused_columns=False`、
+    `max_grad_norm=0.1`（不是預設的 1.0）、
+    `len(val) % eval_bs != 1`（餘數為 1 會直接崩潰）、category id 要重新映射成 0..K-1
+  - **backbone 不要凍結**，用 0.1× 的 backbone LR 參數組（上游作者的做法）
+  - `PekingU/rtdetr_v2_r18vd` 確認存在：Apache-2.0、20,209,716 參數、約 77 MiB
+- **Colab 預算**：使用者的 500 CU 方案是 **Pro+**，附帶最長 24 小時背景執行。
+  8 次訓練用 **L4** 跑 50 epochs 約 **113 CU**，額度綽綽有餘。
+  L4 對整個 sweep 與 T4 幾乎等價成本但快約 2.4 倍，且每次訓練都塞得進單一 session
+  （T4 跑合成組 100 epochs 會超過約 12 小時上限）。**這些是外推估計，誤差約 ±40%**
+- **ADR-005 速度對照組**：改用 `Roboflow/rf-detr-nano`（Apache-2.0，`transformers` 原生支援），
+  邊際成本幾乎是零。⚠️ 只能用 nano/small/medium/base/large，**XL 與 2XL 是 PML-1.0**。
+  否決 YOLOX（停更 14 個月）與 RTMDet（mmdetection 停更 23 個月，且 mmcv 在原生 Windows 要編 CUDA extension）
+- **驗證結果**：`CLAUDE.md` 127 行（上限 200）；`PLAN.md` 16 KB／`PLAN_PHASE2.md` 12 KB
+  各自低於 20 KB 門檻；個資／金鑰／禁用詞／AGPL 依賴掃描全 PASS；
+  連結、ADR anchor、config 引用、四個版本號三處一致——**全數通過**
+- **commit**：（等使用者執行）
+- **刻意不做**：不在規格裡寫死今天查到的 API 細節就了事——
+  `TRAIN-01` 仍要求 M15 開工時重新查證一次，因為版本還會動
+
+### 2026-07-27 · M0 · 文件與骨架凍結
+
+- **對應規格**：全部規格文件本身
+- **做了什麼**
+  - 建立目錄骨架（`src/{data,synthetic,filtering,inference,evaluation}`、`scripts`、
+    `configs`、`docs`、`splits`、`reports/figures`、`results`、`assets`、`model_cards`、
+    `notebooks`、`tests`）與 `.gitkeep`
+  - 根檔：`LICENSE`（MIT ＋ 第三方素材授權說明）、`.gitignore`、`README.md`、
+    `pyproject.toml`（含 cu130 index 區塊）
+  - `configs/`：`paths.yaml`（路徑唯一來源）、`compose.yaml` 與 `filtering.yaml`
+    （**數值唯一來源**，每個門檻帶 `source: fixed|guess|calibrated` 標記）
+  - `CLAUDE.md` 五章節，102 行
+  - `docs/` 九份：`decisions.md`（ADR-001~004）、`environment.md`（ENV-01~10）、
+    `data_protocol.md`（DATA-01~21）、`synthesis_spec.md`（CUT-01~12／COMP-01~29）、
+    `filtering_spec.md`（FILT-01~14／PREV-01~05）、`experiment_protocol.md`（EXP-01~03 存根）、
+    `troubleshooting.md`（K-01~09 已知風險）、`skills_roadmap.md`、`worklog.md`
+  - `PLAN.md`：M0–M14，每項附對應規格 ID 與可執行的驗證方法
+  - 兩支 skill：`.claude/skills/safesynth/`（開工／收尾儀式）、
+    `.claude/skills/safesynth-env/`（Windows 環境 runbook）
+
+- **本階段的查證結果（都已寫進對應文件）**
+  - SAM2 走 HF `transformers` 的 `Sam2Model`，純 pip、零 CUDA 編譯，
+    解除了「原生 Windows 做不了 SAM2」的疑慮。硬性下限 `transformers>=4.57.1`
+    （4.56.x 的 box prompt 有數值 bug，會**安靜**降低 mask 品質）
+  - `post_process_masks` 的 `max_hole_area`／`max_sprinkle_area` 是 **no-op**，
+    清理必須自建
+  - PyPI 的 Windows torch wheel 是 **CPU-only**；已實地確認
+    `torch-2.13.0+cu130-cp312-cp312-win_amd64.whl` 與
+    `torchvision-0.28.0+cu130-cp312-cp312-win_amd64.whl` 存在；
+    驅動 591.86 ≥ 580.88 過關
+  - **cu128 index 最高只到 torch 2.11.0**，沒有 2.12／2.13
+  - 資料集三類實例數 18,966／5,785／751，其中 `person` 只在 158 張圖裡；
+    SHEL5K 重標同樣 5,000 張圖得 75,570 個標註 vs 原版 25,502，
+    約 2/3 真實物件未標註 → **所有主張必須是相對的**
+  - 資料集平均物件面積有**兩個互相矛盾的讀數**（相差約 4 倍），已列為 M2 的實測項
+  - **`helmet` 框的語意沒有任何來源定義過**（框帽殼還是框整顆戴帽的頭），
+    已列為 Spike H1，是 M3 的第一項
+
+- **驗證結果**：`(Get-Content CLAUDE.md).Count` → `102`（上限 200）。
+  其餘一致性檢查在 M0 收尾時執行
+- **決策**：ADR-001（SAM2 路徑）、ADR-002（Windows 原生 ＋ cu130）、
+  ADR-003（3 類保留但合規不依賴 person）、ADR-004（hard negative 挖料為主且不給標註）
+- **踩到的坑**：無（`troubleshooting.md` 目前只有預先寫入的已知風險 K-01~09）
+- **commit**：（等使用者執行）
+- **刻意不做**：不寫任何 Python；不下載資料集；不建 venv；
+  不寫 Phase 2 的實質規格（只留協定層存根，避免被 Phase 1 實測推翻）；
+  不動兄弟專案 `1_DefectForge` 與 `3_FormosaNLU`（有平行 session 正在建置）
+
+- **跨專案發現（需回報使用者）**：`1_DefectForge/pyproject.toml` 同時寫著
+  「torch 從 cu128 index 裝」與「已查證 torch 2.13.0」。依實測該組合不存在
+  （cu128 最高 2.11.0），該專案的 M1 需一併改用 cu130
