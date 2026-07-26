@@ -20,9 +20,36 @@
 
 - 三案的母資料夾（`mySyntheticData\`）底下有一個檔名為 `; else echo MISSING` 的
   13 bytes 檔案，是某次 shell 指令沒跑好留下的殘骸。無害但建議刪掉
-- 兄弟專案 `1_DefectForge` 的 `pyproject.toml` 同時寫著「torch 從 **cu128** index 裝」
-  與「已查證 torch 2.13.0」。**實測 cu128 index 最高只到 torch 2.11.0**，
-  該組合裝不起來。那個專案的 M1 需要改用 cu130（本專案已經是 cu130）
+- ~~`1_DefectForge` 的 cu128 問題~~ → ✅ **已於 2026-07-27 修好**
+  （改用 cu130、補上 `[[tool.uv.index]]` 區塊、順帶實測 diffusers 0.39 ＋ transformers v5
+  解析無衝突）
+
+### 🔴 學校信箱寫進了 commit 歷史（要你親自處理）
+
+全域 `git config user.email` 是 `03131047@gm.scu.edu.tw`，所以早期的 commit 都用了它：
+
+| repo | 受影響的 commit | 現況 |
+|---|---|---|
+| `1_DefectForge` | 前 3 筆 | repo-local 身分已修，新 commit 乾淨 |
+| `3_FormosaNLU` | 2 筆 | repo-local 身分已修，新 commit 乾淨 |
+| `2_SafeSynth` | 0 筆 | 一開始就設對了 |
+
+發佈就會**公開且永久**。既有 commit 要靠改寫歷史（這是你親自執行的動作）：
+
+```bash
+git filter-repo --email-callback 'return b"61350295+kuotunyu@users.noreply.github.com" if b"gm.scu.edu.tw" in email else email' --force
+```
+
+跑完用 `git log --all --format='%ae' | sort -u` 確認只剩 noreply 那一個。
+
+**根因是全域設定**，建議一併改掉，否則下一個新 repo 又會中招：
+
+```bash
+git config --global user.email "61350295+kuotunyu@users.noreply.github.com"
+```
+
+（三個 repo 的 `Co-Authored-By` trailer 都是 **0**，這部分乾淨。
+你截圖裡出現「claude」的那個 repo 不在這三個之中，要單獨處理。）
 
 ---
 
