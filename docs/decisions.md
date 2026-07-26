@@ -559,6 +559,7 @@ copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
 - [H4 context-replacement diagnostic](../reports/h4_context_replacement_diagnostic.md)
 - [H4 feature-family diagnostic](../reports/h4_feature_family_diagnostic.md)
 - [H4 Poisson result](../reports/h4_poisson_gate.md)
+- [H4 exact-source-pair result](../reports/h4_source_pair.md)
 - [H4 ROC 與 ranked patches](../reports/figures/h4_artifact_roc.png)
 - [M12 ledger](../reports/filter_ledger.md)
 - [M12 sensitivity](../reports/threshold_sensitivity.md)

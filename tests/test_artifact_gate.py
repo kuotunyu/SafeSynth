@@ -57,3 +57,22 @@ def test_person_context_uses_upper_body_and_horizontal_expansion() -> None:
     assert has_person_context([45.0, 15.0, 10.0, 10.0], person_boxes)
     assert not has_person_context([100.0, 15.0, 10.0, 10.0], person_boxes)
     assert not has_person_context([45.0, 100.0, 10.0, 10.0], person_boxes)
+
+
+def test_source_pair_and_person_context_modes_cannot_be_mixed(tmp_path) -> None:
+    import pytest
+
+    from src.filtering.artifact_gate import build_patch_examples
+
+    with pytest.raises(
+        ValueError,
+        match="Person-context matching applies only to pooled controls",
+    ):
+        build_patch_examples(
+            paths=tmp_path,  # type: ignore[arg-type]
+            run_dir=tmp_path,
+            config={},
+            seed=1,
+            match_person_context=True,
+            control_mode="source_pair",
+        )

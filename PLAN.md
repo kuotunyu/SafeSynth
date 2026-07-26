@@ -195,6 +195,8 @@
     context-matched 診斷因 frozen fold 缺真實對照而依預註冊規則停止；
     同類別原位替換 spike 也失敗，AUC **0.8312**（CI 0.7505–0.8984）；
     Poisson spike 因洗掉物件顏色而失敗，AUC **0.8869**（CI 0.8551–0.9170）；
+    exact-source 成對控制仍達 AUC **0.9049**（CI 0.8788–0.9289），
+    排除素材庫 selection bias 是主要假象；
     **硬閘門維持關閉，M13 不得開始**）
 
 - [x] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
@@ -211,7 +213,7 @@
     **若被拒的樣本看起來明明沒問題，就是門檻錯了，改門檻並記進 `docs/decisions.md`**
   - **驗證於**：`dce0b85`、`49a51fe` @ 2026-07-27
     （300 = 196 pass + 104 reject，七項 ledger/enum 對帳全 PASS；
-    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 91 tests 與 ruff 通過）
+    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 92 tests 與 ruff 通過）
 
 ---
 

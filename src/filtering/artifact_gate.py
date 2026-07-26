@@ -150,9 +150,14 @@ def build_patch_examples(
     config: Mapping[str, Any],
     seed: int,
     match_person_context: bool = False,
+    control_mode: str = "matched_pool",
 ) -> list[PatchExample]:
     """Build class/geometry/fold-matched real and pasted examples."""
 
+    if control_mode not in {"matched_pool", "source_pair"}:
+        raise ValueError(f"Unknown H4 control mode: {control_mode}")
+    if match_person_context and control_mode != "matched_pool":
+        raise ValueError("Person-context matching applies only to pooled controls")
     gate = config["artifact_gate"]
     context_scale = float(gate["patch_context_scale"])
     patch_size = int(gate["patch_size_px"])
@@ -201,6 +206,7 @@ def build_patch_examples(
         candidates.sort(key=lambda item: int(item["id"]))
 
     examples: list[PatchExample] = []
+    real_image_cache: dict[int, np.ndarray] = {}
     synthetic_targets: dict[
         tuple[str, int, bool | None], list[tuple[Sequence[float], str]]
     ] = defaultdict(list)
@@ -253,6 +259,34 @@ def build_patch_examples(
                     example_id=f"{record['sample_id']}:{instance['instance_id']}",
                 )
             )
+            if control_mode == "source_pair":
+                if source_image_id not in real_image_cache:
+                    real_image_cache[source_image_id] = np.asarray(
+                        Image.open(
+                            paths.hardhat_raw
+                            / images[source_image_id]["file_name"]
+                        ).convert("RGB")
+                    )
+                real_patch = _context_crop(
+                    real_image_cache[source_image_id],
+                    source_annotation["bbox"],
+                    context_scale=context_scale,
+                )
+                examples.append(
+                    PatchExample(
+                        feature=patch_feature(real_patch, size=patch_size),
+                        label=0,
+                        group_key=group_key,
+                        class_name=class_name,
+                        example_id=(
+                            f"real:{source_annotation_id}:"
+                            f"source-pair:{record['sample_id']}"
+                        ),
+                    )
+                )
+
+    if control_mode == "source_pair":
+        return examples
 
     for key, targets in sorted(synthetic_targets.items()):
         class_name, fold, person_context = key

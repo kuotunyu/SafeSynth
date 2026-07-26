@@ -39,3 +39,11 @@ instead of a paste artifact. Geometry matching does not remove that bias.
   confirmation on another untouched fold before any gate decision changes.
 - No seed reselection, threshold widening, feature weakening, or result-driven
   control mixing is allowed.
+
+## Registered outcome
+
+The result is **FAIL**: AUC **0.9049**, bootstrap 95% CI 0.8788–0.9289.
+Using every cutout's exact raw source object makes the shortcut stronger, not
+weaker. Source-bank selection bias therefore does not explain away the frozen
+H4 failure; M13 remains blocked. See
+[`reports/h4_source_pair.md`](../reports/h4_source_pair.md).

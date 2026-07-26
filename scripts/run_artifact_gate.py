@@ -22,6 +22,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-tag", default="m11_h4_seed42")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--match-person-context", action="store_true")
+    parser.add_argument(
+        "--control-mode",
+        choices=("matched_pool", "source_pair"),
+        default="matched_pool",
+    )
     parser.add_argument("--report-tag", default="h4_artifact_gate")
     return parser.parse_args()
 
@@ -72,6 +77,7 @@ def main() -> None:
             config=config,
             seed=args.seed,
             match_person_context=args.match_person_context,
+            control_mode=args.control_mode,
         )
     except ValueError as error:
         if not args.match_person_context:
@@ -121,10 +127,16 @@ def main() -> None:
             "passed": float(result["auc"]) <= threshold,
             "split": "group-disjoint 4/5 train, 1/5 test",
             "real_control_matching": (
-                "same class + same fold + nearest log(pixel width, pixel height)"
+                "exact original source annotation paired per paste"
+                if args.control_mode == "source_pair"
+                else (
+                    "same class + same fold + nearest "
+                    "log(pixel width, pixel height)"
+                )
             ),
             "labels": {"0": "real", "1": "pasted"},
             "person_context_matching": bool(args.match_person_context),
+            "control_mode": args.control_mode,
         }
     )
     output_json = paths.reports / f"{args.report_tag}.json"
@@ -143,6 +155,17 @@ def main() -> None:
         if result["passed"]
         else "FAIL — scale-up gate closed"
     )
+    control_lines = (
+        [
+            "Each exact source/paste pair shares one frozen source-group key,",
+            "so neither an object nor a video-near-duplicate group can cross the split.",
+        ]
+        if args.control_mode == "source_pair"
+        else [
+            "Both labels use the same frozen-group hash, so video near-duplicates cannot",
+            "cross the split; fold-level class and target-resolution counts are paired.",
+        ]
+    )
     lines = [
         "# Spike H4 — paste-artifact detectability",
         "",
@@ -157,16 +180,19 @@ def main() -> None:
         f"- Decision: **{status}**",
         "",
         (
-            "Real controls match class, H4 fold, "
-            + (
-                "person-context state, and "
-                if args.match_person_context
-                else ""
+            "Real controls use each pasted cutout's exact original source."
+            if args.control_mode == "source_pair"
+            else (
+                "Real controls match class, H4 fold, "
+                + (
+                    "person-context state, and "
+                    if args.match_person_context
+                    else ""
+                )
+                + "nearest log pixel width/height."
             )
-            + "nearest log pixel width/height."
         ),
-        "Both labels use the same frozen-group hash, so video near-duplicates cannot",
-        "cross the split; fold-level class and target-resolution counts are paired.",
+        *control_lines,
         "",
     ]
     (paths.reports / f"{args.report_tag}.md").write_text(

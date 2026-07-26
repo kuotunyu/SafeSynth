@@ -68,9 +68,10 @@
     HOG-only 0.7792、HSV-only 0.6816。
   - 預註冊 context matching 因 frozen fold 缺真實對照而按規則停止；
     同類別原位替換 AUC 0.8312；Poisson AUC 0.8869 且明顯洗掉物件顏色。
-    三條路都如實保存，沒有調弱分類器或放寬門檻。
+    exact-source 成對控制 AUC 0.9049，排除素材選擇偏差是主要假象。
+    各路線都如實保存，沒有調弱分類器或放寬門檻。
 - **品質與交接**
-  - `uv run ruff check .` → PASS；`uv run pytest -q` → 91 passed
+  - `uv run ruff check .` → PASS；`uv run pytest -q` → 92 passed
     （僅 pycocotools/Numpy 已知 deprecation warning）。
   - prepublication audit：所有 local refs 的 author/committer 只有
     `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`；
