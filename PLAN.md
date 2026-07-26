@@ -189,9 +189,11 @@
     印出 AUC；
     **AUC 高 → 先修調和與羽化並重跑，不准進入 M13**；
     AUC 接近隨機 → 記錄數值與判定，通過閘門
-  - **驗證於**：`49a51fe` @ 2026-07-27
+  - **驗證於**：`49a51fe`、`0178a62`、`63c22ba` @ 2026-07-27
     （300 圖、group-disjoint 且類別/尺寸配對的 2,028 patches；
     AUC **0.7964**，95% CI 0.7481–0.8392，高於 0.60；
+    context-matched 診斷因 frozen fold 缺真實對照而依預註冊規則停止；
+    同類別原位替換 spike 也失敗，AUC **0.8312**（CI 0.7505–0.8984）；
     **硬閘門維持關閉，M13 不得開始**）
 
 - [x] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
@@ -208,7 +210,7 @@
     **若被拒的樣本看起來明明沒問題，就是門檻錯了，改門檻並記進 `docs/decisions.md`**
   - **驗證於**：`dce0b85`、`49a51fe` @ 2026-07-27
     （300 = 196 pass + 104 reject，七項 ledger/enum 對帳全 PASS；
-    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 80 tests 與 ruff 通過）
+    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 88 tests 與 ruff 通過）
 
 ---
 

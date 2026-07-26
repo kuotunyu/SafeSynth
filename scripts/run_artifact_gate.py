@@ -138,7 +138,11 @@ def main() -> None:
         np.asarray(result["test_scores"]),
         paths.figures / f"{args.report_tag}_roc.png",
     )
-    status = "PASS — scale-up gate open" if result["passed"] else "FAIL — fix blending first"
+    status = (
+        "PASS — scale-up gate open"
+        if result["passed"]
+        else "FAIL — scale-up gate closed"
+    )
     lines = [
         "# Spike H4 — paste-artifact detectability",
         "",

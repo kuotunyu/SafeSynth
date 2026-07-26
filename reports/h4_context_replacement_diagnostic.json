@@ -1,0 +1,52 @@
+{
+  "binary_score_auc": {
+    "filter_pass_from_score_auc": 0.5333333333333333,
+    "postfx_applied_from_score_auc": 0.59958071278826
+  },
+  "bottom_score_quartile": {
+    "filter_pass_fraction": 0.6666666666666666,
+    "n": 15,
+    "paste_to_anchor_area_ratio_median": 0.9055727554179567,
+    "paste_to_source_area_ratio_median": 0.9284855769230769,
+    "postfx_fraction": 0.06666666666666667,
+    "score_median": 0.021821409463882446,
+    "source_min_side_median": 46.0
+  },
+  "by_class": {
+    "head": {
+      "filter_pass_fraction": 0.46153846153846156,
+      "n": 13,
+      "paste_to_anchor_area_ratio_median": 0.86625,
+      "paste_to_source_area_ratio_median": 0.8823529411764706,
+      "postfx_fraction": 0.15384615384615385,
+      "score_median": 0.6176736950874329,
+      "source_min_side_median": 24.0
+    },
+    "helmet": {
+      "filter_pass_fraction": 0.7959183673469388,
+      "n": 49,
+      "paste_to_anchor_area_ratio_median": 0.904047976011994,
+      "paste_to_source_area_ratio_median": 0.904047976011994,
+      "postfx_fraction": 0.14285714285714285,
+      "score_median": 0.9532933831214905,
+      "source_min_side_median": 51.0
+    }
+  },
+  "correlations": {
+    "score_vs_paste_to_anchor_area_ratio_spearman": -0.21963964192572183,
+    "score_vs_paste_to_source_area_ratio_spearman": -0.3035469208636381,
+    "score_vs_source_min_side_spearman": 0.021067757796887944
+  },
+  "interpretation": "exploratory failure analysis only; no H4 threshold or method changes",
+  "n_pasted_test_examples": 62,
+  "scope": "held-out pasted examples from the pre-registered replacement spike",
+  "top_score_quartile": {
+    "filter_pass_fraction": 0.8,
+    "n": 15,
+    "paste_to_anchor_area_ratio_median": 0.8611376927166401,
+    "paste_to_source_area_ratio_median": 0.8266816372358885,
+    "postfx_fraction": 0.2,
+    "score_median": 0.9997184872627258,
+    "source_min_side_median": 48.0
+  }
+}

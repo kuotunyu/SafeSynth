@@ -57,6 +57,8 @@ def _tile(patch: np.ndarray, caption: str, *, synthetic: bool) -> np.ndarray:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-tag", default="m11_h4_seed42")
+    parser.add_argument("--report-tag", default="h4_artifact_gate")
+    parser.add_argument("--output-name", default="h4_ranked_patches.png")
     parser.add_argument("--per-row", type=int, default=8)
     args = parser.parse_args()
 
@@ -66,7 +68,7 @@ def main() -> None:
         (PROJECT_ROOT / "configs" / "filtering.yaml").read_text(encoding="utf-8")
     )
     context_scale = float(config["artifact_gate"]["patch_context_scale"])
-    result = _read_json(paths.reports / "h4_artifact_gate.json")
+    result = _read_json(paths.reports / f"{args.report_tag}.json")
     records = {
         record["sample_id"]: record for record in _read_jsonl(run_dir / "records.jsonl")
     }
@@ -137,7 +139,7 @@ def main() -> None:
         )
         rows.append(np.concatenate((label_strip, row), axis=0))
     output = np.concatenate(rows, axis=0)
-    output_path = paths.figures / "h4_ranked_patches.png"
+    output_path = paths.figures / args.output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(output).save(output_path)
     print(output_path)

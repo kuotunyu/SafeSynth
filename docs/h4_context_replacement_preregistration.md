@@ -51,3 +51,13 @@ a composition architecture, not another edge-feather parameter.
   does not cover the registered target scenarios.
 - No seed reselection, classifier weakening, threshold widening, or post-result
   parameter tuning is allowed.
+
+## Registered outcome
+
+The generator implementation was frozen in commit `63c22ba` before the
+300-image evaluation. The result is **FAIL**: AUC **0.8312**, bootstrap 95% CI
+0.7505–0.8984. Same-class in-place replacement therefore does not fix the
+shortcut and is not integrated into the default scenario mixture. See
+[`reports/h4_context_replacement.md`](../reports/h4_context_replacement.md) and
+the read-only
+[`failure diagnostic`](../reports/h4_context_replacement_diagnostic.md).
