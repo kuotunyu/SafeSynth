@@ -13,8 +13,8 @@
 
 ## M0 — 文件與規則凍結
 
-- [~] **M0** 建立 `CLAUDE.md`、`PLAN.md`、`docs/` 九份文件、ADR-001~004、
-  `configs/` 三份、兩支 skill、目錄骨架
+- [x] **M0** 建立 `CLAUDE.md`、`PLAN.md`、`PLAN_PHASE2.md`、`docs/` 十一份文件、ADR-001~006、
+  `configs/` 五份、兩支 skill、目錄骨架
   - **對應規格**：全部規格文件本身
   - **驗證**：`(Get-Content CLAUDE.md).Count` < 200；
     洩漏掃描（本機使用者名稱、學校信箱、`gho_`/`hf_`/`sk-`/`AIza` 開頭長字串）→ 零命中；
@@ -23,19 +23,26 @@
     狀態一律用 `[ ]`／`[~]`／`[x]` 表達；
     `docs/*.md` 內所有相對連結的目標檔案都存在；
     Python／torch／transformers 版本在 `CLAUDE.md`、`docs/environment.md`、`pyproject.toml` 三處一致
-  - **驗證於**：（未完成）
+  - **驗證於**：`6ca155e` @ 2026-07-27
+    （個資／金鑰／禁用詞／AGPL 依賴掃描全 PASS；連結、ADR anchor、config 引用、
+    四個版本號三處一致全 PASS；`CLAUDE.md` 127 行）
 
 ---
 
 ## M1–M2 — 環境與資料落地
 
-- [ ] **M1** 建立 uv 虛擬環境並鎖版（Python 3.12、torch 2.13.0+cu130、transformers≥4.57.1）
+- [x] **M1** 建立 uv 虛擬環境並鎖版（Python 3.12、torch 2.13.0+cu130、transformers≥5.14.1）
   - **對應規格**：ENV-01 ~ ENV-10
   - **驗證**：[docs/environment.md §5](docs/environment.md) 的十列驗證指令表**全部**通過；
     特別是第 2 列必須印出 `2.13.0+cu130 13.0 True NVIDIA GeForce RTX 4090`
     （若 `cuda.is_available()` 是 False，幾乎一定是裝到 CPU-only 的 PyPI wheel，見 K-01）；
     `uv.lock` 存在並進 git；`uv lock --check` 無輸出
-  - **驗證於**：（未完成）
+  - **驗證於**：`9c89368` @ 2026-07-27
+    實測輸出：Python `3.12.13`｜`2.13.0+cu130 13.0 True NVIDIA GeForce RTX 4090`｜
+    `transformers 5.14.1`｜`Sam2Model` 可匯入｜`cv2/scipy/imagehash/pycocotools/kagglehub` 全可匯入｜
+    `uv lock --check` 通過｜`KAGGLE_API_TOKEN` 是 opaque string（非 JSON blob，
+    [ENV-05](docs/environment.md) 的轉換分支用不到）
+    。第 8 列（`D:\sdg-data\02-safesynth` 存在）預期在 M2 才成立
 
 - [ ] **M2** 下載 Hard Hat Workers（約 1.2–1.5 GB，**下載前先跟使用者報備實測大小**），
   解壓到 `D:\sdg-data\02-safesynth\raw`，轉成 COCO
