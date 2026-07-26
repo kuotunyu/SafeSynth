@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.synthetic.compose import _requested_classes, _scenario_sequence
+from src.synthetic.compose import _requested_classes, _sample_seed, _scenario_sequence
 
 
 def scenario_config() -> dict:
@@ -16,6 +16,12 @@ def scenario_config() -> dict:
             "low_light_blur": {"weight": 0.10},
         }
     }
+
+
+def test_sample_seed_is_stable_and_index_isolated() -> None:
+    assert _sample_seed(42, 7) == _sample_seed(42, 7)
+    assert _sample_seed(42, 7) != _sample_seed(42, 8)
+    assert _sample_seed(42, 7) != _sample_seed(43, 7)
 
 
 def test_default_preview_covers_every_unblocked_scenario() -> None:

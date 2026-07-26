@@ -115,6 +115,13 @@ def _hamming(first: str, second: str) -> int:
     return (int(first, 16) ^ int(second, 16)).bit_count()
 
 
+def _sample_seed(root_seed: int, sample_index: int) -> int:
+    """Derive a stable independent RNG seed for one sample."""
+
+    digest = hashlib.sha256(f"{root_seed}|{sample_index}".encode()).digest()
+    return int.from_bytes(digest[:8], "big")
+
+
 def _archive_existing(path: Path) -> None:
     if not path.exists():
         return
@@ -1114,6 +1121,8 @@ def generate(
     for sample_index, (background_id, scenario) in enumerate(
         zip(background_ids.tolist(), scenarios, strict=True), start=1
     ):
+        sample_seed = _sample_seed(seed, sample_index)
+        sample_rng = np.random.default_rng(sample_seed)
         background_retries = 0
         while True:
             background = train_images[int(background_id)]
@@ -1134,7 +1143,7 @@ def generate(
                     use_counts=use_counts,
                     real_phashes=real_phashes,
                     accepted_phashes=accepted_phashes,
-                    rng=rng,
+                    rng=sample_rng,
                 )
                 break
             except RuntimeError as error:
@@ -1146,10 +1155,17 @@ def generate(
                         f"Could not generate sample {sample_index} after "
                         f"{background_retries} Train backgrounds"
                     ) from error
-                background_id = int(rng.choice(train_ids))
+                background_id = int(sample_rng.choice(train_ids))
         record["generation"]["background_retries"] = background_retries
+        record["generation"]["root_seed"] = seed
+        record["generation"]["sample_seed"] = sample_seed
         quality = (
-            int(rng.integers(int(jpeg_config["quality"][0]), int(jpeg_config["quality"][1]) + 1))
+            int(
+                sample_rng.integers(
+                    int(jpeg_config["quality"][0]),
+                    int(jpeg_config["quality"][1]) + 1,
+                )
+            )
             if jpeg_config["always"]
             else 100
         )

@@ -399,9 +399,12 @@ def match_high_frequency_noise(
         0.0,
     )
     missing = min(missing, float(sigma_cap))
+    # Consume a fixed draw even when no noise is needed. Otherwise a blending
+    # ablation changes the RNG position and silently changes later post-effects.
+    standard_noise = rng.standard_normal(patch_rgb.shape[:2])[..., None]
     if missing == 0:
         return patch_rgb
-    noise = rng.normal(0, missing, patch_rgb.shape[:2])[..., None]
+    noise = standard_noise * missing
     output = patch_rgb.astype(np.float32)
     output[source_mask] += noise[source_mask]
     return np.clip(output, 0, 255).astype(np.uint8)

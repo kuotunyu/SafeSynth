@@ -10,15 +10,15 @@
   },
   "first_reject_reasons": {
     "BAD_SIZE_RATIO": 1,
-    "BOX_TOO_SMALL": 35,
+    "BOX_TOO_SMALL": 34,
     "EXCESSIVE_OVERLAP": 27,
-    "LOW_VISIBLE_FRACTION": 11,
-    "NEAR_DUPLICATE_REAL": 7,
-    "NEAR_DUPLICATE_SYNTHETIC": 2,
-    "NO_CHANGE": 22
+    "LOW_VISIBLE_FRACTION": 8,
+    "NEAR_DUPLICATE_REAL": 9,
+    "NEAR_DUPLICATE_SYNTHETIC": 1,
+    "NO_CHANGE": 24
   },
-  "n_pass": 195,
-  "n_reject": 105,
+  "n_pass": 196,
+  "n_reject": 104,
   "n_total": 300,
   "review_figure": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\filter_pass_reject_grid.png",
   "review_pass_sample_ids": [
@@ -26,8 +26,8 @@
     "s42_000002",
     "s42_000005",
     "s42_000001",
-    "s42_000007",
-    "s42_000044",
+    "s42_000012",
+    "s42_000086",
     "s42_000003",
     "s42_000024",
     "s42_000015",
@@ -36,18 +36,18 @@
     "s42_000004"
   ],
   "review_reject_sample_ids": [
-    "s42_000275",
-    "s42_000009",
-    "s42_000025",
+    "s42_000104",
     "s42_000016",
-    "s42_000023",
-    "s42_000065",
-    "s42_000021",
-    "s42_000012",
-    "s42_000053",
+    "s42_000007",
     "s42_000035",
-    "s42_000070",
-    "s42_000198"
+    "s42_000023",
+    "s42_000080",
+    "s42_000006",
+    "s42_000033",
+    "s42_000020",
+    "s42_000079",
+    "s42_000068",
+    "s42_000009"
   ],
   "source_run": "D:\\sdg-data\\02-safesynth\\synthetic\\m11_h4_seed42"
 }
