@@ -25,6 +25,11 @@ class ProjectPaths:
     raw: Path
     hardhat_raw: Path
     interim: Path
+    cutouts: Path
+    masks_pass1: Path
+    synthetic: Path
+    cache: Path
+    runs: Path
     splits: Path
     reports: Path
     figures: Path
@@ -78,6 +83,10 @@ def load_project_paths(config_path: Path = PATHS_CONFIG) -> ProjectPaths:
     configured_paths = config["paths"]
     dataset = config["dataset"]
 
+    def data_path(name: str) -> Path:
+        value = configured_paths.get(name, f"${{data_root}}/{name}")
+        return _resolve_path(str(value), project_root, variables)
+
     return ProjectPaths(
         project_root=project_root,
         config_path=config_path,
@@ -86,6 +95,11 @@ def load_project_paths(config_path: Path = PATHS_CONFIG) -> ProjectPaths:
         raw=_resolve_path(str(configured_paths["raw"]), project_root, variables),
         hardhat_raw=_resolve_path(str(configured_paths["hardhat_raw"]), project_root, variables),
         interim=_resolve_path(str(configured_paths["interim"]), project_root, variables),
+        cutouts=data_path("cutouts"),
+        masks_pass1=data_path("masks_pass1"),
+        synthetic=data_path("synthetic"),
+        cache=data_path("cache"),
+        runs=data_path("runs"),
         splits=_resolve_path(str(configured_paths["splits"]), project_root, variables),
         reports=_resolve_path(str(configured_paths["reports"]), project_root, variables),
         figures=_resolve_path(str(configured_paths["figures"]), project_root, variables),

@@ -21,20 +21,26 @@ sam2:
   model_id: "facebook/sam2.1-hiera-large"   # source: fixed   (ADR-001)
   dtype: "bfloat16"                          # source: fixed   (Ada; encoder only)
   multimask_output: false                    # source: fixed
-  min_transformers_version: "4.57.1"         # source: fixed   (ADR-001: box-prompt padding fix)
+  min_transformers_version: "5.14.1"         # source: fixed   (ADR-006: one v5 API generation)
 
   pass1_survey:
     # Full-image prompting, image embedding computed once and reused across all
     # boxes of that image. Output feeds compose.py's occlusion handling, the
     # calibration harness, and spike H1 — NOT the cutout bank.
     batch_images: 4                          # source: guess   (24 GB VRAM is not the limit here)
+    min_iou_score: 0.80                      # source: calibrated (H2 full-image good p10=0.804688)
+    min_object_score_logit: 18.3             # source: calibrated (H2 full-image good p10)
 
   pass2_bank:
     # Per-candidate crop, upscaled before prompting. This is what makes ~34 px
     # boxes usable; see docs/synthesis_spec.md and spike H2.
     context_pad_frac: 0.60                   # source: guess   (fraction of max(w,h) added on every side)
     min_crop_side_px: 96                     # source: fixed   (below this the crop carries no texture)
-    resize_to: 1024                          # source: fixed   (SAM2 native input resolution)
+    # H2 winner: resize the contextual crop to 512, then centre-pad by edge
+    # replication on SAM2's native 1024 canvas. This preserved tiny contours
+    # better than a direct 1024 upscale without changing the model input shape.
+    resize_to: 512                           # source: calibrated (H2 visual + metric review)
+    model_canvas_size: 1024                  # source: fixed
     interpolation: "cubic"                   # source: fixed
 
   # Mask cleanup. transformers' post_process_masks(max_hole_area=, max_sprinkle_area=)
@@ -56,20 +62,20 @@ cutout_bank:
 
   # G2: hard floor. Below this, SAM2 has nothing to segment.
   hard_floor:
-    min_side_px: 16                          # source: guess   -> spike H2 sets the real floor
-    min_area_px: 400                         # source: guess
+    min_side_px: 16                          # source: calibrated (H2: no collapse; retain texture floor)
+    min_area_px: 400                         # source: calibrated (H2 + min mask area feasibility)
 
   # G3: preferred tier. Most pastes draw from here; S1 (small_distant) shrinks
   # these down rather than upscaling small sources.
   preferred_tier:
-    min_side_px: 24                          # source: calibrated  (target: ~p55 of per-class min_side)
-    min_area_px: 900                         # source: calibrated
+    min_side_px: 23                          # source: calibrated  (minimum per-class Train p50)
+    min_area_px: 667                         # source: calibrated
 
   # G4: aspect ratio sanity, per class.
   aspect_ratio:
-    helmet: [0.50, 2.00]                     # source: calibrated  (p1-p99)
-    head:   [0.50, 2.00]                     # source: calibrated
-    person: [0.25, 1.50]                     # source: calibrated
+    helmet: [0.3913, 3.7143]                 # source: calibrated  (Train p1-p99)
+    head:   [0.4260, 3.6667]                 # source: calibrated
+    person: [0.1820, 4.8577]                 # source: calibrated
 
   # G5: a border-truncated object yields a mask with a dead-straight edge, which
   # is the single most visible paste artifact.
@@ -82,22 +88,22 @@ cutout_bank:
 
   # Quality gates on the SAM2 output itself.
   mask_quality:
-    min_iou_score: 0.80                      # source: guess   -> H2: set to p10 of the visually-good group
-    min_object_score_logit: 2.0              # source: guess   (>0 is nominal; +2 adds margin on tiny boxes)
+    min_iou_score: 0.82                      # source: calibrated (H2 crop-512 visually-good p10=0.821875)
+    min_object_score_logit: 19.5             # source: calibrated (H2 crop-512 visually-good p10)
     mask_to_box_coverage:
       # The UPPER bound matters as much as the lower one: it catches SAM2's
       # degenerate failure of returning the prompt box itself, which otherwise
       # looks like a high-confidence result.
-      helmet: [0.40, 0.95]                   # source: calibrated
-      head:   [0.45, 0.95]                   # source: calibrated
-      person: [0.22, 0.90]                   # source: calibrated
+      helmet: [0.2456, 0.7988]               # source: calibrated (Pass 1 base-valid p1-p99)
+      head:   [0.3950, 0.8307]               # source: calibrated
+      person: [0.1723, 0.8118]               # source: calibrated
     max_outside_box_ratio: 0.10              # source: guess   (leakage onto occluder/background)
     max_second_component_ratio: 0.20         # source: guess   (>0.2 = SAM2 straddled two objects)
     max_hole_fill_ratio: 1.25                # source: guess   (swiss-cheese mask)
     min_solidity:
-      helmet: 0.85                           # source: calibrated  (helmets are convex)
-      head:   0.80                           # source: calibrated
-      person: 0.55                           # source: calibrated  (limbs break convexity)
+      helmet: 0.5863                         # source: calibrated  (Pass 1 base-valid p1)
+      head:   0.7508                         # source: calibrated
+      person: 0.5653                         # source: calibrated
     max_edge_touch_top:
       # A helmet hugging the TOP of its box means the crown was cut off.
       # edge_touch_bottom is deliberately unbounded: helmets are legitimately
@@ -276,11 +282,11 @@ hard_negatives:
 
   mining:
     # HSV window for safety yellow/orange.
-    hue_deg: [20, 40]                        # source: guess
-    min_saturation: 0.45                     # source: guess
-    min_value: 0.40                          # source: guess
-    contour_area_px: [400, 6000]             # source: guess
-    circularity: [0.45, 0.95]                # source: guess   4*pi*A/P^2
+    hue_deg: [10, 50]                        # source: guess   (H6 widened: 20-40 yielded 36/200)
+    min_saturation: 0.40                     # source: guess
+    min_value: 0.35                          # source: guess
+    contour_area_px: [100, 8000]             # source: guess   (H6: enough guarded items for 8x8)
+    circularity: [0.25, 0.98]                # source: guess   4*pi*A/P^2
     # RISK GUARD: ~2/3 of true objects are UNLABELLED in this dataset, so
     # "no annotation here" does NOT mean "no helmet here". Mining will otherwise
     # scoop up real unlabelled helmets and teach the detector to suppress them.

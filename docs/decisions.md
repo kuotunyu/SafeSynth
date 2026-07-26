@@ -468,3 +468,38 @@ M3 在 Kaggle version 1 的 5,000 張凍結來源上完成三個 spike。這三�
 - `reports/figures/h1_{helmet,head}_contact_sheet.png`
 - `reports/figures/h3_clip_largest_groups.png`
 - `reports/figures/h5_placement_priors.png`
+
+---
+
+## ADR-008 — SAM2 Pass 2 採 effective crop-512，不直接把小框放大到 1024
+
+### 脈絡
+
+Spike H2 從凍結 Train 依最短邊取 60 個框，分為 8–20、21–34、36–133 px
+三層；每個框比較全圖 prompt、context crop 直接放大至 1024、以及 crop
+放大至 512 後以邊緣複製置中到 SAM2 原生 1024 canvas。三張 20-row grid
+都已實際打開檢視。
+
+### 決策
+
+**Pass 1 仍使用全圖、同圖所有框重用一份 embedding；Pass 2 素材庫使用
+effective crop-512。** 它在最小層的 IoU p10 / p50 為 0.850 / 0.887，
+高於 crop-1024 的 0.799 / 0.865；輪廓目視至少相等，而且不會把少數來源
+像素過度放大成塊狀 prompt。模型輸入形狀仍是原生 1024，不改 backbone。
+
+排除五個目視明顯破碎或近乎空白的失敗後，55 個良好 crop-512 mask 的
+`iou_scores` p10 為 0.821875、`object_score_logits` p10 為 19.5；
+config 分別取 0.82 與 19.5。8–20 px 層沒有整體崩潰，因此硬下限不提高；
+仍保留 16 px / 400 px² 的材質與有效 alpha 面積底線。
+
+### 後果
+
+- Pass 2 每個候選各算一次 embedding，不能和 Pass 1 混用快取。
+- `resize_to: 512` 表示有效 crop 尺度；`model_canvas_size: 1024` 才是模型輸入。
+- 小於 preferred tier 的素材可以保留，但合成抽樣必須偏好較大的來源。
+- Pass 1 的全圖 mask 只供既有標註遮擋處理，不直接進 cutout bank。
+
+### 證據
+
+- [H2 報告](../reports/h2_sam2_spike.md)
+- `reports/figures/h2_sam2_{very_small,medium,larger}.png`

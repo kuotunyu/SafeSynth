@@ -3,7 +3,8 @@
 # docs/evaluation_spec.md and docs/release_spec.md describe the predicates; they
 # contain NO numbers, so the two can never drift apart.
 #
-# `source` tags: fixed | guess | calibrated  (see configs/compose.yaml header)
+# `source` tags: fixed | guess | calibrated | validation
+# `validation` is deliberately deferred to EVAL-04 and may never use Test.
 
 # ===========================================================================
 # Compliance derivation — src/inference/compliance.py
@@ -16,12 +17,12 @@ compliance:
   #   geometric_pairing  - helmet box bounds only the shell; a `head` coexists
   #                        beneath it. Pair them with the FILT-07 geometry.
   # Both modes are implemented; H1 picks one. See ADR-003 / EVAL-01.
-  mode: "class_direct"                       # source: fixed (pending H1 confirmation)
+  mode: "class_direct"                       # source: fixed (confirmed by H1 / ADR-007)
 
   # Operating point for the detector when deriving compliance. This is SEPARATE
   # from mAP evaluation, which integrates over all confidences.
   # SELECTED ON VALIDATION, then frozen. Never tune this on Test.
-  score_threshold: 0.50                      # source: calibrated (EVAL-04)
+  score_threshold: 0.50                      # source: validation (placeholder; EVAL-04 selects on Val)
   min_compliance_precision: 0.80             # source: guess
                                              # constraint when sweeping for the
                                              # threshold that maximises bare-head recall

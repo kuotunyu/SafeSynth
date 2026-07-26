@@ -21,7 +21,7 @@ rules:
 
   # FILT-02 — a labelled object must be big enough to be a real target
   min_visible_area:
-    min_area_px: 36                          # source: calibrated  (target: p1 of real box area)
+    min_area_px: 99                          # source: calibrated  (frozen Train p1)
 
   # FILT-03 — enough of the object must actually be visible
   visible_fraction:
@@ -34,15 +34,15 @@ rules:
   # inside a big box", which is exactly the geometry of a helmet swallowed by a
   # person box, or a duplicate paste landing on an existing object.
   overlap:
-    max_overlap_score_same_class: 0.80       # source: calibrated  (p99)
-    max_overlap_iou_same_class: 0.75         # source: calibrated  (p99)
+    max_overlap_score_same_class: 0.6364     # source: calibrated  (frozen Train p99)
+    max_overlap_iou_same_class: 0.2520       # source: calibrated  (frozen Train p99)
     exempt_person_contains_helmet_head: true # source: fixed   (that containment is correct, not an error)
 
   # FILT-05 — the mask must plausibly fill its box
   mask_to_box_coverage:
-    helmet: [0.40, 0.95]                     # source: calibrated  (p1-p99)
-    head:   [0.45, 0.95]                     # source: calibrated
-    person: [0.22, 0.90]                     # source: calibrated
+    helmet: [0.2456, 0.7988]                 # source: calibrated  (Pass 1 p1-p99)
+    head:   [0.3950, 0.8307]                 # source: calibrated
+    person: [0.1723, 0.8118]                 # source: calibrated
 
   # FILT-07 — a WORN helmet must sit in a plausible range above a head.
   # All quantities are normalized by the head box:
@@ -77,9 +77,9 @@ rules:
   # compute honest percentiles — do that instead of trusting these priors.
   size_ratio:
     containment_threshold: 0.70              # source: guess   (when to consider it "inside")
-    head_over_person_area: [0.01, 0.25]      # source: calibrated
-    helmet_over_person_area: [0.01, 0.30]    # source: calibrated
-    head_over_person_width: [0.15, 0.85]     # source: calibrated
+    head_over_person_area: [0.0225, 0.3494]  # source: calibrated (frozen Train p1-p99)
+    helmet_over_person_area: [0.0153, 0.6953] # source: calibrated
+    head_over_person_width: [0.2034, 0.8182] # source: calibrated
     head_top_within_person: 0.45             # source: guess   (head must be in the upper 45%)
 
   # FILT-09 — clipping / intersection artifacts
@@ -92,7 +92,7 @@ rules:
     # divided by mean |grad| over the paste interior.
     # Calibrate by measuring the SAME statistic at REAL object boundaries in the
     # dataset and taking p95 — that gives the natural distribution.
-    max_seam_energy_ratio: 2.5               # source: calibrated
+    max_seam_energy_ratio: 5.5770            # source: calibrated (max per-class real-boundary p95)
     seam_band_px: 2                          # source: fixed
 
   # FILT-10 — hard negatives must not corrupt a real label
