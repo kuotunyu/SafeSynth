@@ -116,6 +116,18 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         "name": _git(root, "config", "--local", "user.name").strip(),
         "email": _git(root, "config", "--local", "user.email").strip(),
     }
+    hooks_path = _git(root, "config", "--local", "core.hooksPath").strip()
+    hook_index_entry = _git(
+        root,
+        "ls-files",
+        "--stage",
+        ".githooks/commit-msg",
+    ).strip()
+    contributor_hook_valid = (
+        hooks_path == ".githooks"
+        and hook_index_entry.startswith("100755 ")
+        and (root / ".githooks" / "commit-msg").exists()
+    )
 
     h6_grid = root / "reports" / "figures" / "h6_hard_negative_candidates.png"
     h6_sha256 = _sha256(h6_grid) if h6_grid.exists() else None
@@ -148,6 +160,7 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         "all_authors_and_committers_are_kuotunyu": not identity_violations,
         "no_coauthored_by_trailers": not coauthor_commits,
         "repo_local_identity_is_kuotunyu_noreply": local_identity_valid,
+        "single_contributor_commit_hook_is_active": contributor_hook_valid,
         "no_git_remote_before_user_request": not remotes,
         "h6_grid_exists_and_sha256_matches": h6_grid_valid,
         "h4_result_is_internally_consistent": h4_result_consistent,
@@ -184,6 +197,10 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         "identity_violations": identity_violations,
         "coauthor_trailer_commits": coauthor_commits,
         "local_identity": local_identity,
+        "commit_hook": {
+            "core_hooks_path": hooks_path,
+            "tracked_index_entry": hook_index_entry,
+        },
         "remotes": remotes,
         "h6": {
             "grid_sha256": h6_sha256,

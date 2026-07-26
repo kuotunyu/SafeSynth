@@ -4,7 +4,11 @@
     "M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum."
   ],
   "coauthor_trailer_commits": [],
-  "commit_count_all_refs": 33,
+  "commit_count_all_refs": 39,
+  "commit_hook": {
+    "core_hooks_path": ".githooks",
+    "tracked_index_entry": "100755 67b800375400e43e1fbfc687bc2d090bef2a6e0e 0\t.githooks/commit-msg"
+  },
   "expected_github_identity": {
     "email": "61350295+kuotunyu@users.noreply.github.com",
     "name": "kuotunyu"
@@ -21,7 +25,7 @@
     "grid_sha256": "0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739",
     "signoff_path": "reports\\hard_negative_signoff.json"
   },
-  "head_commit": "cc05b99df0ffbed56214678b75cb7b7b01d91f59",
+  "head_commit": "174182023ebca8e00461dd394cb75bb42fb32b40",
   "identity_violations": [],
   "integrity_checks": {
     "all_authors_and_committers_are_kuotunyu": true,
@@ -30,7 +34,8 @@
     "m12_filter_ledger_is_internally_consistent": true,
     "no_coauthored_by_trailers": true,
     "no_git_remote_before_user_request": true,
-    "repo_local_identity_is_kuotunyu_noreply": true
+    "repo_local_identity_is_kuotunyu_noreply": true,
+    "single_contributor_commit_hook_is_active": true
   },
   "integrity_passed": true,
   "local_identity": {
