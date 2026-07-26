@@ -1,0 +1,36 @@
+{
+  "decision_effect": "none; the registered combined-feature gate remains binding",
+  "results": {
+    "hog": {
+      "auc": 0.7791887030524309,
+      "auc_ci95": [
+        0.7321086025867947,
+        0.8243139876251957
+      ],
+      "feature_dimensions": 1764,
+      "n_test": 386,
+      "n_train": 1642
+    },
+    "hog+hsv": {
+      "auc": 0.7964240650755725,
+      "auc_ci95": [
+        0.7480632196980026,
+        0.8392248293402416
+      ],
+      "feature_dimensions": 1788,
+      "n_test": 386,
+      "n_train": 1642
+    },
+    "hsv": {
+      "auc": 0.6815753443045451,
+      "auc_ci95": [
+        0.6293079688636927,
+        0.7292252758934344
+      ],
+      "feature_dimensions": 24,
+      "n_test": 386,
+      "n_train": 1642
+    }
+  },
+  "scope": "post-failure diagnostic on the frozen H4 run and fold"
+}

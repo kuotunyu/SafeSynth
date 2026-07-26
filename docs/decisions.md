@@ -545,6 +545,9 @@ copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
 - M13 全量生成仍被 M11 硬阻擋；也同時等待 M9 的使用者 H6 簽核。
 - 下一輪 H4 應預先登記人物脈絡錨定的構圖方法，並在新的 frozen group
   fold 驗證；不得改用較弱分類器或放寬 0.60 來過關。
+- 事後 feature-family 診斷顯示 HOG-only AUC 0.7792、HSV-only 0.6816；
+  兩類訊號都超標，下一個方法必須同時處理重採樣／邊界與光度，不宜再做
+  單一 feather 參數搜尋。
 
 ### 證據
 
@@ -554,6 +557,7 @@ copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
 - [H4 context-matched feasibility](../reports/h4_context_matched.md)
 - [H4 context-replacement result](../reports/h4_context_replacement.md)
 - [H4 context-replacement diagnostic](../reports/h4_context_replacement_diagnostic.md)
+- [H4 feature-family diagnostic](../reports/h4_feature_family_diagnostic.md)
 - [H4 ROC 與 ranked patches](../reports/figures/h4_artifact_roc.png)
 - [M12 ledger](../reports/filter_ledger.md)
 - [M12 sensitivity](../reports/threshold_sensitivity.md)

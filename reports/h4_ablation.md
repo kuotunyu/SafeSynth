@@ -30,6 +30,11 @@ The ablations do establish two useful facts:
 3. multiband blending spreads a low-frequency patch signature and also makes
    the shortcut stronger.
 
+A post-failure feature-family decomposition further finds HOG-only AUC 0.7792
+and HSV-only AUC 0.6816, while reproducing the registered combined AUC 0.7964.
+Both spatial/resampling and colour signals exceed the 0.60 maximum. This is an
+engineering clue only; the weaker subsets cannot replace the registered gate.
+
 One read-only diagnostic points to composition context: on the final H4
 classifier scores, pasted headlike boxes anchored near a `person` have score-AUC
 0.7562 against real controls, versus 0.8134 for unanchored boxes. This is not a
