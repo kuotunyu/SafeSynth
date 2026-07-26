@@ -28,6 +28,8 @@
 - 本機所有 commit author 都是
   `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`
 - `Co-Authored-By:` trailer 為 0；沒有 remote、push 或其他 contributors
+- 完整稽核結果在 `reports/phase1_preflight.md`；建立 remote 前可重跑
+  `uv run python -m scripts.audit_phase1_handoff`
 
 ### 3. 建立 GitHub repo（等你決定後才做）
 
