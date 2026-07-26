@@ -1,0 +1,89 @@
+# Single source of truth for every NUMERIC parameter of Phase 2 evaluation,
+# compliance derivation and benchmarking.
+# docs/evaluation_spec.md and docs/release_spec.md describe the predicates; they
+# contain NO numbers, so the two can never drift apart.
+#
+# `source` tags: fixed | guess | calibrated  (see configs/compose.yaml header)
+
+# ===========================================================================
+# Compliance derivation — src/inference/compliance.py
+# ===========================================================================
+compliance:
+  # Which semantics the `helmet` box carries. DECIDED BY PHASE-1 SPIKE H1.
+  #   class_direct       - helmet box bounds the helmeted HEAD REGION and is
+  #                        mutually exclusive with `head` per person.
+  #                        Detected class IS the status. No spatial reasoning.
+  #   geometric_pairing  - helmet box bounds only the shell; a `head` coexists
+  #                        beneath it. Pair them with the FILT-07 geometry.
+  # Both modes are implemented; H1 picks one. See ADR-003 / EVAL-01.
+  mode: "class_direct"                       # source: fixed (pending H1 confirmation)
+
+  # Operating point for the detector when deriving compliance. This is SEPARATE
+  # from mAP evaluation, which integrates over all confidences.
+  # SELECTED ON VALIDATION, then frozen. Never tune this on Test.
+  score_threshold: 0.50                      # source: calibrated (EVAL-04)
+  min_compliance_precision: 0.80             # source: guess
+                                             # constraint when sweeping for the
+                                             # threshold that maximises bare-head recall
+
+  # `person` may only be used as an optional grouping hint. Its presence or
+  # absence must NEVER change a verdict — enforced by the EVAL-03 unit test.
+  use_person_as_grouping_hint: false         # source: fixed
+
+# ===========================================================================
+# Detection metrics
+# ===========================================================================
+metrics:
+  # COCO size buckets, in ORIGINAL 416x416 coordinates. See EVAL-07: the images
+  # are annotated at 416 but trained at 640, so computing area in 640-space
+  # would inflate every object by ~2.37x and silently move most `small` objects
+  # into `medium`. Predictions are mapped back to original coordinates BEFORE
+  # evaluation.
+  coco_area_ranges:
+    small:  [0, 1024]                        # source: fixed  (32^2, COCO standard)
+    medium: [1024, 9216]                     # source: fixed  (96^2)
+    large:  [9216, 100000000]                # source: fixed
+  evaluate_in_original_coordinates: true     # source: fixed
+
+  bare_head_recall_iou: 0.50                 # source: fixed
+  primary_classes: ["helmet", "head"]        # source: fixed
+                                             # `person` is reported but excluded from
+                                             # the headline claim — see ADR-003 / EXP-03
+
+  bootstrap_resamples: 1000                  # source: fixed   (over test IMAGES, not instances)
+  bootstrap_ci: 0.95                         # source: fixed
+
+  # Scenario-sliced reporting (EVAL-17). Test images are bucketed automatically
+  # from GT statistics, not by hand. This is what checks whether "targeted"
+  # synthesis actually hit its target rather than just adding data.
+  slice_small_object_min_count: 1            # source: guess   (>=N boxes with area < 1024)
+  slice_crowded_min_instances: 8             # source: guess
+  slice_low_light_percentile: 25             # source: guess   (darkest N% by mean luminance)
+
+# ===========================================================================
+# Speed benchmark — DEMO-03
+# ===========================================================================
+benchmark:
+  warmup_iterations: 20                      # source: guess   (never time the first inference)
+  timed_iterations: 200                      # source: guess
+  report_statistic: "median"                 # source: fixed   (mean is skewed by GC/scheduler noise)
+  also_report_p95: true                      # source: fixed
+  # Report model-only AND end-to-end separately: the former is a property of the
+  # model, the latter is what a user actually feels.
+  separate_model_and_e2e: true               # source: fixed
+  batch_size: 1                              # source: fixed   (latency is a batch-1 question)
+  dtype: "float16"                           # source: guess   (record it; FPS without dtype is meaningless)
+  input_size: 640                            # source: fixed
+
+# ===========================================================================
+# Error analysis — EVAL-15
+# ===========================================================================
+error_analysis:
+  compare_arms: ["real_only", "filtered_syn"]   # source: fixed   (baseline vs best)
+  samples_per_category: 12                      # source: guess
+  categories:                                   # source: fixed
+    - fixed_false_negative      # baseline missed it, best arm caught it
+    - fixed_false_positive      # baseline fired, best arm did not
+    - new_false_positive        # best arm fired but baseline did not -> synthetic side effect,
+                                # must be shown honestly, not buried
+    - both_wrong                # remaining hard cases -> Limitations

@@ -1,0 +1,174 @@
+# Single source of truth for every NUMERIC parameter of Phase 2 training.
+# docs/training_spec.md describes the requirements; it contains NO numbers.
+#
+# `source` tags: fixed | guess | calibrated | upstream | verified
+#   upstream - taken from the RT-DETRv2 authors' own COCO recipe
+#   verified - read off the checkpoint's config / HF docs on 2026-07-27
+#
+# TRAIN-01 requires re-verifying the API and these defaults at M15 before use.
+
+seed: 42                                     # source: fixed  (data/split seed; see below for训练 seed)
+
+# ===========================================================================
+# Model
+# ===========================================================================
+model:
+  checkpoint: "PekingU/rtdetr_v2_r18vd"      # source: verified  apache-2.0, 20,209,716 params, ~77 MiB
+  # NOTE the lowercase repo id. The HF autodoc example shows "PekingU/RTDetrV2_r50vd"
+  # and "RTDetrV2ImageProcessor" — BOTH ARE WRONG, neither exists. Use Auto* classes:
+  #   AutoImageProcessor.from_pretrained(...)  ->  resolves to RTDetrImageProcessor
+  #   AutoModelForObjectDetection.from_pretrained(...)  ->  RTDetrV2ForObjectDetection
+  num_labels: 3                              # source: fixed  helmet=0, head=1, person=2
+  ignore_mismatched_sizes: true              # source: fixed  MANDATORY: 80 -> 3 classes needs a fresh head
+
+  # The checkpoint's preprocessor_config.json already declares 640x640 and
+  # do_normalize:false. DO NOT override either.
+  image_size: 640                            # source: verified  (checkpoint default)
+  do_normalize: false                        # source: verified
+  # ^ RT-DETR only divides by 255. The image_mean/image_std keys exist but are INERT.
+  #   Hand-rolling ImageNet normalization silently wrecks the model.
+  do_pad: false                              # source: verified  (fixed size, so no pixel_mask)
+  do_convert_annotations: true               # source: verified
+  # ^ this is what turns COCO [x,y,w,h] absolute -> normalized cxcywh in [0,1],
+  #   which is exactly what the loss expects. Never do this conversion by hand.
+
+# ===========================================================================
+# Optimizer / schedule
+# ===========================================================================
+optimizer:
+  name: "adamw_torch"                        # source: upstream
+  learning_rate: 1.0e-4                      # source: upstream  (drop to 5e-5 if unstable)
+  backbone_lr_multiplier: 0.1                # source: upstream  -> backbone at 1e-5
+  # Trainer does NOT do per-group LR. Requires a Trainer subclass overriding
+  # create_optimizer(). Preferred over freezing the backbone: freezing costs AP
+  # on a domain-shifted PPE dataset, the 0.1x group is what the authors do.
+  weight_decay: 1.0e-4                       # source: upstream
+  no_decay_on_norm_and_bias: true            # source: upstream
+  betas: [0.9, 0.999]                        # source: upstream
+
+schedule:
+  lr_scheduler_type: "cosine"                # source: guess  (upstream uses MultiStepLR; cosine is
+                                             # the common HF-side choice and behaves well here)
+  warmup_steps: 2000                         # source: upstream  (LinearWarmup(2000) iterations)
+  max_grad_norm: 0.1                         # source: upstream  ⚠ NOT the Trainer default of 1.0.
+                                             # Upstream clip_max_norm is 0.1; the usual NaN-loss
+                                             # report traces back to too-high LR / too-loose clipping.
+
+# ===========================================================================
+# Batch / epochs
+# ===========================================================================
+run:
+  per_device_train_batch_size: 16            # source: guess  (24 GB L4 has headroom; try 32)
+  per_device_eval_batch_size: 8              # source: guess
+  # ⚠ HARD CONSTRAINT, assert at startup:
+  #     len(val_dataset) % per_device_eval_batch_size != 1
+  # A remainder batch of exactly 1 makes image_size collapse from tensor([H,W]) to
+  # tensor([H]), and collect_targets raises
+  # "ValueError: not enough values to unpack (expected 2, got 1)".
+  assert_eval_batch_remainder_not_one: true  # source: fixed
+
+  num_train_epochs_real_only: 50             # source: guess
+  num_train_epochs_with_synthetic: 75        # source: guess
+  # See budget_alignment below — differing epoch counts across arms is a DELIBERATE
+  # choice that must be justified, not an accident.
+
+  precision: "bf16"                          # source: guess  (L4/A100/4090). Use fp16 on T4 (no bf16).
+  dataloader_num_workers_colab: 2            # source: guess
+  dataloader_num_workers_windows: 0          # source: fixed  (spawn startup is pathological; ENV-08)
+  dataloader_prefetch_factor: 2              # source: guess
+
+  # Trainer flags that are NOT optional
+  eval_do_concat_batches: false              # source: fixed  ⚠ MANDATORY for detection models.
+                                             # Trainer otherwise tries to concatenate ragged
+                                             # per-image label lists -> garbage or crash.
+  remove_unused_columns: false               # source: fixed  else Trainer strips the columns the
+                                             # transform needs
+  eval_strategy: "epoch"                     # source: guess
+  save_strategy: "epoch"                     # source: guess
+  save_total_limit: 2                        # source: guess
+  load_best_model_at_end: true               # source: guess
+  metric_for_best_model: "eval_map"          # source: guess
+  greater_is_better: true                    # source: fixed
+
+# How the four arms are kept comparable. Arms 3 and 4 have ~3x the data, so equal
+# epochs means unequal optimizer steps. Pick ONE and report it.
+#   "equal_steps"  - fix total optimizer steps across arms (real images seen differs)
+#   "equal_epochs" - fix epochs (steps differ; must be reported per arm)
+budget_alignment: "equal_steps"              # source: guess  -> revisit at M15 with real numbers
+
+seeds:
+  primary: 1337                              # source: guess
+  extra: [1338, 1339]                        # source: guess  only for real_only + best filtered arm
+
+# ===========================================================================
+# Augmentation
+# ===========================================================================
+# ⚠ EXP-01 / TRAIN-05: the standard_aug arm MUST include photometric augmentation
+# comparable to configs/compose.yaml `postfx`, otherwise the filtered_syn arm wins
+# partly because it got an augmentation the baseline never received.
+augmentation:
+  # Albumentations stays in COCO [x,y,w,h] ABSOLUTE throughout; the HF image processor
+  # does the COCO -> normalized cxcywh conversion at the end.
+  bbox_format: "coco"                        # source: fixed
+  bbox_clip: true                            # source: fixed
+  bbox_min_area: 4                           # source: guess
+  # ^ the HF example uses 25, which is too aggressive here: a distant helmet at
+  #   416x416 can legitimately be ~5x5 px. Keep this low.
+
+  real_only:
+    horizontal_flip: 0.0                     # source: fixed  (no augmentation at all)
+
+  standard_aug:
+    horizontal_flip: 0.5                     # source: guess
+    # geometric
+    perspective: 0.1                         # source: guess
+    random_sized_bbox_safe_crop: 0.0         # source: guess
+    # ^ deliberately OFF: it evicts small objects, and small objects are the whole point
+    # photometric — must bracket configs/compose.yaml `postfx`
+    random_brightness_contrast: 0.5          # source: guess
+    hue_saturation_value: 0.1                # source: guess
+    gamma_range: [1.8, 3.2]                  # source: fixed  (matches compose.yaml postfx.low_light)
+    gauss_noise_sigma: [3, 10]               # source: fixed  (matches compose.yaml)
+    motion_blur: 0.1                         # source: guess
+    blur_limit: 7                            # source: guess
+    jpeg_quality: [70, 95]                   # source: fixed  (matches compose.yaml)
+
+  # arms 3 and 4 use the SAME augmentation as standard_aug, plus synthetic data.
+  # Anything else confounds "synthetic helps" with "different augmentation".
+  synthetic_arms_use_standard_aug: true      # source: fixed
+
+# ===========================================================================
+# Speed baseline — ADR-005. NOT Ultralytics (AGPL-3.0).
+# ===========================================================================
+speed_baseline:
+  enabled: true                              # source: fixed
+  checkpoint: "Roboflow/rf-detr-nano"        # source: verified  apache-2.0, ~30.5M params
+  # ⚠ ONLY nano/small/medium/base/large are apache-2.0.
+  #   The XL and 2XL variants are PML-1.0 — do not use them.
+  # Same Trainer script, same collator, same metrics: marginal cost is one checkpoint string.
+  seeds: 1                                   # source: fixed  (secondary result, 1 seed is enough)
+  match_epochs_to: "num_train_epochs_real_only"   # source: fixed
+
+# ===========================================================================
+# Colab budget — Pro+ tier, 500 compute units/month
+# ===========================================================================
+budget:
+  plan: "colab_pro_plus"                     # source: verified  500 CU/mo, background execution up to 24h
+  monthly_compute_units: 500                 # source: verified
+  recommended_runtime: "L4"                  # source: guess
+  # L4 is roughly COST-NEUTRAL vs T4 for the whole sweep (~113 vs ~116 CU) but ~2.4x
+  # faster in wall-clock, has 24 GB, and each run fits in one session.
+  # T4 at 100 epochs on the synthetic arms would exceed the ~12h session cap.
+  compute_units_per_hour:                    # source: guess  (reported ranges, midpoints)
+    T4: 1.76
+    L4: 4.0
+    A100: 14.0
+  # ⚠ ALL of the following are EXTRAPOLATIONS (+/- ~40%), not measurements.
+  # Replace with actuals after the first run — the first estimate is never right.
+  estimated_hours_per_run_L4:
+    real_only_50ep: 1.4                      # ~3,500 images
+    with_synthetic_50ep: 4.2                 # ~10,500 images
+  estimated_total_compute_units_8_runs: 113  # source: guess
+  # Rule: compute the estimate and show it to the user BEFORE running.
+  # If it would exceed budget, present tradeoffs (fewer seeds / fewer epochs /
+  # different runtime) and ask — do not silently shrink the experiment.

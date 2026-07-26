@@ -1,0 +1,323 @@
+# Single source of truth for every NUMERIC parameter of the synthesis pipeline.
+# docs/synthesis_spec.md describes the predicates; it deliberately contains NO
+# numbers, so the two can never drift apart.
+#
+# Every value carries a `source` tag:
+#   fixed      - principled, not tunable without a new ADR
+#   guess      - author's prior; MUST be sanity-checked on a rendered grid
+#   calibrated - filled in by the M6 calibration harness from the frozen Train split
+#
+# Milestone M6 rewrites every `calibrated` field and flips its source tag.
+# Any value still tagged `guess` when M13 (full generation) starts must be
+# listed explicitly in reports/filter_report.md.
+
+seed: 42
+image_size: [416, 416]        # source: fixed  (dataset native; never up/downscale during compose)
+
+# ===========================================================================
+# SAM2 — shared by Pass 1 (survey) and Pass 2 (bank build)
+# ===========================================================================
+sam2:
+  model_id: "facebook/sam2.1-hiera-large"   # source: fixed   (ADR-001)
+  dtype: "bfloat16"                          # source: fixed   (Ada; encoder only)
+  multimask_output: false                    # source: fixed
+  min_transformers_version: "4.57.1"         # source: fixed   (ADR-001: box-prompt padding fix)
+
+  pass1_survey:
+    # Full-image prompting, image embedding computed once and reused across all
+    # boxes of that image. Output feeds compose.py's occlusion handling, the
+    # calibration harness, and spike H1 — NOT the cutout bank.
+    batch_images: 4                          # source: guess   (24 GB VRAM is not the limit here)
+
+  pass2_bank:
+    # Per-candidate crop, upscaled before prompting. This is what makes ~34 px
+    # boxes usable; see docs/synthesis_spec.md and spike H2.
+    context_pad_frac: 0.60                   # source: guess   (fraction of max(w,h) added on every side)
+    min_crop_side_px: 96                     # source: fixed   (below this the crop carries no texture)
+    resize_to: 1024                          # source: fixed   (SAM2 native input resolution)
+    interpolation: "cubic"                   # source: fixed
+
+  # Mask cleanup. transformers' post_process_masks(max_hole_area=, max_sprinkle_area=)
+  # are accepted-but-ignored no-ops, so we do this ourselves. See ADR-001.
+  cleanup:
+    keep_largest_component: true             # source: fixed
+    fill_holes: true                         # source: fixed
+    morph_close_kernel: 3                    # source: guess
+    morph_close_iterations: 1                # source: guess
+    clip_to_prompt_box: true                 # source: fixed   (record leakage BEFORE clipping)
+
+# ===========================================================================
+# Cutout bank — which real instances qualify as source material
+# ===========================================================================
+cutout_bank:
+  # G1: VOC flags. A box the annotator already marked as truncated/difficult is
+  # bad material by the dataset's own admission.
+  respect_voc_flags: true                    # source: fixed
+
+  # G2: hard floor. Below this, SAM2 has nothing to segment.
+  hard_floor:
+    min_side_px: 16                          # source: guess   -> spike H2 sets the real floor
+    min_area_px: 400                         # source: guess
+
+  # G3: preferred tier. Most pastes draw from here; S1 (small_distant) shrinks
+  # these down rather than upscaling small sources.
+  preferred_tier:
+    min_side_px: 24                          # source: calibrated  (target: ~p55 of per-class min_side)
+    min_area_px: 900                         # source: calibrated
+
+  # G4: aspect ratio sanity, per class.
+  aspect_ratio:
+    helmet: [0.50, 2.00]                     # source: calibrated  (p1-p99)
+    head:   [0.50, 2.00]                     # source: calibrated
+    person: [0.25, 1.50]                     # source: calibrated
+
+  # G5: a border-truncated object yields a mask with a dead-straight edge, which
+  # is the single most visible paste artifact.
+  min_distance_to_image_edge_px: 2           # source: fixed
+
+  # G6: an occluded source produces a mask containing the occluder.
+  # EXEMPTION: a `person` box legitimately contains its own helmet/head, so only
+  # same-kind boxes count as occluders. See docs/synthesis_spec.md.
+  max_occlusion_by_others: 0.15              # source: guess
+
+  # Quality gates on the SAM2 output itself.
+  mask_quality:
+    min_iou_score: 0.80                      # source: guess   -> H2: set to p10 of the visually-good group
+    min_object_score_logit: 2.0              # source: guess   (>0 is nominal; +2 adds margin on tiny boxes)
+    mask_to_box_coverage:
+      # The UPPER bound matters as much as the lower one: it catches SAM2's
+      # degenerate failure of returning the prompt box itself, which otherwise
+      # looks like a high-confidence result.
+      helmet: [0.40, 0.95]                   # source: calibrated
+      head:   [0.45, 0.95]                   # source: calibrated
+      person: [0.22, 0.90]                   # source: calibrated
+    max_outside_box_ratio: 0.10              # source: guess   (leakage onto occluder/background)
+    max_second_component_ratio: 0.20         # source: guess   (>0.2 = SAM2 straddled two objects)
+    max_hole_fill_ratio: 1.25                # source: guess   (swiss-cheese mask)
+    min_solidity:
+      helmet: 0.85                           # source: calibrated  (helmets are convex)
+      head:   0.80                           # source: calibrated
+      person: 0.55                           # source: calibrated  (limbs break convexity)
+    max_edge_touch_top:
+      # A helmet hugging the TOP of its box means the crown was cut off.
+      # edge_touch_bottom is deliberately unbounded: helmets are legitimately
+      # cut at the neckline.
+      helmet: 0.50                           # source: guess
+      head:   0.50                           # source: guess
+    max_edge_touch_side:
+      person: 0.80                           # source: guess
+    min_mask_area_px: 250                    # source: fixed
+
+  # person is scarce AND video-derived: 751 instances across only 158 images.
+  # Cap per group so the bank reports honest diversity. See ADR-003.
+  max_person_cutouts_per_group: 2            # source: fixed
+  min_distinct_person_groups: 100            # source: guess
+                                             # below this, S4 crowded falls back to
+                                             # head+helmet material and says so in the report
+
+# ===========================================================================
+# Composition
+# ===========================================================================
+compose:
+  # --- source/background pairing constraints ---
+  forbid_same_image: true                    # source: fixed
+  forbid_same_group: true                    # source: fixed
+                                             # CRITICAL: the dataset is video-derived. Pasting
+                                             # from frame N onto frame N+1 manufactures a
+                                             # near-duplicate pair and leaks silently.
+  max_composites_per_background: 4           # source: guess
+  max_uses_per_cutout: 25                    # source: guess
+  max_person_pastes_per_composite: 4         # source: guess
+  max_same_source_image_per_composite: 1     # source: guess   (relaxed to 2 for the crowded scenario)
+
+  # --- transforms ---
+  max_paste_scale:
+    # Upscaling a low-resolution crop injects a blur signature the detector can
+    # shortcut on. S1 (small_distant) only ever shrinks.
+    helmet: 1.15                             # source: fixed
+    head:   1.15                             # source: fixed
+    person: 1.00                             # source: fixed
+  rotation_deg:
+    helmet: 12                               # source: guess   (heads are near-upright on sites)
+    head:   12                               # source: guess
+    person: 5                                # source: guess
+    hard_negative: 25                        # source: guess   (rigid objects tolerate more)
+  hflip_prob: 0.5                            # source: fixed
+  vflip_prob: 0.0                            # source: fixed   (never)
+
+  # --- blending: Gaussian-feathered alpha (NOT Poisson) ---
+  # cv2.seamlessClone solves in the gradient domain and washes out absolute
+  # colour — but helmet HUE is the class signal here. It also fails outright when
+  # the ROI touches the frame border, which our placement causes constantly.
+  # Hard alpha leaves a 1 px stair-step the detector trivially exploits.
+  blending:
+    method: "feathered_alpha"                # source: fixed
+    erode_before_feather_px: 1               # source: fixed   (feather eats the object, not the background)
+    feather_sigma_base: 0.60                 # source: guess
+    feather_sigma_per_px: 0.02               # source: guess   sigma = base + per_px * min(w,h)
+    feather_sigma_clip: [0.60, 2.00]         # source: guess
+
+  # --- photometric harmonization (CIELab local Reinhard) ---
+  # a/b channels are deliberately HALF strength with no chroma rescale: full
+  # chroma matching would drag a yellow helmet toward the background's colour
+  # cast and erase the very feature the detector needs.
+  harmonization:
+    enabled: true                            # source: fixed
+    annulus_outer_scale: 2.0                 # source: guess   (target stats from a ring around the paste)
+    annulus_min_valid_px: 200                # source: guess   (below this, fall back to whole-background stats)
+    L_mean_beta: 0.70                        # source: guess
+    L_std_lambda_clip: [0.70, 1.40]          # source: guess
+    ab_mean_beta: 0.50                       # source: fixed   (half strength — hue is class signal)
+    ab_std_rescale: false                    # source: fixed
+    max_delta_mean_L: 25                     # source: guess
+    max_delta_mean_ab: 12                    # source: guess
+    # A downscaled crop is suspiciously CLEAN. At 416x416 this is the strongest
+    # remaining tell after edges.
+    noise_match: true                        # source: fixed
+    noise_match_sigma_cap: 8.0               # source: guess
+
+  # --- bbox recomputation (the correctness core; see docs/filtering_spec.md) ---
+  bbox:
+    min_visible_fraction_pasted: 0.20        # source: guess
+                                             # below this: RESAMPLE the placement, never emit an
+                                             # unlabelled-but-visible positive
+    max_placement_retries: 8                 # source: guess
+    # Existing REAL annotations occluded by a paste:
+    existing_keep_original_above: 0.60       # source: guess   (an annotator would not re-tighten)
+    existing_recompute_above: 0.20           # source: guess   (recompute from the visible mask)
+                                             # below existing_recompute_above: reject the placement
+                                             # and retry. NEVER delete a real annotation.
+    min_inside_ratio: 0.60                   # source: guess   (before clipping to frame)
+    min_box_side_px: 4                       # source: fixed   (after clipping)
+
+# ===========================================================================
+# Target scenarios. Counts are the 1x budget (~1:1 with real Train images).
+# ===========================================================================
+scenarios:
+  small_distant:
+    weight: 0.25                             # source: guess   (AP_small is headline metric #1)
+    n_pasted: [3, 8]
+    scale_range: [0.25, 0.55]
+    target_min_side_px: [8, 20]
+    cy_range: [0.10, 0.60]                   # source: guess   (near-horizon band)
+    rotation_deg: 8
+    postfx_prob: 0.20
+
+  head_no_helmet:
+    weight: 0.25                             # source: guess   (bare-head recall is headline #2)
+    n_pasted: [1, 3]
+    submode_paste_head_prob: 0.40            # source: guess
+    submode_helmet_to_head_swap_prob: 0.60   # source: guess
+    # The swap converts the abundant class into the scarce one, in place, with
+    # correct context. Inpaint the helmet away BEFORE pasting the bare head,
+    # otherwise a helmet-rim ghost survives.
+    swap_inpaint_dilate_px: 3                # source: guess
+    swap_inpaint_radius: 3                   # source: guess
+    swap_head_oversize_factor: 1.05          # source: guess
+    swap_max_residual_helmet_fraction: 0.05  # source: guess   (assert; crash if exceeded)
+    postfx_prob: 0.20
+
+  partial_occlusion:
+    weight: 0.15                             # source: guess
+    n_targets: [1, 3]
+    scale_range: [0.60, 1.00]
+    # Solve for the occlusion offset directly instead of rejection-sampling it.
+    target_occlusion_ratio: [0.25, 0.65]     # source: guess
+    postfx_prob: 0.20
+
+  crowded:
+    weight: 0.12                             # source: guess   (capped: the person bank is weak, ADR-003)
+    n_pasted: [5, 12]
+    scale_range: [0.50, 1.00]
+    min_visible_fraction: 0.35               # source: guess
+    max_pairwise_iou: 0.65                   # source: guess
+    postfx_prob: 0.20
+
+  hard_negative:
+    weight: 0.13                             # source: guess   (must be large enough to move FP rate)
+    n_pasted: [1, 3]
+    scale_range: [0.50, 1.20]
+    postfx_prob: 0.20
+
+  low_light_blur:
+    weight: 0.10                             # source: guess   (dedicated bucket; ALSO applied as a
+                                             # modifier to 20% of every other scenario)
+    n_pasted: [0, 3]
+    postfx_prob: 1.00
+
+# ===========================================================================
+# Post-composition effects — applied to the WHOLE IMAGE, after every bbox has
+# been recomputed. These are geometry-preserving, so all labels stay exactly
+# valid with zero re-derivation. Per-object degradation would instead create a
+# photometric inconsistency between object and scene for the detector to exploit.
+# ===========================================================================
+postfx:
+  low_light:
+    prob_given_postfx: 0.60                  # source: guess
+    gamma: [1.8, 3.2]                        # source: guess
+    gain: [0.45, 0.80]                       # source: guess
+    noise_sigma: [3, 10]                     # source: guess
+    wb_gain_r: [0.92, 1.00]                  # source: guess
+    wb_gain_b: [1.00, 1.12]                  # source: guess
+  motion_blur:
+    prob_given_postfx: 0.50                  # source: guess
+    kernel_lengths: [3, 5, 7, 9]             # source: guess
+    angle_deg: [0, 180]                      # source: fixed
+  jpeg:
+    always: true                             # source: guess
+    quality: [70, 95]                        # source: guess
+
+# ===========================================================================
+# Hard negatives. NOT annotated, by construction — see ADR-004.
+# ===========================================================================
+hard_negatives:
+  mined_fraction: 0.70                       # source: guess   (domain texture beats procedural control)
+  procedural_fraction: 0.30                  # source: guess
+
+  mining:
+    # HSV window for safety yellow/orange.
+    hue_deg: [20, 40]                        # source: guess
+    min_saturation: 0.45                     # source: guess
+    min_value: 0.40                          # source: guess
+    contour_area_px: [400, 6000]             # source: guess
+    circularity: [0.45, 0.95]                # source: guess   4*pi*A/P^2
+    # RISK GUARD: ~2/3 of true objects are UNLABELLED in this dataset, so
+    # "no annotation here" does NOT mean "no helmet here". Mining will otherwise
+    # scoop up real unlabelled helmets and teach the detector to suppress them.
+    max_iou_with_any_annotation: 0.05        # source: fixed
+    require_no_head_below: true              # source: fixed
+    require_outside_helmet_size_range: true  # source: fixed
+    human_signoff_required: true             # source: fixed   (one 8x8 contact sheet before freeze)
+    max_tolerated_helmet_rate: 0.10          # source: guess
+                                             # above this, spike H6 flips the mix to
+                                             # procedural-primary
+
+  procedural:
+    shapes: ["dome", "ellipse", "rounded_cylinder", "arc"]   # source: guess
+    # Modulate REAL background texture with the shape's shading rather than
+    # flat-filling, otherwise the detector learns "procedural texture = negative"
+    # instead of "yellow round thing = negative" — an EASY negative, which is the
+    # opposite of the goal.
+    modulate_background_texture: true        # source: fixed
+    specular_highlight: true                 # source: guess
+    rim_shading: true                        # source: guess
+
+# ===========================================================================
+# Generation budget.
+# ===========================================================================
+budget:
+  # 1x is ~1:1 with real Train images. Keeps optimizer-step alignment across the
+  # five experiment arms trivial, and pre-empts "you just did more augmentation".
+  base_multiplier_images: 1.0                # source: guess
+  ablation_multipliers: [0.5, 1.0, 2.0]      # source: fixed   (Phase 2)
+
+  # Generate a pool until N_accept hits the target, then:
+  #   filtered_1x   = the accepted samples
+  #   unfiltered_1x = a uniform random sample of THE SAME SIZE from the whole pool
+  # Size-matching is mandatory: comparing N generated against M filtered would
+  # confound "more data" with "better data".
+  size_matched_arms: true                    # source: fixed
+  # Nested subsets: rank each accepted sample by a stable hash, take the first
+  # k*base, stratified by scenario. Forces 0.5x subset-of 1x subset-of 2x so the
+  # scaling curve is a clean nested comparison, not three independent draws.
+  nested_subsets: true                       # source: fixed

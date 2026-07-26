@@ -1,0 +1,81 @@
+[project]
+name = "safesynth-ppe"
+version = "0.1.0"
+description = "Targeted synthetic data for PPE (hard hat) detection: SAM2 cutouts, scenario-driven composition, and geometric quality filtering, with fully automatic bounding-box labels."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12,<3.13"
+
+# Versions verified online on 2026-07-27 (see docs/environment.md for sources).
+# Targets: torch 2.13.0+cu130, torchvision 0.28.0+cu130 (both confirmed to exist as
+# cp312 win_amd64 wheels on the cu130 index). Exact resolution is left to uv so that
+# torch/torchvision stay compatible; milestone M1 re-verifies, then `uv lock` pins
+# everything and uv.lock is committed.
+dependencies = [
+    # core
+    "numpy",
+    "pyyaml",
+    "python-dotenv",
+    "tqdm",
+    "pandas",
+    # imaging
+    "pillow",
+    "opencv-python",          # connected components, inpainting, filtering, blending
+    "scipy",                  # csgraph.connected_components for near-duplicate grouping
+    "scikit-image",
+    "imagehash>=4.3.2",       # pHash near-duplicate grouping
+    # ml
+    "torch",                  # MUST come from the cu130 index below, see docs/environment.md
+    "torchvision",
+    # HARD LOWER BOUND. Two independent reasons:
+    #   ADR-001: 4.56.x has a SAM2 box-prompt bug that silently degrades mask quality.
+    #   ADR-006: transformers v5 renamed the image processors. In v5,
+    #            RTDetrImageProcessor IS the fast one and RTDetrImageProcessorFast
+    #            no longer exists. Pinning to v5 keeps both phases on one API generation.
+    "transformers>=5.14.1",
+    "albumentations",         # Phase 2 augmentation; stays in COCO xywh, see training_spec
+    "accelerate",
+    "safetensors",
+    "open-clip-torch>=3.3.0",  # optional CLIP pass for near-duplicate grouping
+    # data
+    "kagglehub>=1.0.2",       # NOT the `kaggle` package — see ADR-002 / docs/environment.md
+    "pycocotools>=2.0.11",    # 2.0.11 ships cp312-abi3 win_amd64 wheels, no MSVC needed
+    # reporting
+    "matplotlib",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest",
+]
+
+# ---------------------------------------------------------------------------
+# PyTorch on native Windows.
+#
+# The wheels on PyPI for win_amd64 are CPU-ONLY (~122 MB, versus ~527 MB for the
+# Linux CUDA wheel). A bare `pip install torch` therefore installs a build that
+# cannot see the RTX 4090 — and it fails silently, at runtime, as
+# `torch.cuda.is_available() == False`.
+#
+# `explicit = true` means this index is used ONLY for the packages mapped to it
+# below; everything else still resolves from PyPI.
+#
+# cu128 is NOT an option: that index tops out at torch 2.11.0 (verified
+# 2026-07-27). CUDA 12.8 was dropped from the standard release matrix in 2.12.
+# ---------------------------------------------------------------------------
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130" }]
+torchvision = [{ index = "pytorch-cu130" }]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,58 @@
+# Single source of truth for every path in this project.
+# NO script may hardcode an absolute path — always load this file.
+# Rationale: docs/decisions.md ADR-002.
+
+# ---------------------------------------------------------------------------
+# Bulk data lives on D: (1.7 TB free; C: has ~186 GB). The project folder on C:
+# stays clean so the git repo only ever contains code, configs, docs, manifests
+# and small curated figures.
+# ---------------------------------------------------------------------------
+data_root: "D:/sdg-data/02-safesynth"
+
+paths:
+  # --- under data_root (NOT tracked by git) ---
+  raw: "${data_root}/raw"                     # Kaggle archive + extracted images/ annotations/
+  hardhat_raw: "${data_root}/raw/hard-hat-detection"
+  interim: "${data_root}/interim"             # coco_all.json, phash tables, CLIP embeddings
+  cutouts: "${data_root}/cutouts"             # RGBA cutout bank + bank_manifest.jsonl
+  masks_pass1: "${data_root}/masks_pass1"     # SAM2 Pass 1 masks for EXISTING train annotations
+  synthetic: "${data_root}/synthetic"         # generated images + records.jsonl + COCO jsons
+  cache: "${data_root}/cache"                 # anything recomputable
+  runs: "${data_root}/runs"                   # local runs (Phase 2)
+
+  # --- under project_root (tracked by git) ---
+  splits: "splits"                            # split_manifest.json, test_blocklist.json, checksums
+  reports: "reports"                          # markdown reports
+  figures: "reports/figures"                  # contact sheets, preview grids, distribution plots
+  configs: "configs"
+  tests: "tests"
+
+# ---------------------------------------------------------------------------
+# Hugging Face cache stays on C: default (C:/Users/<user>/.cache/huggingface),
+# matching the sibling projects. The SAM 2.1 large checkpoint is ~898 MB, which
+# C: can absorb comfortably.
+#
+# CAVEAT: LongPathsEnabled is 0 on this machine (verified 2026-07-27), so the
+# 260-character MAX_PATH limit is live. If HF cache blob names ever trip it, set
+# hf_home to a short path such as "D:/hf" and re-run. See docs/troubleshooting.md.
+# ---------------------------------------------------------------------------
+hf_home: null
+
+# Secrets file lives OUTSIDE the repo (parent folder), loaded with python-dotenv.
+dotenv: "../.env"
+
+# ---------------------------------------------------------------------------
+# Dataset identity. Pin the version once M2 discovers it, so that a frozen split
+# cannot be silently invalidated by an upstream re-upload.
+# ---------------------------------------------------------------------------
+dataset:
+  kaggle_handle: "andrewmvd/hard-hat-detection"
+  pinned_version: null        # M2 fills this in, then the handle becomes ".../versions/<N>"
+  classes: ["helmet", "head", "person"]   # order defines category_id 1, 2, 3
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+
+seed: 42

@@ -1,0 +1,66 @@
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*credentials*
+*secret*
+*.pem
+*.token
+kaggle.json
+
+# --- Private working notes (filename alone reveals intent) ---
+interview*.md
+INTERVIEW_PREP.md
+*.discarded-*
+
+# --- Large data & outputs ---
+# Bulk data actually lives on D:\sdg-data\02-safesynth (see configs/paths.yaml);
+# these rules exist so an accidental local copy never reaches git.
+# Leading "/" anchors them to the repo root — an unanchored "data/" would also
+# swallow src/data/, which is source code.
+/data/
+/runs/
+/tmp/
+/outputs/
+# results/ must stay tracked as a directory so results/.gitkeep survives:
+# ignore its CONTENTS, not the directory itself.
+/results/*
+!/results/.gitkeep
+
+*.tar
+*.tar.gz
+*.zip
+
+# --- Model weights ---
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.bin
+
+# --- Generated imagery (synthetic images live on D:, previews are curated by hand) ---
+# reports/figures/ IS tracked — those are the small curated grids we cite in the README.
+/assets/*
+!/assets/.gitkeep
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+
+# --- Tooling / OS ---
+.vscode/
+.idea/
+.claude/settings.local.json
+Thumbs.db
+desktop.ini
