@@ -12,6 +12,7 @@ named blending change instead of reshuffling later samples or post-effects.
 | Edge core alpha 128 | 0.8054 | worse |
 | Edge core alpha 250 | 0.8237 | worse |
 | No second erosion (bank alpha only) | 0.8551 | much worse |
+| Three-level RGB multiband alpha blend | 0.8507 | much worse; reverted |
 | Strong feather, sigma clipped 1.00–3.00 | 0.8068 | worse |
 | Weak feather, sigma clipped 0.40–1.00 | 0.7906 | statistically negligible |
 | Very weak feather, sigma clipped 0.20–0.60 | 0.7950 | statistically negligible |
@@ -25,8 +26,13 @@ The ablations do establish two useful facts:
 
 1. source-background colour decontamination materially helps;
 2. simply increasing feather strength or removing the second erosion makes the
-   pasted-vs-real shortcut stronger.
+   pasted-vs-real shortcut stronger;
+3. multiband blending spreads a low-frequency patch signature and also makes
+   the shortcut stronger.
 
-The next attempt should change the method (for example context-aware source
-selection or a luminance-only multiband blend) and be evaluated on a new,
-pre-frozen group fold rather than tuning these parameters further.
+One read-only diagnostic points to composition context: on the final H4
+classifier scores, pasted headlike boxes anchored near a `person` have score-AUC
+0.7168 against real controls, versus 0.8094 for unanchored boxes. This is not a
+replacement gate result, but it is a stronger next-step clue than further edge
+tuning. The next attempt should pre-register a context-anchored composition
+method and evaluate it on a new frozen group fold.
