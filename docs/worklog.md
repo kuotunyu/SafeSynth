@@ -9,10 +9,12 @@
 *每次收工覆寫，只留最新一份。*
 
 - **更新時間**：2026-07-27
-- **最後 commit**：`1af595c` feat(data): download and convert frozen hard-hat dataset
-- **目前里程碑**：`M0`–`M2` `[x]`；`M3` 工具已在工作樹準備，尚未執行。
-- **⚠️ 未 commit 的改動**：M3 的 H1/H3/H5 spike 程式與測試。
-- **已凍結不得再動**：（無）
+- **最後 commit**：`d29405d` feat(data): freeze guarded group split
+- **目前里程碑**：`M0`–`M5` `[x]`；下一步 M6 SAM2 calibration harness。
+- **⚠️ 未 commit 的改動**：M3–M5 驗證紀錄與醒來後交接文件。
+- **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
+  `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
+  `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
 - **資料落地**：Kaggle version 1 已下載到 `D:\sdg-data\02-safesynth`；
   原始 archive、解壓資料與 `interim/coco_all.json` 齊備，來源 SHA256 已記錄。
 - **環境**：已安裝並驗證。`.venv/` ＋ `uv.lock` 已存在，
@@ -20,9 +22,10 @@
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
   SAM2 權重還沒下載。
-- **下一個動作（一句話、可直接動手）**：執行 M3 的 H1/H3/H5 spike 並檢視產出圖。
+- **下一個動作（一句話、可直接動手）**：先實作 M6 calibration harness；
+  等 GPU 空出後下載／載入 SAM2 並跑 30 個 stratified instances。
 - **卡住的事**：無
-- **等使用者做的事**：醒來後複核 M3 的 contact sheets 與熱圖；遠端 repo 仍未建立。
+- **等使用者做的事**：醒來後可選擇複核 M3/M5 圖；遠端 repo 仍未建立。
 - **驗證本快照的指令**：
   ```
   git log --oneline -5; git status --porcelain; (Get-Content CLAUDE.md).Count
@@ -33,6 +36,38 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-27 · M3–M5 · 資料語意、近似分群與 split 凍結
+
+- **對應規格**：DATA-13~21、Spike H1/H3/H5
+- **H1 實測與目視**
+  - 40 `helmet`＋40 `head` contact sheets 與三類長寬比圖已打開檢視。
+  - `helmet×head` 的 9,603 個同圖組合中，IoU>0.1 只有 95（0.99%）。
+  - helmet/head 長寬比中位數 0.875/0.830，圖中 helmet 框通常含整顆戴帽的頭，
+    head 則是裸頭；ADR-007 決定 compliance 走 `class_direct`。
+- **H3 實測**
+  - pHash Hamming ≤4/6/8/10 分別得到 4,907/4,900/4,890/4,875 群，
+    最大群皆為 4；五個 seed 都能模擬出 3,500/750/750。
+  - 因 pHash 群數 >2,000，依協定啟用 OpenCLIP `ViT-B-32` /
+    `laion2b_s34b_b79k`；12 組 cosine×pHash guard 候選完成。
+  - 選定 base Hamming≤10，或 cosine≥0.85 且 Hamming≤20：
+    4,808 群、最大群 8。最大 20 群 grid 已打開看過，沒有 component collapse。
+- **H5 實測與目視**
+  - head/helmet 中心熱圖形成中央水平帶；person normalized entropy 0.948 且樣本稀疏。
+  - head/helmet 保留取樣式先驗；person/crowded 改以錨定放置為主（ADR-007）。
+- **M4/M5 凍結結果**
+  - Train/Val/Test = 3,500/756/744；同群同 split hard assertion 通過。
+  - annotations = 17,815/3,870/3,817；person = 525/113/113。
+  - `split_manifest.json` 完整重建兩次，SHA256 都是
+    `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
+  - 744 張 Test 依 blocklist 逐檔重雜湊：PASS。
+  - `class_distribution.png` 已打開檢查，比例與 class imbalance 呈現合理。
+- **測試**：`uv run ruff check src scripts tests` → PASS；
+  `uv run pytest -q` → `21 passed`；
+  `uv run python scripts/freeze_split.py --verify` → group/split/Test 三項 PASS。
+- **commit**：`d29405d` feat(data): freeze guarded group split
+- **外部動作**：僅下載約 605 MB 的 OpenCLIP 權重到既有 HF cache；
+  沒有 remote、push、repo 建立或上傳。
 
 ### 2026-07-27 · M2 · 資料下載與 VOC→COCO 落地
 

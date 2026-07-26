@@ -68,7 +68,7 @@
 
 > 這一段的錯誤**事後無法補救**：split 一旦被生成端汙染，整份結論作廢。
 
-- [ ] **M3** Spike H1（`helmet` 框語意）／H3（近似分群結構）／H5（放置先驗品質）
+- [x] **M3** Spike H1（`helmet` 框語意）／H3（近似分群結構）／H5（放置先驗品質）
   - **對應規格**：[docs/data_protocol.md §3](docs/data_protocol.md)
   - **驗證**：三張 contact sheet／熱圖產出並**自己打開檢視**後交使用者過目；
     H1 印出「同圖內 helmet×head IoU>0.1 的配對數」與 per-class 長寬比直方圖，
@@ -76,9 +76,15 @@
     H3 印出四個 Hamming 門檻各自的群數、群大小直方圖、最大群大小，
     並用 5 個不同 seed 模擬 group split 印出各 split 圖片數，**選定門檻寫進 manifest**；
     H5 的位置先驗熱圖若過於發散，記錄「改以錨定放置為主」的決定
-  - **驗證於**：（未完成）
+  - **驗證於**：`d29405d` @ 2026-07-27
+    H1 contact sheets 與長寬比圖已打開檢視；`helmet×head` IoU>0.1 為
+    95/9,603（0.99%），ADR-007 決定走 `class_direct`。
+    pHash 四門檻與 5 seeds 模擬完成；因群數仍 >2,000，依規格啟用 guarded CLIP，
+    選定 Hamming≤10，或 cosine≥0.85 且 Hamming≤20。
+    最大 20 群 grid 已檢視，無 component collapse。
+    H5 熱圖已檢視：head/helmet 可用位置先驗，person 改以錨定放置為主。
 
-- [ ] **M4** pHash（＋條件性 CLIP）近似分群 ＋ 分層 70/15/15 group split
+- [x] **M4** pHash（＋條件性 CLIP）近似分群 ＋ 分層 70/15/15 group split
   - **對應規格**：DATA-13 ~ DATA-17
   - **驗證**：**斷言「同 `group_id` 必定同 `split`」通過（hard fail）**；
     分群大小直方圖與最大 20 群印出，且**最大群 ≤ 250 張（5%）**——
@@ -86,9 +92,13 @@
     每個 split 至少拿到 10% 的 `person` 實例；
     三分割互斥、聯集 = 5,000、比例在 70/15/15 的 ±2% 內；
     CLIP 若啟用，模型與 pretrained tag 已寫進 manifest
-  - **驗證於**：（未完成）
+  - **驗證於**：`d29405d` @ 2026-07-27
+    4,808 群、最大群 8；`same group -> same split = PASS`。
+    Train/Val/Test = 3,500/756/744（70.00%/15.12%/14.88%）；
+    person 實例 = 525/113/113（各 split 均 ≥10%）；
+    CLIP 模型與 pretrained tag、cosine、pHash guard 全寫入 manifest。
 
-- [ ] **M5** **凍結** split manifest ＋ SHA256 ＋ test blocklist ＋ 類別分布報告
+- [x] **M5** **凍結** split manifest ＋ SHA256 ＋ test blocklist ＋ 類別分布報告
   - **對應規格**：DATA-18 ~ DATA-21
   - **驗證**：`splits/{split_manifest.json, test_blocklist.json, source_checksums.json, MANIFEST.sha256}`
     四個檔案齊備；**連跑兩次 `MANIFEST.sha256` 完全相同**；
@@ -96,7 +106,11 @@
     `reports/class_distribution.md` 的每個數字都能從 manifest ＋ COCO JSON 重新聚合出**完全相同**的值，
     且**解決了面積讀數衝突**（[data_protocol.md §1.2](docs/data_protocol.md)）；
     `reports/figures/class_distribution.png` **自己打開檢視**後交使用者過目
-  - **驗證於**：（未完成）
+  - **驗證於**：`d29405d` @ 2026-07-27
+    四個凍結檔齊備；完整重建兩次的 manifest SHA256 均為
+    `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`；
+    744 張 Test 逐檔重雜湊通過；類別報告由 manifest＋COCO 重聚合，
+    `class_distribution.png` 已打開檢視；全套 21 tests 與 ruff 通過。
 
 ---
 

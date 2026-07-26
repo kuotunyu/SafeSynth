@@ -1,32 +1,33 @@
 # 換你做 — 02-safesynth-ppe
 
-> 這份檔案記錄**需要你親自動手**的事。Claude 只做檢查、準備內容、產出指令。
-> 每個階段結束會更新這裡。
+> 這份檔案只留**需要你親自判斷或執行外部動作**的事。
+> 本機可逆的實作、測試與 commit 已授權自動完成；不會自行建立 remote、push 或發佈。
 
 ---
 
-## 現在（M0 收尾）
+## 醒來後先看
 
-### 1. 執行 git 初始化與首批 commit
+### 1. 本專案目前不用你操作
 
-本專案的規矩是**所有 git 寫入動作由你親自執行**（沿用 `publish-repo` 的鐵則）。
-指令在 M0 一致性自檢通過後由 Claude 逐行給出，會切成三筆：
-骨架與設定 → 規格文件 → 計畫與 skill。
+- M0–M5 已完成，資料與 split 已凍結；遠端 GitHub repo 仍未建立
+- 本機所有 commit author 都是
+  `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`
+- `Co-Authored-By:` trailer 為 0；沒有 remote、push 或其他 contributors
+- M6 起可繼續本機施工，不需要 Colab
 
-⚠️ commit 訊息**不要帶 `Co-Authored-By:`**——它會讓 GitHub repo 首頁多出一個貢獻者，
-事後要用 `git filter-repo` 清很麻煩。
+### 2. 可選的人眼複核（不阻塞後續）
 
-### 2. 順手處理兩件雜事
+我已逐張檢查過，結論已記在 ADR-007；你起床後若想複核，依序看：
 
-- 三案的母資料夾（`mySyntheticData\`）底下有一個檔名為 `; else echo MISSING` 的
-  13 bytes 檔案，是某次 shell 指令沒跑好留下的殘骸。無害但建議刪掉
-- ~~`1_DefectForge` 的 cu128 問題~~ → ✅ **已於 2026-07-27 修好**
-  （改用 cu130、補上 `[[tool.uv.index]]` 區塊、順帶實測 diffusers 0.39 ＋ transformers v5
-  解析無衝突）
+1. `reports/figures/h1_helmet_contact_sheet.png` 與
+   `reports/figures/h1_head_contact_sheet.png`：helmet 是戴帽的整顆頭，head 是裸頭
+2. `reports/figures/h3_clip_largest_groups.png`：同一列應是連拍或保守合併的同構場景
+3. `reports/figures/h5_placement_priors.png`：head/helmet 有中央水平帶，person 較發散
+4. `reports/figures/class_distribution.png`：Train/Val/Test 與三類分布沒有離譜偏斜
 
-### 🔴 學校信箱寫進了 commit 歷史（要你親自處理）
+若看到問題，回覆「檔名／第幾列第幾格／問題」即可。
 
-全域 `git config user.email` 是 `03131047@gm.scu.edu.tw`，所以早期的 commit 都用了它：
+### 3. 其他兩個 repo 的學校信箱仍要你親自處理
 
 | repo | 受影響的 commit | 現況 |
 |---|---|---|
@@ -50,14 +51,6 @@ git config --global user.email "61350295+kuotunyu@users.noreply.github.com"
 
 （三個 repo 的 `Co-Authored-By` trailer 都是 **0**，這部分乾淨。
 你截圖裡出現「claude」的那個 repo 不在這三個之中，要單獨處理。）
-
----
-
-## 接下來（M1–M2，Claude 會先問你）
-
-- **M2 下載資料集前會先跟你報備實測大小**（預估 1.2–1.5 GB，低於 2 GB 的門檻，
-  但仍照規矩先講）
-- M1 需要 `uv python install 3.12`（本機目前缺 3.12）
 
 ---
 
