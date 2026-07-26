@@ -49,6 +49,7 @@ SCENARIO_ORDER = (
     "hard_negative",
     "low_light_blur",
 )
+EXPERIMENTAL_SCENARIOS = ("context_replacement",)
 
 
 @dataclass
@@ -240,6 +241,7 @@ def _choose_bank_item(
     use_counts: Counter[str],
     config: Mapping[str, Any],
     rng: np.random.Generator,
+    target_bbox_xywh: Sequence[float] | None = None,
 ) -> dict[str, Any] | None:
     compose = config["compose"]
     candidates = [
@@ -259,9 +261,31 @@ def _choose_bank_item(
     ]
     if not candidates:
         return None
+    if target_bbox_xywh is not None:
+        target_descriptor = _log_size_descriptor(target_bbox_xywh)
+        candidates.sort(
+            key=lambda item: (
+                float(
+                    np.square(
+                        _log_size_descriptor(item["src_bbox_xywh"])
+                        - target_descriptor
+                    ).sum()
+                ),
+                str(item["cutout_id"]),
+            )
+        )
+        pool_size = int(compose["context_replacement"]["size_match_pool"])
+        population = candidates[:pool_size]
+        return population[int(rng.integers(0, len(population)))]
     preferred = [item for item in candidates if item["preferred_tier"]]
     population = preferred if preferred and rng.random() < 0.85 else candidates
     return population[int(rng.integers(0, len(population)))]
+
+
+def _log_size_descriptor(bbox_xywh: Sequence[float]) -> np.ndarray:
+    width = max(float(bbox_xywh[2]), 1)
+    height = max(float(bbox_xywh[3]), 1)
+    return np.log(np.asarray((width, height), dtype=np.float64))
 
 
 def _requested_classes(
@@ -316,8 +340,16 @@ def _transform_scale(
     rgba: np.ndarray,
     config: Mapping[str, Any],
     rng: np.random.Generator,
+    target_bbox_xywh: Sequence[float] | None = None,
 ) -> float:
-    if scenario == "small_distant":
+    if target_bbox_xywh is not None:
+        alpha_bbox = tight_bbox(rgba[..., 3] >= 128)
+        if alpha_bbox is None:
+            return 0
+        width_scale = float(target_bbox_xywh[2]) / max(float(alpha_bbox[2]), 1)
+        height_scale = float(target_bbox_xywh[3]) / max(float(alpha_bbox[3]), 1)
+        scale = float(np.sqrt(width_scale * height_scale))
+    elif scenario == "small_distant":
         target_min_side = float(rng.uniform(*settings["target_min_side_px"]))
         alpha_bbox = tight_bbox(rgba[..., 3] >= 128)
         source_min_side = (
@@ -468,6 +500,7 @@ def _make_paste(
     paths: ProjectPaths,
     config: Mapping[str, Any],
     rng: np.random.Generator,
+    target_bbox_xywh: Sequence[float] | None = None,
 ) -> Paste | None:
     rgba = np.asarray(Image.open(paths.cutouts / item["file"]).convert("RGBA"))
     scale = _transform_scale(
@@ -477,6 +510,7 @@ def _make_paste(
         rgba=rgba,
         config=config,
         rng=rng,
+        target_bbox_xywh=target_bbox_xywh,
     )
     rotation_limit = float(
         settings.get("rotation_deg", config["compose"]["rotation_deg"][class_name])
@@ -728,6 +762,8 @@ def _build_sample(
         base = original.copy()
         intentional_removals: set[int] = set()
         center_override: tuple[float, float] | None = None
+        replacement_anchor: dict[str, Any] | None = None
+        target_bbox_xywh: Sequence[float] | None = None
         person_boxes = [
             annotation["bbox"]
             for annotation in background_annotations
@@ -744,6 +780,35 @@ def _build_sample(
             if categories[int(annotation["category_id"])] == "helmet"
             and pass1[int(annotation["id"])]["qc_pass"]
         ]
+        if scenario == "context_replacement":
+            eligible_replacements = [
+                annotation
+                for annotation in background_annotations
+                if categories[int(annotation["category_id"])] in {"helmet", "head"}
+                and pass1[int(annotation["id"])]["qc_pass"]
+            ]
+            if not eligible_replacements:
+                last_reason = "NO_CONTEXT_REPLACEMENT_ANCHOR"
+                continue
+            replacement_anchor = eligible_replacements[
+                int(rng.integers(0, len(eligible_replacements)))
+            ]
+            removed_mask = _decode_rle(
+                pass1[int(replacement_anchor["id"])]["segmentation"]
+            )
+            replacement_config = config["compose"]["context_replacement"]
+            base, _ = inpaint_masked_object(
+                base,
+                removed_mask,
+                dilate_px=int(replacement_config["inpaint_dilate_px"]),
+                radius=int(replacement_config["inpaint_radius"]),
+            )
+            intentional_removals.add(int(replacement_anchor["id"]))
+            target_bbox_xywh = replacement_anchor["bbox"]
+            x, y, width, height = (
+                float(value) for value in target_bbox_xywh
+            )
+            center_override = (x + width / 2, y + height / 2)
         do_swap = (
             scenario == "head_no_helmet"
             and bool(eligible_swap_helmets)
@@ -753,7 +818,9 @@ def _build_sample(
                 < float(settings["submode_helmet_to_head_swap_prob"])
             )
         )
-        if do_swap:
+        if scenario == "context_replacement":
+            pass
+        elif do_swap:
             removed = eligible_swap_helmets[
                 int(rng.integers(0, len(eligible_swap_helmets)))
             ]
@@ -779,15 +846,21 @@ def _build_sample(
             categories=categories,
             intentional_removals=intentional_removals,
         )
-        count = 1 if do_swap and center_override else _scenario_count(
-            scenario, settings, rng
-        )
-        classes = _requested_classes(
-            scenario,
-            count,
-            rng,
-            person_crowded_fallback=person_crowded_fallback,
-        )
+        if replacement_anchor is not None:
+            count = 1
+            classes = [
+                categories[int(replacement_anchor["category_id"])]
+            ]
+        else:
+            count = 1 if do_swap and center_override else _scenario_count(
+                scenario, settings, rng
+            )
+            classes = _requested_classes(
+                scenario,
+                count,
+                rng,
+                person_crowded_fallback=person_crowded_fallback,
+            )
         pastes: list[Paste] = []
         prior_centers: list[tuple[float, float]] = []
         prior_boxes: list[list[float]] = []
@@ -802,6 +875,9 @@ def _build_sample(
                 use_counts=use_counts,
                 config=config,
                 rng=rng,
+                target_bbox_xywh=(
+                    target_bbox_xywh if paste_index == 0 else None
+                ),
             )
             if item is None and class_name == "person":
                 class_name = "helmet"
@@ -833,6 +909,9 @@ def _build_sample(
                 paths=paths,
                 config=config,
                 rng=rng,
+                target_bbox_xywh=(
+                    target_bbox_xywh if paste_index == 0 else None
+                ),
             )
             if paste is None:
                 continue
@@ -911,6 +990,11 @@ def _build_sample(
             "instances": instances,
             "pairs": [],
             "intentional_removals": sorted(intentional_removals),
+            "replacement_anchor_annotation_id": (
+                int(replacement_anchor["id"])
+                if replacement_anchor is not None
+                else None
+            ),
             "postfx": postfx_applied,
             "dedup": {
                 "phash": output_phash,
@@ -963,7 +1047,7 @@ def _scenario_sequence(
     rng: np.random.Generator,
 ) -> list[str]:
     if selected:
-        unknown = set(selected) - set(SCENARIO_ORDER)
+        unknown = set(selected) - set(SCENARIO_ORDER + EXPERIMENTAL_SCENARIOS)
         if unknown:
             raise ValueError(f"Unknown scenarios: {sorted(unknown)}")
         names = list(selected)
@@ -1284,7 +1368,12 @@ def generate(
     return summary
 
 
-def _write_stats_report(summary: Mapping[str, Any], paths: ProjectPaths) -> None:
+def _write_stats_report(
+    summary: Mapping[str, Any],
+    paths: ProjectPaths,
+    *,
+    report_tag: str = "synthetic_stats",
+) -> None:
     lines = [
         "# M10 synthetic preview statistics",
         "",
@@ -1341,7 +1430,7 @@ def _write_stats_report(summary: Mapping[str, Any], paths: ProjectPaths) -> None
             "",
         ]
     )
-    (paths.reports / "synthetic_stats.md").write_text(
+    (paths.reports / f"{report_tag}.md").write_text(
         "\n".join(lines), encoding="utf-8", newline="\n"
     )
 
@@ -1352,7 +1441,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-tag", default="m10_seed42")
     parser.add_argument("--draw-boxes", action="store_true")
-    parser.add_argument("--scenario", action="append", choices=SCENARIO_ORDER)
+    parser.add_argument(
+        "--scenario",
+        action="append",
+        choices=(*SCENARIO_ORDER, *EXPERIMENTAL_SCENARIOS),
+    )
+    parser.add_argument("--stats-report-tag", default="synthetic_stats")
     return parser.parse_args()
 
 
@@ -1374,7 +1468,7 @@ def main() -> None:
         selected_scenarios=args.scenario,
         draw_boxes=args.draw_boxes,
     )
-    _write_stats_report(summary, paths)
+    _write_stats_report(summary, paths, report_tag=args.stats_report_tag)
     print(json.dumps(summary, indent=2, sort_keys=True))
 
 

@@ -136,6 +136,14 @@ compose:
   max_person_pastes_per_composite: 4         # source: guess
   max_same_source_image_per_composite: 1     # source: guess   (relaxed to 2 for the crowded scenario)
 
+  # Experimental H4 architecture, pre-registered before evaluation. It replaces
+  # one real headlike annotation in place so the pasted object inherits genuine
+  # scene context. This is not part of the default scenario mixture.
+  context_replacement:
+    size_match_pool: 8                       # source: fixed   (pre-registered H4 spike)
+    inpaint_dilate_px: 3                     # source: fixed   (same as head_no_helmet swap)
+    inpaint_radius: 3                        # source: fixed
+
   # --- transforms ---
   max_paste_scale:
     # Upscaling a low-resolution crop injects a blur signature the detector can
@@ -252,6 +260,14 @@ scenarios:
                                              # modifier to 20% of every other scenario)
     n_pasted: [0, 3]
     postfx_prob: 1.00
+
+  # Explicit-only experimental scenario; omitted from SCENARIO_ORDER so normal
+  # generation can never sample it accidentally.
+  context_replacement:
+    weight: 1.00                             # source: fixed   (used only when explicitly selected)
+    n_pasted: [1, 1]                        # source: fixed
+    rotation_deg: 0                         # source: fixed   (pre-registered)
+    postfx_prob: 0.20                        # source: fixed   (matches ordinary scenarios)
 
 # ===========================================================================
 # Post-composition effects — applied to the WHOLE IMAGE, after every bbox has

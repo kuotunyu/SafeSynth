@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.synthetic.compose import _requested_classes, _sample_seed, _scenario_sequence
+from src.synthetic.compose import (
+    _requested_classes,
+    _sample_seed,
+    _scenario_sequence,
+    _transform_scale,
+)
 
 
 def scenario_config() -> dict:
@@ -14,6 +19,7 @@ def scenario_config() -> dict:
             "crowded": {"weight": 0.12},
             "hard_negative": {"weight": 0.13},
             "low_light_blur": {"weight": 0.10},
+            "context_replacement": {"weight": 1.00},
         }
     }
 
@@ -60,3 +66,36 @@ def test_crowded_fallback_uses_only_diverse_headlike_material() -> None:
     )
 
     assert set(classes) <= {"helmet", "head"}
+
+
+def test_context_replacement_is_explicit_only() -> None:
+    default = _scenario_sequence(
+        32, scenario_config(), None, np.random.default_rng(42)
+    )
+    explicit = _scenario_sequence(
+        3,
+        scenario_config(),
+        ["context_replacement"],
+        np.random.default_rng(42),
+    )
+
+    assert "context_replacement" not in default
+    assert explicit == ["context_replacement"] * 3
+
+
+def test_context_replacement_scale_matches_target_area() -> None:
+    rgba = np.zeros((24, 34, 4), dtype=np.uint8)
+    rgba[2:22, 2:32, 3] = 255
+    config = {"compose": {"max_paste_scale": {"helmet": 1.15}}}
+
+    scale = _transform_scale(
+        scenario="context_replacement",
+        settings={},
+        class_name="helmet",
+        rgba=rgba,
+        config=config,
+        rng=np.random.default_rng(1),
+        target_bbox_xywh=[0, 0, 15, 10],
+    )
+
+    assert np.isclose(scale, 0.5)
