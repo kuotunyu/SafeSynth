@@ -7,6 +7,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from scipy.ndimage import distance_transform_edt
 
 
 @dataclass
@@ -331,6 +332,7 @@ def feather_alpha(alpha: np.ndarray, *, config: dict[str, Any]) -> np.ndarray:
     """Erode then feather inward so the paste never alters outside pixels."""
 
     source = np.asarray(alpha, dtype=np.uint8)
+    original_support = source > 0
     erode_px = int(config["erode_before_feather_px"])
     if erode_px > 0:
         kernel_size = 2 * erode_px + 1
@@ -338,8 +340,7 @@ def feather_alpha(alpha: np.ndarray, *, config: dict[str, Any]) -> np.ndarray:
             cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
         )
         source = cv2.erode(source, kernel)
-    nonzero = source > 0
-    bbox = tight_bbox(nonzero)
+    bbox = tight_bbox(original_support)
     if bbox is None:
         return source
     sigma = float(config["feather_sigma_base"]) + float(
@@ -347,9 +348,29 @@ def feather_alpha(alpha: np.ndarray, *, config: dict[str, Any]) -> np.ndarray:
     ) * min(float(bbox[2]), float(bbox[3]))
     sigma = float(np.clip(sigma, *config["feather_sigma_clip"]))
     blurred = cv2.GaussianBlur(source, (0, 0), sigmaX=sigma, sigmaY=sigma)
-    # Clipping to the original support prevents a faint label-corrupting halo.
-    blurred[~nonzero] = 0
+    # Taper through the original mask fringe. Clipping to the *eroded* support
+    # would reintroduce a hard one-pixel step at its new boundary.
+    blurred[~original_support] = 0
     return blurred
+
+
+def decontaminate_soft_edge(
+    patch_rgb: np.ndarray,
+    alpha: np.ndarray,
+    *,
+    core_alpha_min: int,
+) -> np.ndarray:
+    """Replace source-background halo colours with nearest foreground colours."""
+
+    alpha_array = np.asarray(alpha, dtype=np.uint8)
+    core = alpha_array >= int(core_alpha_min)
+    fringe = (alpha_array > 0) & ~core
+    if not core.any() or not fringe.any():
+        return np.asarray(patch_rgb, dtype=np.uint8).copy()
+    _, nearest = distance_transform_edt(~core, return_indices=True)
+    output = np.asarray(patch_rgb, dtype=np.uint8).copy()
+    output[fringe] = output[nearest[0][fringe], nearest[1][fringe]]
+    return output
 
 
 def match_high_frequency_noise(

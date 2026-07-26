@@ -162,6 +162,8 @@ compose:
     feather_sigma_base: 0.60                 # source: guess
     feather_sigma_per_px: 0.02               # source: guess   sigma = base + per_px * min(w,h)
     feather_sigma_clip: [0.60, 2.00]         # source: guess
+    edge_decontamination: true               # source: fixed   (remove source-background colour halo)
+    edge_core_alpha_min: 192                 # source: guess
 
   # --- photometric harmonization (CIELab local Reinhard) ---
   # a/b channels are deliberately HALF strength with no chroma rescale: full
@@ -270,7 +272,10 @@ postfx:
     kernel_lengths: [3, 5, 7, 9]             # source: guess
     angle_deg: [0, 180]                      # source: fixed
   jpeg:
-    always: true                             # source: guess
+    # H4 found a 0.737 shortcut when synthetic outputs were JPEG while every
+    # real source image is PNG. Lossless output removes that format confound;
+    # any desired JPEG augmentation must be applied equally to every experiment arm.
+    always: false                            # source: calibrated (H4 format-control fix)
     quality: [70, 95]                        # source: guess
 
 # ===========================================================================

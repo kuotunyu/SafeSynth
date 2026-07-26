@@ -49,7 +49,7 @@ def valid_sample(*instances: dict) -> dict:
         "dedup": {
             "changed_pixel_ratio": 0.20,
             "min_hamming_to_accepted_synthetic": 20,
-            "min_hamming_to_any_real_image": 20,
+            "min_hamming_to_other_real_image": 20,
         },
         "invariants": {
             "n_real_ann_in": 0,
@@ -197,7 +197,7 @@ def test_z_order_bug_crashes(config: dict) -> None:
 
 def test_every_reject_reason_is_declared(config: dict) -> None:
     sample = valid_sample()
-    sample["dedup"]["min_hamming_to_any_real_image"] = 0
+    sample["dedup"]["min_hamming_to_other_real_image"] = 0
     result = filter_sample(sample, config)
 
     assert set(result.reject_reasons) <= set(config["reject_reasons"])

@@ -7,6 +7,7 @@ from src.synthetic.composition import (
     alpha_composite,
     apply_postfx,
     assign_z_order,
+    decontaminate_soft_edge,
     feather_alpha,
     inpaint_masked_object,
     match_high_frequency_noise,
@@ -162,6 +163,20 @@ def test_feather_alpha_never_expands_support() -> None:
 
     assert not np.any(result[alpha == 0])
     assert np.any((result > 0) & (result < 255))
+    assert result[8, 16] > 0
+
+
+def test_soft_edge_decontamination_extends_foreground_colour() -> None:
+    rgb = np.full((9, 9, 3), [20, 180, 20], dtype=np.uint8)
+    rgb[3:6, 3:6] = [220, 30, 30]
+    alpha = np.zeros((9, 9), dtype=np.uint8)
+    alpha[2:7, 2:7] = 80
+    alpha[3:6, 3:6] = 255
+
+    result = decontaminate_soft_edge(rgb, alpha, core_alpha_min=192)
+
+    assert np.array_equal(result[2, 4], [220, 30, 30])
+    assert np.array_equal(result[0, 0], rgb[0, 0])
 
 
 def test_noise_matching_is_seed_reproducible() -> None:

@@ -12,6 +12,15 @@
 # properly rather than guessed.
 sensitivity_alarm_points: 15                 # source: guess
 
+# Spike H4: a classifier should not easily distinguish pasted from real object
+# patches. This is a scale-up gate, separate from per-sample filtering.
+artifact_gate:
+  max_auc_for_scaleup: 0.60                  # source: guess
+  patch_context_scale: 1.50                  # source: guess
+  patch_size_px: 64                          # source: fixed
+  bootstrap_samples: 500                    # source: guess
+  logistic_c: 1.0                           # source: fixed (standard L2 logistic regression)
+
 rules:
 
   # FILT-01 — bounding boxes must lie inside the frame
@@ -40,8 +49,13 @@ rules:
 
   # FILT-05 — the mask must plausibly fill its box
   mask_to_box_coverage:
-    helmet: [0.2456, 0.7988]                 # source: calibrated  (Pass 1 p1-p99)
-    head:   [0.3950, 0.8307]                 # source: calibrated
+    # Lower bounds retain the frozen p1 calibration. The downstream upper guard
+    # is deliberately wider than the cutout-bank p99 gate: every emitted paste
+    # already passed that upstream check, and M12 showed that duplicating its
+    # tight upper edge made acceptance unstable. 0.95 still catches a mask that
+    # simply echoes the rectangular prompt box.
+    helmet: [0.2456, 0.9500]                 # source: calibrated (M12 sensitivity)
+    head:   [0.3950, 0.9500]                 # source: calibrated (M12 sensitivity)
     person: [0.1723, 0.8118]                 # source: calibrated
 
   # FILT-07 — a WORN helmet must sit in a plausible range above a head.
@@ -103,7 +117,10 @@ rules:
   phash_dedup:
     hash_size: 8                             # source: fixed   (64-bit)
     max_hamming_to_accepted_synthetic: 6     # source: fixed   (standard near-dup threshold)
-    max_hamming_to_any_real_image: 6         # source: fixed   (checked against ALL splits)
+    # The selected Train background itself is excluded: copy-paste necessarily
+    # remains perceptually close to it. Every OTHER real image across all splits
+    # is still checked, which catches accidental frame-level duplication.
+    max_hamming_to_other_real_image: 6       # source: fixed
     # "Nothing happened" guard: every paste was tiny or fully occluded.
     min_changed_pixel_ratio: 0.005           # source: guess
 

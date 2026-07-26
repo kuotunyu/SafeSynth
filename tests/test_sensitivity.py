@@ -44,7 +44,7 @@ def config() -> dict:
             "hard_negative_no_overlap": {"max_iou_with_annotation": 0.02},
             "phash_dedup": {
                 "max_hamming_to_accepted_synthetic": 6,
-                "max_hamming_to_any_real_image": 6,
+                "max_hamming_to_other_real_image": 6,
                 "min_changed_pixel_ratio": 0.005,
             },
         },
@@ -96,7 +96,7 @@ def sample(visible_fraction: float) -> dict:
         "dedup": {
             "changed_pixel_ratio": 0.2,
             "min_hamming_to_accepted_synthetic": 20,
-            "min_hamming_to_any_real_image": 20,
+            "min_hamming_to_other_real_image": 20,
         },
         "invariants": {
             "n_real_ann_in": 0,

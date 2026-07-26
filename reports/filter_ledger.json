@@ -1,0 +1,53 @@
+{
+  "checks": {
+    "all_reasons_in_enum": true,
+    "first_reason_funnel_equal_summary": true,
+    "pass_count_equal_summary": true,
+    "pass_plus_reject_equal_total": true,
+    "records_equal_summary_total": true,
+    "reject_count_equal_summary": true,
+    "rejected_reasons_nonempty": true
+  },
+  "first_reject_reasons": {
+    "BAD_SIZE_RATIO": 1,
+    "BOX_TOO_SMALL": 35,
+    "EXCESSIVE_OVERLAP": 27,
+    "LOW_VISIBLE_FRACTION": 11,
+    "NEAR_DUPLICATE_REAL": 7,
+    "NEAR_DUPLICATE_SYNTHETIC": 2,
+    "NO_CHANGE": 22
+  },
+  "n_pass": 195,
+  "n_reject": 105,
+  "n_total": 300,
+  "review_figure": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\filter_pass_reject_grid.png",
+  "review_pass_sample_ids": [
+    "s42_000034",
+    "s42_000002",
+    "s42_000005",
+    "s42_000001",
+    "s42_000007",
+    "s42_000044",
+    "s42_000003",
+    "s42_000024",
+    "s42_000015",
+    "s42_000018",
+    "s42_000087",
+    "s42_000004"
+  ],
+  "review_reject_sample_ids": [
+    "s42_000275",
+    "s42_000009",
+    "s42_000025",
+    "s42_000016",
+    "s42_000023",
+    "s42_000065",
+    "s42_000021",
+    "s42_000012",
+    "s42_000053",
+    "s42_000035",
+    "s42_000070",
+    "s42_000198"
+  ],
+  "source_run": "D:\\sdg-data\\02-safesynth\\synthetic\\m11_h4_seed42"
+}

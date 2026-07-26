@@ -29,6 +29,7 @@ from src.synthetic.composition import (
     annulus_mask,
     apply_postfx,
     box_to_mask,
+    decontaminate_soft_edge,
     feather_alpha,
     harmonize_lab,
     inpaint_masked_object,
@@ -565,6 +566,14 @@ def _render_pastes(
             continue
         paste = paste_by_id[layer.instance_id]
         rgb = paste.rgba[..., :3].copy()
+        if config["compose"]["blending"]["edge_decontamination"]:
+            rgb = decontaminate_soft_edge(
+                rgb,
+                paste.rgba[..., 3],
+                core_alpha_min=int(
+                    config["compose"]["blending"]["edge_core_alpha_min"]
+                ),
+            )
         alpha = feather_alpha(
             paste.rgba[..., 3], config=config["compose"]["blending"]
         )
@@ -693,7 +702,7 @@ def _build_sample(
     config: Mapping[str, Any],
     filter_config: Mapping[str, Any],
     use_counts: Counter[str],
-    real_phashes: Sequence[str],
+    real_phashes: Mapping[int, str],
     accepted_phashes: Sequence[str],
     rng: np.random.Generator,
 ) -> tuple[np.ndarray, dict[str, Any]]:
@@ -903,9 +912,15 @@ def _build_sample(
                     (_hamming(output_phash, value) for value in accepted_phashes),
                     default=10**9,
                 ),
-                "min_hamming_to_any_real_image": min(
-                    _hamming(output_phash, value) for value in real_phashes
+                "min_hamming_to_other_real_image": min(
+                    (
+                        _hamming(output_phash, value)
+                        for image_id, value in real_phashes.items()
+                        if image_id != int(background["id"])
+                    ),
+                    default=10**9,
                 ),
+                "excluded_background_image_id": int(background["id"]),
             },
             "invariants": {
                 "n_real_ann_in": len(background_annotations),
@@ -963,10 +978,14 @@ def _scenario_sequence(
 
 def _write_image(path: Path, image_rgb: np.ndarray, quality: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    extension = path.suffix.lower()
+    encode_options = (
+        [cv2.IMWRITE_JPEG_QUALITY, quality] if extension in {".jpg", ".jpeg"} else []
+    )
     success, encoded = cv2.imencode(
-        ".jpg",
+        extension,
         cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR),
-        [cv2.IMWRITE_JPEG_QUALITY, quality],
+        encode_options,
     )
     if not success:
         raise RuntimeError(f"Could not encode {path}")
@@ -1076,7 +1095,9 @@ def generate(
     train_ids = np.asarray(sorted(train_images))
     background_ids = rng.choice(train_ids, size=n, replace=n > len(train_ids))
     scenarios = _scenario_sequence(n, config, selected_scenarios, rng)
-    real_phashes = [str(record["phash"]) for record in frozen.values()]
+    real_phashes = {
+        int(image_id): str(record["phash"]) for image_id, record in frozen.items()
+    }
     output_dir = paths.synthetic / output_tag
     _archive_existing(output_dir)
     image_dir = output_dir / "images"
@@ -1132,12 +1153,13 @@ def generate(
             if jpeg_config["always"]
             else 100
         )
-        file_name = f"{record['sample_id']}.jpg"
+        extension = ".jpg" if jpeg_config["always"] else ".png"
+        file_name = f"{record['sample_id']}{extension}"
         output_path = image_dir / file_name
         _write_image(output_path, image, quality)
         record["file_name"] = f"images/{file_name}"
         record["image_sha256"] = _sha256_file(output_path)
-        record["jpeg_quality"] = quality
+        record["jpeg_quality"] = quality if jpeg_config["always"] else None
         records.append(record)
         preview_images.append(image)
         if record["passed"]:

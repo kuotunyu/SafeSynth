@@ -295,8 +295,8 @@ def _filt_11(sample: Mapping[str, Any], config: Mapping[str, Any]) -> list[Rejec
         settings["max_hamming_to_accepted_synthetic"]
     ):
         reasons.append(RejectReason.NEAR_DUPLICATE_SYNTHETIC)
-    if int(dedup.get("min_hamming_to_any_real_image", 10**9)) <= int(
-        settings["max_hamming_to_any_real_image"]
+    if int(dedup.get("min_hamming_to_other_real_image", 10**9)) <= int(
+        settings["max_hamming_to_other_real_image"]
     ):
         reasons.append(RejectReason.NEAR_DUPLICATE_REAL)
     return reasons
