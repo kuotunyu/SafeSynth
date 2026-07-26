@@ -214,7 +214,7 @@
     **若被拒的樣本看起來明明沒問題，就是門檻錯了，改門檻並記進 `docs/decisions.md`**
   - **驗證於**：`dce0b85`、`49a51fe` @ 2026-07-27
     （300 = 196 pass + 104 reject，七項 ledger/enum 對帳全 PASS；
-    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 92 tests 與 ruff 通過）
+    ±20% 敏感度警報 0；12 pass / 12 reject 圖已目視；全套 95 tests 與 ruff 通過）
 
 ---
 

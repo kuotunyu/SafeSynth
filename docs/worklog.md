@@ -9,7 +9,7 @@
 *每次收工覆寫，只留最新一份。*
 
 - **更新時間**：2026-07-27 06:28 +08:00
-- **最後驗證 commit**：`15ec811` docs(synthetic): record failed H4 Poisson spike
+- **最後驗證 commit**：`cc931ed` feat(handoff): audit contributor commit hook
 - **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 等使用者 H6
   簽核；`M11` H4 未通過；`M13`/`M14` 依硬閘門暫停。
 - **⚠️ 未 commit 的改動**：只有本次 worklog／preflight 更新。
@@ -73,11 +73,12 @@
     exact-source 成對控制 AUC 0.9049，排除素材選擇偏差是主要假象。
     各路線都如實保存，沒有調弱分類器或放寬門檻。
 - **品質與交接**
-  - `uv run ruff check .` → PASS；`uv run pytest -q` → 92 passed
+  - `uv run ruff check .` → PASS；`uv run pytest -q` → 95 passed
     （僅 pycocotools/Numpy 已知 deprecation warning）。
   - prepublication audit：所有 local refs 的 author/committer 只有
     `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`；
-    `Co-Authored-By:` 0、remote 0。
+    `Co-Authored-By:` 0、remote 0；repo-local commit hook 會預先拒絕錯誤
+    identity 或 coauthor trailer。
   - 主要 commits：`10718ba`、`916c6bf`、`e276d3e`、`dce0b85`、
     `49a51fe`、`6d0d13e`、`15ec811`。
 - **外部動作**：沒有建立 GitHub repo、remote、push、發佈或寫入兄弟專案。
