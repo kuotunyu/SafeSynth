@@ -44,7 +44,7 @@
     [ENV-05](docs/environment.md) 的轉換分支用不到）
     。第 8 列（`D:\sdg-data\02-safesynth` 存在）預期在 M2 才成立
 
-- [ ] **M2** 下載 Hard Hat Workers（約 1.2–1.5 GB，**下載前先跟使用者報備實測大小**），
+- [x] **M2** 下載 Hard Hat Workers（約 1.2–1.5 GB，**下載前先跟使用者報備實測大小**），
   解壓到 `D:\sdg-data\02-safesynth\raw`，轉成 COCO
   - **對應規格**：DATA-01 ~ DATA-12
   - **驗證**：`uv run python scripts/prepare_data.py --verify` 全數通過——
@@ -55,7 +55,12 @@
     未知標籤計數 = 0；所有 `iscrowd == 0`；
     **COCO 自評測試**：`pycocotools` 載入產出的 GT 與自己跑 `COCOeval` → mAP == `1.000`；
     `configs/paths.yaml` 的 `dataset.pinned_version` 已回填
-  - **驗證於**：（未完成）
+  - **驗證於**：`1af595c` @ 2026-07-27
+    實測來源 archive `1,314,241,385` bytes，SHA256
+    `aa5c80a85f9f4bd3b27e44256f8e36f9a32c53ee423132fa6cd5ea603781be62`；
+    Kaggle version 1 已釘住；座標全域最小值 `0` → offset `0`；
+    5,000 張／25,502 框及三類實例與圖片數完全吻合；未知標籤 0、`iscrowd != 0` 為 0；
+    COCO 自評 mAP `1.000`；11 個單元測試通過。
 
 ---
 

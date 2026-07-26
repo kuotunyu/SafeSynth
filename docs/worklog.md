@@ -9,23 +9,20 @@
 *每次收工覆寫，只留最新一份。*
 
 - **更新時間**：2026-07-27
-- **最後 commit**：`7e43f15` docs(plan): add Phase 1 and Phase 2 milestones, project skills and handoff notes
-- **目前里程碑**：`M0` `[x]` 文件完成（3 筆 commit 已建立）。
-  **`M1` 環境實際上已經裝好了**，但這是在使用者說「只要寫計畫、不要實作」之前搶跑的，
-  **是否保留由使用者決定**——確認保留後才可勾選 M1
-- **⚠️ 未 commit 的改動**：`.gitattributes`（強制 LF，保護 manifest 雜湊的跨平台一致性）、
-  `docs/environment.md` 的 ENV-10、`docs/troubleshooting.md` 的 K-10、`CLAUDE.md` 的 git 權限界線
+- **最後 commit**：`1af595c` feat(data): download and convert frozen hard-hat dataset
+- **目前里程碑**：`M0`–`M2` `[x]`；`M3` 工具已在工作樹準備，尚未執行。
+- **⚠️ 未 commit 的改動**：M3 的 H1/H3/H5 spike 程式與測試。
 - **已凍結不得再動**：（無）
-- **資料落地**：（無）。`D:\sdg-data\02-safesynth` 還沒建立
-- **環境**：**已安裝**（搶跑，待使用者確認保留）。`.venv/` ＋ `uv.lock` 已存在，
+- **資料落地**：Kaggle version 1 已下載到 `D:\sdg-data\02-safesynth`；
+  原始 archive、解壓資料與 `interim/coco_all.json` 齊備，來源 SHA256 已記錄。
+- **環境**：已安裝並驗證。`.venv/` ＋ `uv.lock` 已存在，
   Python 3.12.13、torch 2.13.0+cu130、torchvision 0.28.0+cu130、transformers 5.14.1。
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
-  SAM2 權重還沒下載，資料集也還沒下載
-- **下一個動作（一句話、可直接動手）**：等使用者決定要保留還是回退環境與 commit；
-  保留的話下一步是 `M2`（下載資料集，約 1.2–1.5 GB，下載前要報備實測大小）
+  SAM2 權重還沒下載。
+- **下一個動作（一句話、可直接動手）**：執行 M3 的 H1/H3/H5 spike 並檢視產出圖。
 - **卡住的事**：無
-- **等使用者做的事**：執行 git 寫入動作（本專案所有 git 寫入由使用者親自執行）
+- **等使用者做的事**：醒來後複核 M3 的 contact sheets 與熱圖；遠端 repo 仍未建立。
 - **驗證本快照的指令**：
   ```
   git log --oneline -5; git status --porcelain; (Get-Content CLAUDE.md).Count
@@ -36,6 +33,35 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-27 · M2 · 資料下載與 VOC→COCO 落地
+
+- **對應規格**：DATA-01~12、ENV-10
+- **下載前報備**：Kaggle 官方 API 的 `totalBytes` 為 `1,320,154,239`
+  （約 1.23 GiB／1.32 GB），低於 2 GB 無人值守停等門檻；D 槽當時剩餘約 1.69 TiB。
+- **實作**
+  - `scripts/prepare_data.py`：讀官方 metadata、釘 Kaggle version、以
+    `kagglehub.dataset_download()` 下載、保留來源 archive、轉換並驗證。
+  - `src/data/paths.py`：只從 `configs/paths.yaml` 解析路徑，保留 YAML 註解地回填版本。
+  - `src/data/voc_to_coco.py`：stem 配對、座標 offset 執行期偵測、VOC flags 保留但
+    `iscrowd=0`、決定性 ID、canonical JSON、來源雜湊、COCO 自評。
+  - `kagglehub 1.0.2` 會在解壓後刪除 archive；下載器在其解壓 callback 前複製同一份
+    原始位元組再雜湊，避免第二次下載，也沒有修改第三方套件檔案。
+- **真實驗證輸出**
+  - `uv run pytest -q` → `11 passed`
+  - `uv run ruff check ...` → `All checks passed!`
+  - `uv run python scripts/prepare_data.py --verify`：
+    `global min coordinate = 0 -> offset 0`；
+    `images = 5,000`；`annotations = 25,502`；
+    instances `18,966 / 5,785 / 751`；
+    class images `4,581 / 920 / 158`；
+    unknown labels `0`；`iscrowd != 0 = 0`；self-eval mAP `1.000`。
+  - 來源 archive 大小 `1,314,241,385` bytes，SHA256
+    `aa5c80a85f9f4bd3b27e44256f8e36f9a32c53ee423132fa6cd5ea603781be62`。
+- **實測面積（解決 DATA §1.2 衝突）**：helmet `1.27%`、head `0.63%`、
+  person `7.05%`；與讀數 A 一致，讀數 B 不是單一 bbox 的平均面積。
+- **commit**：`1af595c` feat(data): download and convert frozen hard-hat dataset
+- **外部動作**：沒有 remote、push、repo 建立或上傳；commit author 僅為 `kuotunyu`。
 
 ### 2026-07-27 · M0（續）· 補上 Phase 2 規格
 
