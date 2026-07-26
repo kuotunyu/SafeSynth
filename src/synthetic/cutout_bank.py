@@ -793,4 +793,27 @@ def verify_mask_reproducibility(
             mismatches.append(annotation_id)
     if mismatches:
         raise RuntimeError(f"SAM2 mask reproducibility failed: {mismatches[:10]}")
-    return {"rerun_masks": len(manifest), "mismatches": len(mismatches)}
+    result = {
+        "rerun_masks": len(manifest),
+        "mismatches": len(mismatches),
+        "model_id": str(config["sam2"]["model_id"]),
+        "dtype": str(config["sam2"]["dtype"]),
+        "manifest_sha256": _sha256_file(paths.cutouts / "bank_manifest.jsonl"),
+    }
+    _write_json_atomic(paths.reports / "bank_reproducibility.json", result)
+    report_path = paths.reports / "bank_report.md"
+    report = report_path.read_text(encoding="utf-8")
+    marker = "## Mask reproducibility"
+    section = (
+        f"\n{marker}\n\n"
+        f"- Re-run accepted masks: {result['rerun_masks']}\n"
+        f"- Byte-identical masks: {result['rerun_masks'] - result['mismatches']}\n"
+        f"- Mismatches: {result['mismatches']}\n"
+        f"- Model: `{result['model_id']}` ({result['dtype']})\n"
+    )
+    if marker in report:
+        report = report.split(marker, 1)[0].rstrip() + section
+    else:
+        report = report.rstrip() + "\n" + section
+    report_path.write_text(report, encoding="utf-8", newline="\n")
+    return result
