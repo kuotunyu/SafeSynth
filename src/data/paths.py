@@ -20,6 +20,7 @@ class ProjectPaths:
 
     project_root: Path
     config_path: Path
+    grouping_config_path: Path
     data_root: Path
     raw: Path
     hardhat_raw: Path
@@ -80,6 +81,7 @@ def load_project_paths(config_path: Path = PATHS_CONFIG) -> ProjectPaths:
     return ProjectPaths(
         project_root=project_root,
         config_path=config_path,
+        grouping_config_path=project_root / "configs" / "grouping.yaml",
         data_root=data_root,
         raw=_resolve_path(str(configured_paths["raw"]), project_root, variables),
         hardhat_raw=_resolve_path(str(configured_paths["hardhat_raw"]), project_root, variables),

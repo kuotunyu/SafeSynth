@@ -422,3 +422,49 @@ HF 的 `rt_detr_v2` model 頁面，其 `RTDetrV2ForObjectDetection` autodoc 範�
 - [transformers PyPI 版本history](https://pypi.org/project/transformers/#history)
 - [RT-DETRv2 model doc](https://huggingface.co/docs/transformers/main/model_doc/rt_detr_v2)
 - [PekingU/rtdetr_v2_r18vd](https://huggingface.co/PekingU/rtdetr_v2_r18vd)
+
+---
+
+## ADR-007 — H1/H3/H5 實測：合規採類別直讀，split 採 guarded CLIP，人物採錨定放置
+
+### 脈絡
+
+M3 在 Kaggle version 1 的 5,000 張凍結來源上完成三個 spike。這三項若猜錯，
+後續的合規邏輯、Train/Test 隔離與合成構圖都會安靜地失效。
+
+### 決策
+
+1. **合規走 `class_direct` 主定義。** 40 個 `helmet` 與 40 個 `head` 樣本的
+   contact sheets 顯示：`helmet` 通常框住戴帽的整顆頭／臉，`head` 則框裸頭，
+   不是「帽殼框＋頭框」的配對標註。同圖全部 9,603 個 `helmet×head` 組合中，
+   只有 95 組（0.99%）的 IoU > 0.1；長寬比中位數也接近
+   helmet 0.875／head 0.830，而非只有帽殼時預期的寬扁形。
+2. **近似分群採 pHash Hamming ≤10，外加 OpenCLIP
+   `ViT-B-32`／`laion2b_s34b_b79k` 的 guarded edge：
+   cosine ≥0.85 且 pHash Hamming ≤20。** pHash 單獨仍留下 4,875 群，
+   觸發協定的 CLIP 分支；12 組候選網格中，選定組合得到 4,808 群、最大群 8。
+   最大 20 群已打開檢視：有明顯連拍，也有保守合併的同構場景，但沒有 component collapse。
+   這種輕微過度合併只犧牲切分彈性，符合「避免近似圖跨 split」的不對稱風險方向。
+3. **位置先驗分流使用。** provisional Train 的 16×16 中心熱圖顯示
+   `helmet`／`head` 集中在畫面中央水平帶，可作取樣式先驗；
+   `person` 的 normalized entropy 為 0.948，且只有數百個標註，
+   因此人物與 crowded 構圖改以錨定放置為主，不讓稀疏直方圖主導。
+
+### 後果
+
+- Phase 2 的 compliance 預設使用類別本身作狀態，`person` 不承重；
+  geometric pairing 只保留為診斷分支。
+- FILT-07 沒有真實 `helmet-head` 配對可校準，只治理合成構圖；
+  校準時改看 head/helmet 相對於 person 或畫面的分布。
+- 凍結 manifest 必須記錄 pHash、CLIP 模型/tag、cosine 與 guard 四項；
+  `same group -> same split` 是 hard fail。
+- person cutout 的來源多樣性與錨點品質要分開報告，不能把稀疏位置直方圖當成可靠生成分布。
+
+### 證據
+
+- [M3 結構化摘要](../reports/data_spikes.json)
+- [pHash 門檻報告](../reports/h3_grouping_spike.md)
+- [guarded CLIP 候選報告](../reports/h3_clip_grouping_spike.md)
+- `reports/figures/h1_{helmet,head}_contact_sheet.png`
+- `reports/figures/h3_clip_largest_groups.png`
+- `reports/figures/h5_placement_priors.png`
