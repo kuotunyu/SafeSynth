@@ -39,3 +39,17 @@ The feature-family diagnostic shows both HOG-only (0.7792) and HSV-only
   mix methods or tune the held-out fold.
 - No threshold widening, feature weakening, seed reselection, or post-result
   parameter tuning is allowed.
+
+## Registered outcome
+
+The implementation and 32-image visual preview were frozen in commit
+`2cfce69` before the 300-image evaluation. The result is **FAIL**:
+
+- H4 AUC **0.8869**, bootstrap 95% CI 0.8551–0.9170;
+- filter pass/reject **169 / 131**, versus 196 / 104 for feathered alpha;
+- `NO_CHANGE` first rejects **52**, versus 24 for feathered alpha;
+- the preview and ranked patches visibly show helmet/head colour being pulled
+  toward the target background.
+
+Poisson is therefore rejected rather than adopted or mixed with the default.
+See [`reports/h4_poisson_gate.md`](../reports/h4_poisson_gate.md).
