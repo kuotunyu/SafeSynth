@@ -9,15 +9,21 @@
 *每次收工覆寫，只留最新一份。*
 
 - **更新時間**：2026-07-27
-- **最後 commit**：**還沒有任何 commit**（`git init` 都還沒做）
-- **目前里程碑**：`M0` `[~]`——**Phase 1 與 Phase 2 的文件全部寫完**，一致性自檢全綠，
-  等使用者執行 `git init` 與首批 commit 即可勾掉
+- **最後 commit**：`7e43f15` docs(plan): add Phase 1 and Phase 2 milestones, project skills and handoff notes
+- **目前里程碑**：`M0` `[x]` 文件完成（3 筆 commit 已建立）。
+  **`M1` 環境實際上已經裝好了**，但這是在使用者說「只要寫計畫、不要實作」之前搶跑的，
+  **是否保留由使用者決定**——確認保留後才可勾選 M1
+- **⚠️ 未 commit 的改動**：`.gitattributes`（強制 LF，保護 manifest 雜湊的跨平台一致性）、
+  `docs/environment.md` 的 ENV-10、`docs/troubleshooting.md` 的 K-10、`CLAUDE.md` 的 git 權限界線
 - **已凍結不得再動**：（無）
 - **資料落地**：（無）。`D:\sdg-data\02-safesynth` 還沒建立
-- **環境**：**還沒建**。本機只有 anaconda 3.10.9 與 uv 管的 3.10.9／3.14.5，缺 3.12。
-  `uv.lock` 不存在。SAM2 權重沒下載
-- **下一個動作（一句話、可直接動手）**：使用者執行 `git init` 與三筆 commit，
-  然後開 `M1`（`uv python install 3.12` → `uv sync`）
+- **環境**：**已安裝**（搶跑，待使用者確認保留）。`.venv/` ＋ `uv.lock` 已存在，
+  Python 3.12.13、torch 2.13.0+cu130、torchvision 0.28.0+cu130、transformers 5.14.1。
+  `docs/environment.md §5` 的驗證表**十列全過**，
+  含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
+  SAM2 權重還沒下載，資料集也還沒下載
+- **下一個動作（一句話、可直接動手）**：等使用者決定要保留還是回退環境與 commit；
+  保留的話下一步是 `M2`（下載資料集，約 1.2–1.5 GB，下載前要報備實測大小）
 - **卡住的事**：無
 - **等使用者做的事**：執行 git 寫入動作（本專案所有 git 寫入由使用者親自執行）
 - **驗證本快照的指令**：

@@ -1,0 +1,17 @@
+# Force LF in the repository for all text files.
+#
+# Why this matters here specifically: splits/*.json is hashed and the hash is the
+# freeze fingerprint (DATA-18). If git rewrote line endings on checkout, the same
+# manifest would produce a different SHA256 on Windows than on Linux and the
+# freeze would be meaningless. See docs/environment.md ENV-10.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pt  binary
+*.pth binary
+*.safetensors binary
+*.zip binary
+*.tar binary

@@ -140,3 +140,31 @@ HF 快取的 blob 檔名很長，加上深層目錄容易超標。
 `kagglehub` 則用 `KAGGLEHUB_CACHE` 重導。
 
 **預防**：[ENV-09](environment.md)。
+
+---
+
+### K-10 — `UnicodeDecodeError: 'cp950' codec can't decode byte ...`
+
+**症狀**：讀 `configs/*.yaml`、COCO JSON 或任何含非 ASCII 字元的文字檔時直接拋例外。
+**本機 2026-07-27 實測重現**：
+```
+uv run python -c "import yaml; print(yaml.safe_load(open('configs/paths.yaml'))['data_root'])"
+UnicodeDecodeError: 'cp950' codec can't decode byte 0xe2 in position 99
+```
+
+**根因**：這台機器的 Python 預設文字編碼是 **cp950**（繁體中文 Windows 的 ANSI codepage），
+不是 UTF-8。只要檔案裡有任何非 ASCII 字元（我們的 config 註解、規格引用的破折號、
+中文說明），裸的 `open(path)` 就會失敗。
+
+**解法**：**所有文字檔的 `open()` 一律明寫 `encoding="utf-8"`**：
+```python
+with open(path, encoding="utf-8") as f: ...
+Path(p).read_text(encoding="utf-8")
+Path(p).write_text(s, encoding="utf-8", newline="\n")
+json.dump(obj, open(p, "w", encoding="utf-8", newline="\n"), ...)
+```
+（`ET.parse(path)` 不受影響——它會自己處理 XML 的編碼宣告，這也是
+[ENV-10](environment.md) 要求走路徑而非先 `read()` 的原因。）
+
+**預防**：[ENV-10](environment.md)。可考慮在 CI 加一條 grep，
+禁止出現不帶 `encoding=` 的 `open(` 文字模式呼叫。

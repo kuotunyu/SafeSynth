@@ -122,6 +122,13 @@ HF 快取先沿用 C: 預設（與兄弟專案一致；SAM2 large 權重約 898 
 
 ### ENV-10 — 檔案與雜湊的跨平台一致性
 **需求**：
+- **每一個文字檔的 `open()` 都必須明寫 `encoding="utf-8"`**（讀與寫都要）。
+  ⚠️ **本機實測**：這台機器的 Python 預設編碼是 **cp950**（繁中 Windows），
+  `yaml.safe_load(open("configs/paths.yaml"))` 會直接拋
+  `UnicodeDecodeError: 'cp950' codec can't decode byte 0xe2`——
+  因為 config 註解裡有 UTF-8 字元。
+  **這會在讀 config、寫 manifest、讀寫 COCO JSON 時隨機爆炸**，而且錯誤訊息指向編碼、
+  不指向真正的原因，很浪費時間。`Path.read_text()` / `write_text()` 同樣要帶 `encoding="utf-8"`
 - 雜湊一律以 binary 模式開檔（`open(p, "rb")`）。文字模式會改寫行尾，SHA256 就跟 Linux 對不上
 - manifest 內的路徑一律 `Path.as_posix()`，不得出現反斜線
 - 寫 JSON 用 `sort_keys=True, separators=(",", ":"), ensure_ascii=True`，並以 `newline="\n"` 寫檔
