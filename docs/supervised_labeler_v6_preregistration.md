@@ -18,3 +18,16 @@ and threshold-selection policy before selecting a new group-disjoint Train
 audit. All v1-v5 consumed groups become calibration history. Validation and
 Test remain unread, and the FLUX generation gate remains locked until v6
 passes both the numeric audit and a subsequent human review.
+
+## Frozen outcome
+
+The selected epoch-9 checkpoint used threshold 0.023. On the new untouched
+48-image audit it reached precision 0.8995, recall 0.8584, and median matched
+IoU 0.8430, passing all registered numeric gates. Its `model.safetensors`
+SHA-256 is
+`696ba22107177bb40e34a197b84cbbd1fe6416185081c7988304bdb4c821777e`.
+Validation/Test reads and whole-image generations remained zero.
+
+The numeric pass does not open generation. The 48-image green/cyan review still
+requires explicit approval by `kuotunyu`; until then, the v10 runner exits before
+loading FLUX or allocating model GPU memory.

@@ -5,11 +5,15 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
+import transformers
 import yaml
+from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
@@ -138,6 +142,168 @@ def require_verified_model(
                 f"Supervised labeler file failed integrity check: {name}"
             )
     return manifest
+
+
+def require_verified_audited_checkpoint(
+    *,
+    config: Mapping[str, Any],
+    registration: Mapping[str, Any],
+    report: Mapping[str, Any],
+    split: Mapping[str, Any],
+) -> Path:
+    """Verify the exact passed v6 audit and fine-tuned checkpoint."""
+
+    expected_checks = {
+        "audit_precision": True,
+        "audit_recall": True,
+        "audit_median_matched_iou": True,
+    }
+    expected_split_sha = str(registration["split_manifest_sha256"])
+    expected_checkpoint_sha = str(registration["checkpoint_sha256"])
+    best = report.get("best_calibration", {})
+    metrics = report.get("audit_metrics", {})
+    postprocessing = report.get("postprocessing", {})
+    if (
+        config.get("experiment_id") != registration["experiment_id"]
+        or config.get("architecture") != registration["architecture"]
+        or config.get("split_manifest_sha256") != expected_split_sha
+        or split.get("manifest_sha256") != expected_split_sha
+        or report.get("split_manifest_sha256") != expected_split_sha
+        or split.get("status") != "frozen_before_supervised_training"
+        or report.get("status") != "supervised_labeler_audit_passed"
+        or report.get("checks") != expected_checks
+        or int(report.get("untouched_audit_images_read", -1))
+        != int(registration["audit_images"])
+        or int(report.get("validation_images_read", -1)) != 0
+        or int(report.get("test_images_read", -1)) != 0
+        or int(split.get("validation_images_read", -1)) != 0
+        or int(split.get("test_images_read", -1)) != 0
+        or report.get("whole_image_generation_run") is not False
+        or str(report.get("checkpoint_sha256")) != expected_checkpoint_sha
+        or float(best.get("threshold", -1))
+        != float(registration["score_threshold"])
+        or float(postprocessing.get("max_relative_area", -1))
+        != float(registration["max_relative_area"])
+        or float(postprocessing.get("max_relative_height", -1))
+        != float(registration["max_relative_height"])
+        or float(metrics.get("precision", -1))
+        != float(registration["audit_precision"])
+        or float(metrics.get("recall", -1))
+        != float(registration["audit_recall"])
+        or float(metrics.get("median_matched_iou", -1))
+        != float(registration["audit_median_matched_iou"])
+    ):
+        raise RuntimeError("Supervised v6 audit evidence changed or is incomplete")
+
+    checkpoint_dir = Path(str(report["checkpoint_path"]))
+    checkpoint_path = checkpoint_dir / "model.safetensors"
+    if (
+        not checkpoint_path.is_file()
+        or _sha256_file(checkpoint_path) != expected_checkpoint_sha
+    ):
+        raise RuntimeError("Supervised v6 checkpoint failed integrity verification")
+    for required_name in (
+        "config.json",
+        "model.safetensors",
+        "preprocessor_config.json",
+    ):
+        if not (checkpoint_dir / required_name).is_file():
+            raise RuntimeError(
+                f"Supervised v6 checkpoint is incomplete: {required_name}"
+            )
+    return checkpoint_dir
+
+
+def load_audited_supervised_labeler(
+    *,
+    checkpoint_dir: Path,
+    config: Mapping[str, Any],
+    device: str,
+) -> tuple[Any, Any]:
+    """Load the already-verified fine-tuned v6 detector without network access."""
+
+    if transformers.__version__ != str(
+        config["model"]["transformers_version"]
+    ):
+        raise RuntimeError(
+            "Expected transformers "
+            f"{config['model']['transformers_version']}, "
+            f"got {transformers.__version__}"
+        )
+    if config["model"]["local_files_only"] is not True:
+        raise RuntimeError("Supervised labeler runtime must remain local-only")
+    from transformers import (
+        AutoImageProcessor,
+        AutoModelForObjectDetection,
+    )
+
+    processor = AutoImageProcessor.from_pretrained(
+        checkpoint_dir,
+        local_files_only=True,
+    )
+    model = AutoModelForObjectDetection.from_pretrained(
+        checkpoint_dir,
+        local_files_only=True,
+    ).to(device)
+    model.eval()
+    return processor, model
+
+
+def predict_helmet_boxes(
+    *,
+    processor: Any,
+    model: Any,
+    images: Sequence[Image.Image],
+    device: str,
+    score_floor: float,
+    geometry_filter: Mapping[str, Any],
+) -> list[list[tuple[float, list[float]]]]:
+    """Predict class-0 helmet boxes with the frozen v6 geometry rule."""
+
+    if not images:
+        return []
+    batch = processor(images=list(images), return_tensors="pt")
+    pixel_values = batch["pixel_values"].to(device)
+    autocast_context = (
+        torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+        if device.startswith("cuda")
+        else nullcontext()
+    )
+    with torch.inference_mode(), autocast_context:
+        outputs = model(pixel_values=pixel_values)
+    target_sizes = torch.tensor(
+        [[image.height, image.width] for image in images],
+        dtype=torch.int64,
+    )
+    results = processor.post_process_object_detection(
+        outputs,
+        threshold=float(score_floor),
+        target_sizes=target_sizes,
+    )
+    predictions = []
+    for image, result in zip(images, results, strict=True):
+        rows = [
+            (
+                float(score.item()),
+                [float(value) for value in box.tolist()],
+            )
+            for score, label, box in zip(
+                result["scores"],
+                result["labels"],
+                result["boxes"],
+                strict=True,
+            )
+            if int(label.item()) == 0
+        ]
+        rows = filter_prediction_geometry(
+            rows,
+            image_width=image.width,
+            image_height=image.height,
+            max_relative_area=float(geometry_filter["max_relative_area"]),
+            max_relative_height=float(geometry_filter["max_relative_height"]),
+        )
+        predictions.append(sorted(rows, key=lambda item: -item[0]))
+    return predictions
 
 
 def _rank(seed: int, value: int) -> str:

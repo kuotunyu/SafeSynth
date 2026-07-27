@@ -15,6 +15,7 @@ from src.synthetic.supervised_labeler import (
     filter_prediction_geometry,
     freeze_supervised_split,
     load_supervised_labeler_config,
+    require_verified_audited_checkpoint,
     require_verified_model,
 )
 
@@ -107,6 +108,85 @@ def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="failed integrity"):
         require_verified_model(model_dir, config)
+
+
+def test_passed_finetuned_checkpoint_is_rehashed_before_use(tmp_path) -> None:
+    checkpoint_dir = tmp_path / "best"
+    checkpoint_dir.mkdir()
+    checkpoint = checkpoint_dir / "model.safetensors"
+    checkpoint.write_bytes(b"passed fine-tuned checkpoint")
+    (checkpoint_dir / "config.json").write_text("{}", encoding="utf-8")
+    (checkpoint_dir / "preprocessor_config.json").write_text(
+        "{}",
+        encoding="utf-8",
+    )
+    checkpoint_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    split_sha = "a" * 64
+    config = {
+        "experiment_id": "supervised_labeler_v6",
+        "architecture": "rtdetr_v2_r50vd_helmet_only",
+        "split_manifest_sha256": split_sha,
+    }
+    registration = {
+        "experiment_id": config["experiment_id"],
+        "architecture": config["architecture"],
+        "checkpoint_sha256": checkpoint_sha,
+        "split_manifest_sha256": split_sha,
+        "score_threshold": 0.023,
+        "max_relative_area": 0.08,
+        "max_relative_height": 0.35,
+        "audit_images": 48,
+        "audit_precision": 0.90,
+        "audit_recall": 0.86,
+        "audit_median_matched_iou": 0.84,
+    }
+    report = {
+        "status": "supervised_labeler_audit_passed",
+        "checks": {
+            "audit_precision": True,
+            "audit_recall": True,
+            "audit_median_matched_iou": True,
+        },
+        "split_manifest_sha256": split_sha,
+        "checkpoint_path": str(checkpoint_dir),
+        "checkpoint_sha256": checkpoint_sha,
+        "best_calibration": {"threshold": 0.023},
+        "audit_metrics": {
+            "precision": 0.90,
+            "recall": 0.86,
+            "median_matched_iou": 0.84,
+        },
+        "postprocessing": {
+            "max_relative_area": 0.08,
+            "max_relative_height": 0.35,
+        },
+        "untouched_audit_images_read": 48,
+        "validation_images_read": 0,
+        "test_images_read": 0,
+        "whole_image_generation_run": False,
+    }
+    split = {
+        "status": "frozen_before_supervised_training",
+        "manifest_sha256": split_sha,
+        "validation_images_read": 0,
+        "test_images_read": 0,
+    }
+
+    assert require_verified_audited_checkpoint(
+        config=config,
+        registration=registration,
+        report=report,
+        split=split,
+    ) == checkpoint_dir
+    checkpoint.write_bytes(b"tampered fine-tuned checkpoint")
+
+    with pytest.raises(RuntimeError, match="integrity"):
+        require_verified_audited_checkpoint(
+            config=config,
+            registration=registration,
+            report=report,
+            split=split,
+        )
 
 
 def test_calibration_selection_never_weakens_precision_floor() -> None:

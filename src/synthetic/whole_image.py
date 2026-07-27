@@ -122,20 +122,51 @@ def require_generation_approval(
     """Keep FLUX locked until both machine and human gates pass."""
 
     review = config["diagnostic"]["input_review"]
+    supervised = config["supervised_labeler"]
+    labeler_review = supervised["human_review"]
     gate = config["generation_gate"]
     manifest_sha256 = str(manifest["manifest_sha256"])
+    checks = labeler_report.get("checks", {})
+    metrics = labeler_report.get("audit_metrics", {})
+    best = labeler_report.get("best_calibration", {})
+    postprocessing = labeler_report.get("postprocessing", {})
     if (
-        labeler_report.get("status") != "labeler_audit_passed"
-        or labeler_report.get("validation_images_read") != 0
-        or labeler_report.get("test_images_read") != 0
+        labeler_report.get("status") != "supervised_labeler_audit_passed"
+        or checks.get("audit_precision") is not True
+        or checks.get("audit_recall") is not True
+        or checks.get("audit_median_matched_iou") is not True
+        or int(labeler_report.get("validation_images_read", -1)) != 0
+        or int(labeler_report.get("test_images_read", -1)) != 0
+        or int(labeler_report.get("untouched_audit_images_read", -1))
+        != int(supervised["audit_images"])
+        or labeler_report.get("whole_image_generation_run") is not False
+        or labeler_report.get("checkpoint_sha256")
+        != supervised["checkpoint_sha256"]
+        or labeler_report.get("split_manifest_sha256")
+        != supervised["split_manifest_sha256"]
+        or float(best.get("threshold", -1))
+        != float(supervised["score_threshold"])
+        or float(metrics.get("precision", -1))
+        != float(supervised["audit_precision"])
+        or float(metrics.get("recall", -1))
+        != float(supervised["audit_recall"])
+        or float(metrics.get("median_matched_iou", -1))
+        != float(supervised["audit_median_matched_iou"])
+        or float(postprocessing.get("max_relative_area", -1))
+        != float(supervised["max_relative_area"])
+        or float(postprocessing.get("max_relative_height", -1))
+        != float(supervised["max_relative_height"])
         or gate.get("allowed") is not True
         or gate.get("required_reviewer") != "kuotunyu"
+        or labeler_review.get("required_reviewer") != "kuotunyu"
+        or labeler_review.get("status") != "approved_by_kuotunyu"
         or review.get("required_reviewer") != "kuotunyu"
         or review.get("status") != "approved_by_kuotunyu"
         or review.get("approved_manifest_sha256") != manifest_sha256
     ):
         raise RuntimeError(
-            "v10 GPU gate locked: labeler audit or exact kuotunyu approval is missing"
+            "v10 GPU gate locked: verified v6 audit or exact kuotunyu "
+            "approval is missing"
         )
 
 

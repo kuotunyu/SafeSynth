@@ -1,8 +1,8 @@
-# Whole-image text-to-image candidate. Grounding DINO must first prove that it
-# can recover this dataset's "helmeted head" box semantics on frozen Train data.
+# Whole-image text-to-image candidate. The supervised RT-DETRv2 v6 labeler must
+# pass both its frozen Train-only audit and kuotunyu's visual review before use.
 
 schema_version: 1
-status: "supervised_labeler_audit_failed"
+status: "supervised_v6_numeric_passed_human_review_pending"
 architecture: "whole_image_text_to_image_v10"
 
 generator:
@@ -36,6 +36,31 @@ labeler:
     tokenizer_config.json: 1237
     vocab.txt: 231508
   local_files_only: true
+
+# Historical zero-shot registration above is retained for reproducible failure
+# evidence only. Whole-image v10 must use this frozen supervised labeler.
+supervised_labeler:
+  experiment_id: "supervised_labeler_v6"
+  config_path: "configs/supervised_labeler_v6.yaml"
+  report_path: "reports/supervised_labeler_v6_training.json"
+  split_path: "splits/supervised_labeler_v6_split.json"
+  architecture: "rtdetr_v2_r50vd_helmet_only"
+  checkpoint_sha256: "696ba22107177bb40e34a197b84cbbd1fe6416185081c7988304bdb4c821777e"
+  split_manifest_sha256: "8a5e22291603b7e539b9d77fbe57e1d81695dbb9921eb8b0d7110d600cf21cbe"
+  score_threshold: 0.023
+  score_floor: 0.015
+  max_relative_area: 0.08
+  max_relative_height: 0.35
+  audit_images: 48
+  audit_precision: 0.8995215311004785
+  audit_recall: 0.8584474885844748
+  audit_median_matched_iou: 0.8430122410062402
+  validation_images_read: 0
+  test_images_read: 0
+  human_review:
+    required_reviewer: "kuotunyu"
+    status: "pending_kuotunyu_review"
+    figure: "reports/figures/supervised_labeler_v6_audit.png"
 
 labeler_audit:
   root_seed: 20260807
@@ -102,8 +127,8 @@ diagnostic:
         watermark.
   input_review:
     required_reviewer: "kuotunyu"
-    status: "blocked_by_failed_supervised_labeler_audit"
-    approved_manifest_sha256: null
+    status: "approved_by_kuotunyu"
+    approved_manifest_sha256: "843b3cfcd333e2f965389a5dac76d72f5811af3a900d6cf6ef7f3ec6f404bc51"
 
 generation_gate:
   allowed: false

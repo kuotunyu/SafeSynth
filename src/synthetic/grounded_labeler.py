@@ -41,6 +41,19 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
     expected = sum(int(value) for value in labeler["allow_files"].values())
     if expected != int(labeler["required_download_bytes"]):
         raise RuntimeError("Grounding DINO registered file sizes disagree")
+    supervised = config["supervised_labeler"]
+    if (
+        supervised["experiment_id"] != "supervised_labeler_v6"
+        or supervised["architecture"] != "rtdetr_v2_r50vd_helmet_only"
+        or int(supervised["validation_images_read"]) != 0
+        or int(supervised["test_images_read"]) != 0
+        or int(supervised["audit_images"]) != 48
+        or not 0 < float(supervised["score_floor"])
+        <= float(supervised["score_threshold"])
+        or not 0 < float(supervised["max_relative_area"]) <= 1
+        or not 0 < float(supervised["max_relative_height"]) <= 1
+    ):
+        raise RuntimeError("Supervised v6 labeler registration changed")
     gate = config["generation_gate"]
     if gate.get("allowed") not in (True, False):
         raise RuntimeError("Whole-image generation gate must be boolean")
@@ -48,10 +61,13 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         raise RuntimeError("Whole-image generation reviewer changed")
     if gate["allowed"] is True:
         review = config["diagnostic"]["input_review"]
+        labeler_review = supervised["human_review"]
         if (
             review.get("required_reviewer") != "kuotunyu"
             or review.get("status") != "approved_by_kuotunyu"
             or not review.get("approved_manifest_sha256")
+            or labeler_review.get("required_reviewer") != "kuotunyu"
+            or labeler_review.get("status") != "approved_by_kuotunyu"
         ):
             raise RuntimeError(
                 "Whole-image generation gate cannot open without owner approval"

@@ -85,9 +85,15 @@ ceiling. Its exact four prompts and seeds are frozen before output inspection.
 The pinned Apache-2.0 Grounding DINO Tiny labeler is downloaded and verified,
 but failed its group-disjoint 96-image Train-only calibration/audit: untouched
 precision was 0.8065 and median matched IoU was 0.7566, while recall was only
-0.1214 against the frozen 0.70 minimum. The zero-shot labeler and v10 FLUX gate
-therefore remain rejected. Validation/Test reads and new whole-image generations
-remain zero.
+0.1214 against the frozen 0.70 minimum. It has been replaced for v10 by a
+preregistered supervised RT-DETRv2-R50 v6 labeler. On a new untouched,
+group-disjoint 48-image Train-only audit, v6 reached precision 0.8995, recall
+0.8584, and median matched IoU 0.8430, passing all three numeric gates. Its exact
+checkpoint SHA-256, threshold 0.023, and fixed geometry filter are now wired
+into the v10 runner; the old zero-shot report cannot open that gate. `kuotunyu`
+has approved the fixed four-case v10 input manifest, but the v6 48-image visual
+review is still pending, so FLUX remains hard-locked. Validation/Test reads and
+new whole-image generations remain zero.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

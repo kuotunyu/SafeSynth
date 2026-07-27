@@ -11,6 +11,38 @@ from src.synthetic.whole_image import (
 )
 
 
+def _passed_v6_report(config: dict) -> dict:
+    registered = config["supervised_labeler"]
+    return {
+        "status": "supervised_labeler_audit_passed",
+        "checks": {
+            "audit_precision": True,
+            "audit_recall": True,
+            "audit_median_matched_iou": True,
+        },
+        "audit_metrics": {
+            "precision": registered["audit_precision"],
+            "recall": registered["audit_recall"],
+            "median_matched_iou": registered[
+                "audit_median_matched_iou"
+            ],
+        },
+        "best_calibration": {
+            "threshold": registered["score_threshold"],
+        },
+        "postprocessing": {
+            "max_relative_area": registered["max_relative_area"],
+            "max_relative_height": registered["max_relative_height"],
+        },
+        "checkpoint_sha256": registered["checkpoint_sha256"],
+        "split_manifest_sha256": registered["split_manifest_sha256"],
+        "untouched_audit_images_read": registered["audit_images"],
+        "validation_images_read": 0,
+        "test_images_read": 0,
+        "whole_image_generation_run": False,
+    }
+
+
 def test_diagnostic_manifest_is_frozen_and_train_independent() -> None:
     config = load_whole_image_config()
 
@@ -30,11 +62,7 @@ def test_diagnostic_manifest_is_frozen_and_train_independent() -> None:
 def test_generation_gate_requires_labeler_and_exact_owner_approval() -> None:
     config = load_whole_image_config()
     manifest = diagnostic_manifest(config)
-    labeler_report = {
-        "status": "labeler_audit_passed",
-        "validation_images_read": 0,
-        "test_images_read": 0,
-    }
+    labeler_report = _passed_v6_report(config)
 
     with pytest.raises(RuntimeError, match="GPU gate locked"):
         require_generation_approval(
@@ -45,11 +73,9 @@ def test_generation_gate_requires_labeler_and_exact_owner_approval() -> None:
 
     approved = deepcopy(config)
     approved["generation_gate"]["allowed"] = True
-    approved["diagnostic"]["input_review"] = {
-        "required_reviewer": "kuotunyu",
-        "status": "approved_by_kuotunyu",
-        "approved_manifest_sha256": manifest["manifest_sha256"],
-    }
+    approved["supervised_labeler"]["human_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
     require_generation_approval(
         config=approved,
         labeler_report=labeler_report,
@@ -59,15 +85,28 @@ def test_generation_gate_requires_labeler_and_exact_owner_approval() -> None:
 
 def test_changed_prompt_invalidates_owner_approval() -> None:
     config = load_whole_image_config()
-    original = diagnostic_manifest(config)
     approved = deepcopy(config)
     approved["generation_gate"]["allowed"] = True
-    approved["diagnostic"]["input_review"] = {
-        "required_reviewer": "kuotunyu",
-        "status": "approved_by_kuotunyu",
-        "approved_manifest_sha256": original["manifest_sha256"],
-    }
+    approved["supervised_labeler"]["human_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
     approved["diagnostic"]["cases"][0]["prompt"] += " Changed after review."
+
+    with pytest.raises(RuntimeError, match="GPU gate locked"):
+        require_generation_approval(
+            config=approved,
+            labeler_report=_passed_v6_report(config),
+            manifest=diagnostic_manifest(approved),
+        )
+
+
+def test_old_zero_shot_labeler_report_cannot_open_v10_gate() -> None:
+    config = load_whole_image_config()
+    approved = deepcopy(config)
+    approved["generation_gate"]["allowed"] = True
+    approved["supervised_labeler"]["human_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
 
     with pytest.raises(RuntimeError, match="GPU gate locked"):
         require_generation_approval(
@@ -77,5 +116,23 @@ def test_changed_prompt_invalidates_owner_approval() -> None:
                 "validation_images_read": 0,
                 "test_images_read": 0,
             },
-            manifest=diagnostic_manifest(approved),
+            manifest=diagnostic_manifest(config),
+        )
+
+
+def test_changed_v6_checkpoint_evidence_cannot_open_gate() -> None:
+    config = load_whole_image_config()
+    approved = deepcopy(config)
+    approved["generation_gate"]["allowed"] = True
+    approved["supervised_labeler"]["human_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
+    changed_report = _passed_v6_report(config)
+    changed_report["checkpoint_sha256"] = "0" * 64
+
+    with pytest.raises(RuntimeError, match="GPU gate locked"):
+        require_generation_approval(
+            config=approved,
+            labeler_report=changed_report,
+            manifest=diagnostic_manifest(config),
         )

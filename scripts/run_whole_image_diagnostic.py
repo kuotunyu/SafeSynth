@@ -12,11 +12,12 @@ import torch
 from PIL import Image, ImageDraw
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
-from src.synthetic.grounded_labeler import (
-    labeler_directory,
-    load_grounding_dino,
-    load_whole_image_config,
-    predict_single_phrase,
+from src.synthetic.grounded_labeler import load_whole_image_config
+from src.synthetic.supervised_labeler import (
+    load_audited_supervised_labeler,
+    load_supervised_labeler_config,
+    predict_helmet_boxes,
+    require_verified_audited_checkpoint,
 )
 from src.synthetic.whole_image import (
     diagnostic_manifest,
@@ -25,7 +26,6 @@ from src.synthetic.whole_image import (
     require_generation_approval,
 )
 
-LABELER_REPORT_PATH = PROJECT_ROOT / "reports" / "grounded_labeler_audit.json"
 OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "whole_image_v10_seed20260808"
 WORK_ROOT = PROJECT_ROOT / "outputs" / "whole_image_v10_seed20260808_in_progress"
 REPORT_PATH = PROJECT_ROOT / "reports" / "whole_image_v10_diagnostic.json"
@@ -128,14 +128,31 @@ def _render_sheet(rows: list[dict[str, Any]]) -> None:
 
 def main() -> None:
     config = load_whole_image_config()
+    registration = config["supervised_labeler"]
+    labeler_config = load_supervised_labeler_config(
+        PROJECT_ROOT / str(registration["config_path"])
+    )
     labeler_report = json.loads(
-        LABELER_REPORT_PATH.read_text(encoding="utf-8")
+        (PROJECT_ROOT / str(registration["report_path"])).read_text(
+            encoding="utf-8"
+        )
+    )
+    labeler_split = json.loads(
+        (PROJECT_ROOT / str(registration["split_path"])).read_text(
+            encoding="utf-8"
+        )
     )
     manifest = diagnostic_manifest(config)
     require_generation_approval(
         config=config,
         labeler_report=labeler_report,
         manifest=manifest,
+    )
+    checkpoint_dir = require_verified_audited_checkpoint(
+        config=labeler_config,
+        registration=registration,
+        report=labeler_report,
+        split=labeler_split,
     )
     if not torch.cuda.is_available():
         raise RuntimeError("v10 diagnostic requires an available CUDA GPU")
@@ -194,25 +211,29 @@ def main() -> None:
         gc.collect()
         torch.cuda.empty_cache()
 
-    selected = labeler_report["selected"]
-    phrase = str(selected["phrase"])
-    threshold = float(selected["score_threshold"])
+    threshold = float(registration["score_threshold"])
     processor = None
     model = None
     try:
-        processor, model = load_grounding_dino(
-            model_dir=labeler_directory(paths, config),
-            config=config,
+        processor, model = load_audited_supervised_labeler(
+            checkpoint_dir=checkpoint_dir,
+            config=labeler_config,
             device="cuda",
         )
-        detected = predict_single_phrase(
+        detected = predict_helmet_boxes(
             processor=processor,
             model=model,
             images=[record["image"] for record in generated],
-            phrase=phrase,
             device="cuda",
-            score_floor=0.05,
-            text_threshold=float(config["labeler_audit"]["text_threshold"]),
+            score_floor=float(registration["score_floor"]),
+            geometry_filter={
+                "max_relative_area": float(
+                    registration["max_relative_area"]
+                ),
+                "max_relative_height": float(
+                    registration["max_relative_height"]
+                ),
+            },
         )
     finally:
         if model is not None:
@@ -267,8 +288,23 @@ def main() -> None:
         "architecture": str(config["architecture"]),
         "manifest_sha256": str(manifest["manifest_sha256"]),
         "labeler_audit_status": str(labeler_report["status"]),
-        "label_phrase": phrase,
+        "labeler_experiment_id": str(registration["experiment_id"]),
+        "labeler_checkpoint_sha256": str(
+            registration["checkpoint_sha256"]
+        ),
+        "labeler_split_manifest_sha256": str(
+            registration["split_manifest_sha256"]
+        ),
         "label_score_threshold": threshold,
+        "label_score_floor": float(registration["score_floor"]),
+        "label_geometry_filter": {
+            "max_relative_area": float(
+                registration["max_relative_area"]
+            ),
+            "max_relative_height": float(
+                registration["max_relative_height"]
+            ),
+        },
         "cases": records,
         "cases_without_auto_label": sum(
             not record["auto_labels"] for record in records
