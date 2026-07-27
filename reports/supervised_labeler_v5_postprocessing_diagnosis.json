@@ -1,0 +1,144 @@
+{
+  "calibration_candidates_by_precision_floor": {
+    "0.8": {
+      "f1": 0.8270929743374001,
+      "false_negatives": 172,
+      "false_positives": 239,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8411289273277861,
+      "precision": 0.8044189852700491,
+      "recall": 0.8510822510822511,
+      "threshold": 0.02,
+      "true_positives": 983
+    },
+    "0.82": {
+      "f1": 0.8206239168110918,
+      "false_negatives": 208,
+      "false_positives": 206,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8418589326846312,
+      "precision": 0.821335646140503,
+      "recall": 0.8199134199134199,
+      "threshold": 0.021,
+      "true_positives": 947
+    },
+    "0.85": {
+      "f1": 0.7802816901408451,
+      "false_negatives": 324,
+      "false_positives": 144,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8405051053819829,
+      "precision": 0.8523076923076923,
+      "recall": 0.7194805194805195,
+      "threshold": 0.024,
+      "true_positives": 831
+    }
+  },
+  "calibration_images_read": 288,
+  "checkpoint_sha256": "1152e93f85eb89ed15168804b639180223afb7896e3d3f570ac2c0555ec8cfc9",
+  "eligible_for_generation_gate": false,
+  "failed_audit_images_read": 48,
+  "failed_audit_metrics_by_calibration_precision_floor": {
+    "0.8": {
+      "f1": 0.795969773299748,
+      "false_negatives": 41,
+      "false_positives": 40,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8393620465381348,
+      "precision": 0.797979797979798,
+      "recall": 0.7939698492462312,
+      "threshold": 0.02,
+      "true_positives": 158
+    },
+    "0.82": {
+      "f1": 0.7958656330749355,
+      "false_negatives": 45,
+      "false_positives": 34,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8376825760454643,
+      "precision": 0.8191489361702128,
+      "recall": 0.7738693467336684,
+      "threshold": 0.021,
+      "true_positives": 154
+    },
+    "0.85": {
+      "f1": 0.7520891364902508,
+      "false_negatives": 64,
+      "false_positives": 25,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8380278291825435,
+      "precision": 0.84375,
+      "recall": 0.678391959798995,
+      "threshold": 0.024,
+      "true_positives": 135
+    }
+  },
+  "max_relative_areas": [
+    0.025,
+    0.04,
+    0.06,
+    0.08,
+    0.12,
+    0.2,
+    1.0
+  ],
+  "max_relative_heights": [
+    0.35,
+    0.45,
+    0.6,
+    1.0
+  ],
+  "reason": "Both calibration and audit were already consumed. This evidence may guide a new preregistration but cannot pass a gate.",
+  "schema_version": 1,
+  "score_thresholds": [
+    0.015,
+    0.02,
+    0.021,
+    0.022,
+    0.023,
+    0.024,
+    0.025,
+    0.026,
+    0.027,
+    0.028,
+    0.029,
+    0.03,
+    0.035
+  ],
+  "selected_at_calibration_precision_0_80": {
+    "f1": 0.8270929743374001,
+    "false_negatives": 172,
+    "false_positives": 239,
+    "max_relative_area": 0.08,
+    "max_relative_height": 0.35,
+    "median_matched_iou": 0.8411289273277861,
+    "precision": 0.8044189852700491,
+    "recall": 0.8510822510822511,
+    "threshold": 0.02,
+    "true_positives": 983
+  },
+  "selected_candidate_failed_audit_metrics": {
+    "f1": 0.795969773299748,
+    "false_negatives": 41,
+    "false_positives": 40,
+    "max_relative_area": 0.08,
+    "max_relative_height": 0.35,
+    "median_matched_iou": 0.8393620465381348,
+    "precision": 0.797979797979798,
+    "recall": 0.7939698492462312,
+    "threshold": 0.02,
+    "true_positives": 158
+  },
+  "selection_source": "v5 prior calibration only",
+  "source_split_manifest_sha256": "443c41aa8adaf2d96b6460ef92c5ecd548543c95c09e88b792a198fe41415451",
+  "status": "diagnostic_on_consumed_train_only_sets",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

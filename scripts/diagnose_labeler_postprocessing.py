@@ -86,6 +86,7 @@ def _grid(
     predictions: Mapping[int, Sequence[tuple[float, Sequence[float]]]],
     image_records: Mapping[int, Mapping[str, Any]],
     match_iou: float,
+    score_thresholds: Sequence[float] = SCORE_THRESHOLDS,
 ) -> list[dict[str, float | int]]:
     rows = []
     for max_relative_area in MAX_RELATIVE_AREAS:
@@ -96,7 +97,7 @@ def _grid(
                 max_relative_area=max_relative_area,
                 max_relative_height=max_relative_height,
             )
-            for threshold in SCORE_THRESHOLDS:
+            for threshold in score_thresholds:
                 rows.append(
                     {
                         "threshold": threshold,
