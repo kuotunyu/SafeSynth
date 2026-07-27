@@ -8,11 +8,13 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-27 06:28 +08:00
-- **最後驗證 commit**：`cc931ed` feat(handoff): audit contributor commit hook
-- **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 等使用者 H6
-  簽核；`M11` H4 未通過；`M13`/`M14` 依硬閘門暫停。
-- **⚠️ 未 commit 的改動**：只有本次 worklog／preflight 更新。
+- **更新時間**：2026-07-27 11:20 +08:00
+- **最後驗證 commit**：`6c9f33a` docs(handoff): freeze final local audit
+- **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 的 H6 已由
+  kuotunyu 以 0/64 通過，待素材庫接線；`M11` 已批准 Option A 並完成
+  生成式方法預註冊，等待模型下載後跑 pilot；`M13`/`M14` 仍由 H4 阻擋。
+- **⚠️ 未 commit 的改動**：H6 簽核、Option A 預註冊、模型 preflight、
+  Diffusers 依賴、整合骨架與測試。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
@@ -20,15 +22,17 @@
   300 張 final H4/M12 候選與診斷 run 都在 `D:\sdg-data\02-safesynth`；
   Test 洩漏為 0，cutout 重現抽查 100/100。
 - **環境**：已安裝並驗證。`.venv/` ＋ `uv.lock` 已存在，
-  Python 3.12.13、torch 2.13.0+cu130、torchvision 0.28.0+cu130、transformers 5.14.1。
+  Python 3.12.13、torch 2.13.0+cu130、torchvision 0.28.0+cu130、
+  transformers 5.14.1、diffusers 0.39.0。
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
   SAM2 2-pass 推論已完成，權重存在既有 Hugging Face cache。
-- **下一個動作（一句話、可直接動手）**：使用者先簽核 H6 64 格圖；
-  H4 則需另行預註冊能同時解決空間重採樣與色彩訊號的新生成架構。
-- **卡住的事**：H4 feathered-alpha AUC 0.7964 > 0.60；M13 硬阻擋。
-- **等使用者做的事**：數 H6 青框內真正安全帽格數並批准／不批准；
-  遠端 repo 仍未建立，醒來後再決定。
+- **下一個動作（一句話、可直接動手）**：取得 14.88 GiB FLUX.2 權重下載
+  批准，下載與 hash 驗證後跑 64 圖身份保留 pilot。
+- **卡住的事**：舊 H4 feathered-alpha AUC 0.7964 > 0.60；Option A 尚無
+  權重，M13 硬阻擋。
+- **等使用者做的事**：明確批准／拒絕 14.88 GiB 模型下載；遠端 repo
+  仍未建立。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_phase1_handoff
@@ -41,6 +45,15 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-27 · H6 簽核與 H4 Option A 預註冊
+
+- kuotunyu 對 exact-grid SHA 簽核 0/64 真正安全帽，H6 通過。
+- 選定 Apache-2.0 `FLUX.2-klein-base-4B`，revision 與 14.88 GiB
+  Diffusers 檔案清單已由 Hugging Face metadata 驗證；權重未下載。
+- 鎖定 reference-conditioned boundary inpainting、protected core、64 圖
+  人工 identity gate 與新的 one-shot H4 fold；0.60 門檻不變。
+- 新增 local-only loader、模型 manifest hard gate、像素身份不變式與 7 項測試。
 
 ### 2026-07-27 · M6–M12 · 素材、合成、filter 與 H4 硬閘門
 

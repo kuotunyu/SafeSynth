@@ -3,11 +3,15 @@ from __future__ import annotations
 import numpy as np
 
 from src.synthetic.compose import (
+    Paste,
+    _generative_seed,
     _requested_classes,
     _sample_seed,
     _scenario_sequence,
     _transform_scale,
+    _visible_paste_masks,
 )
+from src.synthetic.composition import Layer
 
 
 def scenario_config() -> dict:
@@ -28,6 +32,15 @@ def test_sample_seed_is_stable_and_index_isolated() -> None:
     assert _sample_seed(42, 7) == _sample_seed(42, 7)
     assert _sample_seed(42, 7) != _sample_seed(42, 8)
     assert _sample_seed(42, 7) != _sample_seed(43, 7)
+
+
+def test_generative_seed_is_stable_and_instance_isolated() -> None:
+    assert _generative_seed(42, 7, "paste:0") == _generative_seed(
+        42, 7, "paste:0"
+    )
+    assert _generative_seed(42, 7, "paste:0") != _generative_seed(
+        42, 7, "paste:1"
+    )
 
 
 def test_default_preview_covers_every_unblocked_scenario() -> None:
@@ -99,3 +112,55 @@ def test_context_replacement_scale_matches_target_area() -> None:
     )
 
     assert np.isclose(scale, 0.5)
+
+
+def test_visible_paste_mask_excludes_only_layers_in_front() -> None:
+    paste_mask = np.zeros((20, 20), dtype=bool)
+    paste_mask[4:16, 4:16] = True
+    front_mask = np.zeros_like(paste_mask)
+    front_mask[10:18, 10:18] = True
+    back_mask = np.zeros_like(paste_mask)
+    back_mask[3:8, 3:8] = True
+    paste_layer = Layer(
+        instance_id="paste:0",
+        class_name="helmet",
+        kind="pasted",
+        mask=paste_mask,
+        bbox_xywh_original=[4, 4, 12, 12],
+        y_bottom=16,
+        z_index=1,
+    )
+    paste = Paste(
+        layer=paste_layer,
+        rgba=np.zeros((12, 12, 4), dtype=np.uint8),
+        frame_slice=(slice(4, 16), slice(4, 16)),
+        patch_slice=(slice(0, 12), slice(0, 12)),
+        bank={},
+        bbox_preclip=[4, 4, 12, 12],
+    )
+    back = Layer(
+        instance_id="real:back",
+        class_name="person",
+        kind="existing",
+        mask=back_mask,
+        bbox_xywh_original=[3, 3, 5, 5],
+        y_bottom=8,
+        z_index=0,
+    )
+    front = Layer(
+        instance_id="real:front",
+        class_name="person",
+        kind="existing",
+        mask=front_mask,
+        bbox_xywh_original=[10, 10, 8, 8],
+        y_bottom=18,
+        z_index=2,
+    )
+
+    visible = _visible_paste_masks(
+        existing_layers=[back, front],
+        pastes=[paste],
+    )["paste:0"]
+
+    assert np.array_equal(visible, paste_mask & ~front_mask)
+    assert np.any(visible & back_mask)

@@ -10,16 +10,16 @@
 
 ## Human gate
 
-**PENDING USER SIGNOFF.** Count cyan-boxed regions that are actual helmets in
-`reports/figures/h6_hard_negative_candidates.png`. The mined bank must not be
-frozen until the user supplies that count and explicitly approves it.
+**APPROVED by kuotunyu on 2026-07-27.**
 
-If the real-helmet count exceeds the configured tolerance, the mined/procedural
-mix flips to procedural-primary and every retained mined item requires review.
+- Real helmets in cyan boxes: **0 / 64 (0.0%)**
+- Result: **PASS** against the maximum tolerated rate of 10%
+- Exact approval: `真正安全帽 0 格，批准；H4 選 A。`
+- Machine-readable record: `reports/hard_negative_signoff.json`
 
 Automatic safeguards already applied:
 
 1. IoU with every existing annotation is below the fixed limit.
 2. The region has no annotation/skin-like head below and falls outside the
    frozen Train helmet p5–p95 size/aspect envelope.
-3. The contact sheet and its SHA are immutable inputs to the pending signoff.
+3. The contact sheet and its SHA are immutable inputs to the recorded signoff.

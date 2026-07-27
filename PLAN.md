@@ -162,7 +162,8 @@
     **素材庫凍結前必須取得使用者對 contact sheet 的簽核**；
     程序生成的形狀確認是**調變真實背景紋理**而非平坦填色
   - **驗證於**：`c7514f4` @ 2026-07-27（程式與三層防護已完成）；
-    H6 64 格候選圖已產出，**等待 kuotunyu 人工簽核，素材庫尚未解鎖**
+    H6 64 格候選圖由 kuotunyu 簽核為 **0/64 真正安全帽，通過 10% 門檻**；
+    簽核綁定 exact-grid SHA256，M9 保持部分完成直到素材庫凍結並接入 compositor
 
 ---
 
@@ -198,7 +199,10 @@
     Poisson spike 因洗掉物件顏色而失敗，AUC **0.8869**（CI 0.8551–0.9170）；
     exact-source 成對控制仍達 AUC **0.9049**（CI 0.8788–0.9289），
     排除素材庫 selection bias 是主要假象；
-    **硬閘門維持關閉，M13 不得開始**）
+    kuotunyu 已批准 Option A；FLUX.2 klein base 4B 的模型 SHA、Apache-2.0
+    授權、身份保留遮罩、64 圖人工 gate 與全新 one-shot H4 fold 已在
+    `docs/h4_generative_preregistration.md` 預註冊，**權重尚未下載，硬閘門
+    維持關閉，M13 不得開始**）
 
 - [x] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
   - **對應規格**：FILT-01 ~ FILT-14

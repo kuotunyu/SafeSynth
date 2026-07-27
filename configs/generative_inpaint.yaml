@@ -1,0 +1,82 @@
+# Option A: reference-conditioned generative boundary inpainting.
+#
+# This file was frozen after kuotunyu approved "H4 選 A" and before any model
+# weights or generated outputs existed. Numeric parameters tagged `guess` may
+# only be changed before the visual pilot. The final H4 threshold remains owned
+# by configs/filtering.yaml and is deliberately not repeated here.
+
+schema_version: 1
+status: "preregistered_waiting_for_weight_approval"
+
+model:
+  repo_id: "black-forest-labs/FLUX.2-klein-base-4B"
+  revision: "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+  license: "apache-2.0"
+  pipeline_class: "Flux2KleinInpaintPipeline"
+  diffusers_version: "0.39.0"
+  required_download_bytes: 15980131711
+  # Excludes the duplicate top-level single-file checkpoint and model-card
+  # images. These are the exact Diffusers-format components used at runtime.
+  allow_patterns:
+    - "model_index.json"
+    - "scheduler/*"
+    - "text_encoder/*"
+    - "tokenizer/*"
+    - "transformer/*"
+    - "vae/*"
+
+runtime:
+  dtype: "bfloat16"
+  device: "cuda"
+  model_cpu_offload: true
+  local_files_only: true
+
+method:
+  name: "reference_conditioned_boundary_inpaint_v1"
+  outer_dilate_px: 5                         # source: guess
+  protected_core_erode_px: 2                 # source: guess
+  minimum_protected_core_fraction: 0.35      # source: fixed (identity guard)
+  padding_mask_crop_px: 48                   # source: guess
+  strength: 0.85                             # source: guess
+  num_inference_steps: 50                    # source: model-card default for base model
+  guidance_scale: 4.0                        # source: model-card example for base model
+  reference_canvas_size: 416                 # source: fixed (dataset native size)
+  reference_max_fill: 0.75                   # source: guess
+  reference_background_rgb: [127, 127, 127]  # source: fixed (neutral)
+
+prompts:
+  helmet: >-
+    Photorealistic construction-site photograph. Integrate the provided safety
+    hard-hat reference at the existing pasted location. Preserve its color,
+    shape, viewing angle, scale, and protected center exactly. Modify only the
+    masked boundary so lighting, focus, noise, and occlusion match the scene.
+    Do not add another person, head, helmet, text, logo, or object.
+  head: >-
+    Photorealistic construction-site photograph. Integrate the provided bare-head
+    reference at the existing pasted location. Preserve its pose, scale, skin
+    appearance, and protected center exactly. Modify only the masked boundary so
+    lighting, focus, noise, and occlusion match the scene. Do not add a helmet,
+    another person, head, text, logo, or object.
+  person: >-
+    Photorealistic construction-site photograph. Integrate the provided worker
+    reference at the existing pasted location. Preserve pose, clothing, scale,
+    and protected center exactly. Modify only the masked boundary so lighting,
+    focus, noise, and occlusion match the scene. Do not add another person,
+    head, helmet, text, logo, or object.
+
+pilot:
+  n_images: 64
+  root_seed: 20260727
+  contact_sheet_rows: 8
+  contact_sheet_columns: 8
+  severe_identity_failure_max_count: 3       # source: guess (<= 5% of 64)
+  label_mismatch_max_count: 0                # source: fixed
+
+final_h4:
+  n_images: 300
+  generation_seed: 1618033
+  classifier_seed: 1732051
+  control_mode: "pooled"
+  max_auc_for_scaleup: 0.60                  # source: fixed (unchanged registered gate)
+  one_shot: true
+

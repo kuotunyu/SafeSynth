@@ -37,9 +37,11 @@ verified the 300-image filter ledger (196 pass / 104 reject; zero threshold
 sensitivity alarms). The scale-up gate remains intentionally closed: the
 group-disjoint H4 paste-artifact classifier reaches AUC 0.7964 against the
 pre-registered maximum of 0.60. Full generation will not begin until that is
-fixed, and hard-negative material also awaits the repository owner's contact-
-sheet signoff. Phase 2 will run the five-arm RT-DETRv2 comparison only after
-those gates pass.
+fixed. The repository owner approved the H6 hard-negative sheet at 0/64 true
+helmets and selected the pre-registered Option A generative-inpainting route.
+The pinned Apache-2.0 model still awaits explicit approval for its 14.88 GiB
+download. Phase 2 will run the five-arm RT-DETRv2 comparison only after H4
+passes.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

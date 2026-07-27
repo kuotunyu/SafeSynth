@@ -1,7 +1,7 @@
 # Phase 1 handoff preflight
 
-- Audited HEAD: `07d6b3c1cd75e5e716a0c1ee52a512a280d2ec60`
-- Commits across all local refs: **41**
+- Audited HEAD: `6c9f33abfeccb4ae81767aa42dec4235f6705f8c`
+- Commits across all local refs: **42**
 - GitHub contributor identity ready: **PASS**
 - Pre-publication state (identity + no remote): **PASS**
 - Scale-up allowed: **FAIL**
@@ -26,13 +26,12 @@
 
 ## Phase 1 gates
 
-- H6 exact-grid approval: **FAIL** (SHA256 `0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739`)
+- H6 exact-grid approval: **PASS** (SHA256 `0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739`)
 - H4 scale-up gate: **FAIL** (AUC 0.7964; maximum 0.60)
 - M12 ledger: 300 = 196 pass + 104 reject
 
 ## Blocking actions
 
-- M9/H6 requires kuotunyu's review and exact-grid signoff.
 - M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum.
 
 The failed H6/H4 gate lines are expected project blockers, not audit

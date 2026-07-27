@@ -1,10 +1,9 @@
 {
   "blockers": [
-    "M9/H6 requires kuotunyu's review and exact-grid signoff.",
     "M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum."
   ],
   "coauthor_trailer_commits": [],
-  "commit_count_all_refs": 41,
+  "commit_count_all_refs": 42,
   "commit_hook": {
     "core_hooks_path": ".githooks",
     "tracked_index_entry": "100755 67b800375400e43e1fbfc687bc2d090bef2a6e0e 0\t.githooks/commit-msg"
@@ -20,12 +19,12 @@
     "passed": false
   },
   "h6": {
-    "approved": false,
+    "approved": true,
     "expected_grid_sha256": "0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739",
     "grid_sha256": "0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739",
     "signoff_path": "reports\\hard_negative_signoff.json"
   },
-  "head_commit": "07d6b3c1cd75e5e716a0c1ee52a512a280d2ec60",
+  "head_commit": "6c9f33abfeccb4ae81767aa42dec4235f6705f8c",
   "identity_violations": [],
   "integrity_checks": {
     "all_authors_and_committers_are_kuotunyu": true,

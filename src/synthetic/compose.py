@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import cv2
 import imagehash
@@ -41,6 +41,9 @@ from src.synthetic.composition import (
     tight_bbox,
     warp_rgba,
 )
+
+if TYPE_CHECKING:
+    from src.synthetic.generative_inpaint import GenerativeBoundaryInpainter
 
 SCENARIO_ORDER = (
     "small_distant",
@@ -122,6 +125,15 @@ def _sample_seed(root_seed: int, sample_index: int) -> int:
 
     digest = hashlib.sha256(f"{root_seed}|{sample_index}".encode()).digest()
     return int.from_bytes(digest[:8], "big")
+
+
+def _generative_seed(root_seed: int, sample_index: int, instance_id: str) -> int:
+    """Derive a stable torch-compatible seed for one generative boundary edit."""
+
+    payload = f"generative|{root_seed}|{sample_index}|{instance_id}".encode()
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") & (
+        2**63 - 1
+    )
 
 
 def _archive_existing(path: Path) -> None:
@@ -694,6 +706,7 @@ def _instance_records(
     pastes: Sequence[Paste],
     annotations_by_id: Mapping[int, Mapping[str, Any]],
     seams: Mapping[str, float],
+    generative: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     paste_by_id = {paste.layer.instance_id: paste for paste in pastes}
     records: list[dict[str, Any]] = []
@@ -726,6 +739,8 @@ def _instance_records(
                     "seam_energy_ratio": float(seams.get(instance_id, 0)),
                 }
             )
+            if generative and instance_id in generative:
+                record["generative_inpaint"] = dict(generative[instance_id])
         records.append(record)
     records.sort(
         key=lambda item: (
@@ -739,6 +754,29 @@ def _instance_records(
             record["bbox_xywh"][3]
         )
     return records
+
+
+def _visible_paste_masks(
+    *,
+    existing_layers: Sequence[Layer],
+    pastes: Sequence[Paste],
+) -> dict[str, np.ndarray]:
+    """Compute final visible support for each paste without editing occluders."""
+
+    layers = sorted(
+        [*existing_layers, *(paste.layer for paste in pastes)],
+        key=lambda layer: (layer.z_index, layer.instance_id),
+    )
+    if not layers:
+        return {}
+    union_above = np.zeros_like(layers[0].mask, dtype=bool)
+    visible: dict[str, np.ndarray] = {}
+    for layer in reversed(layers):
+        support = np.asarray(layer.mask, dtype=bool)
+        if layer.kind == "pasted":
+            visible[layer.instance_id] = support & ~union_above
+        union_above |= support
+    return visible
 
 
 def _build_sample(
@@ -759,6 +797,7 @@ def _build_sample(
     real_phashes: Mapping[int, str],
     accepted_phashes: Sequence[str],
     rng: np.random.Generator,
+    generative_inpainter: GenerativeBoundaryInpainter | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     image_path = paths.hardhat_raw / str(background["file_name"])
     original = np.asarray(Image.open(image_path).convert("RGB"))
@@ -970,6 +1009,43 @@ def _build_sample(
             config=render_config,
             rng=rng,
         )
+        generative_records: dict[str, dict[str, Any]] = {}
+        if generative_inpainter is not None:
+            visible_masks = _visible_paste_masks(
+                existing_layers=existing_layers,
+                pastes=pastes,
+            )
+            for paste in sorted(
+                pastes,
+                key=lambda item: (item.layer.z_index, item.layer.instance_id),
+            ):
+                visible_mask = visible_masks[paste.layer.instance_id]
+                if not visible_mask.any():
+                    raise AssertionError("Accepted pasted layer has no visible mask")
+                edit_seed = _generative_seed(
+                    int(config["seed"]),
+                    sample_index,
+                    paste.layer.instance_id,
+                )
+                inpainted = generative_inpainter.generate(
+                    draft_rgb=rendered,
+                    object_mask=visible_mask,
+                    reference_rgba=paste.rgba,
+                    class_name=paste.layer.class_name,
+                    seed=edit_seed,
+                )
+                rendered = inpainted.image_rgb
+                generative_records[paste.layer.instance_id] = inpainted.provenance
+            seams = {
+                paste.layer.instance_id: seam_energy_ratio(
+                    rendered,
+                    visible_masks[paste.layer.instance_id],
+                    band_px=int(
+                        filter_config["rules"]["clipping_artifact"]["seam_band_px"]
+                    ),
+                )
+                for paste in pastes
+            }
         postfx_applied: dict[str, Any] = {}
         apply_fx = scenario == "low_light_blur" or rng.random() < float(
             settings["postfx_prob"]
@@ -983,6 +1059,7 @@ def _build_sample(
             pastes=pastes,
             annotations_by_id=annotations_by_id,
             seams=seams,
+            generative=generative_records,
         )
         output_phash = _phash_hex(rendered)
         changed = np.any(
@@ -1039,6 +1116,7 @@ def _build_sample(
                 "attempts_limit": max_attempts,
                 "hard_negative_signoff_required": True,
                 "hard_negative_used": False,
+                "generative_inpaint_used": generative_inpainter is not None,
             },
         }
         result = filter_sample(record, filter_config)
@@ -1163,6 +1241,7 @@ def generate(
     selected_scenarios: Sequence[str] | None,
     draw_boxes: bool,
     blending_method: str | None = None,
+    generative_inpainter: GenerativeBoundaryInpainter | None = None,
 ) -> dict[str, Any]:
     config, filter_config = _load_configs()
     config["seed"] = seed
@@ -1244,6 +1323,7 @@ def generate(
                     real_phashes=real_phashes,
                     accepted_phashes=accepted_phashes,
                     rng=sample_rng,
+                    generative_inpainter=generative_inpainter,
                 )
                 break
             except RuntimeError as error:
@@ -1309,7 +1389,12 @@ def generate(
         "info": {
             "description": "SafeSynth M10 deterministic preview",
             "seed": seed,
-            "hard_negative_status": "pending kuotunyu signoff; excluded",
+            "hard_negative_status": "H6 approved; compositor integration pending",
+            "generation_method": (
+                "reference_conditioned_boundary_inpaint_v1"
+                if generative_inpainter is not None
+                else "registered_feathered_alpha_draft"
+            ),
         },
         "licenses": [],
         "images": coco_images,
@@ -1355,8 +1440,9 @@ def generate(
             )
         ),
         "coco_self_map": self_map,
-        "hard_negative_status": "blocked_pending_kuotunyu_signoff",
+        "hard_negative_status": "h6_approved_compositor_integration_pending",
         "blending_method": str(config["compose"]["blending"]["method"]),
+        "generative_inpaint_used": generative_inpainter is not None,
         "person_crowded_fallback": person_crowded_fallback,
         "scenario_class_size": {
             "|".join(key): value
@@ -1399,7 +1485,11 @@ def _write_stats_report(
         f"- Filter pass/reject: {summary['passed']} / {summary['rejected']}",
         f"- COCO self-evaluation bbox mAP: `{summary['coco_self_map']:.3f}`",
         f"- Output: `{summary['output_dir']}`",
-        "- Hard negatives: **not used**; M9 remains blocked on kuotunyu signoff.",
+        "- Hard negatives: **not used**; H6 passed and compositor integration is pending.",
+        (
+            "- Generative boundary inpainting: "
+            f"**{'used' if summary['generative_inpaint_used'] else 'not used'}**."
+        ),
         "",
         "## Scenario counts",
         "",
@@ -1468,6 +1558,11 @@ def parse_args() -> argparse.Namespace:
         "--blending-method",
         choices=("feathered_alpha", "poisson"),
     )
+    parser.add_argument(
+        "--generative-inpaint",
+        action="store_true",
+        help="run the pinned local-only Option A boundary inpainter",
+    )
     return parser.parse_args()
 
 
@@ -1477,10 +1572,27 @@ def main() -> None:
         raise ValueError("M11 hard gate: preview count must be in [1, 300]")
     if args.scenario and "hard_negative" in args.scenario:
         raise RuntimeError(
-            "Hard-negative generation is blocked until kuotunyu signs "
-            "reports/h6_hard_negative_spike.md."
+            "H6 is approved, but hard-negative compositor integration is not complete."
         )
     paths = load_project_paths()
+    generative_inpainter = None
+    if args.generative_inpaint:
+        from src.synthetic.generative_inpaint import (
+            GenerativeBoundaryInpainter,
+            load_flux2_pipeline,
+            load_generative_config,
+            model_directory,
+        )
+
+        generative_config = load_generative_config()
+        local_model_dir = model_directory(paths, generative_config)
+        generative_inpainter = GenerativeBoundaryInpainter(
+            load_flux2_pipeline(
+                model_dir=local_model_dir,
+                config=generative_config,
+            ),
+            generative_config,
+        )
     summary = generate(
         paths=paths,
         n=args.n,
@@ -1489,6 +1601,7 @@ def main() -> None:
         selected_scenarios=args.scenario,
         draw_boxes=args.draw_boxes,
         blending_method=args.blending_method,
+        generative_inpainter=generative_inpainter,
     )
     _write_stats_report(summary, paths, report_tag=args.stats_report_tag)
     print(json.dumps(summary, indent=2, sort_keys=True))

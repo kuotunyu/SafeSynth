@@ -11,6 +11,7 @@
 | [ADR-004](#adr-004) | Hard negatives 挖料為主、程序生成為輔，且完全不給標註 | 2026-07-27 | 生效 |
 | [ADR-005](#adr-005) | 速度對照組用 RF-DETR-Nano，不用 Ultralytics YOLO | 2026-07-27 | 生效 |
 | [ADR-006](#adr-006) | `transformers` 下限提高到 v5.14.1（v5 改了 image processor 命名） | 2026-07-27 | 生效 |
+| [ADR-010](#adr-010) | H4 Option A 採 FLUX.2 參照圖條件式邊界 inpainting | 2026-07-27 | 等權重 |
 
 ---
 
@@ -564,3 +565,48 @@ copy-paste 必然因相近而大量被拒；這不代表跨樣本洩漏。
 - [M12 ledger](../reports/filter_ledger.md)
 - [M12 sensitivity](../reports/threshold_sensitivity.md)
 - `reports/figures/filter_pass_reject_grid.png`
+
+---
+
+## ADR-010 — H4 Option A 採 FLUX.2 參照圖條件式邊界 inpainting
+
+### 脈絡
+
+羽化、multiband、Poisson、同類別原位替換與 exact-source 控制全部在 H4
+超過 0.60，顯示手工混合器留下的邊界、重採樣與色彩訊號不能再靠參數搜尋
+消除。kuotunyu 於 2026-07-27 批准擴充 Phase 1 的 Option A。
+
+候選模型必須支援局部遮罩、參照物件、Windows Python 3.12 與 RTX 4090，
+且授權可和 MIT 程式碼及預定資料 release 共存。FLUX.1 Fill 是
+non-commercial，Qwen-Image-Edit 是 20B，SDXL Inpainting 則較舊且沒有同等
+參照圖介面。`FLUX.2-klein-base-4B` 是 Apache-2.0；Diffusers 0.39.0 已提供
+`Flux2KleinInpaintPipeline` 的 mask 與 `image_reference`。
+
+### 決策
+
+固定使用 `black-forest-labs/FLUX.2-klein-base-4B` revision
+`a3b4f4849157f664bdbc776fd7453c2783562f4d`。只下載 Diffusers 所需的
+18 個檔案，共 15,980,131,711 bytes（14.88 GiB），置於本專案 D 槽 cache，
+避免和同時執行的其他專案共用可變模型目錄。下載需 kuotunyu 另行批准；
+推論強制 local-only 並核對 manifest。
+
+方法不是讓模型重畫整張圖：現有 compositor 先建立幾何正確的 draft，
+模型只生成物件邊界帶，原物件 protected core 與遮罩外像素在輸出時逐像素
+複製回 draft。模型因而不能靠刪除、改色、移位或全圖風格化通過 H4。
+
+先跑 64 圖 identity pilot，由 kuotunyu 在不知道 AUC 的情況下簽核；通過後
+才用新 seed 與新 group fold 執行一次 300 圖 H4。分類器、控制配對與 0.60
+上限不變，看到結果後不得重選 seed、prompt、遮罩或模型。
+
+### 後果
+
+- 新增 `configs/generative_inpaint.yaml` 作為所有數值的唯一來源。
+- 新增模型 metadata preflight、隔離下載、逐檔 hash manifest 與 local-only loader。
+- M13 仍被擋住，直到模型下載、64 圖 identity gate 與 one-shot H4 都通過。
+- 若 one-shot H4 失敗，本方法視為失敗；不得用同一 fold 做參數搜尋。
+
+### 證據
+
+- [Option A 預註冊](h4_generative_preregistration.md)
+- [模型 preflight](../reports/generative_model_preflight.md)
+- `src/synthetic/generative_inpaint.py`

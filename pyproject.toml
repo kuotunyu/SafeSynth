@@ -37,6 +37,7 @@ dependencies = [
     "accelerate",
     "safetensors",
     "open-clip-torch>=3.3.0",  # optional CLIP pass for near-duplicate grouping
+    "diffusers==0.39.0",       # Option A: pinned FLUX.2 masked generative insertion API
     # data
     "kagglehub>=1.0.2",       # NOT the `kaggle` package — see ADR-002 / docs/environment.md
     "pycocotools>=2.0.11",    # 2.0.11 ships cp312-abi3 win_amd64 wheels, no MSVC needed
