@@ -1,0 +1,186 @@
+{
+  "architecture": "masked_existing_person_restyle_v8",
+  "expanded_to_64": false,
+  "h4_auc_computed": false,
+  "input_manifest_sha256": "a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2",
+  "model_repo_id": "black-forest-labs/FLUX.2-klein-base-4B",
+  "model_revision": "a3b4f4849157f664bdbc776fd7453c2783562f4d",
+  "n_cases": 4,
+  "records": [
+    {
+      "case_index": 1,
+      "identity_metrics": {
+        "edit_mask_changed_fraction": 0.985568669527897,
+        "outside_edit_changed_pixels": 0
+      },
+      "output_sha256": "8f4dd5183f3a5df13510e6d76d4d651fcde550c34599d06bcdd13ef1fc873249",
+      "raw_model_output_sha256": "8f4dd5183f3a5df13510e6d76d4d651fcde550c34599d06bcdd13ef1fc873249",
+      "reference": {
+        "cutout_id": "000240_ann001175",
+        "edit_edge_margin_px": 37,
+        "edit_mask_area_px": 14814,
+        "group_id": 239,
+        "headlike_annotation_id": 1172,
+        "image_id": 240,
+        "maximum_other_mask_overlap_fraction": 0.0,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 1175,
+        "person_height_px": 236.0,
+        "person_mask_area_px": 12401,
+        "sam2_iou_score": 0.95703125
+      },
+      "seed": 1606428686455707992,
+      "target": {
+        "cutout_id": "004960_ann025309",
+        "edit_edge_margin_px": 21,
+        "edit_mask_area_px": 18640,
+        "group_id": 4770,
+        "headlike_annotation_id": 25305,
+        "image_id": 4960,
+        "maximum_other_mask_overlap_fraction": 0.0,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 25309,
+        "person_height_px": 326.60649819494586,
+        "person_mask_area_px": 16198
+      }
+    },
+    {
+      "case_index": 2,
+      "identity_metrics": {
+        "edit_mask_changed_fraction": 0.9997587018157689,
+        "outside_edit_changed_pixels": 0
+      },
+      "output_sha256": "3726deab7988fd7d7d7107714095ac15b2a3acc08d6edb86730a64bd960cd6ed",
+      "raw_model_output_sha256": "3726deab7988fd7d7d7107714095ac15b2a3acc08d6edb86730a64bd960cd6ed",
+      "reference": {
+        "cutout_id": "004347_ann022147",
+        "edit_edge_margin_px": 59,
+        "edit_mask_area_px": 15176,
+        "group_id": 4196,
+        "headlike_annotation_id": 22146,
+        "image_id": 4347,
+        "maximum_other_mask_overlap_fraction": 0.0,
+        "normalization_detected_sides": [
+          "left",
+          "right"
+        ],
+        "person_annotation_id": 22147,
+        "person_height_px": 209.66346153846152,
+        "person_mask_area_px": 12805,
+        "sam2_iou_score": 0.94140625
+      },
+      "seed": 7117570512168176277,
+      "target": {
+        "cutout_id": "000029_ann000181",
+        "edit_edge_margin_px": 46,
+        "edit_mask_area_px": 16577,
+        "group_id": 28,
+        "headlike_annotation_id": 178,
+        "image_id": 29,
+        "maximum_other_mask_overlap_fraction": 0.0,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 181,
+        "person_height_px": 282.6666666666667,
+        "person_mask_area_px": 14297
+      }
+    },
+    {
+      "case_index": 3,
+      "identity_metrics": {
+        "edit_mask_changed_fraction": 1.0,
+        "outside_edit_changed_pixels": 0
+      },
+      "output_sha256": "5887a9815d5d5d1d8b820ca83a8ad78a529ff32c0948ae989975ec83173e3e0a",
+      "raw_model_output_sha256": "5887a9815d5d5d1d8b820ca83a8ad78a529ff32c0948ae989975ec83173e3e0a",
+      "reference": {
+        "cutout_id": "003101_ann015767",
+        "edit_edge_margin_px": 40,
+        "edit_mask_area_px": 6785,
+        "group_id": 3018,
+        "headlike_annotation_id": 15763,
+        "image_id": 3101,
+        "maximum_other_mask_overlap_fraction": 0.016212232866617538,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 15767,
+        "person_height_px": 186.93670886075947,
+        "person_mask_area_px": 5337,
+        "sam2_iou_score": 0.94140625
+      },
+      "seed": 6005132087471608953,
+      "target": {
+        "cutout_id": "004363_ann022256",
+        "edit_edge_margin_px": 88,
+        "edit_mask_area_px": 7903,
+        "group_id": 4210,
+        "headlike_annotation_id": 22250,
+        "image_id": 4363,
+        "maximum_other_mask_overlap_fraction": 0.0,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 22256,
+        "person_height_px": 258.8172043010752,
+        "person_mask_area_px": 6790
+      }
+    },
+    {
+      "case_index": 4,
+      "identity_metrics": {
+        "edit_mask_changed_fraction": 1.0,
+        "outside_edit_changed_pixels": 0
+      },
+      "output_sha256": "1190b244ab182fcb8071f117d9a1b61f1555d2ed719b21b09c0aefab6a42e0db",
+      "raw_model_output_sha256": "1190b244ab182fcb8071f117d9a1b61f1555d2ed719b21b09c0aefab6a42e0db",
+      "reference": {
+        "cutout_id": "002606_ann013316",
+        "edit_edge_margin_px": 13,
+        "edit_mask_area_px": 19817,
+        "group_id": 2553,
+        "headlike_annotation_id": 13314,
+        "image_id": 2606,
+        "maximum_other_mask_overlap_fraction": 0.008335728657660248,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 13316,
+        "person_height_px": 290.6498194945848,
+        "person_mask_area_px": 17196,
+        "sam2_iou_score": 0.9375
+      },
+      "seed": 420695541558814676,
+      "target": {
+        "cutout_id": "002543_ann013010",
+        "edit_edge_margin_px": 82,
+        "edit_mask_area_px": 7370,
+        "group_id": 2493,
+        "headlike_annotation_id": 13007,
+        "image_id": 2543,
+        "maximum_other_mask_overlap_fraction": 0.010693720866465589,
+        "normalization_detected_sides": [
+          "top",
+          "bottom"
+        ],
+        "person_annotation_id": 13010,
+        "person_height_px": 125.84837545126351,
+        "person_mask_area_px": 5710
+      }
+    }
+  ],
+  "root_seed": 20260804,
+  "schema_version": 1,
+  "status": "pending_kuotunyu_output_review"
+}
