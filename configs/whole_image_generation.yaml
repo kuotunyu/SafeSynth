@@ -108,4 +108,4 @@ diagnostic:
 generation_gate:
   allowed: false
   required_reviewer: "kuotunyu"
-  reason: "supervised RT-DETRv2 v3 precision 0.7879 was below the frozen 0.80 Train-only gate"
+  reason: "supervised RT-DETRv2 v4 recall 0.5257 was below the frozen 0.70 Train-only gate"

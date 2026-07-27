@@ -46,7 +46,7 @@ def _experiment_paths(experiment: str) -> dict[str, Path]:
     if experiment == "v1":
         stem = "supervised_labeler"
         diagnosis_stem = "supervised_labeler_failure_diagnosis"
-    elif experiment in {"v2", "v3"}:
+    elif experiment in {"v2", "v3", "v4"}:
         stem = f"supervised_labeler_{experiment}"
         diagnosis_stem = f"{stem}_failure_diagnosis"
     else:
@@ -149,10 +149,13 @@ def main(experiment: str = "v1") -> None:
         thresholds = [
             float(value) for value in config["calibration"]["score_thresholds"]
         ]
-        if experiment == "v3":
+        if experiment in {"v3", "v4"}:
             thresholds = sorted(
                 set(thresholds)
-                | {0.040 + index * 0.0005 for index in range(1, 10)}
+                | {
+                    round(0.040 + index * 0.0005, 4)
+                    for index in range(1, 10)
+                }
             )
     image_ids, truth, predictions = _predict(
         model=model,
@@ -236,7 +239,7 @@ def main(experiment: str = "v1") -> None:
     ]
     lines.extend(
         (
-            f"| {row['threshold']:.3f} | {row['precision']:.4f} | "
+            f"| {row['threshold']:.4f} | {row['precision']:.4f} | "
             f"{row['recall']:.4f} | {row['f1']:.4f} | "
             f"{row['median_matched_iou']:.4f} |"
         )
@@ -256,6 +259,10 @@ def main(experiment: str = "v1") -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("v1", "v2", "v3"), default="v1")
+    parser.add_argument(
+        "--experiment",
+        choices=("v1", "v2", "v3", "v4"),
+        default="v1",
+    )
     arguments = parser.parse_args()
     main(arguments.experiment)

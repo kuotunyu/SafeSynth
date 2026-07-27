@@ -805,7 +805,7 @@ def _train() -> None:
         lines.extend(
             [
                 f"- Best calibration epoch: **{best['epoch']}**",
-                f"- Frozen score threshold: **{best['threshold']:.2f}**",
+                f"- Frozen score threshold: **{best['threshold']:.4f}**",
                 f"- New audit precision: **{audit_metrics['precision']:.4f}**",
                 f"- New audit recall: **{audit_metrics['recall']:.4f}**",
                 (
