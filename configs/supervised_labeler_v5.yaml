@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v5"
-status: "smoke_passed_waiting_formal_training"
+status: "supervised_labeler_audit_failed"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260813
 training_seed: 20260809
@@ -78,4 +78,6 @@ audit_gate:
 
 generation_gate:
   allowed: false
-  reason: "v5 R50 labeler has not passed its new untouched Train-only audit"
+  reason: >-
+    v5 R50 audit precision 0.7000 and recall 0.0352 were below the frozen
+    0.80 and 0.70 Train-only gates

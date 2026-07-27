@@ -46,7 +46,7 @@ def _experiment_paths(experiment: str) -> dict[str, Path]:
     if experiment == "v1":
         stem = "supervised_labeler"
         diagnosis_stem = "supervised_labeler_failure_diagnosis"
-    elif experiment in {"v2", "v3", "v4"}:
+    elif experiment in {"v2", "v3", "v4", "v5"}:
         stem = f"supervised_labeler_{experiment}"
         diagnosis_stem = f"{stem}_failure_diagnosis"
     else:
@@ -157,6 +157,14 @@ def main(experiment: str = "v1") -> None:
                     for index in range(1, 10)
                 }
             )
+        if experiment == "v5":
+            thresholds = sorted(
+                set(thresholds)
+                | {
+                    round(0.020 + index * 0.001, 3)
+                    for index in range(1, 11)
+                }
+            )
     image_ids, truth, predictions = _predict(
         model=model,
         processor=processor,
@@ -261,7 +269,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--experiment",
-        choices=("v1", "v2", "v3", "v4"),
+        choices=("v1", "v2", "v3", "v4", "v5"),
         default="v1",
     )
     arguments = parser.parse_args()
