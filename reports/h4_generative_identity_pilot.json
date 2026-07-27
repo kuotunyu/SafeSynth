@@ -8,9 +8,37 @@
   "evidence_alignment": "inline_or_deterministic_geometry_verified",
   "h4_auc_computed": false,
   "human_gate": {
+    "decision": "rejected",
     "label_mismatch_max_count": 0,
     "observed_label_mismatch_count": null,
     "observed_severe_identity_failure_count": null,
+    "observed_severe_identity_failure_count_minimum": 4,
+    "review_findings": [
+      {
+        "canonical_contact_sheet_cell": 10,
+        "category": "invalid_draft_input",
+        "matched_sample_id": "s20260727_000010",
+        "note": "The source background (hard_hat_workers861.png) already contains mirrored top and bottom border artifacts before generative editing.",
+        "reviewer_cell_label": 2
+      },
+      {
+        "anchor_annotation_id": 11122,
+        "anchor_bbox_xywh": [
+          187.0,
+          385.0,
+          65.0,
+          30.0
+        ],
+        "canonical_contact_sheet_cell": 12,
+        "category": "edit_region_mislocalized",
+        "matched_sample_id": "s20260727_000012",
+        "note": "The chosen source annotation ends one pixel from the image bottom and targets a truncated or reflected border object instead of the central worker helmet.",
+        "reviewer_cell_label": 4
+      }
+    ],
+    "review_note": "kuotunyu judged the boxes broadly acceptable overall, but observed more than three severe failures.",
+    "reviewed_by": "kuotunyu",
+    "reviewed_on": "2026-07-27",
     "severe_identity_failure_max_count": 3
   },
   "identity_counts": {
@@ -23,5 +51,5 @@
   "root_seed": 20260727,
   "scenario": "context_replacement",
   "schema_version": 1,
-  "status": "pending_kuotunyu_visual_review"
+  "status": "failed_human_identity_gate"
 }

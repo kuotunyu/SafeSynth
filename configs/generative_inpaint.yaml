@@ -6,7 +6,7 @@
 # by configs/filtering.yaml and is deliberately not repeated here.
 
 schema_version: 1
-status: "pilot_pending_kuotunyu_visual_review"
+status: "pilot_failed_human_identity_gate"
 
 model:
   repo_id: "black-forest-labs/FLUX.2-klein-base-4B"

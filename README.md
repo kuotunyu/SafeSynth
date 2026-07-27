@@ -41,9 +41,11 @@ fixed. The repository owner approved the H6 hard-negative sheet at 0/64 true
 helmets and selected the pre-registered Option A generative-inpainting route.
 The pinned Apache-2.0 model is now downloaded and SHA-256 verified locally. Its
 fixed 64-image identity pilot has zero changes outside the edit masks and zero
-changes inside the protected cores; visual review by `kuotunyu` is pending, and
-no new H4 AUC has been computed. Phase 2 will run the five-arm RT-DETRv2
-comparison only after the visual gate and one-shot H4 both pass.
+changes inside the protected cores, but `kuotunyu` rejected the visual gate
+after observing more than three severe failures. Cell 02 exposed an invalid
+input draft and cell 04 exposed a mislocalized edit region. Option A therefore
+does not proceed to the one-shot H4 artifact gate, and no new H4 AUC has been
+computed. Phase 2 remains blocked.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.
