@@ -22,6 +22,7 @@ from scripts.train_supervised_labeler import (
     _sha256,
 )
 from src.data.paths import PROJECT_ROOT
+from src.synthetic.supervised_labeler import filter_prediction_geometry
 
 REPORT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_postprocessing_diagnosis.json"
@@ -33,31 +34,6 @@ EXPERIMENTS = ("v1", "v3", "v4")
 SCORE_THRESHOLDS = (0.015, 0.020, 0.025, 0.030, 0.035)
 MAX_RELATIVE_AREAS = (0.025, 0.040, 0.060, 0.080, 0.120, 0.200, 1.000)
 MAX_RELATIVE_HEIGHTS = (0.35, 0.45, 0.60, 1.00)
-
-
-def filter_prediction_geometry(
-    predictions: Sequence[tuple[float, Sequence[float]]],
-    *,
-    image_width: int,
-    image_height: int,
-    max_relative_area: float,
-    max_relative_height: float,
-) -> list[tuple[float, list[float]]]:
-    """Drop predictions exceeding fixed normalized size limits."""
-
-    image_area = max(float(image_width) * float(image_height), 1.0)
-    kept = []
-    for score, box in predictions:
-        x1, y1, x2, y2 = (float(value) for value in box)
-        width = max(0.0, x2 - x1)
-        height = max(0.0, y2 - y1)
-        if (
-            width * height / image_area <= float(max_relative_area)
-            and height / max(float(image_height), 1.0)
-            <= float(max_relative_height)
-        ):
-            kept.append((float(score), [x1, y1, x2, y2]))
-    return kept
 
 
 def _filtered_predictions(

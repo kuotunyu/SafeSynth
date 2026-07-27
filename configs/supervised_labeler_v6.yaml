@@ -1,0 +1,86 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v6"
+status: "smoke_passed_waiting_formal_training"
+architecture: "rtdetr_v2_r50vd_helmet_only"
+split_seed: 20260814
+training_seed: 20260809
+split_manifest_sha256: "8a5e22291603b7e539b9d77fbe57e1d81695dbb9921eb8b0d7110d600cf21cbe"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r50vd"
+  revision: "282494075698cab9faa1096ae26856890030c817"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 172182583
+  allow_files:
+    config.json: 5283
+    model.safetensors: 172176856
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3 training seed"
+
+postprocessing:
+  max_relative_area: 0.08
+  max_relative_height: 0.35
+  selection_basis: >-
+    Frozen from the consumed v5 diagnostic before selecting the v6 split.
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  precision_margin_basis: >-
+    On consumed v5 calibration, a 0.82 floor selected threshold 0.021 with
+    precision 0.8213 and recall 0.8199. The identical fixed rule achieved
+    precision 0.8191 and recall 0.7739 on the consumed v5 failed audit.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+generation_gate:
+  allowed: false
+  reason: "v6 geometry-filtered R50 has not passed a new untouched audit"

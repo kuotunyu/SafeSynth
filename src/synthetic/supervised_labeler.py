@@ -13,8 +13,8 @@ import yaml
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v5.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v5_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v6.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v6_split.json"
 
 
 def load_supervised_labeler_config(
@@ -51,7 +51,38 @@ def load_supervised_labeler_config(
         raise RuntimeError("Supervised labeler data boundary changed")
     if config["generation_gate"]["allowed"] is not False:
         raise RuntimeError("Generation cannot open before supervised audit")
+    postprocessing = config.get("postprocessing")
+    if postprocessing is not None and (
+        not 0 < float(postprocessing["max_relative_area"]) <= 1
+        or not 0 < float(postprocessing["max_relative_height"]) <= 1
+    ):
+        raise RuntimeError("Supervised geometry filter is invalid")
     return config
+
+
+def filter_prediction_geometry(
+    predictions: Sequence[tuple[float, Sequence[float]]],
+    *,
+    image_width: int,
+    image_height: int,
+    max_relative_area: float,
+    max_relative_height: float,
+) -> list[tuple[float, list[float]]]:
+    """Drop predictions exceeding fixed normalized size limits."""
+
+    image_area = max(float(image_width) * float(image_height), 1.0)
+    kept = []
+    for score, box in predictions:
+        x1, y1, x2, y2 = (float(value) for value in box)
+        width = max(0.0, x2 - x1)
+        height = max(0.0, y2 - y1)
+        if (
+            width * height / image_area <= float(max_relative_area)
+            and height / max(float(image_height), 1.0)
+            <= float(max_relative_height)
+        ):
+            kept.append((float(score), [x1, y1, x2, y2]))
+    return kept
 
 
 def model_directory(paths: ProjectPaths, config: Mapping[str, Any]) -> Path:

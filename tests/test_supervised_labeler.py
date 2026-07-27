@@ -6,13 +6,11 @@ from collections import defaultdict
 
 import pytest
 
-from scripts.diagnose_labeler_postprocessing import (
-    filter_prediction_geometry,
-    select_geometry_candidate,
-)
+from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.supervised_labeler import (
+    filter_prediction_geometry,
     freeze_supervised_split,
     load_supervised_labeler_config,
     require_verified_model,
@@ -54,7 +52,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260813
+    assert first["split_seed"] == 20260814
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(

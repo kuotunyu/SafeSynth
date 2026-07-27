@@ -30,6 +30,7 @@ from src.synthetic.grounded_labeler import greedy_detection_metrics
 from src.synthetic.supervised_labeler import (
     CONFIG_PATH,
     SPLIT_PATH,
+    filter_prediction_geometry,
     load_supervised_labeler_config,
     model_directory,
     require_verified_model,
@@ -274,6 +275,7 @@ def _predict(
     loader: DataLoader,
     device: str,
     score_floor: float,
+    geometry_filter: Mapping[str, Any] | None = None,
 ) -> tuple[
     list[int],
     dict[int, list[list[float]]],
@@ -296,9 +298,10 @@ def _predict(
                 threshold=float(score_floor),
                 target_sizes=batch["target_sizes"],
             )
-            for image_id, boxes, result in zip(
+            for image_id, boxes, target_size, result in zip(
                 batch["image_ids"],
                 batch["truth"],
+                batch["target_sizes"],
                 results,
                 strict=True,
             ):
@@ -306,7 +309,7 @@ def _predict(
                 truth[int(image_id)] = [
                     [float(value) for value in box] for box in boxes
                 ]
-                predictions[int(image_id)] = [
+                rows = [
                     (
                         float(score.item()),
                         [float(value) for value in box.tolist()],
@@ -319,6 +322,19 @@ def _predict(
                     )
                     if int(label.item()) == 0
                 ]
+                if geometry_filter is not None:
+                    rows = filter_prediction_geometry(
+                        rows,
+                        image_width=int(target_size[1].item()),
+                        image_height=int(target_size[0].item()),
+                        max_relative_area=float(
+                            geometry_filter["max_relative_area"]
+                        ),
+                        max_relative_height=float(
+                            geometry_filter["max_relative_height"]
+                        ),
+                    )
+                predictions[int(image_id)] = rows
     return image_ids, truth, predictions
 
 
@@ -652,6 +668,7 @@ def _train() -> None:
             loader=calibration_loader,
             device="cuda",
             score_floor=min(config["calibration"]["score_thresholds"]),
+            geometry_filter=config.get("postprocessing"),
         )
         rows = _calibration_rows(
             epoch=epoch,
@@ -739,6 +756,7 @@ def _train() -> None:
             loader=audit_loader,
             device="cuda",
             score_floor=min(config["calibration"]["score_thresholds"]),
+            geometry_filter=config.get("postprocessing"),
         )
         audit_metrics = _aggregate(
             image_ids=audit_ids,
@@ -787,6 +805,7 @@ def _train() -> None:
             "test_images_read": 0,
             "untouched_audit_images_read": len(audit_ids),
             "whole_image_generation_run": False,
+            "postprocessing": config.get("postprocessing"),
         }
     REPORT_PATH.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
