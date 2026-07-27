@@ -28,17 +28,18 @@ from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.synthetic.compose import _load_context
 from src.synthetic.grounded_labeler import greedy_detection_metrics
 from src.synthetic.supervised_labeler import (
+    CONFIG_PATH,
     SPLIT_PATH,
     load_supervised_labeler_config,
     model_directory,
     require_verified_model,
 )
 
-REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_training.json"
-SMOKE_REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_smoke.json"
-MARKDOWN_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_training.md"
+REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_training.json"
+SMOKE_REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_smoke.json"
+MARKDOWN_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_training.md"
 FIGURE_PATH = (
-    PROJECT_ROOT / "reports" / "figures" / "supervised_labeler_audit.png"
+    PROJECT_ROOT / "reports" / "figures" / "supervised_labeler_v2_audit.png"
 )
 
 
@@ -428,7 +429,11 @@ def _render_audit(
     sheet.save(FIGURE_PATH, optimize=True)
 
 
-def _build_datasets() -> tuple[
+def _build_datasets(
+    *,
+    config_path: Path = CONFIG_PATH,
+    split_path: Path = SPLIT_PATH,
+) -> tuple[
     dict[str, Any],
     dict[str, Any],
     Any,
@@ -438,8 +443,10 @@ def _build_datasets() -> tuple[
     HelmetDataset,
     HelmetDataset,
 ]:
-    config = load_supervised_labeler_config()
-    split = json.loads(SPLIT_PATH.read_text(encoding="utf-8"))
+    config = load_supervised_labeler_config(config_path)
+    split = json.loads(split_path.read_text(encoding="utf-8"))
+    if config.get("split_manifest_sha256") != split.get("manifest_sha256"):
+        raise RuntimeError("Supervised config and split manifest disagree")
     paths = load_project_paths()
     coco, _, train_images, annotations, _, test_ids = _load_context(paths)
     all_selected = (
@@ -553,7 +560,7 @@ def _train() -> None:
     ) = _build_datasets()
     if not torch.cuda.is_available():
         raise RuntimeError("Supervised labeler training requires CUDA")
-    run_root = paths.runs / "supervised_labeler_seed20260809"
+    run_root = paths.runs / f"supervised_labeler_seed{config['root_seed']}"
     if run_root.exists() or REPORT_PATH.exists() or FIGURE_PATH.exists():
         raise RuntimeError("Supervised labeler run evidence already exists")
     run_root.mkdir(parents=True)

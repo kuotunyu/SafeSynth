@@ -12,7 +12,6 @@ from torch.utils.data import ConcatDataset, DataLoader
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
 from scripts.train_supervised_labeler import (
-    REPORT_PATH,
     _aggregate,
     _build_datasets,
     _evaluation_collate,
@@ -25,6 +24,9 @@ from src.data.paths import PROJECT_ROOT
 DIAGNOSIS_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_failure_diagnosis.json"
 )
+V1_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler.yaml"
+V1_SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_split.json"
+V1_REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_training.json"
 MARKDOWN_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_failure_diagnosis.md"
 )
@@ -65,7 +67,7 @@ def main() -> None:
         raise RuntimeError("Failure diagnosis evidence already exists")
     if not torch.cuda.is_available():
         raise RuntimeError("Failure diagnosis requires CUDA")
-    report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+    report = json.loads(V1_REPORT_PATH.read_text(encoding="utf-8"))
     if (
         report["status"] != "supervised_labeler_audit_failed"
         or int(report["untouched_audit_images_read"]) != 48
@@ -82,7 +84,10 @@ def main() -> None:
         _,
         calibration,
         consumed_audit,
-    ) = _build_datasets()
+    ) = _build_datasets(
+        config_path=V1_CONFIG_PATH,
+        split_path=V1_SPLIT_PATH,
+    )
     checkpoint = Path(report["checkpoint_path"])
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
         raise RuntimeError("Best checkpoint changed after the failed audit")
