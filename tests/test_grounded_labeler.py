@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+import yaml
 from PIL import Image
 
 from src.synthetic.grounded_labeler import (
@@ -20,6 +21,16 @@ def test_whole_image_generation_is_locked_before_label_audit() -> None:
     assert config["generation_gate"]["allowed"] is False
     assert config["labeler"]["license"] == "apache-2.0"
     assert config["labeler"]["required_download_bytes"] == 690_305_545
+
+
+def test_open_generation_gate_requires_owner_review(tmp_path) -> None:
+    config = load_whole_image_config()
+    config["generation_gate"]["allowed"] = True
+    path = tmp_path / "whole_image.yaml"
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="without owner approval"):
+        load_whole_image_config(path)
 
 
 def test_box_iou_and_greedy_matching() -> None:

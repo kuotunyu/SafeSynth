@@ -32,8 +32,21 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
     expected = sum(int(value) for value in labeler["allow_files"].values())
     if expected != int(labeler["required_download_bytes"]):
         raise RuntimeError("Grounding DINO registered file sizes disagree")
-    if config["generation_gate"]["allowed"] is not False:
-        raise RuntimeError("Whole-image generation cannot open before label audit")
+    gate = config["generation_gate"]
+    if gate.get("allowed") not in (True, False):
+        raise RuntimeError("Whole-image generation gate must be boolean")
+    if gate.get("required_reviewer") != "kuotunyu":
+        raise RuntimeError("Whole-image generation reviewer changed")
+    if gate["allowed"] is True:
+        review = config["diagnostic"]["input_review"]
+        if (
+            review.get("required_reviewer") != "kuotunyu"
+            or review.get("status") != "approved_by_kuotunyu"
+            or not review.get("approved_manifest_sha256")
+        ):
+            raise RuntimeError(
+                "Whole-image generation gate cannot open without owner approval"
+            )
     return config
 
 
