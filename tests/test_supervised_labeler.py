@@ -5,9 +5,11 @@ import json
 from collections import defaultdict
 
 import pytest
+from PIL import Image, ImageDraw
 
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
+from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.supervised_labeler import (
     filter_prediction_geometry,
@@ -186,3 +188,27 @@ def test_geometry_candidate_requires_precision_floor() -> None:
 
     assert selected is not None
     assert selected["threshold"] == 0.03
+
+
+def test_human_review_sheet_splits_into_three_zoomable_pages(
+    tmp_path,
+) -> None:
+    source = tmp_path / "review.png"
+    sheet = Image.new("RGB", (1040, 3538), "white")
+    draw = ImageDraw.Draw(sheet)
+    for row in range(12):
+        color = (row * 20, 0, 0)
+        top = 58 + row * 290
+        draw.rectangle((0, top, 1039, top + 289), fill=color)
+    sheet.save(source)
+
+    pages = split_review_sheet(source)
+
+    assert len(pages) == 3
+    assert [Image.open(path).size for path in pages] == [
+        (1040, 1218),
+        (1040, 1218),
+        (1040, 1218),
+    ]
+    with Image.open(pages[1]) as second:
+        assert second.getpixel((0, 58)) == (80, 0, 0)
