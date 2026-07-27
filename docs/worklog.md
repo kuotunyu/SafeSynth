@@ -8,13 +8,13 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-27 11:20 +08:00
-- **最後驗證 commit**：`6c9f33a` docs(handoff): freeze final local audit
+- **更新時間**：2026-07-27 14:25 +08:00
+- **最後驗證 commit**：`dc753e9` docs(synthesis): record FLUX diagnostic result
 - **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 的 H6 已由
-  kuotunyu 以 0/64 通過，待素材庫接線；`M11` 已批准 Option A 並完成
-  生成式方法預註冊，等待模型下載後跑 pilot；`M13`/`M14` 仍由 H4 阻擋。
-- **⚠️ 未 commit 的改動**：H6 簽核、Option A 預註冊、模型 preflight、
-  Diffusers 依賴、整合骨架與測試。
+  kuotunyu 以 0/64 通過；`M11` Option A 的 64 圖 identity pilot 已因超過
+  三格嚴重失敗而拒絕。四案例 FLUX.2 v2 Colab 診斷也未選出替代版本；
+  `M13`/`M14` 仍由 H4 阻擋。
+- **⚠️ 未 commit 的改動**：無；本快照描述的分析已在 `dc753e9` 提交。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
@@ -27,12 +27,11 @@
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
   SAM2 2-pass 推論已完成，權重存在既有 Hugging Face cache。
-- **下一個動作（一句話、可直接動手）**：取得 14.88 GiB FLUX.2 權重下載
-  批准，下載與 hash 驗證後跑 64 圖身份保留 pilot。
-- **卡住的事**：舊 H4 feathered-alpha AUC 0.7964 > 0.60；Option A 尚無
-  權重，M13 硬阻擋。
-- **等使用者做的事**：明確批准／拒絕 14.88 GiB 模型下載；遠端 repo
-  仍未建立。
+- **下一個動作（一句話、可直接動手）**：預註冊並實作輸入有效性與
+  anchor 定位防護，再決定是否產生一批全新 identity pilot。
+- **卡住的事**：舊 H4 AUC 0.7964 > 0.60；Option A v1 identity gate
+  失敗，v2 診斷沒有可選版本，因此 M13 硬阻擋。
+- **等使用者做的事**：目前無；遠端 GitHub repo 仍未建立。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_phase1_handoff
@@ -45,6 +44,19 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-27 · FLUX.2 v2 A100 診斷完成
+
+- A100 40 GB 以 `full_model_on_cuda` 完成四個 Train 案例、三個預註冊
+  variant，共 12/12 輸出；總推論 86.70 秒。
+- 結果 ZIP SHA256：
+  `33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6`。
+- 三個 variant 的 outside-mask changes 都是 0；移除 reference 的 masked
+  RGB MAE 僅 0.2260/255，降低 strength 也沒有一致的視覺改善。
+- 沒有選出替代 variant。v1 identity gate 的失敗維持有效；未計算新 H4
+  AUC，沒有開啟 M13 或 Phase 2。
+- 下一個方法必須先處理 rejected pilot 暴露的 invalid draft 與
+  mislocalized anchor，並在新的 untouched identity pilot 前預註冊。
 
 ### 2026-07-27 · H6 簽核與 H4 Option A 預註冊
 
