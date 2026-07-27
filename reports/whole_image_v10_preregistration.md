@@ -4,7 +4,7 @@
 - Cases: **4**
 - Validation/Test images read: **0 / 0**
 - FLUX images generated: **0**
-- Status: **waiting for labeler audit and kuotunyu approval**
+- Status: **blocked because the zero-shot labeler failed its Train-only audit**
 
 | Case | Scenario | Seed | Frozen prompt |
 |---:|---|---:|---|

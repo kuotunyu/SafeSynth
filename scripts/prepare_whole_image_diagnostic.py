@@ -15,6 +15,11 @@ MARKDOWN_PATH = PROJECT_ROOT / "reports" / "whole_image_v10_preregistration.md"
 def main() -> None:
     config = load_whole_image_config()
     manifest = diagnostic_manifest(config)
+    status = (
+        "blocked because the zero-shot labeler failed its Train-only audit"
+        if config["status"] == "zero_shot_labeler_audit_failed"
+        else "waiting for labeler audit and kuotunyu approval"
+    )
     JSON_PATH.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -27,7 +32,7 @@ def main() -> None:
         "- Cases: **4**",
         "- Validation/Test images read: **0 / 0**",
         "- FLUX images generated: **0**",
-        "- Status: **waiting for labeler audit and kuotunyu approval**",
+        f"- Status: **{status}**",
         "",
         "| Case | Scenario | Seed | Frozen prompt |",
         "|---:|---|---:|---|",

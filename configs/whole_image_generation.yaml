@@ -2,7 +2,7 @@
 # can recover this dataset's "helmeted head" box semantics on frozen Train data.
 
 schema_version: 1
-status: "labeler_downloaded_waiting_gpu_audit"
+status: "zero_shot_labeler_audit_failed"
 architecture: "whole_image_text_to_image_v10"
 
 generator:
@@ -102,10 +102,10 @@ diagnostic:
         watermark.
   input_review:
     required_reviewer: "kuotunyu"
-    status: "pending_labeler_audit_and_kuotunyu_review"
+    status: "blocked_by_failed_labeler_audit"
     approved_manifest_sha256: null
 
 generation_gate:
   allowed: false
   required_reviewer: "kuotunyu"
-  reason: "automatic labeler audit and exact diagnostic manifest approval are pending"
+  reason: "zero-shot labeler recall failed its untouched Train audit"
