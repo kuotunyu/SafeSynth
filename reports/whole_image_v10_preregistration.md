@@ -4,7 +4,7 @@
 - Cases: **4**
 - Validation/Test images read: **0 / 0**
 - FLUX images generated: **0**
-- Status: **blocked because the zero-shot labeler failed its Train-only audit**
+- Status: **v6 numeric audit passed; waiting for kuotunyu's exact 48-image labeler review before the one-shot FLUX run**
 
 | Case | Scenario | Seed | Frozen prompt |
 |---:|---|---:|---|
@@ -14,3 +14,5 @@
 | 04 | partial_occlusion | 848710447770802999 | Photorealistic candid documentary photograph inside a construction site. One adult construction worker is partially occluded at the torso by a foreground steel beam while the complete head remains visible, correctly wearing a red construction safety hard hat securely on the head, realistic face and anatomy, reflective workwear, natural mixed work-site lighting and camera perspective, clean image without text, logo, or watermark. |
 
 No prompt or seed may be changed after output inspection.
+All four generated outputs must subsequently pass kuotunyu's
+zero-problem output review before any 64- or 300-image expansion.

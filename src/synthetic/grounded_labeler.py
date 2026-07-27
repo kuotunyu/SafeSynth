@@ -85,6 +85,22 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
             raise RuntimeError(
                 "Whole-image generation gate cannot open without owner approval"
             )
+    output_review = config["diagnostic"]["output_review"]
+    scaleup_gate = config["scaleup_gate"]
+    if (
+        output_review.get("required_reviewer") != "kuotunyu"
+        or int(output_review.get("required_problem_count", -1)) != 0
+        or not output_review.get("evidence_path")
+        or scaleup_gate.get("allowed") not in (True, False)
+        or scaleup_gate.get("required_reviewer") != "kuotunyu"
+    ):
+        raise RuntimeError("Whole-image v10 output-review gate changed")
+    if scaleup_gate["allowed"] is True and output_review.get(
+        "status"
+    ) != "approved_by_kuotunyu":
+        raise RuntimeError(
+            "Whole-image scale-up cannot open without owner output review"
+        )
     return config
 
 

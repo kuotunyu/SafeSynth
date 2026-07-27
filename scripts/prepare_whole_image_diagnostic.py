@@ -16,9 +16,8 @@ def main() -> None:
     config = load_whole_image_config()
     manifest = diagnostic_manifest(config)
     status = (
-        "blocked because the zero-shot labeler failed its Train-only audit"
-        if config["status"] == "zero_shot_labeler_audit_failed"
-        else "waiting for labeler audit and kuotunyu approval"
+        "v6 numeric audit passed; waiting for kuotunyu's exact 48-image "
+        "labeler review before the one-shot FLUX run"
     )
     JSON_PATH.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
@@ -47,6 +46,8 @@ def main() -> None:
         [
             "",
             "No prompt or seed may be changed after output inspection.",
+            "All four generated outputs must subsequently pass kuotunyu's",
+            "zero-problem output review before any 64- or 300-image expansion.",
             "",
         ]
     )

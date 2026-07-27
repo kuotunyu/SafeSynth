@@ -4,11 +4,16 @@ from copy import deepcopy
 
 import pytest
 
+from scripts.record_whole_image_v10_review import (
+    build_output_review_evidence,
+    parse_problem_cases,
+)
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.whole_image import (
     diagnostic_manifest,
     human_review_evidence_sha256,
     require_generation_approval,
+    require_scaleup_approval,
 )
 
 
@@ -69,6 +74,28 @@ def _approved_human_review(config: dict) -> dict:
     }
     evidence["evidence_sha256"] = human_review_evidence_sha256(evidence)
     return evidence
+
+
+def _pending_v10_report(config: dict) -> dict:
+    manifest = diagnostic_manifest(config)
+    registered = config["supervised_labeler"]
+    return {
+        "status": "pending_kuotunyu_visual_review",
+        "manifest_sha256": manifest["manifest_sha256"],
+        "labeler_checkpoint_sha256": registered["checkpoint_sha256"],
+        "labeler_split_manifest_sha256": registered[
+            "split_manifest_sha256"
+        ],
+        "figure": "reports/figures/whole_image_v10_diagnostic.png",
+        "figure_sha256": "f" * 64,
+        "cases": [
+            {"case_index": case_index, "image_sha256": str(case_index) * 64}
+            for case_index in range(1, 5)
+        ],
+        "validation_images_read": 0,
+        "test_images_read": 0,
+        "expanded_to_64": False,
+    }
 
 
 def test_diagnostic_manifest_is_frozen_and_train_independent() -> None:
@@ -186,5 +213,82 @@ def test_tampered_human_review_evidence_cannot_open_gate() -> None:
             config=approved,
             labeler_report=_passed_v6_report(config),
             human_review_report=evidence,
+            manifest=diagnostic_manifest(config),
+        )
+
+
+def test_v10_scaleup_requires_exact_owner_output_review() -> None:
+    config = load_whole_image_config()
+    manifest = diagnostic_manifest(config)
+    diagnostic_report = _pending_v10_report(config)
+    output_review = build_output_review_evidence(
+        diagnostic_report=diagnostic_report,
+        decision="approve",
+        reviewed_on="2026-07-28",
+        problem_cases=parse_problem_cases(""),
+        note="All four outputs reviewed.",
+    )
+
+    with pytest.raises(RuntimeError, match="scale-up gate locked"):
+        require_scaleup_approval(
+            config=config,
+            diagnostic_report=diagnostic_report,
+            output_review_report=output_review,
+            manifest=manifest,
+        )
+
+    approved = deepcopy(config)
+    approved["scaleup_gate"]["allowed"] = True
+    approved["diagnostic"]["output_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
+    require_scaleup_approval(
+        config=approved,
+        diagnostic_report=diagnostic_report,
+        output_review_report=output_review,
+        manifest=manifest,
+    )
+
+
+def test_v10_output_review_rejects_inconsistent_or_tampered_decisions() -> None:
+    config = load_whole_image_config()
+    diagnostic_report = _pending_v10_report(config)
+
+    with pytest.raises(ValueError, match="approved review"):
+        build_output_review_evidence(
+            diagnostic_report=diagnostic_report,
+            decision="approve",
+            reviewed_on="2026-07-28",
+            problem_cases=[3],
+            note="",
+        )
+    with pytest.raises(ValueError, match="rejected review"):
+        build_output_review_evidence(
+            diagnostic_report=diagnostic_report,
+            decision="reject",
+            reviewed_on="2026-07-28",
+            problem_cases=[],
+            note="",
+        )
+
+    approved = deepcopy(config)
+    approved["scaleup_gate"]["allowed"] = True
+    approved["diagnostic"]["output_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
+    output_review = build_output_review_evidence(
+        diagnostic_report=diagnostic_report,
+        decision="approve",
+        reviewed_on="2026-07-28",
+        problem_cases=[],
+        note="",
+    )
+    output_review["figure_sha256"] = "0" * 64
+
+    with pytest.raises(RuntimeError, match="scale-up gate locked"):
+        require_scaleup_approval(
+            config=approved,
+            diagnostic_report=diagnostic_report,
+            output_review_report=output_review,
             manifest=diagnostic_manifest(config),
         )

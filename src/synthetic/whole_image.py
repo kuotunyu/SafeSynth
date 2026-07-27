@@ -91,6 +91,12 @@ def human_review_evidence_sha256(report: Mapping[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(payload)).hexdigest()
 
 
+def canonical_mapping_sha256(value: Mapping[str, Any]) -> str:
+    """Hash a JSON-compatible mapping in canonical key order."""
+
+    return hashlib.sha256(_canonical_json(value)).hexdigest()
+
+
 def generator_directory(paths: ProjectPaths, config: Mapping[str, Any]) -> Path:
     """Return the project-isolated pinned FLUX model directory."""
 
@@ -200,6 +206,65 @@ def require_generation_approval(
         raise RuntimeError(
             "v10 GPU gate locked: verified v6 audit or exact kuotunyu "
             "approval is missing"
+        )
+
+
+def require_scaleup_approval(
+    *,
+    config: Mapping[str, Any],
+    diagnostic_report: Mapping[str, Any],
+    output_review_report: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+) -> None:
+    """Keep 64/300-image expansion locked until the exact v10 pilot passes."""
+
+    supervised = config["supervised_labeler"]
+    review = config["diagnostic"]["output_review"]
+    gate = config["scaleup_gate"]
+    cases = diagnostic_report.get("cases", [])
+    if (
+        diagnostic_report.get("status")
+        != "pending_kuotunyu_visual_review"
+        or diagnostic_report.get("manifest_sha256")
+        != manifest["manifest_sha256"]
+        or diagnostic_report.get("labeler_checkpoint_sha256")
+        != supervised["checkpoint_sha256"]
+        or diagnostic_report.get("labeler_split_manifest_sha256")
+        != supervised["split_manifest_sha256"]
+        or len(cases) != 4
+        or [int(case.get("case_index", -1)) for case in cases]
+        != [1, 2, 3, 4]
+        or any(not case.get("image_sha256") for case in cases)
+        or int(diagnostic_report.get("validation_images_read", -1)) != 0
+        or int(diagnostic_report.get("test_images_read", -1)) != 0
+        or diagnostic_report.get("expanded_to_64") is not False
+        or gate.get("allowed") is not True
+        or gate.get("required_reviewer") != "kuotunyu"
+        or review.get("required_reviewer") != "kuotunyu"
+        or review.get("status") != "approved_by_kuotunyu"
+        or int(review.get("required_problem_count", -1)) != 0
+        or output_review_report.get("status") != "approved_by_kuotunyu"
+        or output_review_report.get("reviewed_by") != "kuotunyu"
+        or not output_review_report.get("reviewed_on")
+        or output_review_report.get("manifest_sha256")
+        != manifest["manifest_sha256"]
+        or output_review_report.get("diagnostic_report_sha256")
+        != canonical_mapping_sha256(diagnostic_report)
+        or output_review_report.get("figure")
+        != diagnostic_report.get("figure")
+        or output_review_report.get("figure_sha256")
+        != diagnostic_report.get("figure_sha256")
+        or output_review_report.get("reviewed_case_indices")
+        != [1, 2, 3, 4]
+        or int(output_review_report.get("problem_count", -1)) != 0
+        or output_review_report.get("problem_cases") != []
+        or int(output_review_report.get("validation_images_read", -1)) != 0
+        or int(output_review_report.get("test_images_read", -1)) != 0
+        or output_review_report.get("evidence_sha256")
+        != human_review_evidence_sha256(output_review_report)
+    ):
+        raise RuntimeError(
+            "v10 scale-up gate locked: exact four-case output approval is missing"
         )
 
 

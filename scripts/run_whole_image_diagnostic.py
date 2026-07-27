@@ -314,6 +314,8 @@ def main() -> None:
                 registration["max_relative_height"]
             ),
         },
+        "figure": "reports/figures/whole_image_v10_diagnostic.png",
+        "figure_sha256": _sha256(FIGURE_PATH),
         "cases": records,
         "cases_without_auto_label": sum(
             not record["auto_labels"] for record in records

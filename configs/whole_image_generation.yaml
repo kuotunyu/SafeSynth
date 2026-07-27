@@ -138,6 +138,11 @@ diagnostic:
     required_reviewer: "kuotunyu"
     status: "approved_by_kuotunyu"
     approved_manifest_sha256: "843b3cfcd333e2f965389a5dac76d72f5811af3a900d6cf6ef7f3ec6f404bc51"
+  output_review:
+    required_reviewer: "kuotunyu"
+    status: "pending_generation_then_kuotunyu_review"
+    required_problem_count: 0
+    evidence_path: "reports/whole_image_v10_output_review.json"
 
 generation_gate:
   allowed: false
@@ -145,3 +150,10 @@ generation_gate:
   reason: >-
     supervised RT-DETRv2 v6 passed its numeric audit; generation remains
     locked until kuotunyu approves the 48-image green/cyan human review
+
+scaleup_gate:
+  allowed: false
+  required_reviewer: "kuotunyu"
+  reason: >-
+    the four-case v10 diagnostic must be generated once and pass kuotunyu's
+    exact output review before any 64- or 300-image expansion
