@@ -1,5 +1,5 @@
 schema_version: 1
-status: "model_verified_waiting_trainer"
+status: "smoke_passed_waiting_training"
 architecture: "rtdetr_v2_r18vd_helmet_only"
 root_seed: 20260809
 

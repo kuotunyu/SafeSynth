@@ -18,6 +18,7 @@ import torch
 from PIL import Image, ImageDraw
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
+    AutoConfig,
     AutoImageProcessor,
     AutoModelForObjectDetection,
     get_cosine_schedule_with_warmup,
@@ -34,6 +35,7 @@ from src.synthetic.supervised_labeler import (
 )
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_training.json"
+SMOKE_REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_smoke.json"
 MARKDOWN_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_training.md"
 FIGURE_PATH = (
     PROJECT_ROOT / "reports" / "figures" / "supervised_labeler_audit.png"
@@ -352,11 +354,16 @@ def _load_model_and_processor(
         model_dir,
         local_files_only=True,
     )
+    model_config = AutoConfig.from_pretrained(
+        model_dir,
+        local_files_only=True,
+    )
+    model_config.num_labels = 1
+    model_config.id2label = {0: "helmet"}
+    model_config.label2id = {"helmet": 0}
     model = AutoModelForObjectDetection.from_pretrained(
         model_dir,
-        num_labels=1,
-        id2label={0: "helmet"},
-        label2id={"helmet": 0},
+        config=model_config,
         ignore_mismatched_sizes=True,
         local_files_only=True,
     )
@@ -525,6 +532,11 @@ def _smoke() -> None:
         "test_images_read": 0,
         "untouched_audit_images_read": 0,
     }
+    SMOKE_REPORT_PATH.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
