@@ -177,4 +177,3 @@ def greedy_detection_metrics(
         ),
         "matched_ious": matched_ious,
     }
-

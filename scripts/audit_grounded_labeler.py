@@ -264,7 +264,12 @@ def main() -> None:
     } & {int(frozen[image_id]["group_id"]) for image_id in audit_ids}:
         raise AssertionError("Calibration and audit groups overlap")
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "Grounding DINO audit requires an available CUDA GPU; "
+            "CPU fallback is intentionally disabled"
+        )
+    device = "cuda"
     processor, model = load_grounding_dino(
         model_dir=labeler_directory(paths, config),
         config=config,
