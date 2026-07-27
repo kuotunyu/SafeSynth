@@ -3,7 +3,9 @@ from __future__ import annotations
 import numpy as np
 
 from src.synthetic.region_inpaint import (
+    adjacent_worker_box,
     enforce_outside_edit_exact,
+    infer_person_box_from_headlike,
     mask_edge_margin,
     maximum_other_mask_overlap_fraction,
     region_identity_metrics,
@@ -79,3 +81,23 @@ def test_rounded_box_mask_stays_inside_registered_box() -> None:
     assert not mask[:, 30:].any()
     assert not mask[8, 10]
     assert mask[20, 20]
+
+
+def test_head_geometry_infers_person_and_adjacent_ground_alignment() -> None:
+    inferred = infer_person_box_from_headlike(
+        (46.0, 24.0, 12.0, 16.0),
+        person_width_over_height=0.4,
+        head_center_x_fraction=0.5,
+        head_center_y_fraction=0.2,
+        head_height_fraction=0.2,
+    )
+    right = adjacent_worker_box(
+        inferred,
+        scale=0.9,
+        side="right",
+        gap_px=8,
+    )
+
+    assert inferred == (36.0, 16.0, 32.0, 80.0)
+    assert right == (76, 24, 29, 72)
+    assert right[1] + right[3] == round(inferred[1] + inferred[3])

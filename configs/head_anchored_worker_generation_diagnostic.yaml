@@ -1,0 +1,68 @@
+# Train-only v9b diagnostic: infer a worker-scale empty region from a nearby
+# helmet annotation, then generate one complete helmeted worker from text.
+
+schema_version: 1
+status: "cpu_capacity_rejected"
+architecture: "prompt_only_head_anchored_worker_inpaint_v9b"
+root_seed: 20260806
+n_cases: 4
+
+data_scope:
+  split: "train"
+  validation_images_read: 0
+  test_images_read: 0
+  require_distinct_background_groups: true
+  minimum_group_count_for_four_case_path: 64
+
+geometry_calibration:
+  source: "frozen Train person boxes with exactly one paired helmet box"
+  min_person_height_px: 80
+  min_person_height_over_width: 1.4
+  statistic: "median"
+
+selection:
+  anchor_class: "helmet"
+  require_anchor_pass1_qc: true
+  reject_reflected_padding: true
+  min_target_height_px: 110
+  max_target_height_px: 320
+  target_scale_candidates: [1.0, 0.9]
+  horizontal_gap_px: [8, 16, 24]
+  sides: ["left", "right"]
+  min_region_edge_margin_px: 8
+  max_other_annotation_overlap_fraction: 0.0
+  rounded_corner_fraction: 0.12
+
+method:
+  name: "prompt_only_head_anchored_worker_inpaint_v9b"
+  image_reference: false
+  strength: 1.0
+  padding_mask_crop_px: 48
+  num_inference_steps: 50
+  guidance_scale: 4.0
+  enforce_outside_edit_exact: true
+  prompt: >-
+    Add exactly one photorealistic full-body construction worker entirely
+    inside the masked region, standing on the same ground plane as the nearby
+    workers. The new worker must have one clearly visible safety hard hat, one
+    natural head and face, two arms, two legs, realistic work clothing, and
+    lighting, focus, scale, perspective, and image noise matching the original
+    scene. Do not add text, logos, extra people, floating body parts, or objects.
+    Preserve everything outside the mask.
+
+model_gate:
+  allowed: false
+  required_reviewer: "kuotunyu"
+  required_issue_count: 0
+  review_status: "not_reviewed"
+  approved_manifest_sha256: null
+
+capacity_audit:
+  calibration_pair_count: 164
+  candidate_image_count_before_reflection: 1883
+  candidate_count: 92
+  candidate_image_count: 7
+  candidate_group_count: 7
+  minimum_group_count: 64
+  decision: "reject_before_gpu"
+  model_inference_run: false

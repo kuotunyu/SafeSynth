@@ -173,3 +173,60 @@ def rounded_box_mask(
     ):
         cv2.circle(mask, center, radius, 1, thickness=-1)
     return mask.astype(bool)
+
+
+def infer_person_box_from_headlike(
+    headlike_bbox_xywh: tuple[float, float, float, float],
+    *,
+    person_width_over_height: float,
+    head_center_x_fraction: float,
+    head_center_y_fraction: float,
+    head_height_fraction: float,
+) -> tuple[float, float, float, float]:
+    """Infer a person box from Train-calibrated relative head geometry."""
+
+    head_x, head_y, head_width, head_height = (
+        float(value) for value in headlike_bbox_xywh
+    )
+    if (
+        head_width <= 0
+        or head_height <= 0
+        or person_width_over_height <= 0
+        or not 0 < head_center_x_fraction < 1
+        or not 0 < head_center_y_fraction < 1
+        or not 0 < head_height_fraction <= 1
+    ):
+        raise ValueError("Head box and calibrated geometry must be positive")
+    person_height = head_height / head_height_fraction
+    person_width = person_height * person_width_over_height
+    head_center_x = head_x + head_width / 2
+    head_center_y = head_y + head_height / 2
+    person_x = head_center_x - head_center_x_fraction * person_width
+    person_y = head_center_y - head_center_y_fraction * person_height
+    return person_x, person_y, person_width, person_height
+
+
+def adjacent_worker_box(
+    inferred_person_xywh: tuple[float, float, float, float],
+    *,
+    scale: float,
+    side: str,
+    gap_px: int,
+) -> tuple[int, int, int, int]:
+    """Place a same-ground-plane target immediately beside an inferred worker."""
+
+    x, y, width, height = (
+        float(value) for value in inferred_person_xywh
+    )
+    if width <= 0 or height <= 0 or scale <= 0 or gap_px < 0:
+        raise ValueError("Inferred box, scale, and gap must be positive")
+    target_width = max(1, round(width * scale))
+    target_height = max(1, round(height * scale))
+    target_y = round(y + height - target_height)
+    if side == "left":
+        target_x = round(x - gap_px - target_width)
+    elif side == "right":
+        target_x = round(x + width + gap_px)
+    else:
+        raise ValueError(f"Unknown side: {side}")
+    return target_x, target_y, target_width, target_height
