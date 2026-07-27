@@ -29,6 +29,10 @@ def test_registered_model_and_h4_gate_are_frozen() -> None:
     assert config["model"]["required_download_bytes"] == 15_980_131_711
     assert config["runtime"]["local_files_only"] is True
     assert config["final_h4"]["max_auc_for_scaleup"] == 0.60
+    assert config["status"] == "guarded_v2_preregistered_no_output"
+    assert config["pilot"]["architecture"] == "guarded_context_replacement_v2"
+    assert config["pilot"]["root_seed"] == 20260728
+    assert config["pilot"]["previous_failed_root_seed"] == 20260727
 
 
 def test_boundary_mask_preserves_minimum_core_and_edits_both_sides() -> None:
@@ -114,4 +118,3 @@ def test_engine_is_pixel_exact_outside_registered_edit_mask() -> None:
     )
     assert result.provenance["identity_metrics"]["outside_edit_changed_pixels"] == 0
     assert result.provenance["identity_metrics"]["protected_core_changed_pixels"] == 0
-

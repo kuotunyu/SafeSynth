@@ -143,6 +143,16 @@ compose:
     size_match_pool: 8                       # source: fixed   (pre-registered H4 spike)
     inpaint_dilate_px: 3                     # source: fixed   (same as head_no_helmet swap)
     inpaint_radius: 3                        # source: fixed
+    input_guard:
+      # v2 architecture registered after the v1 human identity failure and
+      # before generating a new pilot. The source dataset contains reflected
+      # padding with duplicated headlike labels at frame edges; such a draft is
+      # invalid even when the randomly selected central anchor is otherwise valid.
+      background_headlike_min_edge_margin_px: 4  # source: fixed (invalid-draft guard)
+      # Eight pixels leave three unchanged pixels outside the frozen 5 px
+      # generative dilation. The fractional guard scales this for large anchors.
+      anchor_min_edge_margin_px: 8               # source: fixed (edit-band guard)
+      anchor_min_edge_margin_long_side_fraction: 0.10  # source: fixed
 
   # --- transforms ---
   max_paste_scale:

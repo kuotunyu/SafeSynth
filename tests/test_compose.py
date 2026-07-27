@@ -10,6 +10,7 @@ from src.synthetic.compose import (
     _scenario_sequence,
     _transform_scale,
     _visible_paste_masks,
+    context_replacement_input_guard,
 )
 from src.synthetic.composition import Layer
 
@@ -112,6 +113,52 @@ def test_context_replacement_scale_matches_target_area() -> None:
     )
 
     assert np.isclose(scale, 0.5)
+
+
+def test_context_replacement_guard_rejects_background_edge_headlike() -> None:
+    annotations = [
+        {"id": 1, "category_id": 1, "bbox": [20, 20, 20, 20]},
+        {"id": 2, "category_id": 1, "bbox": [40, 0, 20, 12]},
+    ]
+
+    result = context_replacement_input_guard(
+        image_shape=(100, 100),
+        annotations=annotations,
+        categories={1: "helmet"},
+        pass1={1: {"qc_pass": True}, 2: {"qc_pass": True}},
+        guard_config={
+            "background_headlike_min_edge_margin_px": 4,
+            "anchor_min_edge_margin_px": 8,
+            "anchor_min_edge_margin_long_side_fraction": 0.10,
+        },
+    )
+
+    assert not result.accepted
+    assert result.reject_reason == "BACKGROUND_HEADLIKE_NEAR_FRAME_EDGE"
+
+
+def test_context_replacement_guard_keeps_only_safe_qc_anchors() -> None:
+    annotations = [
+        {"id": 1, "category_id": 1, "bbox": [8, 8, 20, 20]},
+        {"id": 2, "category_id": 2, "bbox": [40, 40, 40, 20]},
+        {"id": 3, "category_id": 3, "bbox": [0, 0, 100, 100]},
+    ]
+
+    result = context_replacement_input_guard(
+        image_shape=(100, 100),
+        annotations=annotations,
+        categories={1: "helmet", 2: "head", 3: "person"},
+        pass1={1: {"qc_pass": True}, 2: {"qc_pass": False}},
+        guard_config={
+            "background_headlike_min_edge_margin_px": 4,
+            "anchor_min_edge_margin_px": 8,
+            "anchor_min_edge_margin_long_side_fraction": 0.10,
+        },
+    )
+
+    assert result.accepted
+    assert result.eligible_annotation_ids == (1,)
+    assert result.anchor_margins == ((1, 8.0, 8),)
 
 
 def test_visible_paste_mask_excludes_only_layers_in_front() -> None:

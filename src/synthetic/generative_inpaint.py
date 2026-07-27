@@ -52,6 +52,14 @@ def load_generative_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         raise RuntimeError("Generative runtime must be local-only")
     if float(config["final_h4"]["max_auc_for_scaleup"]) != 0.60:
         raise RuntimeError("Option A may not weaken the registered H4 threshold")
+    pilot = config["pilot"]
+    if (
+        config["status"] != "guarded_v2_preregistered_no_output"
+        or pilot["architecture"] != "guarded_context_replacement_v2"
+        or int(pilot["root_seed"]) != 20260728
+        or int(pilot["previous_failed_root_seed"]) != 20260727
+    ):
+        raise RuntimeError("The guarded v2 identity pilot must remain preregistered")
     return config
 
 
@@ -333,4 +341,3 @@ class GenerativeBoundaryInpainter:
                 "identity_metrics": metrics,
             },
         )
-

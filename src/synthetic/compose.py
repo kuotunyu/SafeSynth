@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import ceil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -64,6 +65,17 @@ class Paste:
     patch_slice: tuple[slice, slice]
     bank: dict[str, Any]
     bbox_preclip: list[float]
+
+
+@dataclass(frozen=True)
+class ContextReplacementGuardResult:
+    """CPU-only eligibility decision for one context-replacement background."""
+
+    accepted: bool
+    eligible_annotation_ids: tuple[int, ...]
+    anchor_margins: tuple[tuple[int, float, int], ...]
+    background_min_headlike_edge_margin_px: float | None
+    reject_reason: str | None
 
 
 def _read_json(path: Path) -> Any:
@@ -207,6 +219,99 @@ def _load_pass1(
         int(annotation["annotation_id"]): annotation
         for annotation in record["annotations"]
     }
+
+
+def _bbox_edge_margin(
+    bbox_xywh: Sequence[float],
+    *,
+    image_shape: tuple[int, int],
+) -> float:
+    """Return the smallest half-open distance from a box to the image frame."""
+
+    height, width = image_shape
+    x, y, box_width, box_height = (float(value) for value in bbox_xywh)
+    return min(
+        x,
+        y,
+        float(width) - (x + box_width),
+        float(height) - (y + box_height),
+    )
+
+
+def context_replacement_input_guard(
+    *,
+    image_shape: tuple[int, int],
+    annotations: Sequence[Mapping[str, Any]],
+    categories: Mapping[int, str],
+    pass1: Mapping[int, Mapping[str, Any]],
+    guard_config: Mapping[str, Any],
+) -> ContextReplacementGuardResult:
+    """Reject reflected-border backgrounds and unsafe replacement anchors."""
+
+    headlike = [
+        annotation
+        for annotation in annotations
+        if categories[int(annotation["category_id"])] in {"helmet", "head"}
+    ]
+    if not headlike:
+        return ContextReplacementGuardResult(
+            accepted=False,
+            eligible_annotation_ids=(),
+            anchor_margins=(),
+            background_min_headlike_edge_margin_px=None,
+            reject_reason="NO_CONTEXT_REPLACEMENT_ANCHOR",
+        )
+
+    margins = {
+        int(annotation["id"]): _bbox_edge_margin(
+            annotation["bbox"],
+            image_shape=image_shape,
+        )
+        for annotation in headlike
+    }
+    background_min = min(margins.values())
+    background_required = float(
+        guard_config["background_headlike_min_edge_margin_px"]
+    )
+    if background_min < background_required:
+        return ContextReplacementGuardResult(
+            accepted=False,
+            eligible_annotation_ids=(),
+            anchor_margins=(),
+            background_min_headlike_edge_margin_px=float(background_min),
+            reject_reason="BACKGROUND_HEADLIKE_NEAR_FRAME_EDGE",
+        )
+
+    fixed_margin = int(guard_config["anchor_min_edge_margin_px"])
+    fraction = float(guard_config["anchor_min_edge_margin_long_side_fraction"])
+    candidates: list[tuple[int, float, int]] = []
+    for annotation in headlike:
+        annotation_id = int(annotation["id"])
+        _, _, box_width, box_height = (
+            float(value) for value in annotation["bbox"]
+        )
+        required = max(fixed_margin, ceil(fraction * max(box_width, box_height)))
+        if (
+            bool(pass1[annotation_id]["qc_pass"])
+            and margins[annotation_id] >= required
+        ):
+            candidates.append((annotation_id, float(margins[annotation_id]), required))
+    candidates.sort()
+    if not candidates:
+        return ContextReplacementGuardResult(
+            accepted=False,
+            eligible_annotation_ids=(),
+            anchor_margins=(),
+            background_min_headlike_edge_margin_px=float(background_min),
+            reject_reason="NO_SAFE_CONTEXT_REPLACEMENT_ANCHOR",
+        )
+    return ContextReplacementGuardResult(
+        accepted=True,
+        eligible_annotation_ids=tuple(item[0] for item in candidates),
+        anchor_margins=tuple(candidates),
+        background_min_headlike_edge_margin_px=float(background_min),
+        reject_reason=None,
+    )
 
 
 def _existing_layers(
@@ -807,6 +912,20 @@ def _build_sample(
     annotations_by_id = {
         int(annotation["id"]): annotation for annotation in background_annotations
     }
+    context_guard: ContextReplacementGuardResult | None = None
+    if scenario == "context_replacement":
+        context_guard = context_replacement_input_guard(
+            image_shape=image_shape,
+            annotations=background_annotations,
+            categories=categories,
+            pass1=pass1,
+            guard_config=config["compose"]["context_replacement"]["input_guard"],
+        )
+        if not context_guard.accepted:
+            raise RuntimeError(
+                "Could not place scenario=context_replacement "
+                f"on image={background['id']}: {context_guard.reject_reason}"
+            )
     max_attempts = int(config["compose"]["bbox"]["max_placement_retries"])
     last_reason = "PLACEMENT_RETRIES_EXHAUSTED"
     for _ in range(max_attempts):
@@ -833,15 +952,18 @@ def _build_sample(
             and pass1[int(annotation["id"])]["qc_pass"]
         ]
         if scenario == "context_replacement":
+            if context_guard is None:
+                raise AssertionError("Context-replacement input guard was not evaluated")
+            eligible_ids = set(context_guard.eligible_annotation_ids)
             eligible_replacements = [
                 annotation
                 for annotation in background_annotations
-                if categories[int(annotation["category_id"])] in {"helmet", "head"}
-                and pass1[int(annotation["id"])]["qc_pass"]
+                if int(annotation["id"]) in eligible_ids
             ]
             if not eligible_replacements:
-                last_reason = "NO_CONTEXT_REPLACEMENT_ANCHOR"
-                continue
+                raise AssertionError(
+                    "Accepted context-replacement guard has no eligible anchor"
+                )
             replacement_anchor = eligible_replacements[
                 int(rng.integers(0, len(eligible_replacements)))
             ]
@@ -1119,6 +1241,20 @@ def _build_sample(
                 "generative_inpaint_used": generative_inpainter is not None,
             },
         }
+        if context_guard is not None and replacement_anchor is not None:
+            anchor_id = int(replacement_anchor["id"])
+            _, anchor_margin, required_margin = next(
+                item for item in context_guard.anchor_margins if item[0] == anchor_id
+            )
+            record["context_replacement_input_guard"] = {
+                "version": "v2",
+                "background_min_headlike_edge_margin_px": (
+                    context_guard.background_min_headlike_edge_margin_px
+                ),
+                "selected_anchor_edge_margin_px": anchor_margin,
+                "selected_anchor_required_edge_margin_px": required_margin,
+                "selected_anchor_sam2_qc_pass": True,
+            }
         result = filter_sample(record, filter_config)
         record["passed"] = result.passed
         record["reject_reasons"] = list(result.reject_reasons)
