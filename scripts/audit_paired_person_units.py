@@ -4,38 +4,10 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
 from typing import Any
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
-
-
-def paired_headlike_annotations(
-    person_bbox_xywh: Sequence[float],
-    *,
-    annotations: Sequence[Mapping[str, Any]],
-    categories: Mapping[int, str],
-    upper_fraction: float = 0.55,
-) -> list[dict[str, Any]]:
-    """Return headlike boxes centred inside the upper portion of a person box."""
-
-    x, y, width, height = (float(value) for value in person_bbox_xywh)
-    paired: list[dict[str, Any]] = []
-    for source in annotations:
-        if categories[int(source["category_id"])] not in {"helmet", "head"}:
-            continue
-        box_x, box_y, box_width, box_height = (
-            float(value) for value in source["bbox"]
-        )
-        center_x = box_x + box_width / 2
-        center_y = box_y + box_height / 2
-        if (
-            x <= center_x <= x + width
-            and y <= center_y <= y + upper_fraction * height
-        ):
-            paired.append(dict(source))
-    paired.sort(key=lambda item: int(item["id"]))
-    return paired
+from src.synthetic.paired_person import paired_headlike_annotations
 
 
 def _write_reports(payload: dict[str, Any]) -> None:

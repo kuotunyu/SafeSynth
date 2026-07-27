@@ -63,9 +63,14 @@ five-pixel boundary edit cannot repair an invalid core. Any successor must use
 a coupled head + helmet + upper-body synthesis unit and pass a new zero-issue
 CPU input sheet. A Train-only CPU audit found that 111/113 existing person
 cutouts have a paired helmet/head annotation, spanning 76 source groups (90
-people are at least 80 pixels high), so this successor is feasible without a
-new download or Colab run. It is not yet preregistered. No new H4 AUC has been
-computed, M13 remains closed, and Phase 2 has not started.
+people are at least 80 pixels high), but the visual and diversity gates rejected
+all three coupled-person paste candidates. Geometry-only v6 visibly mismatched
+scenes; scene-matched v6b still mismatched pose and rewrote faces/clothing; v7
+preserved source position and core pixels but left only 22 strict donors across
+19 groups and exhausted all 3,500 Train backgrounds at 63/64 drafts. Raising
+the reuse cap after seeing that result was rejected, and the pool cannot support
+the later 300-image H4 gate honestly. Whole-person pasting is therefore stopped.
+No new H4 AUC has been computed, M13 remains closed, and Phase 2 has not started.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

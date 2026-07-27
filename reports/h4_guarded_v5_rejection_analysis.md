@@ -40,9 +40,12 @@ zero-issue CPU input sheet before model inference or H4.
 
 ## Successor feasibility
 
-A Train-only CPU audit found 111/113 person cutouts with a paired helmet/head
-annotation, spanning 76 source groups; 90 of those people are at least 80
-pixels high. The existing data can therefore support a coupled-person
-successor without a new download or Colab run. This finding is feasibility
-evidence only: the successor is not preregistered and still needs stricter
-truncation, pose, mask, and visual gates.
+A Train-only CPU audit initially found 111/113 person cutouts with a paired
+helmet/head annotation, spanning 76 source groups; 90 of those people are at
+least 80 pixels high. Stricter truncation, pose, mask, and position gates reduced
+that pool to 22 cutouts across 19 groups. Geometry-only v6 and scene-matched v6b
+were rejected internally for visible scene, pose, and photometric mismatch. v7
+preserved source position and core pixels, but an exhaustive search of all
+3,500 Train backgrounds produced only 63/64 drafts under the frozen
+three-uses-per-cutout cap. The coupled-person paste successor is therefore
+capacity-infeasible for both the pilot and the later 300-image H4 gate.

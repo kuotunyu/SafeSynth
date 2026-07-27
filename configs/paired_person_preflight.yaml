@@ -1,0 +1,59 @@
+# CPU-only candidate after kuotunyu rejected isolated helmet/head pastes in v5.
+# This file does not unlock FLUX, H4, M13, or Phase 2.
+
+schema_version: 1
+status: "paired_person_v7_capacity_rejected"
+architecture: "paired_person_scene_position_insert_v7"
+root_seed: 20260803
+n_images: 64
+input_issue_max_count: 0
+source_scope: "train_only"
+
+donor:
+  paired_headlike_count: 1
+  preferred_tier_required: true
+  min_person_height_px: 80
+  min_person_aspect_height_over_width: 1.30
+  max_head_center_y_fraction: 0.35
+  max_head_width_fraction: 0.60
+  max_edge_touch_top: 0.10
+  max_edge_touch_side: 0.10
+  min_source_person_bottom_fraction: 0.65
+  max_uses_per_cutout: 3
+
+placement:
+  mode: "source_normalized_position"
+  scale_candidates: [1.00, 0.925, 0.85]
+  horizontal_jitter_fractions: [0.00, -0.06, 0.06, -0.12, 0.12]
+  frame_margin_px: 8
+  min_person_bottom_fraction: 0.65
+  max_person_bottom_fraction: 0.98
+  max_annotation_overlap_fraction: 0.02
+  max_attempts_per_sample: 2000
+  normalize_reflected_padding: true
+  hflip_prob: 0.50
+  whole_person_lab_harmonization: false
+  whole_person_noise_matching: false
+
+scene_matching:
+  feature_file: "clip_embeddings.npy"
+  model_name: "ViT-B-32"
+  pretrained: "laion2b_s34b_b79k"
+  min_full_image_cosine_similarity: 0.60
+
+model_gate:
+  model_inference_allowed: false
+  required_reviewer: "kuotunyu"
+  required_observed_input_issue_count: 0
+  future_edit_target: "visible_paired_person_mask"
+  protected_core: true
+
+outcome:
+  reviewed_by: "mechanical_capacity_gate"
+  built_images: 63
+  required_images: 64
+  attempted_train_backgrounds: 3500
+  strict_donor_cutouts: 22
+  strict_donor_groups: 19
+  model_inference_run: false
+  h4_auc_computed: false

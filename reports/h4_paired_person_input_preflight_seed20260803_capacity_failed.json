@@ -1,0 +1,20 @@
+{
+  "architecture": "paired_person_scene_position_insert_v7",
+  "attempted_train_backgrounds": 3500,
+  "available_train_backgrounds": 3500,
+  "built_images": 63,
+  "h4_auc_computed": false,
+  "max_uses_per_cutout": 3,
+  "model_inference_run": false,
+  "required_images": 64,
+  "reviewed_by": "mechanical_capacity_gate",
+  "root_seed": 20260803,
+  "schema_version": 1,
+  "status": "capacity_infeasible_before_kuotunyu_review",
+  "strict_donor_cutouts": 22,
+  "strict_donor_groups": 19,
+  "test_feature_rows_read": 0,
+  "test_images_read": 0,
+  "theoretical_maximum_images": 66,
+  "validation_images_read": 0
+}

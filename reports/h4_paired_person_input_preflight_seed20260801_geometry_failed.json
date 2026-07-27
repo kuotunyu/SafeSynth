@@ -1,0 +1,33 @@
+{
+  "architecture": "paired_person_insert_v6",
+  "attempted_backgrounds": 695,
+  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_paired_person_input_preflight_seed20260801_geometry_failed.png",
+  "contact_sheet_sha256": "ddfffea5a174bca49b7a27ae09e2d1bf1db9fd9fc007fb12f7f0d2e35172ec4a",
+  "distinct_backgrounds": 64,
+  "donor_first_reject_reasons": {
+    "HEAD_TOO_LOW": 1,
+    "HEAD_TOO_WIDE": 6,
+    "MASK_TOUCHES_SIDE": 16,
+    "MASK_TOUCHES_TOP": 18,
+    "NOT_PREFERRED_TIER": 4,
+    "PAIRED_HEADLIKE_COUNT": 4,
+    "PERSON_TOO_HORIZONTAL": 17,
+    "PERSON_TOO_SMALL": 17
+  },
+  "geometry_fingerprint_sha256": "554e34c138785b7fd63cde8e50241b3bb1d043acfc94c05ceebd61206c49b22c",
+  "h4_auc_computed": false,
+  "input_issue_max_count": 0,
+  "model_inference_run": false,
+  "n_images": 64,
+  "observed_input_issue_count": null,
+  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_paired_person_preflight_seed20260801",
+  "reviewed_by": "internal_cpu_audit",
+  "root_seed": 20260801,
+  "schema_version": 1,
+  "status": "rejected_before_kuotunyu_review_scene_mismatch",
+  "strict_donor_cutouts": 30,
+  "strict_donor_groups": 25,
+  "test_images_read": 0,
+  "used_donor_cutouts": 23,
+  "used_donor_groups": 21
+}

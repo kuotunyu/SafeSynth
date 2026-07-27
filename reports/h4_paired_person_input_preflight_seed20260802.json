@@ -1,0 +1,42 @@
+{
+  "architecture": "paired_person_scene_matched_insert_v6b",
+  "attempted_backgrounds": 2762,
+  "available_feature_rows": 3500,
+  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_paired_person_input_preflight_seed20260802.png",
+  "contact_sheet_sha256": "3f35eb69c18215ed09e8267bc0b241bd994b4ac9a3f913fb521aa87c4fca8270",
+  "distinct_backgrounds": 64,
+  "donor_first_reject_reasons": {
+    "HEAD_TOO_LOW": 1,
+    "HEAD_TOO_WIDE": 6,
+    "MASK_TOUCHES_SIDE": 16,
+    "MASK_TOUCHES_TOP": 18,
+    "NOT_PREFERRED_TIER": 4,
+    "PAIRED_HEADLIKE_COUNT": 4,
+    "PERSON_TOO_HORIZONTAL": 17,
+    "PERSON_TOO_SMALL": 17
+  },
+  "feature_scope": "frozen Train rows only",
+  "geometry_fingerprint_sha256": "d12564be5d382c1038002913051b492da76ea2d6c82722beab922352e2c01c12",
+  "h4_auc_computed": false,
+  "input_issue_max_count": 0,
+  "model_inference_run": false,
+  "n_images": 64,
+  "observed_input_issue_count": null,
+  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_paired_person_preflight_seed20260802",
+  "reviewed_by": "internal_cpu_audit",
+  "root_seed": 20260802,
+  "scene_matching": {
+    "min_full_image_cosine_similarity": 0.6,
+    "model_name": "ViT-B-32",
+    "observed_min_cosine_similarity": 0.601426362991333,
+    "pretrained": "laion2b_s34b_b79k"
+  },
+  "schema_version": 1,
+  "status": "rejected_before_kuotunyu_review_pose_and_photometric_mismatch",
+  "strict_donor_cutouts": 30,
+  "strict_donor_groups": 25,
+  "test_feature_rows_read": 0,
+  "test_images_read": 0,
+  "used_donor_cutouts": 23,
+  "used_donor_groups": 21
+}
