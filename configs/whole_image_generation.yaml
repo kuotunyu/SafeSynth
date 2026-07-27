@@ -8,7 +8,10 @@ architecture: "whole_image_text_to_image_v10"
 generator:
   repo_id: "black-forest-labs/FLUX.2-klein-base-4B"
   revision: "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+  license: "apache-2.0"
   pipeline_class: "Flux2KleinPipeline"
+  diffusers_version: "0.39.0"
+  required_download_bytes: 15980131711
   local_files_only: true
   dtype: "bfloat16"
   model_cpu_offload: true
@@ -55,6 +58,54 @@ labeler_audit:
   validation_images_read: 0
   test_images_read: 0
 
+diagnostic:
+  root_seed: 20260808
+  frozen_before_output_review: true
+  cases:
+    - case_index: 1
+      scenario: "clear_medium"
+      prompt: >-
+        Photorealistic candid documentary photograph at a construction site in
+        daylight. One adult construction worker shown from the knees up at a
+        natural three-quarter angle, correctly wearing a yellow construction
+        safety hard hat centered securely on the head, realistic face and
+        anatomy, reflective safety vest, concrete and scaffolding background,
+        helmet and head sharply visible, natural camera perspective, clean image
+        without text, logo, or watermark.
+    - case_index: 2
+      scenario: "side_profile"
+      prompt: >-
+        Photorealistic candid documentary photograph at an active construction
+        site. One adult construction worker in a clear side profile, correctly
+        wearing a blue construction safety hard hat fitted securely over the
+        head, realistic face and anatomy, reflective workwear, metal scaffold in
+        the background, natural daylight and camera perspective, clean image
+        without text, logo, or watermark.
+    - case_index: 3
+      scenario: "small_distant"
+      prompt: >-
+        Photorealistic wide documentary photograph of a large construction site
+        in daylight. One clearly visible but distant adult construction worker
+        occupies about one fifth of the image height and correctly wears a white
+        construction safety hard hat on the head, realistic body proportions,
+        unfinished concrete structure and equipment in the background, natural
+        camera perspective, clean image without text, logo, or watermark.
+    - case_index: 4
+      scenario: "partial_occlusion"
+      prompt: >-
+        Photorealistic candid documentary photograph inside a construction site.
+        One adult construction worker is partially occluded at the torso by a
+        foreground steel beam while the complete head remains visible, correctly
+        wearing a red construction safety hard hat securely on the head,
+        realistic face and anatomy, reflective workwear, natural mixed work-site
+        lighting and camera perspective, clean image without text, logo, or
+        watermark.
+  input_review:
+    required_reviewer: "kuotunyu"
+    status: "pending_labeler_audit_and_kuotunyu_review"
+    approved_manifest_sha256: null
+
 generation_gate:
   allowed: false
-  reason: "automatic labeler has not passed its untouched Train audit"
+  required_reviewer: "kuotunyu"
+  reason: "automatic labeler audit and exact diagnostic manifest approval are pending"
