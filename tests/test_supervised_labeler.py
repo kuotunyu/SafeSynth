@@ -6,6 +6,7 @@ from collections import defaultdict
 
 import pytest
 
+from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.supervised_labeler import (
     freeze_supervised_split,
     load_supervised_labeler_config,
@@ -100,3 +101,30 @@ def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="failed integrity"):
         require_verified_model(model_dir, config)
+
+
+def test_calibration_selection_never_weakens_precision_floor() -> None:
+    rows = [
+        {
+            "epoch": 1,
+            "threshold": 0.2,
+            "precision": 0.60,
+            "recall": 0.95,
+            "f1": 0.74,
+            "median_matched_iou": 0.8,
+        },
+        {
+            "epoch": 1,
+            "threshold": 0.4,
+            "precision": 0.90,
+            "recall": 0.70,
+            "f1": 0.79,
+            "median_matched_iou": 0.75,
+        },
+    ]
+
+    selected = select_calibration_candidate(rows, precision_floor=0.85)
+
+    assert selected is not None
+    assert selected["threshold"] == 0.4
+    assert select_calibration_candidate(rows[:1], precision_floor=0.85) is None
