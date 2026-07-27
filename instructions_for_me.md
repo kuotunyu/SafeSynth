@@ -17,7 +17,7 @@ reference。結果不能直接開啟 M13。
 3. 選「執行階段 → 變更執行階段類型 → A100 GPU → 40 GB」。
 4. 選「執行階段 → 全部執行」。
 5. 出現檔案選擇器時，上傳
-   `outputs/flux2_v2_colab_diagnostic_inputs.zip`。
+   `outputs/flux2_v2_colab_diagnostic_inputs_portable.zip`。
 6. 等 notebook 完成；最後會自動下載
    `flux2_v2_diagnostic_results.zip`。
 7. 把下載後的 zip 附回 Codex，或告訴我它在電腦上的完整路徑。

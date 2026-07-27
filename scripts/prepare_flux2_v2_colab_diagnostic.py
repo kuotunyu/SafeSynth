@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -23,6 +24,9 @@ from src.synthetic.generative_inpaint import (
 ROOT_SEED = 20260727
 CANONICAL_CELLS = (7, 13, 17, 52)
 OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "flux2_v2_colab_diagnostic_inputs"
+ARCHIVE_PATH = (
+    PROJECT_ROOT / "outputs" / "flux2_v2_colab_diagnostic_inputs_portable.zip"
+)
 
 
 class IdentityPipeline:
@@ -246,9 +250,19 @@ def main() -> None:
         encoding="utf-8",
     )
     _render_preview(case_dirs, OUTPUT_ROOT / "input_preview.png")
+    with zipfile.ZipFile(
+        ARCHIVE_PATH,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as archive:
+        for path in sorted(OUTPUT_ROOT.rglob("*")):
+            if path.is_file():
+                archive.write(path, path.relative_to(OUTPUT_ROOT).as_posix())
     print(
         json.dumps(
             {
+                "archive": str(ARCHIVE_PATH),
+                "archive_sha256": _sha256(ARCHIVE_PATH),
                 "cases": len(cases),
                 "diagnostic_only": True,
                 "h4_auc_computed": False,

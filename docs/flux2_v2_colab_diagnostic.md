@@ -69,6 +69,11 @@ The notebook produces `flux2_v2_diagnostic_results.zip`. Download that single
 file and return it unchanged for local verification and a blinded contact
 sheet.
 
+Upload `outputs/flux2_v2_colab_diagnostic_inputs_portable.zip`. Its ZIP entry
+names use POSIX forward slashes so Linux creates `case_07/`, `case_13/`,
+`case_17/`, and `case_52/` directories. The notebook also normalizes literal
+Windows backslashes for compatibility with the superseded package.
+
 The Colab dependency cell pins `safetensors==0.8.0`, matching the resolved
 project lock. An earlier `0.7.0` pin conflicted with the current Transformers
 dependency and must not be reused after a runtime restart.
