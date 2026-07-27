@@ -68,3 +68,7 @@ compute-unit rate as 40 GB.
 The notebook produces `flux2_v2_diagnostic_results.zip`. Download that single
 file and return it unchanged for local verification and a blinded contact
 sheet.
+
+The Colab dependency cell pins `safetensors==0.8.0`, matching the resolved
+project lock. An earlier `0.7.0` pin conflicted with the current Transformers
+dependency and must not be reused after a runtime restart.

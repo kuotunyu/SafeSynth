@@ -17,6 +17,7 @@ def test_diagnostic_notebook_is_valid_and_has_no_embedded_secret() -> None:
     assert "HF_TOKEN =" not in source
     assert "kaggle.json" not in source
     assert "run_artifact_gate" not in source
+    assert "safetensors==0.8.0" in source
     assert "final_h4_auc_computed': False" in source
     assert "source_split'] == 'train_only'" in source
     assert "if vram_gib >= 35:" in source
