@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import transformers
 import yaml
+from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
@@ -99,6 +100,55 @@ def load_grounding_dino(
     ).to(device)
     model.eval()
     return processor, model
+
+
+def predict_single_phrase(
+    *,
+    processor: Any,
+    model: Any,
+    images: Sequence[Image.Image],
+    phrase: str,
+    device: str,
+    score_floor: float,
+    text_threshold: float,
+) -> list[list[tuple[float, list[float]]]]:
+    """Predict one phrase independently for each image in a batch."""
+
+    if not images:
+        return []
+    normalized_phrase = " ".join(str(phrase).split())
+    if not normalized_phrase:
+        raise ValueError("Grounding phrase cannot be empty")
+    inputs = processor(
+        images=list(images),
+        text=[[normalized_phrase] for _ in images],
+        return_tensors="pt",
+    ).to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    results = processor.post_process_grounded_object_detection(
+        outputs,
+        inputs.input_ids,
+        threshold=float(score_floor),
+        text_threshold=float(text_threshold),
+        target_sizes=[image.size[::-1] for image in images],
+    )
+    detections: list[list[tuple[float, list[float]]]] = []
+    for result in results:
+        detections.append(
+            [
+                (
+                    float(score.item()),
+                    [float(value) for value in box.tolist()],
+                )
+                for score, box in zip(
+                    result["scores"],
+                    result["boxes"],
+                    strict=True,
+                )
+            ]
+        )
+    return detections
 
 
 def box_iou_xyxy(

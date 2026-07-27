@@ -19,6 +19,7 @@ from src.synthetic.grounded_labeler import (
     labeler_directory,
     load_grounding_dino,
     load_whole_image_config,
+    predict_single_phrase,
 )
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "grounded_labeler_audit.json"
@@ -292,38 +293,24 @@ def main() -> None:
                 ).convert("RGB")
                 for image_id in batch_ids
             ]
-            text_labels = [phrases for _ in images]
-            inputs = processor(
-                images=images,
-                text=text_labels,
-                return_tensors="pt",
-            ).to(device)
-            with torch.no_grad():
-                outputs = model(**inputs)
-            results = processor.post_process_grounded_object_detection(
-                outputs,
-                inputs.input_ids,
-                threshold=0.05,
-                text_threshold=float(audit_config["text_threshold"]),
-                target_sizes=[image.size[::-1] for image in images],
-            )
-            for image_id, result in zip(batch_ids, results, strict=True):
-                by_phrase = {phrase: [] for phrase in phrases}
-                for score, label, box in zip(
-                    result["scores"],
-                    result["labels"],
-                    result["boxes"],
+            for image_id in batch_ids:
+                predictions[image_id] = {}
+            for phrase in phrases:
+                detected = predict_single_phrase(
+                    processor=processor,
+                    model=model,
+                    images=images,
+                    phrase=phrase,
+                    device=device,
+                    score_floor=0.05,
+                    text_threshold=float(audit_config["text_threshold"]),
+                )
+                for image_id, boxes in zip(
+                    batch_ids,
+                    detected,
                     strict=True,
                 ):
-                    label_text = str(label)
-                    if label_text in by_phrase:
-                        by_phrase[label_text].append(
-                            (
-                                float(score.item()),
-                                [float(value) for value in box.tolist()],
-                            )
-                        )
-                predictions[image_id] = by_phrase
+                    predictions[image_id][phrase] = boxes
             print(
                 f"Processed {min(start + batch_size, len(all_ids))}/"
                 f"{len(all_ids)} Train images",
