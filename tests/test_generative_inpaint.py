@@ -33,6 +33,7 @@ def test_registered_model_and_h4_gate_are_frozen() -> None:
     assert config["pilot"]["architecture"] == "guarded_context_replacement_v2"
     assert config["pilot"]["root_seed"] == 20260728
     assert config["pilot"]["previous_failed_root_seed"] == 20260727
+    assert config["pilot"]["input_preflight_issue_max_count"] == 0
 
 
 def test_boundary_mask_preserves_minimum_core_and_edits_both_sides() -> None:

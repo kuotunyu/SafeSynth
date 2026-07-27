@@ -46,7 +46,13 @@ The exact values live under
 
 ## Untouched identity pilot
 
-After CPU coverage auditing, but not as part of that audit:
+After CPU coverage auditing, first freeze the 64 deterministic DRAFT inputs and
+render a DRAFT / ANCHOR CROP sheet without loading the model. `kuotunyu` must
+report zero invalid drafts and zero mislocalized cyan anchor boxes. Any issue
+returns to input-guard design before GPU inference. This preflight does not
+display or produce model output and therefore cannot satisfy the identity gate.
+
+Only after that input preflight passes:
 
 - generate exactly 64 new Train-only images with root seed `20260728`;
 - use only the guarded `context_replacement` path;
