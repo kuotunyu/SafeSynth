@@ -72,3 +72,9 @@ sheet.
 The Colab dependency cell pins `safetensors==0.8.0`, matching the resolved
 project lock. An earlier `0.7.0` pin conflicted with the current Transformers
 dependency and must not be reused after a runtime restart.
+
+The notebook disables Hugging Face Xet downloads and raises the HTTP response
+timeout to 120 seconds before importing Diffusers. This avoids a Colab failure
+observed while Xet remained indefinitely at 4/17 files and 10.3/16.0 GiB
+reconstructed. Standard HTTP uses the existing Hugging Face partial cache and
+Range requests rather than intentionally deleting or restarting the download.

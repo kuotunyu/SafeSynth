@@ -18,6 +18,9 @@ def test_diagnostic_notebook_is_valid_and_has_no_embedded_secret() -> None:
     assert "kaggle.json" not in source
     assert "run_artifact_gate" not in source
     assert "safetensors==0.8.0" in source
+    assert "os.environ['HF_HUB_DISABLE_XET'] = '1'" in source
+    assert "hf_constants.HF_HUB_DISABLE_XET = True" in source
+    assert "hf_constants.HF_HUB_DOWNLOAD_TIMEOUT = 120" in source
     assert "final_h4_auc_computed': False" in source
     assert "source_split'] == 'train_only'" in source
     assert "if vram_gib >= 35:" in source
