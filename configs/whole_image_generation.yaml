@@ -1,0 +1,60 @@
+# Whole-image text-to-image candidate. Grounding DINO must first prove that it
+# can recover this dataset's "helmeted head" box semantics on frozen Train data.
+
+schema_version: 1
+status: "labeler_downloaded_waiting_gpu_audit"
+architecture: "whole_image_text_to_image_v10"
+
+generator:
+  repo_id: "black-forest-labs/FLUX.2-klein-base-4B"
+  revision: "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+  pipeline_class: "Flux2KleinPipeline"
+  local_files_only: true
+  dtype: "bfloat16"
+  model_cpu_offload: true
+  width: 416
+  height: 416
+  num_inference_steps: 50
+  guidance_scale: 4.0
+
+labeler:
+  repo_id: "IDEA-Research/grounding-dino-tiny"
+  revision: "a2bb814dd30d776dcf7e30523b00659f4f141c71"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 690305545
+  allow_files:
+    added_tokens.json: 82
+    config.json: 1644
+    model.safetensors: 689359096
+    preprocessor_config.json: 457
+    special_tokens_map.json: 125
+    tokenizer.json: 711396
+    tokenizer_config.json: 1237
+    vocab.txt: 231508
+  local_files_only: true
+
+labeler_audit:
+  root_seed: 20260807
+  calibration_images: 48
+  untouched_audit_images: 48
+  require_group_disjoint_sets: true
+  split_scope: "train_only"
+  phrases:
+    - "a helmeted head"
+    - "a person wearing a safety hard hat"
+    - "a safety hard hat"
+    - "a construction safety helmet"
+  score_thresholds: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40]
+  text_threshold: 0.10
+  match_iou: 0.50
+  calibration_min_precision: 0.85
+  audit_min_precision: 0.80
+  audit_min_recall: 0.70
+  audit_min_median_matched_iou: 0.60
+  validation_images_read: 0
+  test_images_read: 0
+
+generation_gate:
+  allowed: false
+  reason: "automatic labeler has not passed its untouched Train audit"

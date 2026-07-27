@@ -1,0 +1,180 @@
+"""Pinned Grounding DINO loading and box metrics for synthetic auto-labeling."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import torch
+import transformers
+import yaml
+
+from src.data.paths import PROJECT_ROOT, ProjectPaths
+
+CONFIG_PATH = PROJECT_ROOT / "configs" / "whole_image_generation.yaml"
+
+
+def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
+    """Load and validate the preregistered whole-image configuration."""
+
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(config, dict):
+        raise TypeError(f"Expected a mapping in {path}")
+    labeler = config["labeler"]
+    if labeler["license"] != "apache-2.0":
+        raise RuntimeError("The automatic labeler must remain Apache-2.0")
+    if labeler["local_files_only"] is not True:
+        raise RuntimeError("The automatic labeler runtime must remain local-only")
+    expected = sum(int(value) for value in labeler["allow_files"].values())
+    if expected != int(labeler["required_download_bytes"]):
+        raise RuntimeError("Grounding DINO registered file sizes disagree")
+    if config["generation_gate"]["allowed"] is not False:
+        raise RuntimeError("Whole-image generation cannot open before label audit")
+    return config
+
+
+def labeler_directory(paths: ProjectPaths, config: dict[str, Any]) -> Path:
+    """Return the project-isolated Grounding DINO directory."""
+
+    labeler = config["labeler"]
+    slug = str(labeler["repo_id"]).replace("/", "--")
+    return paths.cache / "models" / slug / str(labeler["revision"])
+
+
+def require_verified_labeler(
+    model_dir: Path,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Hard fail unless the labeler manifest matches the frozen registration."""
+
+    manifest_path = model_dir / "SAFESYNTH_MODEL_MANIFEST.json"
+    if not manifest_path.exists():
+        raise RuntimeError("Pinned automatic labeler is not downloaded")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    expected = config["labeler"]
+    if (
+        manifest.get("repo_id") != expected["repo_id"]
+        or manifest.get("revision") != expected["revision"]
+        or manifest.get("license") != expected["license"]
+        or int(manifest.get("download_bytes", -1))
+        != int(expected["required_download_bytes"])
+    ):
+        raise RuntimeError("Automatic labeler manifest does not match registration")
+    return manifest
+
+
+def load_grounding_dino(
+    *,
+    model_dir: Path,
+    config: dict[str, Any],
+    device: str,
+) -> tuple[Any, Any]:
+    """Load the pinned zero-shot detector without network access."""
+
+    require_verified_labeler(model_dir, config)
+    if transformers.__version__ != str(
+        config["labeler"]["transformers_version"]
+    ):
+        raise RuntimeError(
+            "Expected transformers "
+            f"{config['labeler']['transformers_version']}, "
+            f"got {transformers.__version__}"
+        )
+    from transformers import (
+        AutoModelForZeroShotObjectDetection,
+        AutoProcessor,
+    )
+
+    processor = AutoProcessor.from_pretrained(
+        model_dir,
+        local_files_only=True,
+    )
+    model = AutoModelForZeroShotObjectDetection.from_pretrained(
+        model_dir,
+        local_files_only=True,
+        torch_dtype=torch.float32,
+    ).to(device)
+    model.eval()
+    return processor, model
+
+
+def box_iou_xyxy(
+    first: Sequence[float],
+    second: Sequence[float],
+) -> float:
+    """Return intersection-over-union for two xyxy boxes."""
+
+    first_x1, first_y1, first_x2, first_y2 = (
+        float(value) for value in first
+    )
+    second_x1, second_y1, second_x2, second_y2 = (
+        float(value) for value in second
+    )
+    width = max(0.0, min(first_x2, second_x2) - max(first_x1, second_x1))
+    height = max(0.0, min(first_y2, second_y2) - max(first_y1, second_y1))
+    intersection = width * height
+    first_area = max(0.0, first_x2 - first_x1) * max(
+        0.0, first_y2 - first_y1
+    )
+    second_area = max(0.0, second_x2 - second_x1) * max(
+        0.0, second_y2 - second_y1
+    )
+    union = first_area + second_area - intersection
+    return intersection / union if union > 0 else 0.0
+
+
+def greedy_detection_metrics(
+    ground_truth_boxes: Sequence[Sequence[float]],
+    predictions: Sequence[tuple[float, Sequence[float]]],
+    *,
+    score_threshold: float,
+    match_iou: float,
+) -> dict[str, float | int | list[float]]:
+    """Greedily match score-sorted predictions to ground-truth boxes."""
+
+    remaining = set(range(len(ground_truth_boxes)))
+    matched_ious: list[float] = []
+    false_positives = 0
+    filtered = sorted(
+        (
+            (float(score), tuple(float(value) for value in box))
+            for score, box in predictions
+            if float(score) >= score_threshold
+        ),
+        key=lambda item: -item[0],
+    )
+    for _, predicted_box in filtered:
+        if not remaining:
+            false_positives += 1
+            continue
+        best_index, best_iou = max(
+            (
+                (index, box_iou_xyxy(predicted_box, ground_truth_boxes[index]))
+                for index in remaining
+            ),
+            key=lambda item: item[1],
+        )
+        if best_iou >= match_iou:
+            remaining.remove(best_index)
+            matched_ious.append(float(best_iou))
+        else:
+            false_positives += 1
+    true_positives = len(matched_ious)
+    false_negatives = len(remaining)
+    precision = true_positives / max(true_positives + false_positives, 1)
+    recall = true_positives / max(true_positives + false_negatives, 1)
+    return {
+        "true_positives": true_positives,
+        "false_positives": false_positives,
+        "false_negatives": false_negatives,
+        "precision": float(precision),
+        "recall": float(recall),
+        "f1": float(
+            2 * precision * recall / max(precision + recall, np.finfo(float).eps)
+        ),
+        "matched_ious": matched_ious,
+    }
+
