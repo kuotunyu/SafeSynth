@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from huggingface_hub import HfApi, snapshot_download
+from huggingface_hub import HfApi, hf_hub_download
 
 from src.data.paths import load_project_paths
 from src.synthetic.generative_inpaint import (
@@ -89,6 +89,14 @@ def _write_preflight_report(
         encoding="utf-8",
         newline="\n",
     )
+    local_status = (
+        "The registered model is present with a matching verified manifest."
+        if report["already_verified"]
+        else (
+            "The download has not been performed unless `action` is `download` "
+            "and kuotunyu approved the 14.88 GiB transfer explicitly."
+        )
+    )
     lines = [
         "# Option A model preflight",
         "",
@@ -106,8 +114,7 @@ def _write_preflight_report(
         ),
         "- Diffusers release: https://github.com/huggingface/diffusers/releases/tag/v0.39.0",
         "",
-        "The download has not been performed unless `action` is `download` and",
-        "kuotunyu approved the 14.88 GiB transfer explicitly.",
+        local_status,
         "",
     ]
     markdown_path.write_text(
@@ -119,6 +126,40 @@ def _safe_model_directory(model_dir: Path, cache_root: Path) -> Path:
     resolved = model_dir.resolve()
     resolved.relative_to(cache_root.resolve())
     return resolved
+
+
+def _materialize_model_file(
+    *,
+    target: Path,
+    staging: Path,
+    model: dict[str, Any],
+    record: dict[str, Any],
+) -> None:
+    """Download one missing file through a short, resumable staging path."""
+
+    relative_path = Path(str(record["path"]))
+    destination = (target / relative_path).resolve()
+    destination.relative_to(target)
+    expected_bytes = int(record["bytes"])
+    if destination.exists():
+        if destination.is_file() and destination.stat().st_size == expected_bytes:
+            return
+        raise RuntimeError(
+            f"Existing model file has the wrong size; refusing overwrite: {destination}"
+        )
+
+    staged = Path(
+        hf_hub_download(
+            repo_id=str(model["repo_id"]),
+            filename=relative_path.as_posix(),
+            revision=str(model["revision"]),
+            local_dir=staging,
+        )
+    )
+    if not staged.is_file() or staged.stat().st_size != expected_bytes:
+        raise RuntimeError(f"Staged model file failed size check: {staged}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(staged), str(destination))
 
 
 def download_model(
@@ -135,13 +176,20 @@ def download_model(
     target = _safe_model_directory(model_dir, paths.cache)
     target.mkdir(parents=True, exist_ok=True)
     model = config["model"]
-    snapshot_download(
-        repo_id=str(model["repo_id"]),
-        revision=str(model["revision"]),
-        local_dir=target,
-        allow_patterns=list(model["allow_patterns"]),
-        max_workers=2,
+    staging = _safe_model_directory(
+        paths.cache / ".hf-stage-flux2-klein-4b",
+        paths.cache,
     )
+    for record in remote["selected_files"]:
+        _materialize_model_file(
+            target=target,
+            staging=staging,
+            model=model,
+            record=record,
+        )
+    if staging.exists():
+        shutil.rmtree(staging)
+
     files: list[dict[str, Any]] = []
     for record in remote["selected_files"]:
         path = target / str(record["path"])

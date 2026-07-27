@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
-from scripts.generative_model import _matches, remote_preflight
+from scripts.generative_model import (
+    _matches,
+    _materialize_model_file,
+    remote_preflight,
+)
 from src.synthetic.generative_inpaint import load_generative_config
 
 
@@ -45,3 +50,37 @@ def test_remote_preflight_counts_only_runtime_files(monkeypatch) -> None:
     assert report["download_bytes"] == 15_980_131_711
     assert report["passed"] is True
 
+
+def test_materialize_model_file_stages_then_moves(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "long-model-destination"
+    staging = tmp_path / "short-stage"
+    staged = staging / "vae" / "weights.safetensors"
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes(b"verified")
+    calls: list[dict[str, object]] = []
+
+    def fake_download(**kwargs):
+        calls.append(kwargs)
+        return str(staged)
+
+    monkeypatch.setattr("scripts.generative_model.hf_hub_download", fake_download)
+    _materialize_model_file(
+        target=target.resolve(),
+        staging=staging.resolve(),
+        model={"repo_id": "owner/model", "revision": "fixed-revision"},
+        record={"path": "vae/weights.safetensors", "bytes": 8},
+    )
+
+    assert (target / "vae" / "weights.safetensors").read_bytes() == b"verified"
+    assert not staged.exists()
+    assert calls == [
+        {
+            "repo_id": "owner/model",
+            "filename": "vae/weights.safetensors",
+            "revision": "fixed-revision",
+            "local_dir": staging.resolve(),
+        }
+    ]

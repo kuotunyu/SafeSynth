@@ -1,13 +1,13 @@
 {
   "action": "preflight",
-  "already_verified": false,
+  "already_verified": true,
   "checks": {
     "all_selected_sizes_known": true,
     "download_bytes_match": true,
     "license_matches": true,
     "revision_matches": true
   },
-  "destination_free_gib": 1704.6499633789062,
+  "destination_free_gib": 1688.9530181884766,
   "download_bytes": 15980131711,
   "download_gib": 14.882657407782972,
   "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\black-forest-labs--FLUX.2-klein-base-4B\\a3b4f4849157f664bdbc776fd7453c2783562f4d",

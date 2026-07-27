@@ -1,0 +1,27 @@
+{
+  "automated_filter_passed": 51,
+  "automated_filter_rejected": 13,
+  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_generative_identity_pilot.png",
+  "contact_sheet_sha256": "574e39f7ff443e79e2c306ae4dc500ffe6ba605f438d800eef117077d6bdf578",
+  "detail_contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_generative_identity_pilot_detail.png",
+  "detail_contact_sheet_sha256": "6e9a7bea1dd7cdecd61ac7c335d227cc2087374a9db65f3bec9b48e6318137d7",
+  "evidence_alignment": "inline_or_deterministic_geometry_verified",
+  "h4_auc_computed": false,
+  "human_gate": {
+    "label_mismatch_max_count": 0,
+    "observed_label_mismatch_count": null,
+    "observed_severe_identity_failure_count": null,
+    "severe_identity_failure_max_count": 3
+  },
+  "identity_counts": {
+    "generated_instances": 64,
+    "outside_edit_changed_pixels": 0,
+    "protected_core_changed_pixels": 0
+  },
+  "identity_metric_scope": "immediate_inpaint_result_before_global_postfx",
+  "n_images": 64,
+  "root_seed": 20260727,
+  "scenario": "context_replacement",
+  "schema_version": 1,
+  "status": "pending_kuotunyu_visual_review"
+}

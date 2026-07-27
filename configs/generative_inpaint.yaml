@@ -6,7 +6,7 @@
 # by configs/filtering.yaml and is deliberately not repeated here.
 
 schema_version: 1
-status: "preregistered_waiting_for_weight_approval"
+status: "pilot_pending_kuotunyu_visual_review"
 
 model:
   repo_id: "black-forest-labs/FLUX.2-klein-base-4B"
@@ -79,4 +79,3 @@ final_h4:
   control_mode: "pooled"
   max_auc_for_scaleup: 0.60                  # source: fixed (unchanged registered gate)
   one_shot: true
-
