@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +14,7 @@ from src.synthetic.grounded_labeler import (
     greedy_detection_metrics,
     load_whole_image_config,
     predict_single_phrase,
+    require_verified_labeler,
 )
 
 
@@ -31,6 +34,46 @@ def test_open_generation_gate_requires_owner_review(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="without owner approval"):
         load_whole_image_config(path)
+
+
+def test_verified_labeler_rehashes_registered_files(tmp_path) -> None:
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+    model_path = model_dir / "model.safetensors"
+    model_path.write_bytes(b"fixed model")
+    digest = hashlib.sha256(model_path.read_bytes()).hexdigest()
+    config = {
+        "labeler": {
+            "repo_id": "owner/model",
+            "revision": "fixed-revision",
+            "license": "apache-2.0",
+            "required_download_bytes": len(b"fixed model"),
+            "allow_files": {"model.safetensors": len(b"fixed model")},
+        }
+    }
+    manifest = {
+        "repo_id": "owner/model",
+        "revision": "fixed-revision",
+        "license": "apache-2.0",
+        "download_bytes": len(b"fixed model"),
+        "files": [
+            {
+                "path": "model.safetensors",
+                "bytes": len(b"fixed model"),
+                "sha256": digest,
+            }
+        ],
+    }
+    (model_dir / "SAFESYNTH_MODEL_MANIFEST.json").write_text(
+        json.dumps(manifest),
+        encoding="utf-8",
+    )
+
+    require_verified_labeler(model_dir, config)
+    model_path.write_bytes(b"wrong model")
+
+    with pytest.raises(RuntimeError, match="failed integrity"):
+        require_verified_labeler(model_dir, config)
 
 
 def test_box_iou_and_greedy_matching() -> None:

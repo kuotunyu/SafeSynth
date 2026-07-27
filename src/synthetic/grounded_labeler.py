@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -16,6 +17,14 @@ from PIL import Image
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "whole_image_generation.yaml"
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
@@ -77,6 +86,23 @@ def require_verified_labeler(
         != int(expected["required_download_bytes"])
     ):
         raise RuntimeError("Automatic labeler manifest does not match registration")
+    registered_files = {
+        str(record["path"]): record for record in manifest.get("files", [])
+    }
+    if set(registered_files) != set(expected["allow_files"]):
+        raise RuntimeError("Automatic labeler file list changed")
+    for name, expected_size in expected["allow_files"].items():
+        path = model_dir / str(name)
+        record = registered_files[str(name)]
+        if (
+            not path.is_file()
+            or path.stat().st_size != int(expected_size)
+            or int(record.get("bytes", -1)) != int(expected_size)
+            or _sha256(path) != record.get("sha256")
+        ):
+            raise RuntimeError(
+                f"Automatic labeler file failed integrity check: {name}"
+            )
     return manifest
 
 
