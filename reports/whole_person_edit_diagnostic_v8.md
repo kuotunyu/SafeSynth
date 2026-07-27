@@ -1,6 +1,6 @@
 # Whole-person edit v8 GPU diagnostic
 
-- Status: **pending kuotunyu output review**
+- Status: **rejected by kuotunyu; no 64-case scale-up**
 - Model: `black-forest-labs/FLUX.2-klein-base-4B`
 - Revision: `a3b4f4849157f664bdbc776fd7453c2783562f4d`
 - Exact approved input manifest:
@@ -10,15 +10,14 @@
 - Expanded to 64: **no**
 - H4 AUC computed: **no**
 
-## Preliminary visual assessment
+## Binding human review
 
-- Cases 1 and 2 remain visually plausible, but the reference produces little
-  useful semantic or appearance change.
-- Case 3 has a severe head/face/body integration failure.
-- Case 4 has a severe nearly uniform red human-shaped output failure.
-
-This assessment is not the binding human gate. The exact four-output sheet is
-waiting for `kuotunyu` to accept or reject each case.
+- Case 1: **PASS** — 做得很好。
+- Case 2: **PASS** — 做得很好。
+- Case 3: **FAIL** — 一看就是後製。
+- Case 4: **SEVERE FAIL** — 嚴重失敗。
+- Total: **2 pass / 2 fail**, including **1 severe failure**.
+- Decision: **do not expand v8 to 64 cases**.
 
 ## Scientific boundary
 

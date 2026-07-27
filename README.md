@@ -70,7 +70,11 @@ preserved source position and core pixels but left only 22 strict donors across
 19 groups and exhausted all 3,500 Train backgrounds at 63/64 drafts. Raising
 the reuse cap after seeing that result was rejected, and the pool cannot support
 the later 300-image H4 gate honestly. Whole-person pasting is therefore stopped.
-No new H4 AUC has been computed, M13 remains closed, and Phase 2 has not started.
+A final Train-only v8 diagnostic edited an existing worker in place instead of
+pasting one. `kuotunyu` passed cases 01 and 02, rejected case 03 for obvious
+post-production appearance, and marked case 04 a severe failure. The fixed
+four-case result is therefore rejected without a 64-case scale-up. No new H4
+AUC has been computed, M13 remains closed, and Phase 2 has not started.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

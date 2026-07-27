@@ -182,5 +182,34 @@
   ],
   "root_seed": 20260804,
   "schema_version": 1,
-  "status": "pending_kuotunyu_output_review"
+  "status": "rejected_by_kuotunyu_no_scaleup",
+  "human_review": {
+    "reviewed_by": "kuotunyu",
+    "pass_count": 2,
+    "failure_count": 2,
+    "severe_failure_count": 1,
+    "cases": [
+      {
+        "case_index": 1,
+        "decision": "pass",
+        "comment": "做得很好"
+      },
+      {
+        "case_index": 2,
+        "decision": "pass",
+        "comment": "做得很好"
+      },
+      {
+        "case_index": 3,
+        "decision": "fail_postproduction_appearance",
+        "comment": "一看就是後製"
+      },
+      {
+        "case_index": 4,
+        "decision": "severe_failure",
+        "comment": "嚴重失敗"
+      }
+    ],
+    "expand_to_64": false
+  }
 }
