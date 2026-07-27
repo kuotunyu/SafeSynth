@@ -1,0 +1,19 @@
+{
+  "architecture": "guarded_context_replacement_v3",
+  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_guarded_input_preflight_v3_failed.png",
+  "contact_sheet_sha256": "4e5f67f98bedf986e86e042dcb29f65013952cdcfe2f87488127095fc5c908b3",
+  "geometry_fingerprint_sha256": "ff1fcf4fc6b5054f8013232a18c579f75a991cad81dde0816efebd30eaa144d1",
+  "h4_auc_computed": false,
+  "input_issue_max_count": 0,
+  "model_inference_run": false,
+  "n_images": 64,
+  "known_input_issue_cells": [
+    64
+  ],
+  "observed_input_issue_count": 1,
+  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260729",
+  "reviewed_by": "development_sanity_check",
+  "root_seed": 20260729,
+  "schema_version": 1,
+  "status": "failed_before_kuotunyu_review"
+}

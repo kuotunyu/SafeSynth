@@ -154,16 +154,15 @@ compose:
       anchor_min_edge_margin_px: 8               # source: fixed (edit-band guard)
       anchor_min_edge_margin_long_side_fraction: 0.10  # source: fixed
       reflected_padding:
-        # v3 addition after the CPU-only v2 input sheet still exposed obvious
-        # mirrored padding. Both opposite borders must be near-exact reflections
-        # at the same inferred pad width; conservative thresholds leave ambiguous
-        # images in the pool and remove only high-confidence preprocessing seams.
-        min_pad_px: 16                           # source: fixed
+        # v5 normalizes each detected mirrored border independently before the
+        # label/anchor guard. The clean center is resized with preserved aspect
+        # ratio and center-cropped back to the fixed 416 px canvas.
+        action: "normalize_cover_crop"            # source: fixed
+        min_pad_px: 8                            # source: fixed
         max_pad_fraction: 0.31                   # source: fixed
-        seam_probe_px: 16                        # source: fixed
         orthogonal_sample_size: 64               # source: fixed
-        max_pair_mae: 2.0                        # source: fixed (0-255 grayscale)
-        min_pair_correlation: 0.995              # source: fixed
+        max_pair_mae: 3.0                        # source: fixed (0-255 grayscale)
+        min_pair_correlation: 0.97               # source: fixed
         min_texture_std: 5.0                     # source: fixed
 
   # --- transforms ---

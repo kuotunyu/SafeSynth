@@ -63,3 +63,10 @@ repeated random failures.
 
 The v2 root seed `20260728` and original failed seed `20260727` are historical
 evidence only and may not be reused for v3.
+
+## Historical outcome
+
+The v3 input sheet was generated with no model inference, then stopped during
+development sanity review before `kuotunyu` approval. Canonical cell 64
+contained a low-texture right-edge reflection that narrowly missed the v3
+correlation floor. The sheet is preserved as failed evidence; v4 supersedes it.

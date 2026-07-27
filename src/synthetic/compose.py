@@ -68,14 +68,26 @@ class Paste:
 
 
 @dataclass(frozen=True)
-class ReflectedAxisScore:
-    """High-confidence reflected-padding score for one image axis."""
+class ReflectedBorderScore:
+    """High-confidence reflected-padding score for one image border."""
 
-    max_pair_mae: float
-    min_pair_correlation: float
-    min_texture_std: float
+    pair_mae: float
+    pair_correlation: float
+    texture_std: float
     pad_px: int
     detected: bool
+
+
+@dataclass(frozen=True)
+class ReflectedAxisScore:
+    """Independent reflected-padding scores for both ends of one image axis."""
+
+    start: ReflectedBorderScore
+    end: ReflectedBorderScore
+
+    @property
+    def detected(self) -> bool:
+        return self.start.detected or self.end.detected
 
 
 @dataclass(frozen=True)
@@ -89,6 +101,21 @@ class ReflectedPaddingResult:
 
 
 @dataclass(frozen=True)
+class ReflectedPaddingNormalization:
+    """Deterministic crop/resize transform used to remove mirrored borders."""
+
+    applied: bool
+    crop_xyxy: tuple[int, int, int, int]
+    resized_width: int
+    resized_height: int
+    offset_x: int
+    offset_y: int
+    output_width: int
+    output_height: int
+    detected_sides: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ContextReplacementGuardResult:
     """CPU-only eligibility decision for one context-replacement background."""
 
@@ -98,6 +125,17 @@ class ContextReplacementGuardResult:
     background_min_headlike_edge_margin_px: float | None
     reflected_padding: ReflectedPaddingResult | None
     reject_reason: str | None
+
+
+@dataclass(frozen=True)
+class PreparedContextBackground:
+    """Normalized context-replacement pixels, labels, masks, and guard result."""
+
+    image_rgb: np.ndarray
+    annotations: tuple[dict[str, Any], ...]
+    pass1: dict[int, dict[str, Any]]
+    guard: ContextReplacementGuardResult
+    normalization: ReflectedPaddingNormalization
 
 
 def _read_json(path: Path) -> Any:
@@ -144,6 +182,16 @@ def _decode_rle(segmentation: Mapping[str, Any]) -> np.ndarray:
         "counts": str(segmentation["counts"]).encode("ascii"),
     }
     return mask_utils.decode(rle).astype(bool)
+
+
+def _encode_rle(mask: np.ndarray) -> dict[str, Any]:
+    encoded = mask_utils.encode(
+        np.asfortranarray(np.asarray(mask, dtype=np.uint8))
+    )
+    return {
+        "size": [int(value) for value in encoded["size"]],
+        "counts": encoded["counts"].decode("ascii"),
+    }
 
 
 def _phash_hex(image_rgb: np.ndarray) -> str:
@@ -294,51 +342,47 @@ def _reflected_axis_score(
         int(np.floor(length * float(guard_config["max_pad_fraction"]))),
         (length - 1) // 2,
     )
-    probe = int(guard_config["seam_probe_px"])
-    if min_pad < probe or min_pad > max_pad:
+    if min_pad > max_pad:
         raise ValueError("Invalid reflected-padding search bounds")
 
-    best_local_mae = float("inf")
-    best_pad = min_pad
-    for pad in range(min_pad, max_pad + 1):
-        top_local = np.abs(
-            sampled[pad - probe : pad] - sampled[pad : pad + probe][::-1]
-        ).mean()
-        bottom_start = length - pad
-        bottom_local = np.abs(
-            sampled[bottom_start - probe : bottom_start]
-            - sampled[bottom_start : bottom_start + probe][::-1]
-        ).mean()
-        local_mae = float((top_local + bottom_local) / 2)
-        if local_mae < best_local_mae:
-            best_local_mae = local_mae
-            best_pad = pad
+    def border_score(*, start: bool) -> ReflectedBorderScore:
+        candidates: list[tuple[float, float, float, int]] = []
+        for pad in range(min_pad, max_pad + 1):
+            if start:
+                border = sampled[:pad]
+                interior = sampled[pad : 2 * pad][::-1]
+            else:
+                border = sampled[-pad:]
+                interior = sampled[-2 * pad : -pad][::-1]
+            candidates.append(
+                (
+                    float(np.abs(border - interior).mean()),
+                    _flat_correlation(border, interior),
+                    float(border.std()),
+                    pad,
+                )
+            )
+        pair_mae, pair_correlation, texture_std, pad_px = min(
+            candidates,
+            key=lambda item: item[0],
+        )
+        detected = (
+            pair_mae <= float(guard_config["max_pair_mae"])
+            and pair_correlation
+            >= float(guard_config["min_pair_correlation"])
+            and texture_std >= float(guard_config["min_texture_std"])
+        )
+        return ReflectedBorderScore(
+            pair_mae=pair_mae,
+            pair_correlation=pair_correlation,
+            texture_std=texture_std,
+            pad_px=pad_px,
+            detected=detected,
+        )
 
-    pairs = (
-        (sampled[:best_pad], sampled[best_pad : 2 * best_pad][::-1]),
-        (sampled[-best_pad:], sampled[-2 * best_pad : -best_pad][::-1]),
-    )
-    pair_maes = [
-        float(np.abs(first - second).mean()) for first, second in pairs
-    ]
-    pair_correlations = [
-        _flat_correlation(first, second) for first, second in pairs
-    ]
-    texture_stds = [float(first.std()) for first, _ in pairs]
-    max_mae = max(pair_maes)
-    min_correlation = min(pair_correlations)
-    min_texture = min(texture_stds)
-    detected = (
-        max_mae <= float(guard_config["max_pair_mae"])
-        and min_correlation >= float(guard_config["min_pair_correlation"])
-        and min_texture >= float(guard_config["min_texture_std"])
-    )
     return ReflectedAxisScore(
-        max_pair_mae=max_mae,
-        min_pair_correlation=min_correlation,
-        min_texture_std=min_texture,
-        pad_px=best_pad,
-        detected=detected,
+        start=border_score(start=True),
+        end=border_score(start=False),
     )
 
 
@@ -347,7 +391,7 @@ def reflected_padding_guard(
     *,
     guard_config: Mapping[str, Any],
 ) -> ReflectedPaddingResult:
-    """Detect only near-exact mirrored padding at opposite image borders."""
+    """Detect near-exact mirrored padding independently at all four borders."""
 
     image = np.asarray(image_rgb, dtype=np.uint8)
     if image.ndim != 3 or image.shape[2] != 3:
@@ -371,6 +415,169 @@ def reflected_padding_guard(
         detected_axes=detected_axes,
         top_bottom=top_bottom,
         left_right=left_right,
+    )
+
+
+def normalize_reflected_padding(
+    image_rgb: np.ndarray,
+    *,
+    annotations: Sequence[Mapping[str, Any]],
+    pass1: Mapping[int, Mapping[str, Any]],
+    reflection: ReflectedPaddingResult,
+    output_shape: tuple[int, int],
+    transform_masks: bool = True,
+) -> tuple[
+    np.ndarray,
+    tuple[dict[str, Any], ...],
+    dict[int, dict[str, Any]],
+    ReflectedPaddingNormalization,
+]:
+    """Remove detected mirrored borders, then resize-cover and center-crop."""
+
+    image = np.asarray(image_rgb, dtype=np.uint8)
+    height, width = image.shape[:2]
+    output_height, output_width = output_shape
+    top = (
+        reflection.top_bottom.start.pad_px
+        if reflection.top_bottom.start.detected
+        else 0
+    )
+    bottom = (
+        height - reflection.top_bottom.end.pad_px
+        if reflection.top_bottom.end.detected
+        else height
+    )
+    left = (
+        reflection.left_right.start.pad_px
+        if reflection.left_right.start.detected
+        else 0
+    )
+    right = (
+        width - reflection.left_right.end.pad_px
+        if reflection.left_right.end.detected
+        else width
+    )
+    detected_sides = tuple(
+        name
+        for name, detected in (
+            ("top", reflection.top_bottom.start.detected),
+            ("bottom", reflection.top_bottom.end.detected),
+            ("left", reflection.left_right.start.detected),
+            ("right", reflection.left_right.end.detected),
+        )
+        if detected
+    )
+    if not detected_sides and (height, width) == output_shape:
+        normalization = ReflectedPaddingNormalization(
+            applied=False,
+            crop_xyxy=(0, 0, width, height),
+            resized_width=width,
+            resized_height=height,
+            offset_x=0,
+            offset_y=0,
+            output_width=output_width,
+            output_height=output_height,
+            detected_sides=(),
+        )
+        return (
+            image.copy(),
+            tuple(dict(annotation) for annotation in annotations),
+            {
+                int(annotation_id): dict(record)
+                for annotation_id, record in pass1.items()
+            },
+            normalization,
+        )
+    if left >= right or top >= bottom:
+        raise ValueError("Reflected-padding crop removed the whole image")
+
+    crop_width = right - left
+    crop_height = bottom - top
+    scale = max(output_width / crop_width, output_height / crop_height)
+    resized_width = max(output_width, round(crop_width * scale))
+    resized_height = max(output_height, round(crop_height * scale))
+    offset_x = (resized_width - output_width) // 2
+    offset_y = (resized_height - output_height) // 2
+    cropped = image[top:bottom, left:right]
+    resized = cv2.resize(
+        cropped,
+        (resized_width, resized_height),
+        interpolation=cv2.INTER_CUBIC,
+    )
+    normalized = resized[
+        offset_y : offset_y + output_height,
+        offset_x : offset_x + output_width,
+    ]
+    scale_x = resized_width / crop_width
+    scale_y = resized_height / crop_height
+
+    def transform_mask(mask: np.ndarray) -> np.ndarray:
+        cropped_mask = np.asarray(mask, dtype=np.uint8)[top:bottom, left:right]
+        resized_mask = cv2.resize(
+            cropped_mask,
+            (resized_width, resized_height),
+            interpolation=cv2.INTER_NEAREST,
+        )
+        return resized_mask[
+            offset_y : offset_y + output_height,
+            offset_x : offset_x + output_width,
+        ].astype(bool)
+
+    transformed_annotations: list[dict[str, Any]] = []
+    transformed_pass1: dict[int, dict[str, Any]] = {}
+    for source in annotations:
+        annotation = dict(source)
+        annotation_id = int(annotation["id"])
+        x, y, box_width, box_height = (
+            float(value) for value in annotation["bbox"]
+        )
+        x1 = (x - left) * scale_x - offset_x
+        y1 = (y - top) * scale_y - offset_y
+        x2 = (x + box_width - left) * scale_x - offset_x
+        y2 = (y + box_height - top) * scale_y - offset_y
+        clipped_x1 = min(max(0.0, x1), float(output_width))
+        clipped_y1 = min(max(0.0, y1), float(output_height))
+        clipped_x2 = min(max(0.0, x2), float(output_width))
+        clipped_y2 = min(max(0.0, y2), float(output_height))
+        if clipped_x2 <= clipped_x1 or clipped_y2 <= clipped_y1:
+            continue
+        transformed_bbox = [
+            clipped_x1,
+            clipped_y1,
+            clipped_x2 - clipped_x1,
+            clipped_y2 - clipped_y1,
+        ]
+        annotation["bbox"] = transformed_bbox
+        annotation["area"] = transformed_bbox[2] * transformed_bbox[3]
+        transformed_annotations.append(annotation)
+
+        mask_record = dict(pass1[annotation_id])
+        if transform_masks and bool(mask_record["qc_pass"]):
+            transformed_mask = transform_mask(
+                _decode_rle(mask_record["segmentation"])
+            )
+            if transformed_mask.any():
+                mask_record["segmentation"] = _encode_rle(transformed_mask)
+            else:
+                mask_record["qc_pass"] = False
+        transformed_pass1[annotation_id] = mask_record
+
+    normalization = ReflectedPaddingNormalization(
+        applied=bool(detected_sides),
+        crop_xyxy=(left, top, right, bottom),
+        resized_width=resized_width,
+        resized_height=resized_height,
+        offset_x=offset_x,
+        offset_y=offset_y,
+        output_width=output_width,
+        output_height=output_height,
+        detected_sides=detected_sides,
+    )
+    return (
+        normalized,
+        tuple(transformed_annotations),
+        transformed_pass1,
+        normalization,
     )
 
 
@@ -474,6 +681,66 @@ def context_replacement_input_guard(
     )
 
 
+def prepare_context_replacement_background(
+    *,
+    image_rgb: np.ndarray,
+    annotations: Sequence[Mapping[str, Any]],
+    categories: Mapping[int, str],
+    pass1: Mapping[int, Mapping[str, Any]],
+    guard_config: Mapping[str, Any],
+    output_shape: tuple[int, int],
+    transform_masks: bool,
+) -> PreparedContextBackground:
+    """Normalize mirrored borders before applying label and anchor guards."""
+
+    reflection_config = guard_config.get("reflected_padding")
+    if reflection_config is None:
+        raise ValueError("Context normalization requires reflected-padding config")
+    reflection = reflected_padding_guard(
+        image_rgb,
+        guard_config=reflection_config,
+    )
+    normalized, transformed_annotations, transformed_pass1, normalization = (
+        normalize_reflected_padding(
+            image_rgb,
+            annotations=annotations,
+            pass1=pass1,
+            reflection=reflection,
+            output_shape=output_shape,
+            transform_masks=transform_masks,
+        )
+    )
+    post_normalization_config = {
+        key: value
+        for key, value in guard_config.items()
+        if key != "reflected_padding"
+    }
+    post_guard = context_replacement_input_guard(
+        image_shape=normalized.shape[:2],
+        annotations=transformed_annotations,
+        categories=categories,
+        pass1=transformed_pass1,
+        guard_config=post_normalization_config,
+    )
+    guard = ContextReplacementGuardResult(
+        accepted=post_guard.accepted,
+        eligible_annotation_ids=post_guard.eligible_annotation_ids,
+        anchor_margins=post_guard.anchor_margins,
+        background_min_headlike_edge_margin_px=(
+            post_guard.background_min_headlike_edge_margin_px
+        ),
+        reflected_padding=reflection,
+        reject_reason=post_guard.reject_reason,
+    )
+    return PreparedContextBackground(
+        image_rgb=normalized,
+        annotations=transformed_annotations,
+        pass1=transformed_pass1,
+        guard=guard,
+        normalization=normalization,
+    )
+
+
 def _guarded_context_background_ids(
     *,
     paths: ProjectPaths,
@@ -491,15 +758,16 @@ def _guarded_context_background_ids(
         image_rgb = np.asarray(
             Image.open(paths.hardhat_raw / str(image["file_name"])).convert("RGB")
         )
-        result = context_replacement_input_guard(
+        prepared = prepare_context_replacement_background(
             image_rgb=image_rgb,
-            image_shape=image_rgb.shape[:2],
             annotations=annotations[image_id],
             categories=categories,
             pass1=_load_pass1(paths, image_id),
             guard_config=guard_config,
+            output_shape=image_rgb.shape[:2],
+            transform_masks=False,
         )
-        if result.accepted:
+        if prepared.guard.accepted:
             accepted.append(image_id)
     return np.asarray(accepted, dtype=np.int64)
 
@@ -1099,24 +1367,32 @@ def _build_sample(
     image_shape = original.shape[:2]
     pass1 = _load_pass1(paths, int(background["id"]))
     settings = config["scenarios"][scenario]
-    annotations_by_id = {
-        int(annotation["id"]): annotation for annotation in background_annotations
-    }
     context_guard: ContextReplacementGuardResult | None = None
+    context_normalization: ReflectedPaddingNormalization | None = None
     if scenario == "context_replacement":
-        context_guard = context_replacement_input_guard(
+        prepared = prepare_context_replacement_background(
             image_rgb=original,
-            image_shape=image_shape,
             annotations=background_annotations,
             categories=categories,
             pass1=pass1,
             guard_config=config["compose"]["context_replacement"]["input_guard"],
+            output_shape=image_shape,
+            transform_masks=True,
         )
+        original = prepared.image_rgb
+        image_shape = original.shape[:2]
+        background_annotations = prepared.annotations
+        pass1 = prepared.pass1
+        context_guard = prepared.guard
+        context_normalization = prepared.normalization
         if not context_guard.accepted:
             raise RuntimeError(
                 "Could not place scenario=context_replacement "
                 f"on image={background['id']}: {context_guard.reject_reason}"
             )
+    annotations_by_id = {
+        int(annotation["id"]): annotation for annotation in background_annotations
+    }
     max_attempts = int(config["compose"]["bbox"]["max_placement_retries"])
     last_reason = "PLACEMENT_RETRIES_EXHAUSTED"
     for _ in range(max_attempts):
@@ -1433,16 +1709,32 @@ def _build_sample(
             },
         }
         if context_guard is not None and replacement_anchor is not None:
+            if context_normalization is None:
+                raise AssertionError("Context normalization provenance is missing")
             anchor_id = int(replacement_anchor["id"])
             _, anchor_margin, required_margin = next(
                 item for item in context_guard.anchor_margins if item[0] == anchor_id
             )
             record["context_replacement_input_guard"] = {
-                "version": "v3",
+                "version": "v5",
                 "background_min_headlike_edge_margin_px": (
                     context_guard.background_min_headlike_edge_margin_px
                 ),
-                "background_reflected_padding_detected": False,
+                "background_reflected_padding_detected": bool(
+                    context_guard.reflected_padding
+                    and context_guard.reflected_padding.detected
+                ),
+                "background_normalization": {
+                    "applied": context_normalization.applied,
+                    "crop_xyxy": list(context_normalization.crop_xyxy),
+                    "resized_width": context_normalization.resized_width,
+                    "resized_height": context_normalization.resized_height,
+                    "offset_x": context_normalization.offset_x,
+                    "offset_y": context_normalization.offset_y,
+                    "output_width": context_normalization.output_width,
+                    "output_height": context_normalization.output_height,
+                    "detected_sides": list(context_normalization.detected_sides),
+                },
                 "selected_anchor_edge_margin_px": anchor_margin,
                 "selected_anchor_required_edge_margin_px": required_margin,
                 "selected_anchor_sam2_qc_pass": True,

@@ -4,6 +4,8 @@ import numpy as np
 
 from src.synthetic.compose import (
     Paste,
+    _decode_rle,
+    _encode_rle,
     _generative_seed,
     _requested_classes,
     _sample_seed,
@@ -11,6 +13,7 @@ from src.synthetic.compose import (
     _transform_scale,
     _visible_paste_masks,
     context_replacement_input_guard,
+    normalize_reflected_padding,
     reflected_padding_guard,
 )
 from src.synthetic.composition import Layer
@@ -164,12 +167,12 @@ def test_context_replacement_guard_keeps_only_safe_qc_anchors() -> None:
 
 def reflection_config() -> dict:
     return {
-        "min_pad_px": 16,
+        "action": "normalize_cover_crop",
+        "min_pad_px": 8,
         "max_pad_fraction": 0.31,
-        "seam_probe_px": 16,
         "orthogonal_sample_size": 64,
-        "max_pair_mae": 2.0,
-        "min_pair_correlation": 0.995,
+        "max_pair_mae": 3.0,
+        "min_pair_correlation": 0.97,
         "min_texture_std": 5.0,
     }
 
@@ -186,8 +189,38 @@ def test_reflected_padding_guard_detects_exact_top_bottom_mirror() -> None:
 
     assert result.detected
     assert result.detected_axes == ("top_bottom",)
-    assert result.top_bottom.pad_px == 20
-    assert result.top_bottom.max_pair_mae == 0
+    assert result.top_bottom.start.pad_px == 20
+    assert result.top_bottom.end.pad_px == 20
+    assert result.top_bottom.start.pair_mae == 0
+    assert result.top_bottom.end.pair_mae == 0
+
+
+def test_reflected_padding_guard_detects_low_texture_near_mirror() -> None:
+    rng = np.random.default_rng(123)
+    center = np.clip(
+        128 + rng.normal(0, 10, size=(80, 60, 3)),
+        0,
+        255,
+    ).astype(np.uint8)
+    image = np.concatenate(
+        [center[:20][::-1], center, center[-20:][::-1]],
+        axis=0,
+    ).astype(np.int16)
+    noise = np.zeros_like(image)
+    noise[:20] = np.rint(
+        rng.normal(0, 2, size=noise[:20].shape)
+    ).astype(np.int16)
+    noise[-20:] = np.rint(
+        rng.normal(0, 2, size=noise[-20:].shape)
+    ).astype(np.int16)
+    image = np.clip(image + noise, 0, 255).astype(np.uint8)
+
+    result = reflected_padding_guard(image, guard_config=reflection_config())
+
+    assert result.detected
+    assert 0.97 <= result.top_bottom.start.pair_correlation < 0.995
+    assert result.top_bottom.start.pair_mae <= 3.0
+    assert result.top_bottom.start.texture_std >= 5.0
 
 
 def test_reflected_padding_guard_keeps_unrelated_borders() -> None:
@@ -202,6 +235,48 @@ def test_reflected_padding_guard_keeps_unrelated_borders() -> None:
 
     assert not result.detected
     assert result.detected_axes == ()
+
+
+def test_reflected_padding_normalization_transforms_labels_and_masks() -> None:
+    rng = np.random.default_rng(91)
+    center = rng.integers(0, 256, size=(60, 100, 3), dtype=np.uint8)
+    image = np.concatenate(
+        [center[:20][::-1], center, center[-20:][::-1]],
+        axis=0,
+    )
+    mask = np.zeros((100, 100), dtype=bool)
+    mask[30:50, 40:60] = True
+    annotations = [{"id": 7, "category_id": 1, "bbox": [40, 30, 20, 20]}]
+    pass1 = {
+        7: {
+            "qc_pass": True,
+            "segmentation": _encode_rle(mask),
+        }
+    }
+    reflection = reflected_padding_guard(
+        image,
+        guard_config=reflection_config(),
+    )
+
+    normalized, transformed, transformed_pass1, provenance = (
+        normalize_reflected_padding(
+            image,
+            annotations=annotations,
+            pass1=pass1,
+            reflection=reflection,
+            output_shape=(100, 100),
+        )
+    )
+
+    assert normalized.shape == (100, 100, 3)
+    assert provenance.applied
+    assert provenance.crop_xyxy == (0, 20, 100, 80)
+    assert provenance.detected_sides == ("top", "bottom")
+    assert len(transformed) == 1
+    assert transformed[0]["bbox"][2] > 30
+    transformed_mask = _decode_rle(transformed_pass1[7]["segmentation"])
+    assert transformed_mask.shape == (100, 100)
+    assert transformed_mask.any()
 
 
 def test_visible_paste_mask_excludes_only_layers_in_front() -> None:

@@ -17,7 +17,7 @@ from src.synthetic.compose import (
     _load_configs,
     _load_context,
     _load_pass1,
-    context_replacement_input_guard,
+    prepare_context_replacement_background,
 )
 
 
@@ -56,66 +56,99 @@ def main() -> None:
     accepted_background_ids: set[int] = set()
     eligible_anchor_count = 0
     decisions: dict[int, Any] = {}
+    normalizations: dict[int, Any] = {}
+    normalization_side_counts: Counter[str] = Counter()
     for image_id in sorted(train_images):
         image = train_images[image_id]
         image_rgb = np.asarray(
             Image.open(paths.hardhat_raw / str(image["file_name"])).convert("RGB")
         )
-        result = context_replacement_input_guard(
+        prepared = prepare_context_replacement_background(
             image_rgb=image_rgb,
-            image_shape=image_rgb.shape[:2],
             annotations=annotations[image_id],
             categories=categories,
             pass1=_load_pass1(paths, image_id),
             guard_config=guard_config,
+            output_shape=image_rgb.shape[:2],
+            transform_masks=False,
         )
+        result = prepared.guard
         decisions[image_id] = result
+        normalizations[image_id] = prepared.normalization
+        normalization_side_counts.update(prepared.normalization.detected_sides)
         if result.accepted:
             accepted_background_ids.add(image_id)
             eligible_anchor_count += len(result.eligible_annotation_ids)
         else:
             reason_counts[str(result.reject_reason)] += 1
 
-    previous_seed = int(generative_config["pilot"]["previous_failed_root_seed"])
-    previous_records_path = (
-        paths.synthetic
-        / f"h4_guarded_input_preflight_seed{previous_seed}"
-        / "records.jsonl"
-    )
-    previous_records = _read_jsonl(previous_records_path)
-    rejected_previous_cells = [
-        index
-        for index, record in enumerate(previous_records, start=1)
-        if not decisions[int(record["background"]["image_id"])].accepted
-    ]
-    known_failure_cells = [11, 25]
-    known_failure_cells_rejected = all(
-        cell in rejected_previous_cells for cell in known_failure_cells
-    )
-    if not known_failure_cells_rejected:
-        raise AssertionError("The preregistered guard missed a known pilot failure")
+    def historical_case(
+        *,
+        seed: int,
+        output_tag: str,
+        known_failure_cells: list[int],
+    ) -> dict[str, Any]:
+        records = _read_jsonl(
+            paths.synthetic / output_tag.format(seed=seed) / "records.jsonl"
+        )
+        normalized_cells = [
+            index
+            for index, record in enumerate(records, start=1)
+            if normalizations[int(record["background"]["image_id"])].applied
+        ]
+        rejected_cells = [
+            index
+            for index, record in enumerate(records, start=1)
+            if not decisions[int(record["background"]["image_id"])].accepted
+        ]
+        resolved_cells = sorted(set(normalized_cells) | set(rejected_cells))
+        known_resolved = all(
+            cell in resolved_cells for cell in known_failure_cells
+        )
+        if not known_resolved:
+            raise AssertionError(
+                f"The v5 preflight missed known failures for seed {seed}"
+            )
+        return {
+            "root_seed": seed,
+            "n_images": len(records),
+            "normalized_cell_count": len(normalized_cells),
+            "normalized_cells": normalized_cells,
+            "rejected_after_normalization_cell_count": len(rejected_cells),
+            "rejected_after_normalization_cells": rejected_cells,
+            "known_failure_cells": known_failure_cells,
+            "known_failure_cells_normalized_or_rejected": known_resolved,
+        }
 
-    original_seed = int(generative_config["pilot"]["original_failed_root_seed"])
-    original_records = _read_jsonl(
-        paths.synthetic
-        / f"h4_generative_identity_pilot_seed{original_seed}"
-        / "records.jsonl"
+    pilot = generative_config["pilot"]
+    previous_seed = int(pilot["previous_failed_root_seed"])
+    v4_history = historical_case(
+        seed=previous_seed,
+        output_tag="h4_guarded_input_preflight_seed{seed}",
+        known_failure_cells=[7, 54],
     )
-    rejected_original_cells = [
-        index
-        for index, record in enumerate(original_records, start=1)
-        if not decisions[int(record["background"]["image_id"])].accepted
-    ]
-    original_known_failure_cells = [10, 12]
-    if not all(
-        cell in rejected_original_cells for cell in original_known_failure_cells
-    ):
-        raise AssertionError("The v3 guard missed an original known pilot failure")
+    v3_history = historical_case(
+        seed=int(pilot["v3_failed_root_seed"]),
+        output_tag="h4_guarded_input_preflight_seed{seed}",
+        known_failure_cells=[64],
+    )
+    v2_history = historical_case(
+        seed=int(pilot["v2_failed_root_seed"]),
+        output_tag="h4_guarded_input_preflight_seed{seed}",
+        known_failure_cells=[11, 25],
+    )
+    original_history = historical_case(
+        seed=int(pilot["original_failed_root_seed"]),
+        output_tag="h4_generative_identity_pilot_seed{seed}",
+        known_failure_cells=[10, 12],
+    )
 
     payload = {
         "schema_version": 1,
         "status": "guard_audit_complete_no_model_inference",
-        "scope": "Train metadata, Pass-1 QC, and rejected pilot provenance only",
+        "scope": (
+            "Train pixels, metadata, Pass-1 QC, and failed-pilot provenance only"
+        ),
         "validation_images_read": 0,
         "test_images_read": 0,
         "model_inference_run": False,
@@ -128,22 +161,19 @@ def main() -> None:
             "rejected": len(train_images) - len(accepted_background_ids),
             "reject_reasons": dict(sorted(reason_counts.items())),
             "eligible_anchor_count": eligible_anchor_count,
+            "normalization_applied": sum(
+                normalization.applied
+                for normalization in normalizations.values()
+            ),
+            "normalized_side_counts": dict(
+                sorted(normalization_side_counts.items())
+            ),
         },
-        "rejected_v2_input_preflight": {
-            "root_seed": previous_seed,
-            "n_images": len(previous_records),
-            "rejected_cell_count": len(rejected_previous_cells),
-            "rejected_cells": rejected_previous_cells,
-            "known_failure_cells": known_failure_cells,
-            "known_failure_cells_rejected": known_failure_cells_rejected,
-        },
-        "rejected_original_pilot": {
-            "root_seed": original_seed,
-            "n_images": len(original_records),
-            "rejected_cell_count": len(rejected_original_cells),
-            "rejected_cells": rejected_original_cells,
-            "known_failure_cells": original_known_failure_cells,
-            "known_failure_cells_rejected": True,
+        "historical_failed_inputs": {
+            "v4": v4_history,
+            "v3": v3_history,
+            "v2": v2_history,
+            "original": original_history,
         },
         "next_pilot": {
             "architecture": generative_config["pilot"]["architecture"],
@@ -153,7 +183,7 @@ def main() -> None:
         },
     }
     json_path = (
-        PROJECT_ROOT / "reports" / "h4_reflection_guard_v3_audit.json"
+        PROJECT_ROOT / "reports" / "h4_reflection_normalization_v5_audit.json"
     )
     json_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
@@ -162,7 +192,7 @@ def main() -> None:
     )
     reasons = payload["train_backgrounds"]["reject_reasons"]
     markdown = [
-        "# H4 reflected-padding guard v3 CPU audit",
+        "# H4 reflected-padding normalization v5 CPU audit",
         "",
         "- Status: **complete; no model inference**",
         "- Data scope: Train metadata, Pass-1 QC, and rejected-pilot provenance",
@@ -172,18 +202,27 @@ def main() -> None:
             "- Train backgrounds accepted: "
             f"**{len(accepted_background_ids):,}/{len(train_images):,}**"
         ),
+        (
+            "- Train backgrounds normalized: "
+            f"**{payload['train_backgrounds']['normalization_applied']:,}/"
+            f"{len(train_images):,}**"
+        ),
         f"- Eligible anchors remaining: **{eligible_anchor_count:,}**",
         (
-            "- Failed v2 input-sheet cells rejected by the guard: "
-            f"**{len(rejected_previous_cells)}/{len(previous_records)}**"
+            "- Known v4 failure cells 7 and 54 normalized or rejected: "
+            f"**{'yes' if v4_history['known_failure_cells_normalized_or_rejected'] else 'no'}**"
         ),
         (
-            "- Known v2 failure cells 11 and 25 rejected: "
-            f"**{'yes' if known_failure_cells_rejected else 'no'}**"
+            "- Known v3 failure cell 64 normalized or rejected: "
+            f"**{'yes' if v3_history['known_failure_cells_normalized_or_rejected'] else 'no'}**"
         ),
         (
-            "- Original known failure cells 10 and 12 rejected: "
-            "**yes**"
+            "- Known v2 failure cells 11 and 25 normalized or rejected: "
+            f"**{'yes' if v2_history['known_failure_cells_normalized_or_rejected'] else 'no'}**"
+        ),
+        (
+            "- Original known failure cells 10 and 12 normalized or rejected: "
+            f"**{'yes' if original_history['known_failure_cells_normalized_or_rejected'] else 'no'}**"
         ),
         "",
         "## Rejection counts",
@@ -195,9 +234,9 @@ def main() -> None:
         "## Scientific boundary",
         "",
         (
-            "This audit only checks whether the fixed guard removes unsafe inputs "
-            "while leaving a usable Train pool. It does not select a model-call "
-            "variant, generate a new identity pilot, compute H4, or reopen M13."
+            "This audit only checks deterministic CPU normalization and the "
+            "post-transform input guards. It does not select a model-call variant, "
+            "generate a new identity pilot, compute H4, or reopen M13."
         ),
         "",
         (
@@ -207,7 +246,7 @@ def main() -> None:
         "",
     ]
     markdown_path = (
-        PROJECT_ROOT / "reports" / "h4_reflection_guard_v3_audit.md"
+        PROJECT_ROOT / "reports" / "h4_reflection_normalization_v5_audit.md"
     )
     markdown_path.write_text(
         "\n".join(markdown),
