@@ -13,8 +13,8 @@ import yaml
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v4.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v4_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v5.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v5_split.json"
 
 
 def load_supervised_labeler_config(
@@ -26,10 +26,15 @@ def load_supervised_labeler_config(
     if not isinstance(config, dict):
         raise TypeError(f"Expected a mapping in {path}")
     model = config["model"]
+    supported_models = {
+        "PekingU/rtdetr_v2_r18vd": "rtdetr_v2_r18vd_helmet_only",
+        "PekingU/rtdetr_v2_r50vd": "rtdetr_v2_r50vd_helmet_only",
+    }
     if (
         model["license"] != "apache-2.0"
         or model["local_files_only"] is not True
-        or model["repo_id"] != "PekingU/rtdetr_v2_r18vd"
+        or model["repo_id"] not in supported_models
+        or config["architecture"] != supported_models[model["repo_id"]]
         or model["transformers_version"] != "5.14.1"
     ):
         raise RuntimeError("Supervised labeler model registration changed")

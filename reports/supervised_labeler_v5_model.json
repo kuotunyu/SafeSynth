@@ -1,0 +1,38 @@
+{
+  "already_verified": true,
+  "checks": {
+    "file_sizes_match": true,
+    "license_matches": true,
+    "revision_matches": true
+  },
+  "download_bytes": 172182583,
+  "license": "apache-2.0",
+  "manifest": {
+    "download_bytes": 172182583,
+    "files": [
+      {
+        "bytes": 5283,
+        "path": "config.json",
+        "sha256": "d754c04c9a4c6d015d8393fa2dae4c63f4a9f0ba173c3d1a66e55cff59d8f060"
+      },
+      {
+        "bytes": 172176856,
+        "path": "model.safetensors",
+        "sha256": "3331d977dbc0c7a6cdae9ec0b0b6ad156eb6720d65b7cf0fa710dcc541d88d71"
+      },
+      {
+        "bytes": 444,
+        "path": "preprocessor_config.json",
+        "sha256": "cd38cd59999e7a95d68e487fbe5132df3d4e5c32a0836add57e6126ba0c4eaf1"
+      }
+    ],
+    "license": "apache-2.0",
+    "repo_id": "PekingU/rtdetr_v2_r50vd",
+    "revision": "282494075698cab9faa1096ae26856890030c817",
+    "schema_version": 1
+  },
+  "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\PekingU--rtdetr_v2_r50vd\\282494075698cab9faa1096ae26856890030c817",
+  "passed": true,
+  "repo_id": "PekingU/rtdetr_v2_r50vd",
+  "revision": "282494075698cab9faa1096ae26856890030c817"
+}

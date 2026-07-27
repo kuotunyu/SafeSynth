@@ -1,0 +1,81 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v5"
+status: "smoke_passed_waiting_formal_training"
+architecture: "rtdetr_v2_r50vd_helmet_only"
+split_seed: 20260813
+training_seed: 20260809
+split_manifest_sha256: "443c41aa8adaf2d96b6460ef92c5ecd548543c95c09e88b792a198fe41415451"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r50vd"
+  revision: "282494075698cab9faa1096ae26856890030c817"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 172182583
+  allow_files:
+    config.json: 5283
+    model.safetensors: 172176856
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3 training seed"
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.020
+    - 0.025
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.045
+    - 0.050
+    - 0.055
+    - 0.060
+    - 0.070
+    - 0.080
+    - 0.090
+    - 0.100
+    - 0.120
+    - 0.150
+    - 0.200
+  match_iou: 0.50
+  min_precision: 0.85
+  precision_margin_basis: >-
+    The final audit requires 0.80 precision. A 0.85 calibration floor keeps a
+    five-point buffer while the consumed v4 geometry diagnosis showed that a
+    0.87 floor had no useful low-threshold candidate.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+generation_gate:
+  allowed: false
+  reason: "v5 R50 labeler has not passed its new untouched Train-only audit"

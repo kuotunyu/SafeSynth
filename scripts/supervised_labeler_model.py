@@ -65,7 +65,8 @@ def _download(config: dict[str, Any], model_dir: Path) -> dict[str, Any]:
     paths = load_project_paths()
     target = _within_cache(model_dir, paths.cache)
     staging = _within_cache(
-        paths.cache / ".hf-stage-rtdetr-v2-r18vd",
+        paths.cache
+        / f".hf-stage-{str(config['model']['repo_id']).split('/')[-1]}",
         paths.cache,
     )
     target.mkdir(parents=True, exist_ok=True)
@@ -134,7 +135,8 @@ def main() -> None:
         "already_verified": manifest is not None,
         "manifest": manifest,
     }
-    report_path = PROJECT_ROOT / "reports" / "supervised_labeler_model.json"
+    experiment = str(config["experiment_id"])
+    report_path = PROJECT_ROOT / "reports" / f"{experiment}_model.json"
     report_path.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
