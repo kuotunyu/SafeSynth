@@ -1,5 +1,5 @@
 schema_version: 1
-status: "smoke_passed_waiting_training"
+status: "supervised_labeler_audit_failed"
 architecture: "rtdetr_v2_r18vd_helmet_only"
 root_seed: 20260809
 
@@ -71,4 +71,4 @@ audit_gate:
 
 generation_gate:
   allowed: false
-  reason: "supervised labeler has not passed its new untouched Train audit"
+  reason: "supervised labeler recall was 0.6648 below the frozen 0.70 Train-only audit gate"
