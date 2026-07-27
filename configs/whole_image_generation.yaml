@@ -109,5 +109,5 @@ generation_gate:
   allowed: false
   required_reviewer: "kuotunyu"
   reason: >-
-    supervised RT-DETRv2 v5 audit precision 0.7000 and recall 0.0352 were
-    below the frozen 0.80 and 0.70 Train-only gates
+    supervised RT-DETRv2 v6 passed its numeric audit; generation remains
+    locked until kuotunyu approves the 48-image green/cyan human review

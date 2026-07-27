@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v6"
-status: "smoke_passed_waiting_formal_training"
+status: "numeric_audit_passed_human_review_pending"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260814
 training_seed: 20260809
@@ -83,4 +83,6 @@ audit_gate:
 
 generation_gate:
   allowed: false
-  reason: "v6 geometry-filtered R50 has not passed a new untouched audit"
+  reason: >-
+    v6 passed the frozen numeric audit; generation remains locked until
+    kuotunyu approves the 48-image green/cyan human review

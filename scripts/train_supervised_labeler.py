@@ -401,7 +401,7 @@ def _render_audit(
     caption = 30
     legend = 58
     columns = 4
-    selected = list(rows[:16])
+    selected = list(rows)
     row_count = math.ceil(len(selected) / columns)
     sheet = Image.new(
         "RGB",
@@ -417,7 +417,7 @@ def _render_audit(
     )
     draw_sheet.text(
         (8, 30),
-        f"frozen score threshold={threshold:.2f}",
+        f"frozen score threshold={threshold:.3f}",
         fill="black",
     )
     for index, image_id in enumerate(selected):
