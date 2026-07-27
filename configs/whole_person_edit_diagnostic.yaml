@@ -1,0 +1,77 @@
+# Train-only v8 diagnostic: restyle one existing worker in place.
+#
+# This is a method diagnostic, not a new H4 run. The four exact CPU inputs must
+# be rendered and explicitly approved by kuotunyu before any model is loaded.
+
+schema_version: 1
+status: "pending_kuotunyu_input_review"
+architecture: "masked_existing_person_restyle_v8"
+root_seed: 20260804
+n_cases: 4
+
+data_scope:
+  split: "train"
+  validation_images_read: 0
+  test_images_read: 0
+  require_distinct_target_groups: true
+  require_distinct_reference_groups: true
+  forbid_target_reference_same_group: true
+
+selection:
+  target_class: "helmet"
+  paired_headlike_count: 1
+  preferred_person_required: true
+  min_person_height_px: 100
+  outer_dilate_px: 3
+  min_edit_edge_margin_px: 8
+  max_other_mask_overlap_fraction: 0.03
+  require_pass1_qc: true
+  normalize_reflected_padding: true
+  # Pick the candidate with the largest safe edit margin in each fixed band.
+  target_height_bands_px:
+    - [320, null]
+    - [260, 320]
+    - [200, 260]
+    - [100, 200]
+  rank_within_band: "maximum_edit_edge_margin"
+
+reference:
+  class_name: "person"
+  canvas_size: 416
+  max_fill: 0.75
+  background_rgb: [127, 127, 127]
+  max_uses_per_cutout: 1
+  min_person_height_px: 150
+  rank: "sam2_iou_then_mask_area"
+
+method:
+  name: "reference_conditioned_whole_person_region_inpaint_v8"
+  seed_derivation: "sha256('v8|root_seed|case_index') first 63 bits"
+  protected_core: false
+  enforce_outside_edit_exact: true
+  padding_mask_crop_px: 48
+  strength: 0.85
+  num_inference_steps: 50
+  guidance_scale: 4.0
+  prompt: >-
+    Photorealistic construction-site photograph. Restyle only the masked
+    existing construction worker using the provided reference worker. Keep the
+    worker in the exact existing location, scale, pose, and viewing angle.
+    Preserve every pixel outside the mask. Keep exactly one visible safety
+    helmet. Do not add or remove people, text, logos, tools, structures, or
+    other objects.
+
+model_gate:
+  allowed: false
+  required_reviewer: "kuotunyu"
+  required_issue_count: 0
+  review_status: "not_reviewed"
+  approved_manifest_sha256: null
+
+input_preflight:
+  n_cases: 4
+  input_manifest_sha256: "a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2"
+  figure: "reports/figures/whole_person_edit_preflight_v8.png"
+  validation_images_read: 0
+  test_images_read: 0
+  model_inference_run: false

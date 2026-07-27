@@ -1,0 +1,440 @@
+{
+  "accepted_candidate_count": 26,
+  "accepted_group_count": 23,
+  "architecture": "masked_existing_person_restyle_v8",
+  "candidates": [
+    {
+      "cutout_id": "002616_ann013375",
+      "edit_edge_margin_px": 9,
+      "edit_mask_area_px": 37137,
+      "group_id": 2562,
+      "headlike_annotation_id": 13372,
+      "image_id": 2616,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 13375,
+      "person_height_px": 403.99999999999994,
+      "person_mask_area_px": 34212
+    },
+    {
+      "cutout_id": "001910_ann009915",
+      "edit_edge_margin_px": 14,
+      "edit_mask_area_px": 44600,
+      "group_id": 1884,
+      "headlike_annotation_id": 9914,
+      "image_id": 1910,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "left",
+        "right"
+      ],
+      "person_annotation_id": 9915,
+      "person_height_px": 359.4230769230769,
+      "person_mask_area_px": 40608
+    },
+    {
+      "cutout_id": "004960_ann025309",
+      "edit_edge_margin_px": 21,
+      "edit_mask_area_px": 18640,
+      "group_id": 4770,
+      "headlike_annotation_id": 25305,
+      "image_id": 4960,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 25309,
+      "person_height_px": 326.60649819494586,
+      "person_mask_area_px": 16198
+    },
+    {
+      "cutout_id": "000642_ann003324",
+      "edit_edge_margin_px": 13,
+      "edit_mask_area_px": 27819,
+      "group_id": 641,
+      "headlike_annotation_id": 3321,
+      "image_id": 642,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 3324,
+      "person_height_px": 318.66666666666663,
+      "person_mask_area_px": 25132
+    },
+    {
+      "cutout_id": "003757_ann019042",
+      "edit_edge_margin_px": 44,
+      "edit_mask_area_px": 25923,
+      "group_id": 3644,
+      "headlike_annotation_id": 19040,
+      "image_id": 3757,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 19042,
+      "person_height_px": 315.85185185185185,
+      "person_mask_area_px": 22715
+    },
+    {
+      "cutout_id": "004960_ann025310",
+      "edit_edge_margin_px": 28,
+      "edit_mask_area_px": 17416,
+      "group_id": 4770,
+      "headlike_annotation_id": 25304,
+      "image_id": 4960,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 25310,
+      "person_height_px": 307.12996389891697,
+      "person_mask_area_px": 15039
+    },
+    {
+      "cutout_id": "003540_ann017917",
+      "edit_edge_margin_px": 39,
+      "edit_mask_area_px": 22075,
+      "group_id": 3435,
+      "headlike_annotation_id": 17914,
+      "image_id": 3540,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 17917,
+      "person_height_px": 300.4659498207885,
+      "person_mask_area_px": 19256
+    },
+    {
+      "cutout_id": "002606_ann013316",
+      "edit_edge_margin_px": 13,
+      "edit_mask_area_px": 19817,
+      "group_id": 2553,
+      "headlike_annotation_id": 13314,
+      "image_id": 2606,
+      "maximum_other_mask_overlap_fraction": 0.008335728657660248,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 13316,
+      "person_height_px": 290.6498194945848,
+      "person_mask_area_px": 17196
+    },
+    {
+      "cutout_id": "003143_ann015951",
+      "edit_edge_margin_px": 34,
+      "edit_mask_area_px": 23943,
+      "group_id": 3060,
+      "headlike_annotation_id": 15950,
+      "image_id": 3143,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 15951,
+      "person_height_px": 289.77777777777777,
+      "person_mask_area_px": 21281
+    },
+    {
+      "cutout_id": "000029_ann000181",
+      "edit_edge_margin_px": 46,
+      "edit_mask_area_px": 16577,
+      "group_id": 28,
+      "headlike_annotation_id": 178,
+      "image_id": 29,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 181,
+      "person_height_px": 282.6666666666667,
+      "person_mask_area_px": 14297
+    },
+    {
+      "cutout_id": "001505_ann007648",
+      "edit_edge_margin_px": 32,
+      "edit_mask_area_px": 12269,
+      "group_id": 1490,
+      "headlike_annotation_id": 7646,
+      "image_id": 1505,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 7648,
+      "person_height_px": 271.40138408304495,
+      "person_mask_area_px": 10357
+    },
+    {
+      "cutout_id": "004363_ann022256",
+      "edit_edge_margin_px": 88,
+      "edit_mask_area_px": 7903,
+      "group_id": 4210,
+      "headlike_annotation_id": 22250,
+      "image_id": 4363,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 22256,
+      "person_height_px": 258.8172043010752,
+      "person_mask_area_px": 6790
+    },
+    {
+      "cutout_id": "004208_ann021387",
+      "edit_edge_margin_px": 25,
+      "edit_mask_area_px": 27545,
+      "group_id": 4067,
+      "headlike_annotation_id": 21385,
+      "image_id": 4208,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 21387,
+      "person_height_px": 245.94594594594597,
+      "person_mask_area_px": 24888
+    },
+    {
+      "cutout_id": "000180_ann000890",
+      "edit_edge_margin_px": 11,
+      "edit_mask_area_px": 16418,
+      "group_id": 179,
+      "headlike_annotation_id": 889,
+      "image_id": 180,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 890,
+      "person_height_px": 245.19205298013242,
+      "person_mask_area_px": 14423
+    },
+    {
+      "cutout_id": "000240_ann001174",
+      "edit_edge_margin_px": 13,
+      "edit_mask_area_px": 12970,
+      "group_id": 239,
+      "headlike_annotation_id": 1170,
+      "image_id": 240,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 1174,
+      "person_height_px": 244.0,
+      "person_mask_area_px": 10641
+    },
+    {
+      "cutout_id": "002191_ann011357",
+      "edit_edge_margin_px": 8,
+      "edit_mask_area_px": 17482,
+      "group_id": 2156,
+      "headlike_annotation_id": 11356,
+      "image_id": 2191,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 11357,
+      "person_height_px": 236.43165467625903,
+      "person_mask_area_px": 15440
+    },
+    {
+      "cutout_id": "000240_ann001175",
+      "edit_edge_margin_px": 37,
+      "edit_mask_area_px": 14814,
+      "group_id": 239,
+      "headlike_annotation_id": 1172,
+      "image_id": 240,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 1175,
+      "person_height_px": 236.0,
+      "person_mask_area_px": 12401
+    },
+    {
+      "cutout_id": "004291_ann021842",
+      "edit_edge_margin_px": 87,
+      "edit_mask_area_px": 11289,
+      "group_id": 4143,
+      "headlike_annotation_id": 21837,
+      "image_id": 4291,
+      "maximum_other_mask_overlap_fraction": 0.00641025641025641,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 21842,
+      "person_height_px": 227.59420289855075,
+      "person_mask_area_px": 9573
+    },
+    {
+      "cutout_id": "002191_ann011358",
+      "edit_edge_margin_px": 17,
+      "edit_mask_area_px": 15057,
+      "group_id": 2156,
+      "headlike_annotation_id": 11354,
+      "image_id": 2191,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 11358,
+      "person_height_px": 219.97122302158274,
+      "person_mask_area_px": 9124
+    },
+    {
+      "cutout_id": "004347_ann022147",
+      "edit_edge_margin_px": 59,
+      "edit_mask_area_px": 15176,
+      "group_id": 4196,
+      "headlike_annotation_id": 22146,
+      "image_id": 4347,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "left",
+        "right"
+      ],
+      "person_annotation_id": 22147,
+      "person_height_px": 209.66346153846152,
+      "person_mask_area_px": 12805
+    },
+    {
+      "cutout_id": "003101_ann015767",
+      "edit_edge_margin_px": 40,
+      "edit_mask_area_px": 6785,
+      "group_id": 3018,
+      "headlike_annotation_id": 15763,
+      "image_id": 3101,
+      "maximum_other_mask_overlap_fraction": 0.016212232866617538,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 15767,
+      "person_height_px": 186.93670886075947,
+      "person_mask_area_px": 5337
+    },
+    {
+      "cutout_id": "000726_ann003735",
+      "edit_edge_margin_px": 20,
+      "edit_mask_area_px": 8302,
+      "group_id": 724,
+      "headlike_annotation_id": 3734,
+      "image_id": 726,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 3735,
+      "person_height_px": 170.58992805755395,
+      "person_mask_area_px": 6949
+    },
+    {
+      "cutout_id": "002151_ann011125",
+      "edit_edge_margin_px": 53,
+      "edit_mask_area_px": 7906,
+      "group_id": 2117,
+      "headlike_annotation_id": 11123,
+      "image_id": 2151,
+      "maximum_other_mask_overlap_fraction": 0.014316837846249611,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 11125,
+      "person_height_px": 140.58631921824104,
+      "person_mask_area_px": 6734
+    },
+    {
+      "cutout_id": "001347_ann006781",
+      "edit_edge_margin_px": 76,
+      "edit_mask_area_px": 7048,
+      "group_id": 1336,
+      "headlike_annotation_id": 6772,
+      "image_id": 1347,
+      "maximum_other_mask_overlap_fraction": 0.015331890331890332,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 6781,
+      "person_height_px": 139.2542372881356,
+      "person_mask_area_px": 5744
+    },
+    {
+      "cutout_id": "004087_ann020753",
+      "edit_edge_margin_px": 27,
+      "edit_mask_area_px": 5530,
+      "group_id": 3958,
+      "headlike_annotation_id": 20750,
+      "image_id": 4087,
+      "maximum_other_mask_overlap_fraction": 0.0,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 20753,
+      "person_height_px": 127.99999999999997,
+      "person_mask_area_px": 4473
+    },
+    {
+      "cutout_id": "002543_ann013010",
+      "edit_edge_margin_px": 82,
+      "edit_mask_area_px": 7370,
+      "group_id": 2493,
+      "headlike_annotation_id": 13007,
+      "image_id": 2543,
+      "maximum_other_mask_overlap_fraction": 0.010693720866465589,
+      "normalization_detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "person_annotation_id": 13010,
+      "person_height_px": 125.84837545126351,
+      "person_mask_area_px": 5710
+    }
+  ],
+  "h4_auc_computed": false,
+  "model_inference_run": false,
+  "rejection_counts": {
+    "CROPPED_BY_NORMALIZATION": 10,
+    "EDIT_NEAR_FRAME_EDGE": 34,
+    "NOT_PREFERRED": 4,
+    "OTHER_INSTANCE_OVERLAP": 1,
+    "PAIRED_CLASS": 1,
+    "PAIRED_HEADLIKE_COUNT": 4,
+    "PASS1_QC": 23,
+    "PERSON_TOO_SMALL": 10
+  },
+  "schema_version": 1,
+  "scope": "frozen Train pixels, annotations, cutouts, and Pass-1 masks only",
+  "status": "candidate_audit_complete_no_model_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0
+}
