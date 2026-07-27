@@ -76,6 +76,17 @@ post-production appearance, and marked case 04 a severe failure. The fixed
 four-case result is therefore rejected without a 64-case scale-up. No new H4
 AUC has been computed, M13 remains closed, and Phase 2 has not started.
 
+Two final regional-placement alternatives were then rejected on Train-only CPU
+capacity evidence: v9 found 123 candidate placements across 17 source groups but
+could not supply the required 64 strict cases, while helmet-anchored v9b found
+only 92 strict placements across seven groups. The active successor is the
+preregistered whole-image v10 route, which removes the empty-background capacity
+ceiling. Its exact four prompts and seeds are frozen before output inspection.
+The pinned Apache-2.0 Grounding DINO Tiny labeler is downloaded and verified,
+but FLUX generation remains hard-locked until the labeler passes a group-disjoint
+96-image Train-only calibration/audit and `kuotunyu` approves the exact v10
+manifest. Validation/Test reads and new whole-image generations remain zero.
+
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.
 
