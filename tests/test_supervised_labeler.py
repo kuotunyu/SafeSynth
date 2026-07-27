@@ -6,6 +6,10 @@ from collections import defaultdict
 
 import pytest
 
+from scripts.diagnose_labeler_postprocessing import (
+    filter_prediction_geometry,
+    select_geometry_candidate,
+)
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.supervised_labeler import (
@@ -138,3 +142,49 @@ def test_failure_diagnostic_grid_extends_below_frozen_threshold() -> None:
     assert thresholds == sorted(set(thresholds))
     assert thresholds[0] == 0.001
     assert thresholds[-1] == 0.05
+
+
+def test_geometry_filter_drops_only_oversized_predictions() -> None:
+    predictions = [
+        (0.9, [10, 10, 30, 30]),
+        (0.8, [0, 0, 100, 60]),
+        (0.7, [20, 0, 40, 80]),
+    ]
+
+    kept = filter_prediction_geometry(
+        predictions,
+        image_width=100,
+        image_height=100,
+        max_relative_area=0.10,
+        max_relative_height=0.50,
+    )
+
+    assert kept == [(0.9, [10.0, 10.0, 30.0, 30.0])]
+
+
+def test_geometry_candidate_requires_precision_floor() -> None:
+    rows = [
+        {
+            "threshold": 0.02,
+            "max_relative_area": 0.08,
+            "max_relative_height": 0.45,
+            "precision": 0.86,
+            "recall": 0.80,
+            "f1": 0.83,
+            "median_matched_iou": 0.8,
+        },
+        {
+            "threshold": 0.03,
+            "max_relative_area": 0.12,
+            "max_relative_height": 0.60,
+            "precision": 0.88,
+            "recall": 0.72,
+            "f1": 0.79,
+            "median_matched_iou": 0.8,
+        },
+    ]
+
+    selected = select_geometry_candidate(rows, precision_floor=0.87)
+
+    assert selected is not None
+    assert selected["threshold"] == 0.03

@@ -1,0 +1,157 @@
+{
+  "checkpoint_sha256": {
+    "v1": "bc93796d207a1f20a3143a6a33fae569b76ea89660265688f8858de5d781522d",
+    "v3": "1e62be7a814d3c2aa9f32277cf8b0087cef51170fcda4e9ffe2a09692c10bdf7",
+    "v4": "a410c189545d151730bb0870c7f9671d552af3ef82aaa736219d4d7b6af1f520"
+  },
+  "eligible_for_generation_gate": false,
+  "experiment_local_calibration_candidates_at_precision_0_80": {
+    "v1": {
+      "f1": 0.823529411764706,
+      "false_negatives": 60,
+      "false_positives": 84,
+      "max_relative_area": 0.12,
+      "max_relative_height": 0.35,
+      "median_matched_iou": 0.8391908801529233,
+      "precision": 0.8,
+      "recall": 0.8484848484848485,
+      "threshold": 0.035,
+      "true_positives": 336
+    },
+    "v3": {
+      "f1": 0.7844190732034922,
+      "false_negatives": 193,
+      "false_positives": 128,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8410798522779709,
+      "precision": 0.8202247191011236,
+      "recall": 0.7516087516087516,
+      "threshold": 0.035,
+      "true_positives": 584
+    },
+    "v4": {
+      "f1": 0.7537688442211055,
+      "false_negatives": 305,
+      "false_positives": 136,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8468730280593662,
+      "precision": 0.8323057953144266,
+      "recall": 0.6887755102040817,
+      "threshold": 0.035,
+      "true_positives": 675
+    }
+  },
+  "experiments": [
+    "v1",
+    "v3",
+    "v4"
+  ],
+  "images_read": {
+    "v1": 144,
+    "v3": 240,
+    "v4": 288
+  },
+  "max_relative_areas": [
+    0.025,
+    0.04,
+    0.06,
+    0.08,
+    0.12,
+    0.2,
+    1.0
+  ],
+  "max_relative_heights": [
+    0.35,
+    0.45,
+    0.6,
+    1.0
+  ],
+  "reason": "All images were already used for calibration or failed audits. This can preregister a new experiment but cannot pass a gate.",
+  "schema_version": 1,
+  "score_thresholds": [
+    0.015,
+    0.02,
+    0.025,
+    0.03,
+    0.035
+  ],
+  "selected_at_v4_calibration_precision_0_80": {
+    "f1": 0.7537688442211055,
+    "false_negatives": 305,
+    "false_positives": 136,
+    "max_relative_area": 0.2,
+    "max_relative_height": 0.6,
+    "median_matched_iou": 0.8468730280593662,
+    "precision": 0.8323057953144266,
+    "recall": 0.6887755102040817,
+    "threshold": 0.035,
+    "true_positives": 675
+  },
+  "selected_candidate_failed_audit_results": {
+    "v1": {
+      "f1": 0.7623529411764706,
+      "false_negatives": 17,
+      "false_positives": 84,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8379681545480692,
+      "precision": 0.6585365853658537,
+      "recall": 0.9050279329608939,
+      "threshold": 0.035,
+      "true_positives": 162
+    },
+    "v3": {
+      "f1": 0.7870370370370371,
+      "false_negatives": 33,
+      "false_positives": 59,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8509882837008111,
+      "precision": 0.74235807860262,
+      "recall": 0.8374384236453202,
+      "threshold": 0.035,
+      "true_positives": 170
+    },
+    "v4": {
+      "f1": 0.7147147147147146,
+      "false_negatives": 56,
+      "false_positives": 39,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8566767911302983,
+      "precision": 0.7531645569620253,
+      "recall": 0.68,
+      "threshold": 0.035,
+      "true_positives": 119
+    }
+  },
+  "selection_source": "v4 prior calibration only",
+  "source_split_manifest_sha256": {
+    "v1": "fe069158816b7ed0d39c1e826ea5c467aad79cee497f4e0adbaea9710451ee01",
+    "v3": "91ec1d0c2c7ba08fd681159591d0c18d2c4ec07fc9f1b8f67403a2bdda8aebc7",
+    "v4": "b962fd62589622317d67c5692c0676fc449b6ddad9073e52ea5652ed267ff703"
+  },
+  "status": "diagnostic_on_consumed_train_only_sets",
+  "test_images_read": 0,
+  "v4_candidates_by_precision_floor": {
+    "0.8": {
+      "f1": 0.7537688442211055,
+      "false_negatives": 305,
+      "false_positives": 136,
+      "max_relative_area": 0.2,
+      "max_relative_height": 0.6,
+      "median_matched_iou": 0.8468730280593662,
+      "precision": 0.8323057953144266,
+      "recall": 0.6887755102040817,
+      "threshold": 0.035,
+      "true_positives": 675
+    },
+    "0.85": null,
+    "0.87": null,
+    "0.9": null
+  },
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
