@@ -7,6 +7,7 @@ from src.synthetic.region_inpaint import (
     mask_edge_margin,
     maximum_other_mask_overlap_fraction,
     region_identity_metrics,
+    rounded_box_mask,
     whole_person_edit_mask,
 )
 
@@ -62,3 +63,19 @@ def test_model_changes_are_pixel_exact_outside_whole_region() -> None:
     metrics = region_identity_metrics(draft, output, edit_mask=edit)
     assert metrics["outside_edit_changed_pixels"] == 0
     assert metrics["edit_mask_changed_fraction"] == 1.0
+
+
+def test_rounded_box_mask_stays_inside_registered_box() -> None:
+    mask = rounded_box_mask(
+        (40, 50),
+        (10, 8, 20, 24),
+        corner_fraction=0.2,
+    )
+
+    assert mask.any()
+    assert not mask[:8].any()
+    assert not mask[32:].any()
+    assert not mask[:, :10].any()
+    assert not mask[:, 30:].any()
+    assert not mask[8, 10]
+    assert mask[20, 20]

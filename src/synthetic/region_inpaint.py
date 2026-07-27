@@ -120,3 +120,56 @@ def region_identity_metrics(
             (changed & editable).sum() / max(int(editable.sum()), 1)
         ),
     }
+
+
+def rounded_box_mask(
+    image_shape: tuple[int, int],
+    bbox_xywh: tuple[int, int, int, int],
+    *,
+    corner_fraction: float,
+) -> np.ndarray:
+    """Rasterize a rounded target region for prompt-only object generation."""
+
+    height, width = (int(value) for value in image_shape)
+    x, y, box_width, box_height = (int(value) for value in bbox_xywh)
+    if (
+        height <= 0
+        or width <= 0
+        or box_width <= 0
+        or box_height <= 0
+        or x < 0
+        or y < 0
+        or x + box_width > width
+        or y + box_height > height
+    ):
+        raise ValueError("bbox_xywh must be a positive box inside image_shape")
+    if not 0 <= corner_fraction <= 0.5:
+        raise ValueError("corner_fraction must be in [0, 0.5]")
+
+    radius = round(min(box_width, box_height) * corner_fraction)
+    mask = np.zeros((height, width), dtype=np.uint8)
+    if radius == 0:
+        mask[y : y + box_height, x : x + box_width] = 1
+        return mask.astype(bool)
+    cv2.rectangle(
+        mask,
+        (x + radius, y),
+        (x + box_width - radius - 1, y + box_height - 1),
+        1,
+        thickness=-1,
+    )
+    cv2.rectangle(
+        mask,
+        (x, y + radius),
+        (x + box_width - 1, y + box_height - radius - 1),
+        1,
+        thickness=-1,
+    )
+    for center in (
+        (x + radius, y + radius),
+        (x + box_width - radius - 1, y + radius),
+        (x + radius, y + box_height - radius - 1),
+        (x + box_width - radius - 1, y + box_height - radius - 1),
+    ):
+        cv2.circle(mask, center, radius, 1, thickness=-1)
+    return mask.astype(bool)
