@@ -5,7 +5,37 @@
 
 ---
 
-## 醒來後先看
+## 現在可以做：Colab 跑 FLUX.2 v2 小型診斷
+
+這不是正式 H4，也不是 Phase 2 訓練。它只用四個 Train 樣本比較三個事先
+固定的生成設定，找出灰塊與邊界破壞是來自 `strength=0.85`，還是中性灰底
+reference。結果不能直接開啟 M13。
+
+1. 打開 <https://colab.research.google.com/>。
+2. 選「檔案 → 上傳筆記本」，上傳
+   `notebooks/00_flux2_v2_diagnostic.ipynb`。
+3. 選「執行階段 → 變更執行階段類型 → L4 GPU」。
+4. 選「執行階段 → 全部執行」。
+5. 出現檔案選擇器時，上傳
+   `outputs/flux2_v2_colab_diagnostic_inputs.zip`。
+6. 等 notebook 完成；最後會自動下載
+   `flux2_v2_diagnostic_results.zip`。
+7. 把下載後的 zip 附回 Codex，或告訴我它在電腦上的完整路徑。
+
+第一次會從 Hugging Face 下載已批准的 14.88 GiB 模型。L4 粗估約
+60–150 分鐘、約 4–10 compute units；這只是診斷估算，不是保證值。
+若 Colab 顯示不是 L4、下載失敗或顯存不足，先停止並把錯誤截圖給我，
+不要自行改 notebook 的模型或參數。
+
+詳細科學界線與輸入內容見
+`docs/flux2_v2_colab_diagnostic.md`。
+
+---
+
+## 以下是已完成的舊交接紀錄（不用再操作）
+
+M9、H6、Option A 選擇、模型下載及第一次 identity pilot 都已完成；
+下列內容只保留作歷史脈絡，不是目前待辦。
 
 ### 1. 請先簽核 M9 的 hard-negative 候選
 
@@ -128,7 +158,8 @@ hard negative 的素材有一部分是從原圖「沒有標註的區域」挖出
 
 ---
 
-## Phase 1 不需要 Colab
+## 正式 Phase 1／Phase 2 的原 Colab 規則
 
-本階段全部在你的 4090 上跑完：SAM2 只做推論（兩趟合計不到一小時），
-合成是純 numpy/cv2。Colab 要到 Phase 2 的 RT-DETRv2 訓練才會用到。
+原定正式流程中，Colab 要到 Phase 2 的 RT-DETRv2 訓練才會用到。
+目前的 FLUX.2 notebook 是因本機 GPU 暫時保留給其他專案而新增的
+**方法診斷**，不屬於正式 H4 或 Phase 2 訓練。
