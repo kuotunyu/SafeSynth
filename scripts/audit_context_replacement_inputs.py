@@ -8,7 +8,9 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
+from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.synthetic.compose import (
@@ -56,8 +58,12 @@ def main() -> None:
     decisions: dict[int, Any] = {}
     for image_id in sorted(train_images):
         image = train_images[image_id]
+        image_rgb = np.asarray(
+            Image.open(paths.hardhat_raw / str(image["file_name"])).convert("RGB")
+        )
         result = context_replacement_input_guard(
-            image_shape=(int(image["height"]), int(image["width"])),
+            image_rgb=image_rgb,
+            image_shape=image_rgb.shape[:2],
             annotations=annotations[image_id],
             categories=categories,
             pass1=_load_pass1(paths, image_id),
@@ -73,7 +79,7 @@ def main() -> None:
     previous_seed = int(generative_config["pilot"]["previous_failed_root_seed"])
     previous_records_path = (
         paths.synthetic
-        / f"h4_generative_identity_pilot_seed{previous_seed}"
+        / f"h4_guarded_input_preflight_seed{previous_seed}"
         / "records.jsonl"
     )
     previous_records = _read_jsonl(previous_records_path)
@@ -82,12 +88,29 @@ def main() -> None:
         for index, record in enumerate(previous_records, start=1)
         if not decisions[int(record["background"]["image_id"])].accepted
     ]
-    known_failure_cells = [10, 12]
+    known_failure_cells = [11, 25]
     known_failure_cells_rejected = all(
         cell in rejected_previous_cells for cell in known_failure_cells
     )
     if not known_failure_cells_rejected:
         raise AssertionError("The preregistered guard missed a known pilot failure")
+
+    original_seed = int(generative_config["pilot"]["original_failed_root_seed"])
+    original_records = _read_jsonl(
+        paths.synthetic
+        / f"h4_generative_identity_pilot_seed{original_seed}"
+        / "records.jsonl"
+    )
+    rejected_original_cells = [
+        index
+        for index, record in enumerate(original_records, start=1)
+        if not decisions[int(record["background"]["image_id"])].accepted
+    ]
+    original_known_failure_cells = [10, 12]
+    if not all(
+        cell in rejected_original_cells for cell in original_known_failure_cells
+    ):
+        raise AssertionError("The v3 guard missed an original known pilot failure")
 
     payload = {
         "schema_version": 1,
@@ -106,13 +129,21 @@ def main() -> None:
             "reject_reasons": dict(sorted(reason_counts.items())),
             "eligible_anchor_count": eligible_anchor_count,
         },
-        "rejected_previous_pilot": {
+        "rejected_v2_input_preflight": {
             "root_seed": previous_seed,
             "n_images": len(previous_records),
             "rejected_cell_count": len(rejected_previous_cells),
             "rejected_cells": rejected_previous_cells,
             "known_failure_cells": known_failure_cells,
             "known_failure_cells_rejected": known_failure_cells_rejected,
+        },
+        "rejected_original_pilot": {
+            "root_seed": original_seed,
+            "n_images": len(original_records),
+            "rejected_cell_count": len(rejected_original_cells),
+            "rejected_cells": rejected_original_cells,
+            "known_failure_cells": original_known_failure_cells,
+            "known_failure_cells_rejected": True,
         },
         "next_pilot": {
             "architecture": generative_config["pilot"]["architecture"],
@@ -121,7 +152,9 @@ def main() -> None:
             "generated": False,
         },
     }
-    json_path = PROJECT_ROOT / "reports" / "h4_guarded_input_audit.json"
+    json_path = (
+        PROJECT_ROOT / "reports" / "h4_reflection_guard_v3_audit.json"
+    )
     json_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -129,7 +162,7 @@ def main() -> None:
     )
     reasons = payload["train_backgrounds"]["reject_reasons"]
     markdown = [
-        "# H4 guarded-input CPU audit",
+        "# H4 reflected-padding guard v3 CPU audit",
         "",
         "- Status: **complete; no model inference**",
         "- Data scope: Train metadata, Pass-1 QC, and rejected-pilot provenance",
@@ -141,12 +174,16 @@ def main() -> None:
         ),
         f"- Eligible anchors remaining: **{eligible_anchor_count:,}**",
         (
-            "- Previous failed-pilot cells rejected by the guard: "
+            "- Failed v2 input-sheet cells rejected by the guard: "
             f"**{len(rejected_previous_cells)}/{len(previous_records)}**"
         ),
         (
-            "- Known failure cells 10 and 12 rejected: "
+            "- Known v2 failure cells 11 and 25 rejected: "
             f"**{'yes' if known_failure_cells_rejected else 'no'}**"
+        ),
+        (
+            "- Original known failure cells 10 and 12 rejected: "
+            "**yes**"
         ),
         "",
         "## Rejection counts",
@@ -169,7 +206,9 @@ def main() -> None:
         ),
         "",
     ]
-    markdown_path = PROJECT_ROOT / "reports" / "h4_guarded_input_audit.md"
+    markdown_path = (
+        PROJECT_ROOT / "reports" / "h4_reflection_guard_v3_audit.md"
+    )
     markdown_path.write_text(
         "\n".join(markdown),
         encoding="utf-8",

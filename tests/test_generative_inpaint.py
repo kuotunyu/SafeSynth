@@ -29,10 +29,11 @@ def test_registered_model_and_h4_gate_are_frozen() -> None:
     assert config["model"]["required_download_bytes"] == 15_980_131_711
     assert config["runtime"]["local_files_only"] is True
     assert config["final_h4"]["max_auc_for_scaleup"] == 0.60
-    assert config["status"] == "guarded_v2_preregistered_no_output"
-    assert config["pilot"]["architecture"] == "guarded_context_replacement_v2"
-    assert config["pilot"]["root_seed"] == 20260728
-    assert config["pilot"]["previous_failed_root_seed"] == 20260727
+    assert config["status"] == "guarded_v3_preregistered_no_output"
+    assert config["pilot"]["architecture"] == "guarded_context_replacement_v3"
+    assert config["pilot"]["root_seed"] == 20260729
+    assert config["pilot"]["previous_failed_root_seed"] == 20260728
+    assert config["pilot"]["original_failed_root_seed"] == 20260727
     assert config["pilot"]["input_preflight_issue_max_count"] == 0
 
 

@@ -11,6 +11,7 @@ from src.synthetic.compose import (
     _transform_scale,
     _visible_paste_masks,
     context_replacement_input_guard,
+    reflected_padding_guard,
 )
 from src.synthetic.composition import Layer
 
@@ -159,6 +160,48 @@ def test_context_replacement_guard_keeps_only_safe_qc_anchors() -> None:
     assert result.accepted
     assert result.eligible_annotation_ids == (1,)
     assert result.anchor_margins == ((1, 8.0, 8),)
+
+
+def reflection_config() -> dict:
+    return {
+        "min_pad_px": 16,
+        "max_pad_fraction": 0.31,
+        "seam_probe_px": 16,
+        "orthogonal_sample_size": 64,
+        "max_pair_mae": 2.0,
+        "min_pair_correlation": 0.995,
+        "min_texture_std": 5.0,
+    }
+
+
+def test_reflected_padding_guard_detects_exact_top_bottom_mirror() -> None:
+    rng = np.random.default_rng(42)
+    center = rng.integers(0, 256, size=(60, 80, 3), dtype=np.uint8)
+    image = np.concatenate(
+        [center[:20][::-1], center, center[-20:][::-1]],
+        axis=0,
+    )
+
+    result = reflected_padding_guard(image, guard_config=reflection_config())
+
+    assert result.detected
+    assert result.detected_axes == ("top_bottom",)
+    assert result.top_bottom.pad_px == 20
+    assert result.top_bottom.max_pair_mae == 0
+
+
+def test_reflected_padding_guard_keeps_unrelated_borders() -> None:
+    image = np.random.default_rng(7).integers(
+        0,
+        256,
+        size=(100, 100, 3),
+        dtype=np.uint8,
+    )
+
+    result = reflected_padding_guard(image, guard_config=reflection_config())
+
+    assert not result.detected
+    assert result.detected_axes == ()
 
 
 def test_visible_paste_mask_excludes_only_layers_in_front() -> None:

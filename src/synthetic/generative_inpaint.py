@@ -54,10 +54,11 @@ def load_generative_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         raise RuntimeError("Option A may not weaken the registered H4 threshold")
     pilot = config["pilot"]
     if (
-        config["status"] != "guarded_v2_preregistered_no_output"
-        or pilot["architecture"] != "guarded_context_replacement_v2"
-        or int(pilot["root_seed"]) != 20260728
-        or int(pilot["previous_failed_root_seed"]) != 20260727
+        config["status"] != "guarded_v3_preregistered_no_output"
+        or pilot["architecture"] != "guarded_context_replacement_v3"
+        or int(pilot["root_seed"]) != 20260729
+        or int(pilot["previous_failed_root_seed"]) != 20260728
+        or int(pilot["original_failed_root_seed"]) != 20260727
         or int(pilot["input_preflight_issue_max_count"]) != 0
     ):
         raise RuntimeError("The guarded v2 identity pilot must remain preregistered")

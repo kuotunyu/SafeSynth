@@ -194,10 +194,10 @@ def main() -> None:
     )
     pilot = config["pilot"]
     if (
-        config["status"] != "guarded_v2_preregistered_no_output"
-        or pilot["architecture"] != "guarded_context_replacement_v2"
+        config["status"] != "guarded_v3_preregistered_no_output"
+        or pilot["architecture"] != "guarded_context_replacement_v3"
         or int(pilot["n_images"]) != 64
-        or int(pilot["root_seed"]) != 20260728
+        or int(pilot["root_seed"]) != 20260729
         or int(pilot["input_preflight_issue_max_count"]) != 0
     ):
         raise RuntimeError("Guarded input preflight configuration is not frozen")

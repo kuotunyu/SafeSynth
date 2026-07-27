@@ -1,0 +1,29 @@
+{
+  "architecture": "guarded_context_replacement_v2",
+  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_guarded_input_preflight_v2_failed.png",
+  "contact_sheet_sha256": "fa1a7d95229599288dd677dc02b7b8b46a3d9d34e1e954a5a1e5a10daab6e426",
+  "geometry_fingerprint_sha256": "beda026df3975f0eee43f8dd1531719824b64bef36a5fd68b53f0375d35a4129",
+  "h4_auc_computed": false,
+  "input_issue_max_count": 0,
+  "model_inference_run": false,
+  "n_images": 64,
+  "observed_input_issue_count": null,
+  "observed_input_issue_count_minimum": 2,
+  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260728",
+  "review_findings": [
+    {
+      "background_file": "images/hard_hat_workers1818.png",
+      "canonical_contact_sheet_cell": 11,
+      "category": "reflected_padding_not_caught_by_annotation_guard"
+    },
+    {
+      "background_file": "images/hard_hat_workers4287.png",
+      "canonical_contact_sheet_cell": 25,
+      "category": "reflected_padding_not_caught_by_annotation_guard"
+    }
+  ],
+  "reviewed_by": "pre-model development sanity check",
+  "root_seed": 20260728,
+  "schema_version": 1,
+  "status": "failed_pre_model_reflection_review"
+}

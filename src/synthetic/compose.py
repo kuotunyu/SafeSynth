@@ -68,6 +68,27 @@ class Paste:
 
 
 @dataclass(frozen=True)
+class ReflectedAxisScore:
+    """High-confidence reflected-padding score for one image axis."""
+
+    max_pair_mae: float
+    min_pair_correlation: float
+    min_texture_std: float
+    pad_px: int
+    detected: bool
+
+
+@dataclass(frozen=True)
+class ReflectedPaddingResult:
+    """Pixel-level reflected-padding evidence for both image axes."""
+
+    detected: bool
+    detected_axes: tuple[str, ...]
+    top_bottom: ReflectedAxisScore
+    left_right: ReflectedAxisScore
+
+
+@dataclass(frozen=True)
 class ContextReplacementGuardResult:
     """CPU-only eligibility decision for one context-replacement background."""
 
@@ -75,6 +96,7 @@ class ContextReplacementGuardResult:
     eligible_annotation_ids: tuple[int, ...]
     anchor_margins: tuple[tuple[int, float, int], ...]
     background_min_headlike_edge_margin_px: float | None
+    reflected_padding: ReflectedPaddingResult | None
     reject_reason: str | None
 
 
@@ -238,8 +260,123 @@ def _bbox_edge_margin(
     )
 
 
+def _flat_correlation(first: np.ndarray, second: np.ndarray) -> float:
+    first_flat = np.asarray(first, dtype=np.float32).ravel()
+    second_flat = np.asarray(second, dtype=np.float32).ravel()
+    first_centered = first_flat - float(first_flat.mean())
+    second_centered = second_flat - float(second_flat.mean())
+    denominator = float(
+        np.sqrt(
+            np.dot(first_centered, first_centered)
+            * np.dot(second_centered, second_centered)
+        )
+    )
+    if denominator <= 1e-12:
+        return -1.0
+    return float(np.dot(first_centered, second_centered) / denominator)
+
+
+def _reflected_axis_score(
+    grayscale: np.ndarray,
+    *,
+    guard_config: Mapping[str, Any],
+) -> ReflectedAxisScore:
+    image = np.asarray(grayscale, dtype=np.float32)
+    length = image.shape[0]
+    orthogonal_size = int(guard_config["orthogonal_sample_size"])
+    sampled = cv2.resize(
+        image,
+        (orthogonal_size, length),
+        interpolation=cv2.INTER_AREA,
+    )
+    min_pad = int(guard_config["min_pad_px"])
+    max_pad = min(
+        int(np.floor(length * float(guard_config["max_pad_fraction"]))),
+        (length - 1) // 2,
+    )
+    probe = int(guard_config["seam_probe_px"])
+    if min_pad < probe or min_pad > max_pad:
+        raise ValueError("Invalid reflected-padding search bounds")
+
+    best_local_mae = float("inf")
+    best_pad = min_pad
+    for pad in range(min_pad, max_pad + 1):
+        top_local = np.abs(
+            sampled[pad - probe : pad] - sampled[pad : pad + probe][::-1]
+        ).mean()
+        bottom_start = length - pad
+        bottom_local = np.abs(
+            sampled[bottom_start - probe : bottom_start]
+            - sampled[bottom_start : bottom_start + probe][::-1]
+        ).mean()
+        local_mae = float((top_local + bottom_local) / 2)
+        if local_mae < best_local_mae:
+            best_local_mae = local_mae
+            best_pad = pad
+
+    pairs = (
+        (sampled[:best_pad], sampled[best_pad : 2 * best_pad][::-1]),
+        (sampled[-best_pad:], sampled[-2 * best_pad : -best_pad][::-1]),
+    )
+    pair_maes = [
+        float(np.abs(first - second).mean()) for first, second in pairs
+    ]
+    pair_correlations = [
+        _flat_correlation(first, second) for first, second in pairs
+    ]
+    texture_stds = [float(first.std()) for first, _ in pairs]
+    max_mae = max(pair_maes)
+    min_correlation = min(pair_correlations)
+    min_texture = min(texture_stds)
+    detected = (
+        max_mae <= float(guard_config["max_pair_mae"])
+        and min_correlation >= float(guard_config["min_pair_correlation"])
+        and min_texture >= float(guard_config["min_texture_std"])
+    )
+    return ReflectedAxisScore(
+        max_pair_mae=max_mae,
+        min_pair_correlation=min_correlation,
+        min_texture_std=min_texture,
+        pad_px=best_pad,
+        detected=detected,
+    )
+
+
+def reflected_padding_guard(
+    image_rgb: np.ndarray,
+    *,
+    guard_config: Mapping[str, Any],
+) -> ReflectedPaddingResult:
+    """Detect only near-exact mirrored padding at opposite image borders."""
+
+    image = np.asarray(image_rgb, dtype=np.uint8)
+    if image.ndim != 3 or image.shape[2] != 3:
+        raise ValueError("image_rgb must have shape HxWx3")
+    grayscale = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    top_bottom = _reflected_axis_score(grayscale, guard_config=guard_config)
+    left_right = _reflected_axis_score(
+        grayscale.T,
+        guard_config=guard_config,
+    )
+    detected_axes = tuple(
+        axis
+        for axis, score in (
+            ("top_bottom", top_bottom),
+            ("left_right", left_right),
+        )
+        if score.detected
+    )
+    return ReflectedPaddingResult(
+        detected=bool(detected_axes),
+        detected_axes=detected_axes,
+        top_bottom=top_bottom,
+        left_right=left_right,
+    )
+
+
 def context_replacement_input_guard(
     *,
+    image_rgb: np.ndarray | None = None,
     image_shape: tuple[int, int],
     annotations: Sequence[Mapping[str, Any]],
     categories: Mapping[int, str],
@@ -247,6 +384,25 @@ def context_replacement_input_guard(
     guard_config: Mapping[str, Any],
 ) -> ContextReplacementGuardResult:
     """Reject reflected-border backgrounds and unsafe replacement anchors."""
+
+    reflection: ReflectedPaddingResult | None = None
+    reflection_config = guard_config.get("reflected_padding")
+    if reflection_config is not None:
+        if image_rgb is None:
+            raise ValueError("Pixel reflection guard requires image_rgb")
+        reflection = reflected_padding_guard(
+            image_rgb,
+            guard_config=reflection_config,
+        )
+        if reflection.detected:
+            return ContextReplacementGuardResult(
+                accepted=False,
+                eligible_annotation_ids=(),
+                anchor_margins=(),
+                background_min_headlike_edge_margin_px=None,
+                reflected_padding=reflection,
+                reject_reason="BACKGROUND_REFLECTED_PADDING",
+            )
 
     headlike = [
         annotation
@@ -259,6 +415,7 @@ def context_replacement_input_guard(
             eligible_annotation_ids=(),
             anchor_margins=(),
             background_min_headlike_edge_margin_px=None,
+            reflected_padding=reflection,
             reject_reason="NO_CONTEXT_REPLACEMENT_ANCHOR",
         )
 
@@ -279,6 +436,7 @@ def context_replacement_input_guard(
             eligible_annotation_ids=(),
             anchor_margins=(),
             background_min_headlike_edge_margin_px=float(background_min),
+            reflected_padding=reflection,
             reject_reason="BACKGROUND_HEADLIKE_NEAR_FRAME_EDGE",
         )
 
@@ -303,6 +461,7 @@ def context_replacement_input_guard(
             eligible_annotation_ids=(),
             anchor_margins=(),
             background_min_headlike_edge_margin_px=float(background_min),
+            reflected_padding=reflection,
             reject_reason="NO_SAFE_CONTEXT_REPLACEMENT_ANCHOR",
         )
     return ContextReplacementGuardResult(
@@ -310,8 +469,39 @@ def context_replacement_input_guard(
         eligible_annotation_ids=tuple(item[0] for item in candidates),
         anchor_margins=tuple(candidates),
         background_min_headlike_edge_margin_px=float(background_min),
+        reflected_padding=reflection,
         reject_reason=None,
     )
+
+
+def _guarded_context_background_ids(
+    *,
+    paths: ProjectPaths,
+    train_images: Mapping[int, Mapping[str, Any]],
+    annotations: Mapping[int, Sequence[Mapping[str, Any]]],
+    categories: Mapping[int, str],
+    config: Mapping[str, Any],
+) -> np.ndarray:
+    """Build the safe context-replacement pool before sampling pilot inputs."""
+
+    accepted: list[int] = []
+    guard_config = config["compose"]["context_replacement"]["input_guard"]
+    for image_id in sorted(train_images):
+        image = train_images[image_id]
+        image_rgb = np.asarray(
+            Image.open(paths.hardhat_raw / str(image["file_name"])).convert("RGB")
+        )
+        result = context_replacement_input_guard(
+            image_rgb=image_rgb,
+            image_shape=image_rgb.shape[:2],
+            annotations=annotations[image_id],
+            categories=categories,
+            pass1=_load_pass1(paths, image_id),
+            guard_config=guard_config,
+        )
+        if result.accepted:
+            accepted.append(image_id)
+    return np.asarray(accepted, dtype=np.int64)
 
 
 def _existing_layers(
@@ -915,6 +1105,7 @@ def _build_sample(
     context_guard: ContextReplacementGuardResult | None = None
     if scenario == "context_replacement":
         context_guard = context_replacement_input_guard(
+            image_rgb=original,
             image_shape=image_shape,
             annotations=background_annotations,
             categories=categories,
@@ -1247,10 +1438,11 @@ def _build_sample(
                 item for item in context_guard.anchor_margins if item[0] == anchor_id
             )
             record["context_replacement_input_guard"] = {
-                "version": "v2",
+                "version": "v3",
                 "background_min_headlike_edge_margin_px": (
                     context_guard.background_min_headlike_edge_margin_px
                 ),
+                "background_reflected_padding_detected": False,
                 "selected_anchor_edge_margin_px": anchor_margin,
                 "selected_anchor_required_edge_margin_px": required_margin,
                 "selected_anchor_sam2_qc_pass": True,
@@ -1415,6 +1607,22 @@ def generate(
                 )
             )
     train_ids = np.asarray(sorted(train_images))
+    if (
+        selected_scenarios is not None
+        and tuple(selected_scenarios) == ("context_replacement",)
+    ):
+        train_ids = _guarded_context_background_ids(
+            paths=paths,
+            train_images=train_images,
+            annotations=annotations,
+            categories=categories,
+            config=config,
+        )
+        if len(train_ids) < n:
+            raise RuntimeError(
+                "Guarded context-replacement pool is smaller than the "
+                f"registered run: {len(train_ids)} < {n}"
+            )
     background_ids = rng.choice(train_ids, size=n, replace=n > len(train_ids))
     scenarios = _scenario_sequence(n, config, selected_scenarios, rng)
     real_phashes = {
