@@ -13,8 +13,8 @@ import yaml
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v3.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v3_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v4.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v4_split.json"
 
 
 def load_supervised_labeler_config(

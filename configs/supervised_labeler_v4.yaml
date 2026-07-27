@@ -1,0 +1,83 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v4"
+status: "smoke_passed_waiting_formal_training"
+architecture: "rtdetr_v2_r18vd_helmet_only"
+split_seed: 20260812
+training_seed: 20260809
+split_manifest_sha256: "b962fd62589622317d67c5692c0676fc449b6ddad9073e52ea5652ed267ff703"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r18vd"
+  revision: "5650961749fa93567c0d46fc7f43ea4f9e914107"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 80910521
+  allow_files:
+    config.json: 5437
+    model.safetensors: 80904640
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "v1/v3 seed was the only stable high-recall seed"
+
+calibration:
+  score_thresholds:
+    - 0.0350
+    - 0.0400
+    - 0.0405
+    - 0.0410
+    - 0.0415
+    - 0.0420
+    - 0.0425
+    - 0.0430
+    - 0.0435
+    - 0.0440
+    - 0.0445
+    - 0.0450
+    - 0.0500
+    - 0.0550
+    - 0.0600
+    - 0.0700
+    - 0.0800
+    - 0.0900
+    - 0.1000
+  match_iou: 0.50
+  min_precision: 0.87
+  precision_margin_basis: >-
+    v3 selected calibration precision 0.8711 produced audit precision 0.7879;
+    the consumed 240-image curve first recovered audit precision and recall at
+    threshold 0.042, where combined calibration precision was 0.8719.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+generation_gate:
+  allowed: false
+  reason: "v4 supervised labeler has not passed its new untouched Train audit"
