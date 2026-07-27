@@ -13,8 +13,8 @@ import yaml
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v2.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v2_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v3.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v3_split.json"
 
 
 def load_supervised_labeler_config(
@@ -135,7 +135,9 @@ def freeze_supervised_split(
         raise RuntimeError("Prior zero-shot audit IDs are not Train-only")
     calibration_groups = _group_ids(prior_ids, frozen)
     candidates: dict[int, tuple[int, float]] = {}
-    root_seed = int(config["root_seed"])
+    split_seed = int(config.get("split_seed", config.get("root_seed", -1)))
+    if split_seed < 0:
+        raise RuntimeError("Supervised split seed is missing")
     for image_id in sorted(train_images):
         group_id = int(frozen[image_id]["group_id"])
         if group_id in calibration_groups:
@@ -155,8 +157,8 @@ def freeze_supervised_split(
         ]
         candidate = (image_id, float(np.median(relative_areas)))
         previous = candidates.get(group_id)
-        if previous is None or _rank(root_seed, image_id) < _rank(
-            root_seed,
+        if previous is None or _rank(split_seed, image_id) < _rank(
+            split_seed,
             previous[0],
         ):
             candidates[group_id] = candidate
@@ -166,7 +168,7 @@ def freeze_supervised_split(
             (group_id, image_id, area)
             for group_id, (image_id, area) in candidates.items()
         ],
-        key=lambda item: (item[2], _rank(root_seed, item[0])),
+        key=lambda item: (item[2], _rank(split_seed, item[0])),
     )
     requested = int(config["data"]["new_untouched_audit_images"])
     if requested % 4 != 0 or len(ordered) < requested:
@@ -179,7 +181,7 @@ def freeze_supervised_split(
         ranked = sorted(
             source.tolist(),
             key=lambda item: _rank(
-                root_seed + quartile_index,
+                split_seed + quartile_index,
                 int(item[0]),
             ),
         )
@@ -205,7 +207,7 @@ def freeze_supervised_split(
     payload = {
         "schema_version": 1,
         "status": "frozen_before_supervised_training",
-        "root_seed": root_seed,
+        "root_seed": split_seed,
         "source_split": "Train",
         "training_image_ids": training_ids,
         "calibration_image_ids": prior_ids,
@@ -221,6 +223,8 @@ def freeze_supervised_split(
         "validation_images_read": 0,
         "test_images_read": 0,
     }
+    if "split_seed" in config:
+        payload["split_seed"] = split_seed
     payload["manifest_sha256"] = hashlib.sha256(
         json.dumps(
             payload,

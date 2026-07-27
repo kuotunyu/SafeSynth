@@ -35,11 +35,12 @@ from src.synthetic.supervised_labeler import (
     require_verified_model,
 )
 
-REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_training.json"
-SMOKE_REPORT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_smoke.json"
-MARKDOWN_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v2_training.md"
+EXPERIMENT_STEM = CONFIG_PATH.stem
+REPORT_PATH = PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_training.json"
+SMOKE_REPORT_PATH = PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_smoke.json"
+MARKDOWN_PATH = PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_training.md"
 FIGURE_PATH = (
-    PROJECT_ROOT / "reports" / "figures" / "supervised_labeler_v2_audit.png"
+    PROJECT_ROOT / "reports" / "figures" / f"{EXPERIMENT_STEM}_audit.png"
 )
 
 
@@ -496,9 +497,12 @@ def _smoke() -> None:
     ) = _build_datasets()
     if not torch.cuda.is_available():
         raise RuntimeError("Supervised labeler smoke requires CUDA")
-    random.seed(int(config["root_seed"]))
-    np.random.seed(int(config["root_seed"]))
-    torch.manual_seed(int(config["root_seed"]))
+    seed = int(config.get("training_seed", config.get("root_seed", -1)))
+    if seed < 0:
+        raise RuntimeError("Supervised training seed is missing")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     processor, model = _load_model_and_processor(
         model_dir=model_directory(paths, config),
         config=config,
@@ -560,12 +564,19 @@ def _train() -> None:
     ) = _build_datasets()
     if not torch.cuda.is_available():
         raise RuntimeError("Supervised labeler training requires CUDA")
-    run_root = paths.runs / f"supervised_labeler_seed{config['root_seed']}"
+    seed = int(config.get("training_seed", config.get("root_seed", -1)))
+    split_seed = int(config.get("split_seed", config.get("root_seed", -1)))
+    if seed < 0 or split_seed < 0:
+        raise RuntimeError("Supervised training/split seed is missing")
+    run_root = (
+        paths.runs
+        / f"{config.get('experiment_id', EXPERIMENT_STEM)}"
+        f"_train{seed}_split{split_seed}"
+    )
     if run_root.exists() or REPORT_PATH.exists() or FIGURE_PATH.exists():
         raise RuntimeError("Supervised labeler run evidence already exists")
     run_root.mkdir(parents=True)
     best_dir = run_root / "best"
-    seed = int(config["root_seed"])
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
