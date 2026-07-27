@@ -59,3 +59,13 @@ Train-only audit:
   normalized or rejected;
 - Validation/Test images read: 0/0;
 - model inference and H4 computation: no/no.
+
+## Historical outcome
+
+`kuotunyu` rejected the v5 CPU input sheet at 33/64 issues. The mirror
+normalization worked, but the isolated object-paste architecture did not:
+helmets floated without credible heads, faces looked composited, and many
+helmet/head relationships remained structurally implausible. Because FLUX.2 was
+registered to alter only the five-pixel boundary band, it could not repair
+these invalid cores. No GPU inference or H4 computation was run. A successor
+must operate on a coupled head + helmet + upper-body unit.

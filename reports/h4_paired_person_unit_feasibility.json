@@ -1,0 +1,22 @@
+{
+  "h4_auc_computed": false,
+  "model_inference_run": false,
+  "paired_class_counts": {
+    "head": 1,
+    "helmet": 112
+  },
+  "paired_headlike_annotations": 113,
+  "paired_person_cutouts": 111,
+  "paired_person_cutouts_height_ge_80": 90,
+  "paired_person_cutouts_preferred_tier": 107,
+  "paired_person_cutouts_unique_pair": 109,
+  "paired_source_groups": 76,
+  "person_cutouts": 113,
+  "person_source_groups": 77,
+  "person_source_images": 77,
+  "schema_version": 1,
+  "scope": "Train cutout bank and Train annotations only",
+  "status": "candidate_successor_feasible_not_preregistered",
+  "test_images_read": 0,
+  "validation_images_read": 0
+}

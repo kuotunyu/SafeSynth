@@ -7,6 +7,7 @@ from PIL import Image
 
 from scripts.run_generative_identity_pilot import (
     PilotEvidence,
+    _require_input_preflight_approved,
     render_contact_sheet,
 )
 
@@ -59,3 +60,44 @@ def test_contact_sheet_contains_registered_four_panels(tmp_path: Path) -> None:
     sheet = Image.open(output_path)
     assert sheet.size == (392, 420)
     assert output_path.stat().st_size > 0
+
+
+def test_gpu_pilot_rejects_failed_input_preflight(tmp_path: Path) -> None:
+    report_path = tmp_path / "preflight.json"
+    report_path.write_text(
+        (
+            '{"architecture":"guarded_context_replacement_v5",'
+            '"root_seed":20260731,"status":"rejected_by_kuotunyu",'
+            '"reviewed_by":"kuotunyu","observed_input_issue_count":33}'
+        ),
+        encoding="utf-8",
+    )
+    config = {
+        "pilot": {
+            "architecture": "guarded_context_replacement_v5",
+            "root_seed": 20260731,
+        }
+    }
+
+    with np.testing.assert_raises_regex(RuntimeError, "GPU identity pilot locked"):
+        _require_input_preflight_approved(report_path, config)
+
+
+def test_gpu_pilot_accepts_only_exact_zero_issue_approval(tmp_path: Path) -> None:
+    report_path = tmp_path / "preflight.json"
+    report_path.write_text(
+        (
+            '{"architecture":"guarded_context_replacement_v5",'
+            '"root_seed":20260731,"status":"approved_by_kuotunyu",'
+            '"reviewed_by":"kuotunyu","observed_input_issue_count":0}'
+        ),
+        encoding="utf-8",
+    )
+    config = {
+        "pilot": {
+            "architecture": "guarded_context_replacement_v5",
+            "root_seed": 20260731,
+        }
+    }
+
+    _require_input_preflight_approved(report_path, config)

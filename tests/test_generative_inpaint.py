@@ -29,7 +29,7 @@ def test_registered_model_and_h4_gate_are_frozen() -> None:
     assert config["model"]["required_download_bytes"] == 15_980_131_711
     assert config["runtime"]["local_files_only"] is True
     assert config["final_h4"]["max_auc_for_scaleup"] == 0.60
-    assert config["status"] == "guarded_v5_preregistered_no_output"
+    assert config["status"] == "guarded_v5_input_rejected"
     assert config["pilot"]["architecture"] == "guarded_context_replacement_v5"
     assert config["pilot"]["root_seed"] == 20260731
     assert config["pilot"]["previous_failed_root_seed"] == 20260730
@@ -37,6 +37,8 @@ def test_registered_model_and_h4_gate_are_frozen() -> None:
     assert config["pilot"]["v2_failed_root_seed"] == 20260728
     assert config["pilot"]["original_failed_root_seed"] == 20260727
     assert config["pilot"]["input_preflight_issue_max_count"] == 0
+    assert config["pilot"]["input_review"]["status"] == "rejected_by_kuotunyu"
+    assert config["pilot"]["input_review"]["observed_issue_count"] == 33
 
 
 def test_boundary_mask_preserves_minimum_core_and_edits_both_sides() -> None:

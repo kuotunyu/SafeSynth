@@ -103,6 +103,28 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _require_input_preflight_approved(
+    report_path: Path,
+    config: dict[str, Any],
+) -> None:
+    """Block every GPU model call until kuotunyu approves the exact inputs."""
+
+    if not report_path.exists():
+        raise RuntimeError("GPU identity pilot locked: input preflight is missing")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    pilot = config["pilot"]
+    if (
+        report.get("status") != "approved_by_kuotunyu"
+        or report.get("reviewed_by") != "kuotunyu"
+        or int(report.get("observed_input_issue_count", -1)) != 0
+        or report.get("architecture") != pilot["architecture"]
+        or int(report.get("root_seed", -1)) != int(pilot["root_seed"])
+    ):
+        raise RuntimeError(
+            "GPU identity pilot locked: the exact input sheet is not approved"
+        )
+
+
 def _label_panel(image: Image.Image, label: str) -> Image.Image:
     panel = image.convert("RGB")
     draw = ImageDraw.Draw(panel)
@@ -479,6 +501,10 @@ def main() -> None:
         )
         return
 
+    _require_input_preflight_approved(
+        paths.reports / "h4_guarded_input_preflight.json",
+        config,
+    )
     engine = GenerativeBoundaryInpainter(
         load_flux2_pipeline(
             model_dir=model_directory(paths, config),

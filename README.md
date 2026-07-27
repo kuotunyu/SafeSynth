@@ -53,12 +53,19 @@ on an A100 40 GB. All 12 outputs preserved every pixel outside the edit mask,
 but removing the reference changed masked RGB values by only 0.2260/255 on
 average and lower strength showed no consistent visual improvement. No variant
 was selected. A subsequent CPU-only preflight found reflected padding throughout
-the source dataset, so v5 now removes each detected mirrored border, resizes the
+the source dataset, so v5 removes each detected mirrored border, resizes the
 clean center with preserved aspect ratio, transforms every label and Pass-1
-mask identically, and then reapplies the anchor guards. The fixed 64-input v5
-sheet is ready for `kuotunyu` review; FLUX inference remains locked until that
-sheet has zero input issues. No new H4 AUC has been computed, M13 remains closed,
-and Phase 2 has not started.
+mask identically, and then reapplies the anchor guards. `kuotunyu` rejected the
+fixed 64-input v5 sheet at 33/64 issues: isolated helmet/head cutouts frequently
+looked composited, floated without a credible anatomical carrier, or produced
+an implausible head/helmet structure. FLUX inference was not run because its
+five-pixel boundary edit cannot repair an invalid core. Any successor must use
+a coupled head + helmet + upper-body synthesis unit and pass a new zero-issue
+CPU input sheet. A Train-only CPU audit found that 111/113 existing person
+cutouts have a paired helmet/head annotation, spanning 76 source groups (90
+people are at least 80 pixels high), so this successor is feasible without a
+new download or Colab run. It is not yet preregistered. No new H4 AUC has been
+computed, M13 remains closed, and Phase 2 has not started.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

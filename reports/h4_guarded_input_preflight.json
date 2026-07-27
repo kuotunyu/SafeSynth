@@ -7,10 +7,53 @@
   "input_issue_max_count": 0,
   "model_inference_run": false,
   "n_images": 64,
-  "observed_input_issue_count": null,
+  "issue_groups": {
+    "face_obvious_composite": [
+      5,
+      8,
+      25,
+      33
+    ],
+    "floating_hat_without_visible_head": [
+      9,
+      10,
+      15,
+      16,
+      20,
+      21,
+      24,
+      26,
+      28,
+      34,
+      37,
+      45,
+      50
+    ],
+    "hat_and_head_overall_weird": [
+      29,
+      30,
+      32,
+      36,
+      38,
+      41,
+      43,
+      44,
+      47,
+      57,
+      63
+    ],
+    "postprocess_failure_appearance": [
+      51,
+      55,
+      59,
+      62,
+      64
+    ]
+  },
+  "observed_input_issue_count": 33,
   "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260731",
-  "reviewed_by": null,
+  "reviewed_by": "kuotunyu",
   "root_seed": 20260731,
   "schema_version": 1,
-  "status": "pending_kuotunyu_input_review"
+  "status": "rejected_by_kuotunyu"
 }
