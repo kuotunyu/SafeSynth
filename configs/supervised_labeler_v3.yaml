@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v3"
-status: "smoke_passed_waiting_formal_training"
+status: "supervised_labeler_audit_failed"
 architecture: "rtdetr_v2_r18vd_helmet_only"
 split_seed: 20260811
 training_seed: 20260809
@@ -67,4 +67,4 @@ audit_gate:
 
 generation_gate:
   allowed: false
-  reason: "v3 supervised labeler has not passed its new untouched Train audit"
+  reason: "v3 audit precision 0.7879 was below the frozen 0.80 Train-only gate"
