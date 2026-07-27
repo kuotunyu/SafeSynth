@@ -1,6 +1,6 @@
 # Whole-person edit v8 CPU preflight
 
-- Status: **pending kuotunyu input review**
+- Status: **approved by kuotunyu; 0 input issues**
 - Architecture: `masked_existing_person_restyle_v8`
 - Exact input manifest:
   `a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2`

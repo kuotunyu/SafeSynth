@@ -4,7 +4,7 @@
 # be rendered and explicitly approved by kuotunyu before any model is loaded.
 
 schema_version: 1
-status: "pending_kuotunyu_input_review"
+status: "approved_for_four_case_gpu_diagnostic"
 architecture: "masked_existing_person_restyle_v8"
 root_seed: 20260804
 n_cases: 4
@@ -62,11 +62,11 @@ method:
     other objects.
 
 model_gate:
-  allowed: false
+  allowed: true
   required_reviewer: "kuotunyu"
   required_issue_count: 0
-  review_status: "not_reviewed"
-  approved_manifest_sha256: null
+  review_status: "approved_by_kuotunyu"
+  approved_manifest_sha256: "a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2"
 
 input_preflight:
   n_cases: 4

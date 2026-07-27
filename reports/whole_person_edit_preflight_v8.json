@@ -262,18 +262,20 @@
   "h4_auc_computed": false,
   "input_manifest_sha256": "a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2",
   "model_gate": {
-    "allowed": false,
-    "approved_manifest_sha256": null,
+    "allowed": true,
+    "approved_manifest_sha256": "a0c0795e856f588d5aab90887057498259ac96e90fcfef8349669bf9df0f0af2",
     "required_issue_count": 0,
     "required_reviewer": "kuotunyu",
-    "review_status": "not_reviewed"
+    "review_status": "approved_by_kuotunyu"
   },
   "model_inference_run": false,
   "n_cases": 4,
   "root_seed": 20260804,
   "schema_version": 1,
   "scope": "frozen Train pixels, labels, masks, and cutouts only",
-  "status": "pending_kuotunyu_input_review",
+  "status": "approved_by_kuotunyu",
+  "reviewed_by": "kuotunyu",
+  "observed_input_issue_count": 0,
   "test_images_read": 0,
   "validation_images_read": 0
 }
