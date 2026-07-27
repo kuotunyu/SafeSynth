@@ -173,10 +173,27 @@ def _render_audit_sheet(
 ) -> None:
     panel = 260
     caption = 30
+    legend = 58
     columns = 4
     selected = list(image_ids[:16])
     rows = (len(selected) + columns - 1) // columns
-    sheet = Image.new("RGB", (panel * columns, (panel + caption) * rows), "white")
+    sheet = Image.new(
+        "RGB",
+        (panel * columns, legend + (panel + caption) * rows),
+        "white",
+    )
+    sheet_draw = ImageDraw.Draw(sheet)
+    sheet_draw.text(
+        (8, 7),
+        "GROUNDING DINO | TRAIN-ONLY AUDIT | GREEN=DATASET GT | "
+        "CYAN=MODEL PREDICTION",
+        fill="black",
+    )
+    sheet_draw.text(
+        (8, 30),
+        f"phrase={phrase} | frozen score threshold={threshold:.2f}",
+        fill="black",
+    )
     for index, image_id in enumerate(selected):
         image = Image.open(
             paths.hardhat_raw / str(train_images[image_id]["file_name"])
@@ -191,11 +208,11 @@ def _render_audit_sheet(
             draw.text((box[0] + 2, box[1] + 2), f"{score:.2f}", fill="cyan")
         image = image.resize((panel, panel), Image.Resampling.LANCZOS)
         x0 = (index % columns) * panel
-        y0 = (index // columns) * (panel + caption)
+        y0 = legend + (index // columns) * (panel + caption)
         sheet.paste(image, (x0, y0))
-        ImageDraw.Draw(sheet).text(
+        sheet_draw.text(
             (x0 + 4, y0 + panel + 6),
-            f"{image_id} | green=GT cyan=prediction",
+            f"{index + 1:02d} | Train image {image_id}",
             fill="black",
         )
     FIGURE_PATH.parent.mkdir(parents=True, exist_ok=True)
