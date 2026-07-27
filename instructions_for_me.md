@@ -14,7 +14,7 @@ reference。結果不能直接開啟 M13。
 1. 打開 <https://colab.research.google.com/>。
 2. 選「檔案 → 上傳筆記本」，上傳
    `notebooks/00_flux2_v2_diagnostic.ipynb`。
-3. 選「執行階段 → 變更執行階段類型 → L4 GPU」。
+3. 選「執行階段 → 變更執行階段類型 → A100 GPU → 40 GB」。
 4. 選「執行階段 → 全部執行」。
 5. 出現檔案選擇器時，上傳
    `outputs/flux2_v2_colab_diagnostic_inputs.zip`。
@@ -22,10 +22,12 @@ reference。結果不能直接開啟 M13。
    `flux2_v2_diagnostic_results.zip`。
 7. 把下載後的 zip 附回 Codex，或告訴我它在電腦上的完整路徑。
 
-第一次會從 Hugging Face 下載已批准的 14.88 GiB 模型。L4 粗估約
-60–150 分鐘、約 4–10 compute units；這只是診斷估算，不是保證值。
-若 Colab 顯示不是 L4、下載失敗或顯存不足，先停止並把錯誤截圖給我，
-不要自行改 notebook 的模型或參數。
+第一次會從 Hugging Face 下載已批准的 14.88 GiB 模型。A100 40 GB
+足以讓這個 4B 模型全程留在 GPU；80 GB 對本次單張 416×416 推論沒有必要。
+Colab 的實際扣點率會變動，啟動前以畫面顯示為準。若只有 80 GB 可選，
+或 40／80 GB 顯示相同扣點率，可以用 80 GB；否則選 40 GB。
+若下載失敗或顯存不足，先停止並把錯誤截圖給我，不要自行改 notebook
+的模型或參數。
 
 詳細科學界線與輸入內容見
 `docs/flux2_v2_colab_diagnostic.md`。

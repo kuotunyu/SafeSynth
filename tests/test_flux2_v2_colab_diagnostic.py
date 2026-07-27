@@ -19,6 +19,8 @@ def test_diagnostic_notebook_is_valid_and_has_no_embedded_secret() -> None:
     assert "run_artifact_gate" not in source
     assert "final_h4_auc_computed': False" in source
     assert "source_split'] == 'train_only'" in source
+    assert "if vram_gib >= 35:" in source
+    assert "execution_mode = 'full_model_on_cuda'" in source
     assert "files.upload()" in source
     assert "files.download(archive)" in source
 

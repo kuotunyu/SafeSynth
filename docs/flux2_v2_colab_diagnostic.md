@@ -54,9 +54,16 @@ needs a new design.
 
 ## Colab runtime
 
-Use an **L4** runtime first. The 4B model uses approximately 14.88 GiB of local
-storage and the notebook enables model CPU offload. A100 is unnecessary for
-this small diagnostic unless L4 is unavailable or fails to fit.
+Use an **A100 40 GB** runtime. The pinned 4B package uses approximately
+14.88 GiB of local storage; at 416×416 with one image per call, 40 GB is enough
+to keep the model on CUDA without CPU offload. The notebook detects at least
+35 GiB of visible VRAM and selects `full_model_on_cuda`; smaller GPUs fall back
+to model CPU offload.
+
+An A100 80 GB runtime is not needed for this diagnostic. Its extra capacity is
+useful for larger models, larger batches, or substantially larger images, none
+of which apply here. Select 80 GB only if Colab offers it at the same displayed
+compute-unit rate as 40 GB.
 
 The notebook produces `flux2_v2_diagnostic_results.zip`. Download that single
 file and return it unchanged for local verification and a blinded contact
