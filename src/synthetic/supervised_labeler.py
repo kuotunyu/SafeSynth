@@ -57,6 +57,53 @@ def model_directory(paths: ProjectPaths, config: Mapping[str, Any]) -> Path:
     return paths.cache / "models" / slug / str(model["revision"])
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def require_verified_model(
+    model_dir: Path,
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Rehash the exact local supervised-labeler checkpoint before use."""
+
+    manifest_path = model_dir / "SAFESYNTH_MODEL_MANIFEST.json"
+    if not manifest_path.is_file():
+        raise RuntimeError("Pinned supervised labeler is not downloaded")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    expected = config["model"]
+    if (
+        manifest.get("repo_id") != expected["repo_id"]
+        or manifest.get("revision") != expected["revision"]
+        or manifest.get("license") != expected["license"]
+        or int(manifest.get("download_bytes", -1))
+        != int(expected["required_download_bytes"])
+    ):
+        raise RuntimeError("Supervised labeler manifest does not match registration")
+    registered = {
+        str(record["path"]): record for record in manifest.get("files", [])
+    }
+    if set(registered) != set(expected["allow_files"]):
+        raise RuntimeError("Supervised labeler file list changed")
+    for name, expected_size in expected["allow_files"].items():
+        path = model_dir / str(name)
+        record = registered[str(name)]
+        if (
+            not path.is_file()
+            or path.stat().st_size != int(expected_size)
+            or int(record.get("bytes", -1)) != int(expected_size)
+            or _sha256_file(path) != record.get("sha256")
+        ):
+            raise RuntimeError(
+                f"Supervised labeler file failed integrity check: {name}"
+            )
+    return manifest
+
+
 def _rank(seed: int, value: int) -> str:
     return hashlib.sha256(f"{seed}|{value}".encode()).hexdigest()
 

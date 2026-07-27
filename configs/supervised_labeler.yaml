@@ -1,5 +1,5 @@
 schema_version: 1
-status: "split_frozen_waiting_model"
+status: "model_verified_waiting_trainer"
 architecture: "rtdetr_v2_r18vd_helmet_only"
 root_seed: 20260809
 

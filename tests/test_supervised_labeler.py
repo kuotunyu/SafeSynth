@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import defaultdict
+
+import pytest
 
 from src.synthetic.supervised_labeler import (
     freeze_supervised_split,
     load_supervised_labeler_config,
+    require_verified_model,
 )
 
 
@@ -56,3 +61,42 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
     assert first["validation_images_read"] == 0
     assert first["test_images_read"] == 0
+
+
+def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+    weight_path = model_dir / "model.safetensors"
+    weight_path.write_bytes(b"fixed checkpoint")
+    config = {
+        "model": {
+            "repo_id": "owner/model",
+            "revision": "fixed",
+            "license": "apache-2.0",
+            "required_download_bytes": len(b"fixed checkpoint"),
+            "allow_files": {"model.safetensors": len(b"fixed checkpoint")},
+        }
+    }
+    manifest = {
+        "repo_id": "owner/model",
+        "revision": "fixed",
+        "license": "apache-2.0",
+        "download_bytes": len(b"fixed checkpoint"),
+        "files": [
+            {
+                "path": "model.safetensors",
+                "bytes": len(b"fixed checkpoint"),
+                "sha256": hashlib.sha256(b"fixed checkpoint").hexdigest(),
+            }
+        ],
+    }
+    (model_dir / "SAFESYNTH_MODEL_MANIFEST.json").write_text(
+        json.dumps(manifest),
+        encoding="utf-8",
+    )
+
+    require_verified_model(model_dir, config)
+    weight_path.write_bytes(b"broken checkpoint")
+
+    with pytest.raises(RuntimeError, match="failed integrity"):
+        require_verified_model(model_dir, config)
