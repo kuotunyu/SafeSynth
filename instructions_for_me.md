@@ -5,31 +5,18 @@
 
 ---
 
-## 現在可以做：Colab 跑 FLUX.2 v2 小型診斷
+## 目前不需要你操作
 
-這不是正式 H4，也不是 Phase 2 訓練。它只用四個 Train 樣本比較三個事先
-固定的生成設定，找出灰塊與邊界破壞是來自 `strength=0.85`，還是中性灰底
-reference。結果不能直接開啟 M13。
+FLUX.2 v2 的四案例 Colab 診斷已在 A100 40 GB 完成，12/12 輸出已下載、
+驗證與分析。三個版本都只修改 edit mask 內的像素，但移除 reference 幾乎
+沒有影響，降低 strength 也沒有一致改善，因此沒有選出新版本。原 v1 仍維持
+人工 identity gate 失敗，M13 與 Phase 2 仍然關閉。
 
-1. 打開 <https://colab.research.google.com/>。
-2. 選「檔案 → 上傳筆記本」，上傳
-   `notebooks/00_flux2_v2_diagnostic.ipynb`。
-3. 選「執行階段 → 變更執行階段類型 → A100 GPU → 40 GB」。
-4. 選「執行階段 → 全部執行」。
-5. 出現檔案選擇器時，上傳
-   `outputs/flux2_v2_colab_diagnostic_inputs_portable.zip`。
-6. 等 notebook 完成；最後會自動下載
-   `flux2_v2_diagnostic_results.zip`。
-7. 把下載後的 zip 附回 Codex，或告訴我它在電腦上的完整路徑。
+下一步是先設計並預註冊「輸入有效性＋anchor 定位」防護，再產生一批全新、
+未看過的 64 圖 identity pilot。這是本機可完成的研究與實作工作；目前不需要
+你重開 Colab、重跑 H4 或做其他外部操作。
 
-第一次會從 Hugging Face 下載已批准的 14.88 GiB 模型。A100 40 GB
-足以讓這個 4B 模型全程留在 GPU；80 GB 對本次單張 416×416 推論沒有必要。
-Colab 的實際扣點率會變動，啟動前以畫面顯示為準。若只有 80 GB 可選，
-或 40／80 GB 顯示相同扣點率，可以用 80 GB；否則選 40 GB。
-若下載失敗或顯存不足，先停止並把錯誤截圖給我，不要自行改 notebook
-的模型或參數。
-
-詳細科學界線與輸入內容見
+結果與科學界線見 `reports/flux2_v2_diagnostic.md` 和
 `docs/flux2_v2_colab_diagnostic.md`。
 
 ---

@@ -47,10 +47,14 @@ input draft and cell 04 exposed a mislocalized edit region. Option A therefore
 does not proceed to the one-shot H4 artifact gate, and no new H4 AUC has been
 computed. Phase 2 remains blocked.
 
-A separate four-case, Train-only Colab diagnostic is prepared to compare the
-failed v1 reference-conditioning call against two pre-declared lower-strength
-variants. It is method development only: it does not compute H4, reopen M13, or
-start Phase 2.
+A separate four-case, Train-only Colab diagnostic compared the failed v1
+reference-conditioning call against two pre-declared lower-strength variants
+on an A100 40 GB. All 12 outputs preserved every pixel outside the edit mask,
+but removing the reference changed masked RGB values by only 0.2260/255 on
+average and lower strength showed no consistent visual improvement. No variant
+was selected. The next method must add an input-validity and anchor-localization
+guard before a new untouched identity pilot. This diagnostic did not compute
+H4, reopen M13, or start Phase 2.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

@@ -1,0 +1,268 @@
+{
+  "aggregate": {
+    "pairwise": {
+      "reference_effect_at_strength_055": {
+        "different_pixel_fraction_inside_mask": 0.4329365784331142,
+        "mae_rgb_inside_mask": 0.2260318588263161
+      },
+      "strength_effect_v1_vs_reference_055": {
+        "different_pixel_fraction_inside_mask": 0.8903890566708119,
+        "mae_rgb_inside_mask": 3.017883579084503
+      }
+    },
+    "variants": {
+      "no_reference_strength_055": {
+        "changed_pixel_fraction_inside_mask": 1.0,
+        "mae_rgb_inside_mask": 77.59892224788298,
+        "outside_mask_changed_pixels": 0
+      },
+      "reference_strength_055": {
+        "changed_pixel_fraction_inside_mask": 1.0,
+        "mae_rgb_inside_mask": 77.61046959199385,
+        "outside_mask_changed_pixels": 0
+      },
+      "v1_reference_strength_085": {
+        "changed_pixel_fraction_inside_mask": 1.0,
+        "mae_rgb_inside_mask": 80.05039379404275,
+        "outside_mask_changed_pixels": 0
+      }
+    }
+  },
+  "archive": "C:\\Users\\3Hml\\Downloads\\flux2_v2_diagnostic_results.zip",
+  "archive_sha256": "33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6",
+  "cases": {
+    "case_07": {
+      "pairwise_metrics": {
+        "reference_effect_at_strength_055": {
+          "different_pixel_fraction_inside_mask": 0.6802181457610312,
+          "different_pixels_inside_mask": 1372,
+          "mae_rgb_inside_mask": 0.43546521236159313,
+          "max_abs_channel_error_inside_mask": 4,
+          "sum_abs_channel_error_inside_mask": 2635
+        },
+        "strength_effect_v1_vs_reference_055": {
+          "different_pixel_fraction_inside_mask": 0.9940505701536936,
+          "different_pixels_inside_mask": 2005,
+          "mae_rgb_inside_mask": 3.3781193191208065,
+          "max_abs_channel_error_inside_mask": 13,
+          "sum_abs_channel_error_inside_mask": 20441
+        }
+      },
+      "sample_id": "s20260727_000007",
+      "variant_metrics": {
+        "no_reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2017,
+          "edit_mask_pixels": 2017,
+          "mae_rgb_inside_mask": 83.74665344571146,
+          "max_abs_channel_error_inside_mask": 248,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 192.0,
+          "sum_abs_channel_error_inside_mask": 506751
+        },
+        "reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2017,
+          "edit_mask_pixels": 2017,
+          "mae_rgb_inside_mask": 83.79672781358452,
+          "max_abs_channel_error_inside_mask": 248,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 192.0,
+          "sum_abs_channel_error_inside_mask": 507054
+        },
+        "v1_reference_strength_085": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2017,
+          "edit_mask_pixels": 2017,
+          "mae_rgb_inside_mask": 86.5326392331846,
+          "max_abs_channel_error_inside_mask": 248,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 197.0,
+          "sum_abs_channel_error_inside_mask": 523609
+        }
+      }
+    },
+    "case_13": {
+      "pairwise_metrics": {
+        "reference_effect_at_strength_055": {
+          "different_pixel_fraction_inside_mask": 0.41367521367521365,
+          "different_pixels_inside_mask": 242,
+          "mae_rgb_inside_mask": 0.15726495726495726,
+          "max_abs_channel_error_inside_mask": 1,
+          "sum_abs_channel_error_inside_mask": 276
+        },
+        "strength_effect_v1_vs_reference_055": {
+          "different_pixel_fraction_inside_mask": 1.0,
+          "different_pixels_inside_mask": 585,
+          "mae_rgb_inside_mask": 12.156125356125356,
+          "max_abs_channel_error_inside_mask": 48,
+          "sum_abs_channel_error_inside_mask": 21334
+        }
+      },
+      "sample_id": "s20260727_000013",
+      "variant_metrics": {
+        "no_reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 585,
+          "edit_mask_pixels": 585,
+          "mae_rgb_inside_mask": 49.236467236467234,
+          "max_abs_channel_error_inside_mask": 177,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 102.0,
+          "sum_abs_channel_error_inside_mask": 86410
+        },
+        "reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 585,
+          "edit_mask_pixels": 585,
+          "mae_rgb_inside_mask": 49.147578347578346,
+          "max_abs_channel_error_inside_mask": 176,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 102.0,
+          "sum_abs_channel_error_inside_mask": 86254
+        },
+        "v1_reference_strength_085": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 585,
+          "edit_mask_pixels": 585,
+          "mae_rgb_inside_mask": 60.246153846153845,
+          "max_abs_channel_error_inside_mask": 197,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 123.0,
+          "sum_abs_channel_error_inside_mask": 105732
+        }
+      }
+    },
+    "case_17": {
+      "pairwise_metrics": {
+        "reference_effect_at_strength_055": {
+          "different_pixel_fraction_inside_mask": 0.3034398034398034,
+          "different_pixels_inside_mask": 247,
+          "mae_rgb_inside_mask": 0.11261261261261261,
+          "max_abs_channel_error_inside_mask": 1,
+          "sum_abs_channel_error_inside_mask": 275
+        },
+        "strength_effect_v1_vs_reference_055": {
+          "different_pixel_fraction_inside_mask": 0.257985257985258,
+          "different_pixels_inside_mask": 210,
+          "mae_rgb_inside_mask": 0.0904995904995905,
+          "max_abs_channel_error_inside_mask": 2,
+          "sum_abs_channel_error_inside_mask": 221
+        }
+      },
+      "sample_id": "s20260727_000017",
+      "variant_metrics": {
+        "no_reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 814,
+          "edit_mask_pixels": 814,
+          "mae_rgb_inside_mask": 97.65806715806715,
+          "max_abs_channel_error_inside_mask": 241,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 207.0,
+          "sum_abs_channel_error_inside_mask": 238481
+        },
+        "reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 814,
+          "edit_mask_pixels": 814,
+          "mae_rgb_inside_mask": 97.61015561015562,
+          "max_abs_channel_error_inside_mask": 241,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 207.0,
+          "sum_abs_channel_error_inside_mask": 238364
+        },
+        "v1_reference_strength_085": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 814,
+          "edit_mask_pixels": 814,
+          "mae_rgb_inside_mask": 97.58681408681409,
+          "max_abs_channel_error_inside_mask": 241,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 207.0,
+          "sum_abs_channel_error_inside_mask": 238307
+        }
+      }
+    },
+    "case_52": {
+      "pairwise_metrics": {
+        "reference_effect_at_strength_055": {
+          "different_pixel_fraction_inside_mask": 0.2602801626751017,
+          "different_pixels_inside_mask": 576,
+          "mae_rgb_inside_mask": 0.09504443440277151,
+          "max_abs_channel_error_inside_mask": 1,
+          "sum_abs_channel_error_inside_mask": 631
+        },
+        "strength_effect_v1_vs_reference_055": {
+          "different_pixel_fraction_inside_mask": 0.9995481247175779,
+          "different_pixels_inside_mask": 2212,
+          "mae_rgb_inside_mask": 1.350655219159512,
+          "max_abs_channel_error_inside_mask": 4,
+          "sum_abs_channel_error_inside_mask": 8967
+        }
+      },
+      "sample_id": "s20260727_000052",
+      "variant_metrics": {
+        "no_reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2213,
+          "edit_mask_pixels": 2213,
+          "mae_rgb_inside_mask": 72.11492694682934,
+          "max_abs_channel_error_inside_mask": 188,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 145.0,
+          "sum_abs_channel_error_inside_mask": 478771
+        },
+        "reference_strength_055": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2213,
+          "edit_mask_pixels": 2213,
+          "mae_rgb_inside_mask": 72.13978008736255,
+          "max_abs_channel_error_inside_mask": 188,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 145.0,
+          "sum_abs_channel_error_inside_mask": 478936
+        },
+        "v1_reference_strength_085": {
+          "changed_pixel_fraction_inside_mask": 1.0,
+          "changed_pixels_inside_mask": 2213,
+          "edit_mask_pixels": 2213,
+          "mae_rgb_inside_mask": 72.92709745443591,
+          "max_abs_channel_error_inside_mask": 190,
+          "outside_mask_changed_pixels": 0,
+          "p95_abs_channel_error_inside_mask": 147.0,
+          "sum_abs_channel_error_inside_mask": 484163
+        }
+      }
+    }
+  },
+  "detail_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\flux2_v2_diagnostic_detail.png",
+  "detail_sheet_sha256": "0008702bc8e23e6c45dce3e3b49ae491ced3b969bac7c5e373084f7722b4c18c",
+  "diagnostic_only": true,
+  "execution": {
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "mode": "full_model_on_cuda",
+    "python": "3.12.13 (main, Mar  4 2026, 09:23:07) [GCC 11.4.0]",
+    "torch": "2.11.0+cu128",
+    "total_inference_seconds": 86.704572773
+  },
+  "final_h4_auc_computed": false,
+  "method_decision": {
+    "binding_state": "v1_failed_human_identity_gate",
+    "next_requirement": "Design and preregister an input-validity and anchor-localization guard before generating another untouched identity pilot.",
+    "outcome": "no_registered_variant_selected",
+    "rationale": [
+      "Removing the reference at strength 0.55 has negligible effect (aggregate masked RGB MAE 0.2260/255).",
+      "Lowering strength changes some cases but produces no consistent visual improvement across the four fixed Train examples.",
+      "All variants preserve pixels outside the edit mask, but none addresses the invalid-draft and mislocalized-anchor failures from the rejected 64-image pilot."
+    ],
+    "selected_variant": null
+  },
+  "model": {
+    "diffusers_version": "0.39.0",
+    "license": "apache-2.0",
+    "repo_id": "black-forest-labs/FLUX.2-klein-base-4B",
+    "revision": "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+  },
+  "status": "diagnostic_complete_no_registered_variant_selected"
+}

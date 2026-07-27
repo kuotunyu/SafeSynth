@@ -83,3 +83,34 @@ timeout to 120 seconds before importing Diffusers. This avoids a Colab failure
 observed while Xet remained indefinitely at 4/17 files and 10.3/16.0 GiB
 reconstructed. Standard HTTP uses the existing Hugging Face partial cache and
 Range requests rather than intentionally deleting or restarting the download.
+
+## Result and method decision
+
+The registered run completed on `NVIDIA A100-SXM4-40GB` with the full model on
+CUDA. It produced all 12 expected outputs in 86.70 seconds. The unchanged result
+archive has SHA-256
+`33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6`.
+
+CPU-only verification found:
+
+- every variant changed only pixels inside the edit mask; outside-mask changes
+  were exactly zero;
+- removing the reference at `strength=0.55` changed masked RGB values by only
+  0.2260/255 on average, so the neutral-gray reference is not the operative
+  cause of the observed failures;
+- lowering strength from 0.85 to 0.55 had an aggregate masked RGB MAE of
+  3.0179/255, but the effect varied substantially by case and produced no
+  consistent visual improvement;
+- the four clean Train examples produced locally coherent helmet edits, but
+  none of the registered calls can repair an invalid draft or a mislocalized
+  anchor before inference.
+
+No registered variant is selected. The original v1 method remains rejected by
+the human identity gate. Before another untouched 64-image identity pilot, a
+new method must preregister an input-validity and anchor-localization guard.
+This result does not compute H4, reopen M13, or start Phase 2.
+
+Machine-readable metrics are in
+[`reports/flux2_v2_diagnostic.json`](../reports/flux2_v2_diagnostic.json), with
+the human-readable summary in
+[`reports/flux2_v2_diagnostic.md`](../reports/flux2_v2_diagnostic.md).
