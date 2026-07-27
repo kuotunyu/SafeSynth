@@ -6,6 +6,7 @@ from collections import defaultdict
 
 import pytest
 
+from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.supervised_labeler import (
     freeze_supervised_split,
@@ -128,3 +129,11 @@ def test_calibration_selection_never_weakens_precision_floor() -> None:
     assert selected is not None
     assert selected["threshold"] == 0.4
     assert select_calibration_candidate(rows[:1], precision_floor=0.85) is None
+
+
+def test_failure_diagnostic_grid_extends_below_frozen_threshold() -> None:
+    thresholds = diagnostic_thresholds()
+
+    assert thresholds == sorted(set(thresholds))
+    assert thresholds[0] == 0.001
+    assert thresholds[-1] == 0.05
