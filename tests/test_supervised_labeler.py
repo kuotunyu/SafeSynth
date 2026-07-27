@@ -9,8 +9,13 @@ from PIL import Image, ImageDraw
 
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
+from scripts.record_supervised_labeler_v6_review import (
+    build_review_evidence,
+    parse_problem_cells,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.train_supervised_labeler import select_calibration_candidate
+from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.supervised_labeler import (
     filter_prediction_geometry,
     freeze_supervised_split,
@@ -18,6 +23,7 @@ from src.synthetic.supervised_labeler import (
     require_verified_audited_checkpoint,
     require_verified_model,
 )
+from src.synthetic.whole_image import human_review_evidence_sha256
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -186,6 +192,48 @@ def test_passed_finetuned_checkpoint_is_rehashed_before_use(tmp_path) -> None:
             registration=registration,
             report=report,
             split=split,
+        )
+
+
+def test_v6_human_review_record_is_canonical_and_owner_only() -> None:
+    registration = load_whole_image_config()["supervised_labeler"]
+
+    evidence = build_review_evidence(
+        registration=registration,
+        decision="approve",
+        reviewed_on="2026-07-28",
+        problem_cells=parse_problem_cells(""),
+        note="All 48 cells reviewed.",
+    )
+
+    assert evidence["status"] == "approved_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_count"] == 0
+    assert evidence["problem_cells"] == []
+    assert evidence["evidence_sha256"] == human_review_evidence_sha256(
+        evidence
+    )
+    assert parse_problem_cells("43, 7,43") == [7, 43]
+
+
+def test_v6_human_review_rejects_inconsistent_decisions() -> None:
+    registration = load_whole_image_config()["supervised_labeler"]
+
+    with pytest.raises(ValueError, match="approved review"):
+        build_review_evidence(
+            registration=registration,
+            decision="approve",
+            reviewed_on="2026-07-28",
+            problem_cells=[7],
+            note="",
+        )
+    with pytest.raises(ValueError, match="rejected review"):
+        build_review_evidence(
+            registration=registration,
+            decision="reject",
+            reviewed_on="2026-07-28",
+            problem_cells=[],
+            note="",
         )
 
 

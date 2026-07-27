@@ -83,6 +83,14 @@ def diagnostic_manifest(config: Mapping[str, Any]) -> dict[str, Any]:
     return manifest
 
 
+def human_review_evidence_sha256(report: Mapping[str, Any]) -> str:
+    """Hash a review record without trusting its embedded digest."""
+
+    payload = dict(report)
+    payload.pop("evidence_sha256", None)
+    return hashlib.sha256(_canonical_json(payload)).hexdigest()
+
+
 def generator_directory(paths: ProjectPaths, config: Mapping[str, Any]) -> Path:
     """Return the project-isolated pinned FLUX model directory."""
 
@@ -117,6 +125,7 @@ def require_generation_approval(
     *,
     config: Mapping[str, Any],
     labeler_report: Mapping[str, Any],
+    human_review_report: Mapping[str, Any],
     manifest: Mapping[str, Any],
 ) -> None:
     """Keep FLUX locked until both machine and human gates pass."""
@@ -160,6 +169,30 @@ def require_generation_approval(
         or gate.get("required_reviewer") != "kuotunyu"
         or labeler_review.get("required_reviewer") != "kuotunyu"
         or labeler_review.get("status") != "approved_by_kuotunyu"
+        or human_review_report.get("status") != "approved_by_kuotunyu"
+        or human_review_report.get("reviewed_by") != "kuotunyu"
+        or not human_review_report.get("reviewed_on")
+        or human_review_report.get("experiment_id")
+        != supervised["experiment_id"]
+        or human_review_report.get("checkpoint_sha256")
+        != supervised["checkpoint_sha256"]
+        or human_review_report.get("split_manifest_sha256")
+        != supervised["split_manifest_sha256"]
+        or float(human_review_report.get("score_threshold", -1))
+        != float(supervised["score_threshold"])
+        or int(human_review_report.get("audit_images", -1))
+        != int(supervised["audit_images"])
+        or human_review_report.get("figure")
+        != labeler_review["figure"]
+        or human_review_report.get("figure_sha256")
+        != labeler_review["figure_sha256"]
+        or human_review_report.get("pages") != labeler_review["pages"]
+        or int(human_review_report.get("problem_count", -1)) != 0
+        or human_review_report.get("problem_cells") != []
+        or int(human_review_report.get("validation_images_read", -1)) != 0
+        or int(human_review_report.get("test_images_read", -1)) != 0
+        or human_review_report.get("evidence_sha256")
+        != human_review_evidence_sha256(human_review_report)
         or review.get("required_reviewer") != "kuotunyu"
         or review.get("status") != "approved_by_kuotunyu"
         or review.get("approved_manifest_sha256") != manifest_sha256

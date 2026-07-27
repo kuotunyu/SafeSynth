@@ -142,10 +142,19 @@ def main() -> None:
             encoding="utf-8"
         )
     )
+    human_review_path = PROJECT_ROOT / str(
+        registration["human_review"]["evidence_path"]
+    )
+    human_review_report = (
+        json.loads(human_review_path.read_text(encoding="utf-8"))
+        if human_review_path.is_file()
+        else {}
+    )
     manifest = diagnostic_manifest(config)
     require_generation_approval(
         config=config,
         labeler_report=labeler_report,
+        human_review_report=human_review_report,
         manifest=manifest,
     )
     checkpoint_dir = require_verified_audited_checkpoint(

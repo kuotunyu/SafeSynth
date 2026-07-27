@@ -7,6 +7,7 @@ import pytest
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.whole_image import (
     diagnostic_manifest,
+    human_review_evidence_sha256,
     require_generation_approval,
 )
 
@@ -43,6 +44,33 @@ def _passed_v6_report(config: dict) -> dict:
     }
 
 
+def _approved_human_review(config: dict) -> dict:
+    registered = config["supervised_labeler"]
+    review = registered["human_review"]
+    evidence = {
+        "schema_version": 1,
+        "status": "approved_by_kuotunyu",
+        "reviewed_by": "kuotunyu",
+        "reviewed_on": "2026-07-28",
+        "review_note": "",
+        "experiment_id": registered["experiment_id"],
+        "checkpoint_sha256": registered["checkpoint_sha256"],
+        "split_manifest_sha256": registered["split_manifest_sha256"],
+        "score_threshold": registered["score_threshold"],
+        "audit_images": registered["audit_images"],
+        "figure": review["figure"],
+        "figure_sha256": review["figure_sha256"],
+        "pages": review["pages"],
+        "problem_count": 0,
+        "problem_cells": [],
+        "validation_images_read": 0,
+        "test_images_read": 0,
+        "whole_image_generation_run": False,
+    }
+    evidence["evidence_sha256"] = human_review_evidence_sha256(evidence)
+    return evidence
+
+
 def test_diagnostic_manifest_is_frozen_and_train_independent() -> None:
     config = load_whole_image_config()
 
@@ -68,6 +96,7 @@ def test_generation_gate_requires_labeler_and_exact_owner_approval() -> None:
         require_generation_approval(
             config=config,
             labeler_report=labeler_report,
+            human_review_report=_approved_human_review(config),
             manifest=manifest,
         )
 
@@ -79,6 +108,7 @@ def test_generation_gate_requires_labeler_and_exact_owner_approval() -> None:
     require_generation_approval(
         config=approved,
         labeler_report=labeler_report,
+        human_review_report=_approved_human_review(config),
         manifest=manifest,
     )
 
@@ -96,6 +126,7 @@ def test_changed_prompt_invalidates_owner_approval() -> None:
         require_generation_approval(
             config=approved,
             labeler_report=_passed_v6_report(config),
+            human_review_report=_approved_human_review(config),
             manifest=diagnostic_manifest(approved),
         )
 
@@ -116,6 +147,7 @@ def test_old_zero_shot_labeler_report_cannot_open_v10_gate() -> None:
                 "validation_images_read": 0,
                 "test_images_read": 0,
             },
+            human_review_report=_approved_human_review(config),
             manifest=diagnostic_manifest(config),
         )
 
@@ -134,5 +166,25 @@ def test_changed_v6_checkpoint_evidence_cannot_open_gate() -> None:
         require_generation_approval(
             config=approved,
             labeler_report=changed_report,
+            human_review_report=_approved_human_review(config),
+            manifest=diagnostic_manifest(config),
+        )
+
+
+def test_tampered_human_review_evidence_cannot_open_gate() -> None:
+    config = load_whole_image_config()
+    approved = deepcopy(config)
+    approved["generation_gate"]["allowed"] = True
+    approved["supervised_labeler"]["human_review"][
+        "status"
+    ] = "approved_by_kuotunyu"
+    evidence = _approved_human_review(config)
+    evidence["problem_cells"] = [7]
+
+    with pytest.raises(RuntimeError, match="GPU gate locked"):
+        require_generation_approval(
+            config=approved,
+            labeler_report=_passed_v6_report(config),
+            human_review_report=evidence,
             manifest=diagnostic_manifest(config),
         )

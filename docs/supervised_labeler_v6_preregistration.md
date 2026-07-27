@@ -31,3 +31,10 @@ Validation/Test reads and whole-image generations remained zero.
 The numeric pass does not open generation. The 48-image green/cyan review still
 requires explicit approval by `kuotunyu`; until then, the v10 runner exits before
 loading FLUX or allocating model GPU memory.
+
+After the explicit decision, the exact reviewed figure/page hashes, checkpoint,
+split, threshold, reviewer, date, and problem cells are recorded in
+`reports/supervised_labeler_v6_human_review.json` by
+`scripts.record_supervised_labeler_v6_review`. The recorder refuses approval
+with any problem cells, refuses rejection without a problem cell, verifies every
+review image and model evidence hash, and never reads Validation or Test.

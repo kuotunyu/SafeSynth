@@ -61,6 +61,15 @@ supervised_labeler:
     required_reviewer: "kuotunyu"
     status: "pending_kuotunyu_review"
     figure: "reports/figures/supervised_labeler_v6_audit.png"
+    figure_sha256: "d73c9b9681581564e472a6eb26e7558a92b9f29c202bb8c5977052eb29f54911"
+    pages:
+      - path: "reports/figures/supervised_labeler_v6_audit_page_01.png"
+        sha256: "ba8e411df145471a3ef6931d2733af210f437f07cd48fcada2a0a5ce5142f9c4"
+      - path: "reports/figures/supervised_labeler_v6_audit_page_02.png"
+        sha256: "8e6a349affbd22bb331a35f11c8a3d4993521fb1d24996f7d24e03f2129646f6"
+      - path: "reports/figures/supervised_labeler_v6_audit_page_03.png"
+        sha256: "c597f901bb22f528428b9d2ab7e27f5ce092b14281e5571b9d56500d06141cf1"
+    evidence_path: "reports/supervised_labeler_v6_human_review.json"
 
 labeler_audit:
   root_seed: 20260807

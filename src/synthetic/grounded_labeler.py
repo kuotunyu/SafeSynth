@@ -54,6 +54,20 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         or not 0 < float(supervised["max_relative_height"]) <= 1
     ):
         raise RuntimeError("Supervised v6 labeler registration changed")
+    labeler_review = supervised["human_review"]
+    page_records = labeler_review.get("pages", [])
+    if (
+        labeler_review.get("required_reviewer") != "kuotunyu"
+        or len(str(labeler_review.get("figure_sha256", ""))) != 64
+        or len(page_records) != 3
+        or any(
+            not record.get("path")
+            or len(str(record.get("sha256", ""))) != 64
+            for record in page_records
+        )
+        or not labeler_review.get("evidence_path")
+    ):
+        raise RuntimeError("Supervised v6 human-review registration changed")
     gate = config["generation_gate"]
     if gate.get("allowed") not in (True, False):
         raise RuntimeError("Whole-image generation gate must be boolean")
@@ -61,7 +75,6 @@ def load_whole_image_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         raise RuntimeError("Whole-image generation reviewer changed")
     if gate["allowed"] is True:
         review = config["diagnostic"]["input_review"]
-        labeler_review = supervised["human_review"]
         if (
             review.get("required_reviewer") != "kuotunyu"
             or review.get("status") != "approved_by_kuotunyu"
