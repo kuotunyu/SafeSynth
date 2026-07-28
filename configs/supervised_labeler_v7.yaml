@@ -101,6 +101,11 @@ human_review_gate:
   required_after_numeric_pass: true
   reviewer: "kuotunyu"
   approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
   reject_categories:
     - "background_false_positive"
     - "missed_helmet"

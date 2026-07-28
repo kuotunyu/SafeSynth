@@ -44,6 +44,9 @@ MARKDOWN_PATH = PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_training.md"
 FIGURE_PATH = (
     PROJECT_ROOT / "reports" / "figures" / f"{EXPERIMENT_STEM}_audit.png"
 )
+AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_audit_evidence.json"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -406,6 +409,7 @@ def _render_audit(
     truth: Mapping[int, Sequence[Sequence[float]]],
     predictions: Mapping[int, Sequence[tuple[float, Sequence[float]]]],
     threshold: float,
+    split_manifest_sha256: str,
 ) -> None:
     panel = 260
     caption = 30
@@ -454,6 +458,61 @@ def _render_audit(
         )
     FIGURE_PATH.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(FIGURE_PATH, optimize=True)
+    evidence = build_audit_evidence(
+        rows=selected,
+        truth=truth,
+        predictions=predictions,
+        threshold=threshold,
+        split_manifest_sha256=split_manifest_sha256,
+    )
+    AUDIT_EVIDENCE_PATH.write_text(
+        json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def build_audit_evidence(
+    *,
+    rows: Sequence[int],
+    truth: Mapping[int, Sequence[Sequence[float]]],
+    predictions: Mapping[int, Sequence[tuple[float, Sequence[float]]]],
+    threshold: float,
+    split_manifest_sha256: str,
+) -> dict[str, Any]:
+    """Store exact review boxes so later rendering never parses a raster."""
+
+    cases = []
+    for cell, image_id in enumerate(rows, start=1):
+        cases.append(
+            {
+                "cell": cell,
+                "image_id": int(image_id),
+                "truth_boxes": [
+                    [float(value) for value in box]
+                    for box in truth[int(image_id)]
+                ],
+                "model_predictions": [
+                    {
+                        "score": float(score),
+                        "box": [float(value) for value in box],
+                    }
+                    for score, box in predictions[int(image_id)]
+                    if float(score) >= float(threshold)
+                ],
+            }
+        )
+    return {
+        "schema_version": 1,
+        "status": "frozen_one_shot_audit_review_evidence",
+        "experiment_id": EXPERIMENT_STEM,
+        "split_manifest_sha256": split_manifest_sha256,
+        "score_threshold": float(threshold),
+        "cases": cases,
+        "validation_images_read": 0,
+        "test_images_read": 0,
+        "whole_image_generation_run": False,
+    }
 
 
 def _build_datasets(
@@ -599,7 +658,12 @@ def _train() -> None:
         / f"{config.get('experiment_id', EXPERIMENT_STEM)}"
         f"_train{seed}_split{split_seed}"
     )
-    if run_root.exists() or REPORT_PATH.exists() or FIGURE_PATH.exists():
+    if (
+        run_root.exists()
+        or REPORT_PATH.exists()
+        or FIGURE_PATH.exists()
+        or AUDIT_EVIDENCE_PATH.exists()
+    ):
         raise RuntimeError("Supervised labeler run evidence already exists")
     run_root.mkdir(parents=True)
     best_dir = run_root / "best"
@@ -821,6 +885,7 @@ def _train() -> None:
             truth=audit_truth,
             predictions=audit_predictions,
             threshold=float(best["threshold"]),
+            split_manifest_sha256=str(split["manifest_sha256"]),
         )
         checkpoint_path = best_dir / "model.safetensors"
         report = {
@@ -840,6 +905,11 @@ def _train() -> None:
             "untouched_audit_images_read": len(audit_ids),
             "whole_image_generation_run": False,
             "postprocessing": config.get("postprocessing"),
+            "sampling": config.get("sampling"),
+            "audit_evidence_path": str(
+                AUDIT_EVIDENCE_PATH.relative_to(PROJECT_ROOT)
+            ).replace("\\", "/"),
+            "audit_evidence_sha256": _sha256(AUDIT_EVIDENCE_PATH),
         }
     REPORT_PATH.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",

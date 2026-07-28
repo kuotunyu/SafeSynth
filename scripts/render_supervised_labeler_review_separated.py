@@ -1,4 +1,4 @@
-"""Render frozen v6 review evidence with GT and model boxes separated."""
+"""Render frozen supervised review evidence with GT/model boxes separated."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-from scripts.train_supervised_labeler import FIGURE_PATH, _build_datasets
+from scripts.train_supervised_labeler import (
+    AUDIT_EVIDENCE_PATH,
+    EXPERIMENT_STEM,
+    FIGURE_PATH,
+    _build_datasets,
+)
 from src.data.paths import PROJECT_ROOT
 
-OUTPUT_STEM = (
-    PROJECT_ROOT
-    / "reports"
-    / "figures"
-    / "supervised_labeler_v6_audit_separated"
-)
+OUTPUT_STEM = FIGURE_PATH.with_name(f"{FIGURE_PATH.stem}_separated")
 
 
 def _sha256(path: Path) -> str:
@@ -194,7 +194,7 @@ def render_separated_pages() -> list[dict[str, Any]]:
     """Render three deterministic 16-case pages without model inference."""
 
     if not FIGURE_PATH.is_file():
-        raise RuntimeError("Frozen v6 review sheet is missing")
+        raise RuntimeError("Frozen supervised review sheet is missing")
     (
         _,
         split,
@@ -207,7 +207,19 @@ def render_separated_pages() -> list[dict[str, Any]]:
     ) = _build_datasets()
     image_ids = [int(value) for value in split["untouched_audit_image_ids"]]
     if len(image_ids) != 48 or len(audit) != 48:
-        raise RuntimeError("Expected the frozen 48-image v6 audit")
+        raise RuntimeError("Expected the frozen 48-image supervised audit")
+    evidence = None
+    if AUDIT_EVIDENCE_PATH.is_file():
+        evidence = json.loads(
+            AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+        )
+        if (
+            evidence.get("experiment_id") != EXPERIMENT_STEM
+            or evidence.get("split_manifest_sha256")
+            != split["manifest_sha256"]
+            or len(evidence.get("cases", [])) != 48
+        ):
+            raise RuntimeError("Exact audit evidence does not match the split")
 
     frozen_panel_size = 260
     frozen_caption = 30
@@ -230,7 +242,7 @@ def render_separated_pages() -> list[dict[str, Any]]:
         page_draw = ImageDraw.Draw(page)
         page_draw.text(
             (8, 7),
-            "V6 REVIEW | GREEN ONLY = DATASET GT | "
+            f"{EXPERIMENT_STEM.upper()} REVIEW | GREEN ONLY = DATASET GT | "
             "MAGENTA ONLY = MODEL | OVERLAY = BOTH",
             fill="black",
         )
@@ -264,15 +276,29 @@ def render_separated_pages() -> list[dict[str, Any]]:
                 (frozen_panel_size, frozen_panel_size),
                 Image.Resampling.LANCZOS,
             )
-            model_boxes = extract_model_boxes(
-                frozen_panel=frozen_panel,
-                original_panel=original_frozen_size,
-            )
+            if evidence is None:
+                model_boxes = extract_model_boxes(
+                    frozen_panel=frozen_panel,
+                    original_panel=original_frozen_size,
+                )
+                model_source_size = original_frozen_size.size
+            else:
+                evidence_case = evidence["cases"][canonical_index]
+                if (
+                    int(evidence_case["cell"]) != canonical_index + 1
+                    or int(evidence_case["image_id"]) != image_id
+                ):
+                    raise RuntimeError("Exact audit evidence order changed")
+                model_boxes = [
+                    tuple(round(float(value)) for value in row["box"])
+                    for row in evidence_case["model_predictions"]
+                ]
+                model_source_size = original.size
             truth_only, model_only, overlay = _render_case(
                 original=original,
                 truth=item["truth"],
                 model_boxes=model_boxes,
-                model_source_size=original_frozen_size.size,
+                model_source_size=model_source_size,
                 panel_size=panel,
             )
             group_column = local_index % cases_per_row

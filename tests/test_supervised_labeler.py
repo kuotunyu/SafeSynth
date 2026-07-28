@@ -18,7 +18,10 @@ from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
     extract_model_boxes,
 )
-from scripts.train_supervised_labeler import select_calibration_candidate
+from scripts.train_supervised_labeler import (
+    build_audit_evidence,
+    select_calibration_candidate,
+)
 from src.data.paths import PROJECT_ROOT
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.supervised_labeler import (
@@ -431,6 +434,38 @@ def test_v7_sampling_weights_empty_and_close_pair_images() -> None:
     )
 
     assert weights == [2.0, 1.0, 2.0, 1.0]
+
+
+def test_exact_audit_evidence_preserves_boxes_without_raster_parsing() -> None:
+    evidence = build_audit_evidence(
+        rows=[101],
+        truth={101: [[1, 2, 3, 4]]},
+        predictions={
+            101: [
+                (0.8, [5, 6, 7, 8]),
+                (0.1, [9, 10, 11, 12]),
+            ]
+        },
+        threshold=0.5,
+        split_manifest_sha256="a" * 64,
+    )
+
+    assert evidence["split_manifest_sha256"] == "a" * 64
+    assert evidence["cases"] == [
+        {
+            "cell": 1,
+            "image_id": 101,
+            "truth_boxes": [[1.0, 2.0, 3.0, 4.0]],
+            "model_predictions": [
+                {
+                    "score": 0.8,
+                    "box": [5.0, 6.0, 7.0, 8.0],
+                }
+            ],
+        }
+    ]
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
 
 
 def test_geometry_candidate_requires_precision_floor() -> None:
