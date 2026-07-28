@@ -1,0 +1,58 @@
+{
+  "audit_images": 48,
+  "checkpoint_sha256": "696ba22107177bb40e34a197b84cbbd1fe6416185081c7988304bdb4c821777e",
+  "evidence_sha256": "4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec",
+  "experiment_id": "supervised_labeler_v6",
+  "figure": "reports/figures/supervised_labeler_v6_audit.png",
+  "figure_sha256": "d73c9b9681581564e472a6eb26e7558a92b9f29c202bb8c5977052eb29f54911",
+  "pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_page_01.png",
+      "sha256": "ba8e411df145471a3ef6931d2733af210f437f07cd48fcada2a0a5ce5142f9c4"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_page_02.png",
+      "sha256": "8e6a349affbd22bb331a35f11c8a3d4993521fb1d24996f7d24e03f2129646f6"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_page_03.png",
+      "sha256": "c597f901bb22f528428b9d2ab7e27f5ce092b14281e5571b9d56500d06141cf1"
+    }
+  ],
+  "problem_cells": [
+    4,
+    6,
+    7,
+    13,
+    23,
+    27,
+    38,
+    43,
+    45
+  ],
+  "problem_count": 9,
+  "review_note": "Background false positives in 04, 06, 07, 23, 38, 43, and 45; one missed helmet in 04; merged multi-helmet predictions in 13 and 27.",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-28",
+  "schema_version": 1,
+  "score_threshold": 0.023,
+  "separated_pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_separated_page_01.png",
+      "sha256": "ee288dc1dca8485bca71594cbc105fd4095f0f1d9227f23ec1d1b162f8b3ec22"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_separated_page_02.png",
+      "sha256": "78d26c82853a1516507827143524304cde0de315f9619f5bb0c4e0a5707e2d49"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v6_audit_separated_page_03.png",
+      "sha256": "d3f73745e0231bfdf1d74c86a0ee93d3ffe261ef3ddfa94ed3ebe7b261bc1e93"
+    }
+  ],
+  "split_manifest_sha256": "8a5e22291603b7e539b9d77fbe57e1d81695dbb9921eb8b0d7110d600cf21cbe",
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

@@ -19,6 +19,7 @@ from scripts.render_supervised_labeler_review_separated import (
     extract_model_boxes,
 )
 from scripts.train_supervised_labeler import select_calibration_candidate
+from src.data.paths import PROJECT_ROOT
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.supervised_labeler import (
     filter_prediction_geometry,
@@ -242,6 +243,35 @@ def test_v6_human_review_rejects_inconsistent_decisions() -> None:
             problem_cells=[],
             note="",
         )
+
+
+def test_v6_owner_rejection_evidence_is_frozen_and_gate_stays_closed() -> None:
+    config = load_whole_image_config()
+    review = config["supervised_labeler"]["human_review"]
+    evidence = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v6_human_review.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert config["status"] == "supervised_v6_human_review_rejected"
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["problem_count"] == 9
+    assert review["problem_cells"] == [4, 6, 7, 13, 23, 27, 38, 43, 45]
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["status"] == review["status"]
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == review["problem_cells"]
+    assert evidence["problem_count"] == review["problem_count"]
+    assert evidence["evidence_sha256"] == review["evidence_sha256"]
+    assert evidence["evidence_sha256"] == human_review_evidence_sha256(
+        evidence
+    )
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
 
 
 def test_calibration_selection_never_weakens_precision_floor() -> None:

@@ -2,7 +2,7 @@
 # pass both its frozen Train-only audit and kuotunyu's visual review before use.
 
 schema_version: 1
-status: "supervised_v6_numeric_passed_human_review_pending"
+status: "supervised_v6_human_review_rejected"
 architecture: "whole_image_text_to_image_v10"
 
 generator:
@@ -59,7 +59,10 @@ supervised_labeler:
   test_images_read: 0
   human_review:
     required_reviewer: "kuotunyu"
-    status: "pending_kuotunyu_review"
+    status: "rejected_by_kuotunyu"
+    evidence_sha256: "4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec"
+    problem_count: 9
+    problem_cells: [4, 6, 7, 13, 23, 27, 38, 43, 45]
     figure: "reports/figures/supervised_labeler_v6_audit.png"
     figure_sha256: "d73c9b9681581564e472a6eb26e7558a92b9f29c202bb8c5977052eb29f54911"
     pages:
@@ -147,7 +150,7 @@ diagnostic:
     approved_manifest_sha256: "843b3cfcd333e2f965389a5dac76d72f5811af3a900d6cf6ef7f3ec6f404bc51"
   output_review:
     required_reviewer: "kuotunyu"
-    status: "pending_generation_then_kuotunyu_review"
+    status: "blocked_by_rejected_supervised_labeler_v6"
     required_problem_count: 0
     evidence_path: "reports/whole_image_v10_output_review.json"
 
@@ -155,8 +158,9 @@ generation_gate:
   allowed: false
   required_reviewer: "kuotunyu"
   reason: >-
-    supervised RT-DETRv2 v6 passed its numeric audit; generation remains
-    locked until kuotunyu approves the 48-image green/cyan human review
+    supervised RT-DETRv2 v6 passed its numeric audit but kuotunyu rejected
+    9 of 48 human-review cells; generation remains locked until a new
+    preregistered labeler passes a fresh untouched audit and owner review
 
 scaleup_gate:
   allowed: false
