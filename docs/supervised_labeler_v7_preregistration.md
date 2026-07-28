@@ -53,3 +53,21 @@ The subsequent CPU preflight rehashed all three pinned base-model files and
 verified the split, Train-only boundary, and zero source-group overlap. It
 assigned ordinary weight to 2,035 training images and weight 2.0 to 1,010
 empty-or-close-pair images. No image pixels, GPU work, or generation were used.
+
+## Frozen numeric outcome
+
+The RTX 4090 run completed all 12 epochs in 22.37 minutes. The preregistered
+calibration rule selected epoch 7 at threshold 0.023. On the one-shot 48-image
+sealed audit it produced 182 true positives, 8 false positives, and 19 false
+negatives:
+
+- precision 0.9579;
+- recall 0.9055;
+- F1 0.9309;
+- median matched IoU 0.8511.
+
+All three numeric gates passed. The checkpoint SHA-256 is
+`4ae6f96c22fd818bac826b21c1400e9a92856772d3486e60a68a97a873d2fd72`.
+Validation/Test reads and whole-image generation remained zero. Numeric success
+does not open generation; the exact 48-case review still requires a zero-problem
+decision from `kuotunyu`.

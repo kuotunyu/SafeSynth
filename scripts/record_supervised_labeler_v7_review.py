@@ -24,9 +24,15 @@ from src.synthetic.supervised_labeler import (
     load_supervised_labeler_config,
     require_verified_audited_checkpoint,
 )
-from src.synthetic.whole_image import human_review_evidence_sha256
+from src.synthetic.whole_image import (
+    canonical_mapping_sha256,
+    human_review_evidence_sha256,
+)
 
 OUTPUT_PATH = PROJECT_ROOT / "reports" / "supervised_labeler_v7_human_review.json"
+REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v7_review_manifest.json"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -143,11 +149,24 @@ def main() -> None:
     config = load_supervised_labeler_config(CONFIG_PATH)
     split = json.loads(SPLIT_PATH.read_text(encoding="utf-8"))
     report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
-    registration = build_v7_registration(
+    fresh_registration = build_v7_registration(
         config=config,
         split=split,
         report=report,
     )
+    if not REVIEW_MANIFEST_PATH.is_file():
+        raise RuntimeError("Frozen v7 owner-review manifest is missing")
+    review_manifest = json.loads(
+        REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    manifest_digest = str(review_manifest.pop("manifest_sha256", ""))
+    if (
+        canonical_mapping_sha256(review_manifest) != manifest_digest
+        or review_manifest.get("status") != "v7_owner_review_files_frozen"
+        or review_manifest.get("registration") != fresh_registration
+    ):
+        raise RuntimeError("Frozen v7 owner-review manifest changed")
+    registration = review_manifest["registration"]
     evidence = build_review_evidence(
         registration=registration,
         decision=args.decision,

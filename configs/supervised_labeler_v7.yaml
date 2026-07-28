@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v7"
-status: "gpu_smoke_passed_training_pending"
+status: "numeric_audit_passed_human_review_pending"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260815
 training_seed: 20260809
@@ -127,8 +127,26 @@ diagnostic_evidence:
     - 45
   eligible_for_v7_gate: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v7_training.json"
+  split_manifest_sha256: "5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef"
+  checkpoint_sha256: "4ae6f96c22fd818bac826b21c1400e9a92856772d3486e60a68a97a873d2fd72"
+  checkpoint_epoch: 7
+  score_threshold: 0.023
+  audit_images: 48
+  precision: 0.9578947368421052
+  recall: 0.9054726368159204
+  f1: 0.9309462915601023
+  median_matched_iou: 0.8511458832997453
+  audit_evidence_path: "reports/supervised_labeler_v7_audit_evidence.json"
+  audit_evidence_sha256: "3a36ba7ee0a66c7764fddbf4e3cecc92136751b5eb26ae0759727370957b832b"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v7 GPU smoke passed, but full training, numeric audit, and owner-only human
-    review have not completed.
+    v7 passed every frozen numeric gate, but generation remains locked until
+    kuotunyu completes the owner-only 48-case human review with zero problems.

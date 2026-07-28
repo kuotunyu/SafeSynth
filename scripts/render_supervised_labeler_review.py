@@ -104,7 +104,7 @@ def main(*, split_only: bool = False) -> None:
         or int(report["validation_images_read"]) != 0
         or int(report["test_images_read"]) != 0
     ):
-        raise RuntimeError("Expected one passed v6 Train-only audit")
+        raise RuntimeError("Expected one passed Train-only supervised audit")
     (
         config,
         split,
@@ -119,7 +119,7 @@ def main(*, split_only: bool = False) -> None:
         raise RuntimeError("Expected exactly 48 frozen audit images")
     checkpoint = Path(report["checkpoint_path"])
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
-        raise RuntimeError("Passed v6 checkpoint changed")
+        raise RuntimeError("Passed supervised checkpoint changed")
     processor = AutoImageProcessor.from_pretrained(
         checkpoint,
         local_files_only=True,
@@ -161,6 +161,7 @@ def main(*, split_only: bool = False) -> None:
         truth=truth,
         predictions=predictions,
         threshold=float(best["threshold"]),
+        split_manifest_sha256=str(split["manifest_sha256"]),
     )
     review_pages = split_review_sheet(FIGURE_PATH)
     print(

@@ -45,7 +45,12 @@ uv run python -m scripts.render_supervised_labeler_review_separated
 The three separated pages show, left to right, dataset GT in green, model boxes
 in magenta, and both overlaid. Generation remains locked until `kuotunyu`
 reviews every case and reports zero problems. A numeric pass alone is not
-approval.
+approval. Before presentation, freeze the exact checkpoint, split, sidecar,
+raw figure, and six page hashes:
+
+```powershell
+uv run python -m scripts.freeze_supervised_labeler_v7_review
+```
 
 After the owner states the decision, record it without editing JSON by hand:
 
@@ -59,4 +64,5 @@ uv run python -m scripts.record_supervised_labeler_v7_review `
 
 For rejection, use `--decision reject` and supply the comma-separated problem
 cells. The recorder verifies the checkpoint, split, raw figure, six review
-pages, and exact box sidecar before writing owner-only evidence.
+pages, exact box sidecar, and pre-presentation review manifest before writing
+owner-only evidence.

@@ -32,7 +32,10 @@ from src.synthetic.supervised_labeler import (
     require_verified_model,
     supervised_sampling_weights,
 )
-from src.synthetic.whole_image import human_review_evidence_sha256
+from src.synthetic.whole_image import (
+    canonical_mapping_sha256,
+    human_review_evidence_sha256,
+)
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -102,7 +105,7 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
         v6["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "gpu_smoke_passed_training_pending"
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
     assert config["split_manifest_sha256"] == v7["manifest_sha256"]
     assert set(v7["calibration_image_ids"]) == revealed
     assert set(v7["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -156,6 +159,66 @@ def test_v7_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
     assert report["untouched_audit_images_read"] == 0
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
+
+
+def test_v7_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config()
+    report_path = (
+        PROJECT_ROOT / "reports" / "supervised_labeler_v7_training.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    evidence_path = (
+        PROJECT_ROOT
+        / "reports"
+        / "supervised_labeler_v7_audit_evidence.json"
+    )
+    evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["best_calibration"]["epoch"] == 7
+    assert report["best_calibration"]["threshold"] == 0.023
+    assert report["audit_metrics"]["precision"] == pytest.approx(
+        0.9578947368421052
+    )
+    assert report["audit_metrics"]["recall"] == pytest.approx(
+        0.9054726368159204
+    )
+    assert report["audit_metrics"]["median_matched_iou"] == pytest.approx(
+        0.8511458832997453
+    )
+    assert evidence_sha == report["audit_evidence_sha256"]
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v7_owner_review_manifest_freezes_every_presented_file() -> None:
+    path = (
+        PROJECT_ROOT
+        / "reports"
+        / "supervised_labeler_v7_review_manifest.json"
+    )
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    embedded_sha = manifest.pop("manifest_sha256")
+    registration = manifest["registration"]
+
+    assert canonical_mapping_sha256(manifest) == embedded_sha
+    assert manifest["status"] == "v7_owner_review_files_frozen"
+    assert len(registration["human_review"]["pages"]) == 3
+    assert len(registration["human_review"]["separated_pages"]) == 3
+    assert registration["audit_evidence"]["sha256"] == (
+        "3a36ba7ee0a66c7764fddbf4e3cecc92136751b5eb26ae0759727370957b832b"
+    )
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
 
 
 def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
