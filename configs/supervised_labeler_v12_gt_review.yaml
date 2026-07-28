@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v12_gt_review"
-status: "owner_model_review_rejected"
+status: "owner_rejected_numeric_audit_invalidated"
 source_split: "Train"
 split_seed: 20260913
 
@@ -94,9 +94,10 @@ review_stages:
 generation_gate:
   allowed: false
   reason: >-
-    The corrected GT-only adjudication and numeric model audit passed, but
     kuotunyu found eight false-positive cells and two missed-helmet cells in
-    the separate model review. The required zero-problem gate failed.
+    the separate model review. The numeric claim is additionally invalid
+    because every v12 audit source group appeared in v11 training. The required
+    zero-problem and independent-audit gates both failed.
 
 freeze_outcome:
   status: "v12_gt_only_pool_frozen_before_pixel_review"
@@ -271,6 +272,26 @@ review_diagnosis_outcome:
   revealed_problem_images_read_for_gpu_diagnosis: 2
   new_audit_images_read: 0
   sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+audit_independence_erratum:
+  active: true
+  status: "v12_model_audit_invalidated_by_training_group_overlap"
+  evidence_path: "reports/supervised_labeler_v12_audit_independence_erratum.json"
+  evidence_file_sha256: "ba65abd527414fd0713f9189633ed5f3f44ea5b805b89a5b2b0b59963e655bda"
+  erratum_sha256: "6fc512b0f110491ec8429ced9697084199c852f41167f48013ee9fb650f17a99"
+  primary_groups_overlapping_v11_training: 64
+  reserve_groups_overlapping_v11_training: 32
+  selected_audit_groups_overlapping_v11_training: 48
+  numeric_audit_claim_valid: false
+  owner_visual_rejection_valid: true
+  owner_failure_diagnosis_valid: true
+  original_evidence_mutated: false
+  required_next_boundary: >-
+    Freeze a new group-disjoint v13 split before training and train v13 from
+    the pinned base checkpoint, not the v11 checkpoint.
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false

@@ -9,6 +9,9 @@ import pytest
 import yaml
 from PIL import Image, ImageDraw
 
+from scripts.audit_supervised_labeler_v12_independence import (
+    OUTPUT_PATH as V12_INDEPENDENCE_ERRATUM_PATH,
+)
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.diagnose_supervised_labeler_v12_review import (
@@ -879,6 +882,35 @@ def test_v12_review_diagnosis_reads_only_revealed_problem_images() -> None:
     assert diagnosis["validation_images_read"] == 0
     assert diagnosis["test_images_read"] == 0
     assert diagnosis["whole_image_generation_run"] is False
+
+
+def test_v12_independence_erratum_invalidates_only_the_numeric_claim() -> None:
+    if not V12_INDEPENDENCE_ERRATUM_PATH.is_file():
+        pytest.skip("v12 independence audit has not run yet")
+    erratum = json.loads(
+        V12_INDEPENDENCE_ERRATUM_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(erratum)
+    embedded_sha = canonical.pop("erratum_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert erratum["status"] == (
+        "v12_model_audit_invalidated_by_training_group_overlap"
+    )
+    assert erratum["v11_partition"]["covers_every_train_group"] is True
+    assert erratum["overlap_counts"] == {
+        "primary_with_v11_training": 64,
+        "reserve_with_v11_training": 32,
+        "selected_audit_with_v11_training": 48,
+    }
+    assert erratum["numeric_audit_independent"] is False
+    assert erratum["numeric_audit_claim_valid"] is False
+    assert erratum["owner_visual_rejection_valid"] is True
+    assert erratum["owner_failure_diagnosis_valid"] is True
+    assert erratum["original_evidence_mutated"] is False
+    assert erratum["validation_images_read"] == 0
+    assert erratum["test_images_read"] == 0
+    assert erratum["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
