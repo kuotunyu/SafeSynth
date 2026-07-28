@@ -74,3 +74,27 @@ The preregistered batch-8 R101 smoke completed with finite loss 287.36 and
 9.316 GiB peak VRAM. It consumed 32 transformed helmet boxes from the first
 training batch and read zero calibration, sealed-audit, Validation, or Test
 images. Full v10 training may proceed.
+
+## Frozen numeric outcome
+
+The RTX 4090 run completed all 12 epochs in 40.10 minutes. The frozen
+calibration rule selected epoch 2 at threshold 0.05. On the one-shot new
+48-image sealed audit it produced 106 true positives, 24 false positives, and
+16 false negatives:
+
+- precision 0.8154;
+- recall 0.8689;
+- F1 0.8413;
+- median matched IoU 0.8044.
+
+All three numeric gates passed, although precision is close to the frozen 0.80
+floor. The checkpoint SHA-256 is
+`e987c97fa72f68a80520afa237c3d7b00ca9d27af10853b95ef154a68a7d35bb`.
+Validation/Test reads and whole-image generation remained zero. Numeric
+success does not open generation.
+
+The exact 48-case evidence and three separated review pages were frozen in
+`reports/supervised_labeler_v10_review_manifest.json`, manifest SHA-256
+`81733517ac707e6ae92722e0cff5d6bacbb8cdd037d86f6c78bed1d89c3f4f61`.
+`kuotunyu` must judge the magenta model boxes against the green dataset boxes;
+any reported problem rejects v10.

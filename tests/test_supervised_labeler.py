@@ -78,7 +78,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260829
+    assert first["split_seed"] == 20260905
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(
@@ -216,7 +216,7 @@ def test_v10_frozen_split_seals_new_audit_from_v9_history() -> None:
         v9["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "gpu_smoke_passed_full_training_ready"
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
     assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
     assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
     assert config["split_manifest_sha256"] == v10["manifest_sha256"]
@@ -296,6 +296,73 @@ def test_v10_gpu_smoke_keeps_calibration_and_new_audit_sealed() -> None:
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v10_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report_path = PROJECT_ROOT / outcome["report_path"]
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    evidence_path = PROJECT_ROOT / outcome["audit_evidence_path"]
+
+    assert hashlib.sha256(report_path.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["best_calibration"]["epoch"] == 2
+    assert report["best_calibration"]["threshold"] == 0.05
+    assert report["audit_metrics"] == {
+        "f1": pytest.approx(0.8412698412698412),
+        "false_negatives": 16,
+        "false_positives": 24,
+        "median_matched_iou": pytest.approx(0.8043828728197762),
+        "precision": pytest.approx(0.8153846153846154),
+        "recall": pytest.approx(0.8688524590163934),
+        "true_positives": 106,
+    }
+    assert hashlib.sha256(evidence_path.read_bytes()).hexdigest() == outcome[
+        "audit_evidence_sha256"
+    ]
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v10_owner_review_manifest_freezes_every_presented_file() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    path = PROJECT_ROOT / outcome["owner_review_manifest_path"]
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    embedded_sha = manifest.pop("manifest_sha256")
+    registration = manifest["registration"]
+
+    assert embedded_sha == outcome["owner_review_manifest_sha256"]
+    assert canonical_mapping_sha256(manifest) == embedded_sha
+    assert manifest["status"] == "v10_owner_review_files_frozen"
+    assert len(registration["human_review"]["pages"]) == 3
+    assert len(registration["human_review"]["separated_pages"]) == 3
+    assert registration["audit_evidence"]["sha256"] == (
+        "7d04f00bc880061e6f0007c1853dd69dbbbdedd66f092c19a486b7044b3ed30d"
+    )
+    assert registration["checkpoint_sha256"] == (
+        "e987c97fa72f68a80520afa237c3d7b00ca9d27af10853b95ef154a68a7d35bb"
+    )
+    assert registration["score_threshold"] == 0.05
+    assert registration["input_normalization"] == config[
+        "input_normalization"
+    ]
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
 
 
 def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:

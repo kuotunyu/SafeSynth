@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v10"
-status: "gpu_smoke_passed_full_training_ready"
+status: "numeric_audit_passed_human_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260905
 training_seed: 20260809
@@ -199,9 +199,34 @@ gpu_smoke_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v10_training.json"
+  report_file_sha256: "e748eb819ef1986df202a43411e51a1b77c700750fda5c0c26e263e21b7da36e"
+  split_manifest_sha256: "9b36cedc3c159614f668b5fafaa12ad33f36d8ff84d62aba69337e1097aa4d6b"
+  checkpoint_sha256: "e987c97fa72f68a80520afa237c3d7b00ca9d27af10853b95ef154a68a7d35bb"
+  checkpoint_epoch: 2
+  score_threshold: 0.05
+  elapsed_minutes: 40.10432297388713
+  audit_images: 48
+  true_positives: 106
+  false_positives: 24
+  false_negatives: 16
+  precision: 0.8153846153846154
+  recall: 0.8688524590163934
+  f1: 0.8412698412698412
+  median_matched_iou: 0.8043828728197762
+  audit_evidence_path: "reports/supervised_labeler_v10_audit_evidence.json"
+  audit_evidence_sha256: "7d04f00bc880061e6f0007c1853dd69dbbbdedd66f092c19a486b7044b3ed30d"
+  owner_review_manifest_path: "reports/supervised_labeler_v10_review_manifest.json"
+  owner_review_manifest_sha256: "81733517ac707e6ae92722e0cff5d6bacbb8cdd037d86f6c78bed1d89c3f4f61"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v10 passed CPU normalization preflight and GPU smoke but has not passed
-    frozen numeric audit and zero-problem owner review. Generation remains
-    locked.
+    v10 passed CPU normalization preflight, GPU smoke, and every frozen numeric
+    audit gate. Generation remains locked until kuotunyu completes the exact
+    48-case owner review with zero problems.
