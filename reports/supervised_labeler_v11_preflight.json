@@ -1,0 +1,230 @@
+{
+  "calibration": {
+    "detected_side_counts": {
+      "bottom": 518,
+      "left": 56,
+      "right": 54,
+      "top": 517
+    },
+    "images_becoming_empty": 6,
+    "images_read": 573,
+    "invalid_boxes": 0,
+    "normalized_images": 570,
+    "removed_helmet_annotations": 781,
+    "source_helmet_annotations": 2328,
+    "transformed_helmet_annotations": 1547
+  },
+  "config_path": "configs/supervised_labeler_v11.yaml",
+  "experiment_id": "supervised_labeler_v11",
+  "gpu_work_run": false,
+  "input_normalization": {
+    "guard": {
+      "action": "normalize_cover_crop",
+      "max_pad_fraction": 0.31,
+      "max_pair_mae": 3.0,
+      "min_pad_px": 8,
+      "min_pair_correlation": 0.97,
+      "min_texture_std": 5.0,
+      "orthogonal_sample_size": 64
+    },
+    "implementation": "src.synthetic.compose.normalize_reflected_padding",
+    "method": "reflected_padding_normalize_cover_crop",
+    "output_shape": "source_native",
+    "selection_basis": "Freeze the v10 reflected-padding normalization. v11 changes only the postprocessing geometry policy and quarantines known GT defects.",
+    "transform_helmet_annotations": true
+  },
+  "model": {
+    "download_bytes": 307337786,
+    "files_rehashed": 3,
+    "repo_id": "PekingU/rtdetr_v2_r101vd",
+    "revision": "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  },
+  "postprocessing": {
+    "max_aspect_ratio": 4.0,
+    "max_relative_area": 0.15,
+    "max_relative_height": 0.6,
+    "min_aspect_ratio": 0.2,
+    "selection_basis": "The preregistered edge_large_060 candidate is the smallest revealed-history geometry expansion that recovers all four v10 boxes removed by geometry and remains within 0.003 F1 of the best tested candidate after GT quarantine."
+  },
+  "quarantined_gt_defect_image_ids": [
+    3060,
+    4155,
+    4364
+  ],
+  "quarantined_gt_defect_pixels_read": 0,
+  "revealed_v10_model_problem_images": {
+    "2515": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        52,
+        416,
+        363
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 9,
+      "transformed_helmet_annotations": 7
+    },
+    "2826": {
+      "applied": true,
+      "crop_xyxy": [
+        53,
+        0,
+        363,
+        415
+      ],
+      "detected_sides": [
+        "left",
+        "right"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 2
+    },
+    "3222": {
+      "applied": true,
+      "crop_xyxy": [
+        8,
+        69,
+        416,
+        346
+      ],
+      "detected_sides": [
+        "top",
+        "bottom",
+        "left"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 1,
+      "transformed_helmet_annotations": 1
+    },
+    "3950": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        70,
+        416,
+        345
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 1
+    },
+    "3975": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        69,
+        416,
+        346
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 4,
+      "transformed_helmet_annotations": 2
+    },
+    "478": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        69,
+        416,
+        347
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 1
+    },
+    "4821": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        91,
+        416,
+        325
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 0
+    },
+    "550": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        82,
+        416,
+        334
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 1
+    },
+    "708": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        71,
+        416,
+        344
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 7,
+      "transformed_helmet_annotations": 4
+    }
+  },
+  "sampling_weight_counts": {
+    "1.0": 776,
+    "2.0": 2066
+  },
+  "schema_version": 1,
+  "sealed_audit_pixels_read": 0,
+  "source_group_overlap": 0,
+  "split_manifest_sha256": "b45ae47e54de2adce00cede09aea40a249434f44b30044587d34050675f2a4d7",
+  "split_path": "splits/supervised_labeler_v11_split.json",
+  "status": "cpu_normalization_preflight_passed_gpu_smoke_waiting",
+  "test_images_read": 0,
+  "training": {
+    "detected_side_counts": {
+      "bottom": 2512,
+      "left": 346,
+      "right": 344,
+      "top": 2502
+    },
+    "images_becoming_empty": 16,
+    "images_read": 2842,
+    "invalid_boxes": 0,
+    "normalized_images": 2825,
+    "removed_helmet_annotations": 3297,
+    "source_helmet_annotations": 10556,
+    "transformed_helmet_annotations": 7259
+  },
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

@@ -18,8 +18,8 @@ from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v10_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v11_split.json"
 
 
 def load_supervised_labeler_config(

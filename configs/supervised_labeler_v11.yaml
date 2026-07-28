@@ -1,0 +1,221 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v11"
+status: "cpu_preflight_passed_gpu_smoke_pending"
+architecture: "rtdetr_v2_r101vd_helmet_only"
+split_seed: 20260912
+training_seed: 20260809
+split_manifest_sha256: "b45ae47e54de2adce00cede09aea40a249434f44b30044587d34050675f2a4d7"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r101vd"
+  revision: "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 307337786
+  allow_files:
+    config.json: 5342
+    model.safetensors: 307332000
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  prior_history_terminal_experiment: "supervised_labeler_v10"
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  quarantined_gt_defect_image_ids:
+    - 3060
+    - 4155
+    - 4364
+  quarantine_policy: >-
+    Keep the owner-confirmed GT defects out of calibration metrics while
+    retaining their complete source groups outside training and the new audit.
+  validation_images_read: 0
+  test_images_read: 0
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  selection_basis: >-
+    Freeze the v10 reflected-padding normalization. v11 changes only the
+    postprocessing geometry policy and quarantines known GT defects.
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 2.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 2.0
+  small_helmet_relative_area_max: 0.0075
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Freeze the v10 sampling policy so v11 has one model-facing change.
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3/v6-v10 training seed"
+
+postprocessing:
+  max_relative_area: 0.15
+  max_relative_height: 0.60
+  min_aspect_ratio: 0.20
+  max_aspect_ratio: 4.0
+  selection_basis: >-
+    The preregistered edge_large_060 candidate is the smallest revealed-history
+    geometry expansion that recovers all four v10 boxes removed by geometry and
+    remains within 0.003 F1 of the best tested candidate after GT quarantine.
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  precision_margin_basis: >-
+    Freeze the v10 score grid and precision floor.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_false_positive"
+    - "missed_helmet"
+    - "merged_multiple_helmets"
+    - "other_visual_failure"
+
+diagnostic_evidence:
+  owner_review:
+    source: "reports/supervised_labeler_v10_human_review.json"
+    file_sha256: "f4ec1cd86c4fa9d24a7b3371ba7f703be07d62c86bad5d49ba3695f34f498cb3"
+    evidence_sha256: "e9e707692cc96ec26a46aa4595daf0ea5f83f287d775903674e6013df4394f92"
+    model_problem_cells:
+      - 6
+      - 7
+      - 10
+      - 27
+      - 29
+      - 34
+      - 39
+      - 40
+      - 47
+    gt_defect_cells:
+      - 31
+      - 41
+      - 42
+  failure_diagnosis:
+    source: "reports/supervised_labeler_v10_review_diagnosis.json"
+    file_sha256: "d20ff7bb16cda289787658e549a1d0054f2f3737ba3a7b0f0e2f42a60e6b504b"
+    below_score_threshold_instances: 4
+    removed_by_geometry_instances: 4
+    max_owner_false_positive_score: 0.09423828125
+    numeric_audit_contaminated_by_gt_defects: true
+  geometry_diagnosis:
+    source: "reports/supervised_labeler_v11_geometry_diagnosis.json"
+    file_sha256: "207c0b5b1401c82a524f960a9286196c1002c4cc05fc0f1f8adb02ddadf4afe3"
+    revealed_train_images_read: 573
+    quarantined_gt_defect_images_read: 0
+    recommended_candidate: "edge_large_060"
+    recovered_owner_geometry_miss_cells:
+      - 6
+      - 7
+      - 10
+      - 40
+  eligible_for_v11_gate: false
+
+model_change:
+  from: "v10_reflection_normalized_geometry_014_040_025_400"
+  to: "v11_reflection_normalized_geometry_015_060_020_400"
+  selection_basis: >-
+    Preserve model, optimizer, sampler, input normalization, score grid, seeds,
+    and gates. Change only the preregistered geometry limits, with known bad GT
+    images removed from calibration scoring before a new audit is selected.
+
+split_outcome:
+  status: "frozen_before_supervised_training"
+  report_path: "reports/supervised_labeler_v11_split.md"
+  manifest_sha256: "b45ae47e54de2adce00cede09aea40a249434f44b30044587d34050675f2a4d7"
+  training_images: 2842
+  calibration_images: 573
+  quarantined_gt_defect_images: 3
+  untouched_audit_images: 48
+  validation_images_read: 0
+  test_images_read: 0
+
+cpu_preflight_outcome:
+  status: "cpu_normalization_preflight_passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v11_preflight.json"
+  report_file_sha256: "9a519afca802ea84c58cbb4c32e693965253767176d34e65f2734fa9b77216b8"
+  training_images_read: 2842
+  training_images_normalized: 2825
+  training_source_helmet_annotations: 10556
+  training_transformed_helmet_annotations: 7259
+  training_invalid_boxes: 0
+  calibration_images_read: 573
+  calibration_images_normalized: 570
+  calibration_source_helmet_annotations: 2328
+  calibration_transformed_helmet_annotations: 1547
+  calibration_invalid_boxes: 0
+  quarantined_gt_defect_pixels_read: 0
+  sealed_audit_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
+  whole_image_generation_run: false
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v11 is only preregistered. CPU preflight, GPU smoke, numeric audit, and an
+    owner review with zero problems must all pass before generation can open.

@@ -41,6 +41,7 @@ V7_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
 V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
 V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
 V10_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
+V11_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -78,7 +79,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260905
+    assert first["split_seed"] == 20260912
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(
@@ -236,6 +237,118 @@ def test_v10_frozen_split_seals_new_audit_from_v9_history() -> None:
     assert v10["untouched_audit_images"] == 48
     assert v10["validation_images_read"] == 0
     assert v10["test_images_read"] == 0
+
+
+def test_v11_split_quarantines_gt_defects_and_seals_new_audit() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    v10 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v10_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    v11 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v11_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    revealed = set(v10["calibration_image_ids"]) | set(
+        v10["untouched_audit_image_ids"]
+    )
+    quarantined = {3060, 4155, 4364}
+
+    canonical = dict(v11)
+    embedded_sha = canonical.pop("manifest_sha256")
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert config["split_manifest_sha256"] == embedded_sha
+    assert set(v11["quarantined_gt_defect_image_ids"]) == quarantined
+    assert set(v11["calibration_image_ids"]) | quarantined == revealed
+    assert set(v11["calibration_image_ids"]).isdisjoint(quarantined)
+    assert set(v11["untouched_audit_image_ids"]).isdisjoint(revealed)
+    assert set(v11["training_group_ids"]).isdisjoint(
+        v11["calibration_group_ids"]
+    )
+    assert set(v11["training_group_ids"]).isdisjoint(
+        v11["untouched_audit_group_ids"]
+    )
+    assert set(v11["calibration_group_ids"]).isdisjoint(
+        v11["untouched_audit_group_ids"]
+    )
+    assert v11["training_images"] == 2842
+    assert v11["calibration_images"] == 573
+    assert v11["quarantined_gt_defect_images"] == 3
+    assert v11["untouched_audit_images"] == 48
+    assert v11["validation_images_read"] == 0
+    assert v11["test_images_read"] == 0
+
+
+def test_v11_geometry_registration_matches_revealed_diagnosis() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    evidence = config["diagnostic_evidence"]["geometry_diagnosis"]
+    path = PROJECT_ROOT / evidence["source"]
+    diagnosis = json.loads(path.read_text(encoding="utf-8"))
+    recommended = diagnosis["recommended_candidate"]
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == evidence[
+        "file_sha256"
+    ]
+    assert recommended["name"] == "edge_large_060"
+    assert recommended["owner_geometry_recovered"] == 4
+    assert config["postprocessing"] == {
+        "max_aspect_ratio": 4.0,
+        "max_relative_area": 0.15,
+        "max_relative_height": 0.60,
+        "min_aspect_ratio": 0.20,
+        "selection_basis": config["postprocessing"]["selection_basis"],
+    }
+    assert diagnosis["revealed_images_read"] == 573
+    assert diagnosis["quarantined_images_read"] == 0
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v11_cpu_preflight_keeps_quarantine_and_new_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    path = PROJECT_ROOT / outcome["report_path"]
+    report = json.loads(path.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert report["status"] == (
+        "cpu_normalization_preflight_passed_gpu_smoke_waiting"
+    )
+    assert report["training"]["images_read"] == 2842
+    assert report["training"]["normalized_images"] == 2825
+    assert report["training"]["source_helmet_annotations"] == 10556
+    assert report["training"]["transformed_helmet_annotations"] == 7259
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 573
+    assert report["calibration"]["normalized_images"] == 570
+    assert report["calibration"]["source_helmet_annotations"] == 2328
+    assert report["calibration"]["transformed_helmet_annotations"] == 1547
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["sampling_weight_counts"] == {"1.0": 776, "2.0": 2066}
+    assert set(report["revealed_v10_model_problem_images"]) == {
+        "478",
+        "550",
+        "708",
+        "2515",
+        "2826",
+        "3222",
+        "3950",
+        "3975",
+        "4821",
+    }
+    assert report["quarantined_gt_defect_image_ids"] == [3060, 4155, 4364]
+    assert report["quarantined_gt_defect_pixels_read"] == 0
+    assert report["sealed_audit_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
