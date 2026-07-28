@@ -1,0 +1,58 @@
+{
+  "manifest_sha256": "8674adf0fa55dd49b0b650308b3446f5f67fb5fa93361e02074e9a3b9977ccb7",
+  "registration": {
+    "architecture": "rtdetr_v2_r101vd_helmet_only",
+    "audit_evidence": {
+      "path": "reports/supervised_labeler_v9_audit_evidence.json",
+      "sha256": "5652d57750f3471ee8b2b7a1ef0d9644fbed062ca6d66d083cff51a8be949dd6"
+    },
+    "audit_images": 48,
+    "audit_median_matched_iou": 0.8151169809813681,
+    "audit_precision": 0.9312169312169312,
+    "audit_recall": 0.9072164948453608,
+    "checkpoint_sha256": "fb99ce019f5b88bfbf6be6de34a053765bb9e3aeafac49e059eb69d93db7c22f",
+    "experiment_id": "supervised_labeler_v9",
+    "human_review": {
+      "evidence_path": "reports/supervised_labeler_v9_human_review.json",
+      "figure": "reports/figures/supervised_labeler_v9_audit.png",
+      "figure_sha256": "5841919798f882cb3929de536c4f313b560246b5410cfbf821e3903229cb9235",
+      "pages": [
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_page_01.png",
+          "sha256": "7afd207a6de636524ec0c2a7256de896968446bed03c4b40e39880b0da556048"
+        },
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_page_02.png",
+          "sha256": "e8324120796d3524eb4e9ce5352c0a943c4f41823bc09845a7e7a69e5b599398"
+        },
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_page_03.png",
+          "sha256": "0c36623d6f46b864534e99ecf2dfb2a18a8eecf2cd279fc33e8df62f8f1759a1"
+        }
+      ],
+      "separated_pages": [
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_separated_page_01.png",
+          "sha256": "41b24a8e9666b1d45509ee410de55cde5fe031b7bb523faafc0364806ea843cf"
+        },
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_separated_page_02.png",
+          "sha256": "86826b6e09e7616c430b191a90b7dd971ffffb3f65bab6bb9b9cf88b753f1719"
+        },
+        {
+          "path": "reports/figures/supervised_labeler_v9_audit_separated_page_03.png",
+          "sha256": "0ba42852b26aeb55293e035e164770b0c2c8ac2fd65eefd9d432d658eb096d83"
+        }
+      ]
+    },
+    "max_relative_area": 0.14,
+    "max_relative_height": 0.4,
+    "score_threshold": 0.05,
+    "split_manifest_sha256": "6e5a806bab1265cc71d09efcf6dfac0d699db6c74d81e7e71423913b1498ff59"
+  },
+  "schema_version": 1,
+  "status": "v9_owner_review_files_frozen",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
