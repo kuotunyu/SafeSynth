@@ -71,11 +71,11 @@ supervised_labeler:
         sha256: "c597f901bb22f528428b9d2ab7e27f5ce092b14281e5571b9d56500d06141cf1"
     separated_pages:
       - path: "reports/figures/supervised_labeler_v6_audit_separated_page_01.png"
-        sha256: "5b6c7dc4bf8e64e75107068b50505de20eeae9b1ef387d66f6b227a51ac2335f"
+        sha256: "1279d48ad7b3edb85c52f8d239dc150bda815fd04222c1a37904d20dac6508b1"
       - path: "reports/figures/supervised_labeler_v6_audit_separated_page_02.png"
-        sha256: "22bc18251135a715a2abfb0822a5dd906e5439e8ed7357dc57640af99a2fef3e"
+        sha256: "97e8c58f603f3073bb1b83aac82bdff6aae748a56d3af7f89b0103487e99d91e"
       - path: "reports/figures/supervised_labeler_v6_audit_separated_page_03.png"
-        sha256: "04f5e253b427a3d2feba8b02ede79a2b772f157d001c9c8ce3f41e49ab9c02b1"
+        sha256: "f4eeb94432a2145e9a32c6241ae74a89e550cfd254450b6d505a51e32efcb231"
     evidence_path: "reports/supervised_labeler_v6_human_review.json"
 
 labeler_audit:

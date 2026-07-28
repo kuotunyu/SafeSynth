@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 from scripts.train_supervised_labeler import FIGURE_PATH, _build_datasets
 from src.data.paths import PROJECT_ROOT
@@ -76,9 +76,8 @@ def _draw_truth(
 
 
 def _paint_model_marks(image: Image.Image, mask: Image.Image) -> None:
-    thick = mask.filter(ImageFilter.MaxFilter(5))
     magenta = Image.new("RGB", image.size, (255, 0, 255))
-    image.paste(magenta, mask=thick)
+    image.paste(magenta, mask=mask)
 
 
 def _render_case(
@@ -101,7 +100,7 @@ def _render_case(
         truth_only,
         truth,
         source_size=original.size,
-        width=4,
+        width=2,
     )
     model_only = base.copy()
     _paint_model_marks(model_only, mask)
@@ -110,7 +109,7 @@ def _render_case(
         overlay,
         truth,
         source_size=original.size,
-        width=6,
+        width=2,
     )
     _paint_model_marks(overlay, mask)
     return truth_only, model_only, overlay

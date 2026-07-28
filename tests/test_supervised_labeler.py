@@ -15,6 +15,7 @@ from scripts.record_supervised_labeler_v6_review import (
 )
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
+    _paint_model_marks,
     extract_model_marks,
 )
 from scripts.train_supervised_labeler import select_calibration_candidate
@@ -363,3 +364,15 @@ def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
     assert mask.getpixel((2, 2)) == 0
     assert mask.getpixel((11, 11)) == 255
     assert mask.getpixel((0, 0)) == 0
+
+
+def test_separated_review_does_not_thicken_model_marks() -> None:
+    image = Image.new("RGB", (9, 9), "black")
+    mask = Image.new("L", image.size, 0)
+    mask.putpixel((4, 4), 255)
+
+    _paint_model_marks(image, mask)
+
+    assert image.getpixel((4, 4)) == (255, 0, 255)
+    assert image.getpixel((3, 4)) == (0, 0, 0)
+    assert image.getpixel((4, 3)) == (0, 0, 0)
