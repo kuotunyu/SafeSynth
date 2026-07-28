@@ -48,3 +48,8 @@ metadata-only freeze produced manifest
 
 The audit IDs are stored for the future one-shot evaluation but are deliberately
 not printed in the freeze summary or this document.
+
+The subsequent CPU preflight rehashed all three pinned base-model files and
+verified the split, Train-only boundary, and zero source-group overlap. It
+assigned ordinary weight to 2,035 training images and weight 2.0 to 1,010
+empty-or-close-pair images. No image pixels, GPU work, or generation were used.

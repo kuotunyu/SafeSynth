@@ -99,7 +99,7 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
         v6["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "split_frozen_training_pending"
+    assert config["status"] == "cpu_preflight_passed_gpu_training_waiting"
     assert config["split_manifest_sha256"] == v7["manifest_sha256"]
     assert set(v7["calibration_image_ids"]) == revealed
     assert set(v7["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -115,6 +115,30 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
     assert v7["untouched_audit_images"] == 48
     assert v7["validation_images_read"] == 0
     assert v7["test_images_read"] == 0
+
+
+def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v7_preflight.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "cpu_preflight_passed_gpu_training_waiting"
+    assert report["sampling_weight_counts"] == {
+        "1.0": 2035,
+        "2.0": 1010,
+    }
+    assert report["source_group_overlap"] == 0
+    assert report["training_pixels_read"] == 0
+    assert report["calibration_pixels_read"] == 0
+    assert report["sealed_audit_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
 
 
 def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:

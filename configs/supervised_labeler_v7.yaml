@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v7"
-status: "split_frozen_training_pending"
+status: "cpu_preflight_passed_gpu_training_waiting"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260815
 training_seed: 20260809
@@ -125,5 +125,5 @@ diagnostic_evidence:
 generation_gate:
   allowed: false
   reason: >-
-    v7 is preregistered but its group-disjoint Train-only split, training,
-    numeric audit, and owner-only human review have not completed.
+    v7 preflight passed, but GPU smoke/training, numeric audit, and owner-only
+    human review have not completed.
