@@ -142,7 +142,7 @@ def test_v8_frozen_split_seals_new_audit_from_v7_history() -> None:
         v7["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "cpu_preflight_passed_gpu_smoke_pending"
+    assert config["status"] == "gpu_smoke_passed_training_pending"
     assert config["split_manifest_sha256"] == v8["manifest_sha256"]
     assert set(v8["calibration_image_ids"]) == revealed
     assert set(v8["untouched_audit_image_ids"]).isdisjoint(revealed)
