@@ -1,0 +1,31 @@
+{
+  "calibration_images": 480,
+  "calibration_pixels_read": 0,
+  "config_path": "configs/supervised_labeler_v9.yaml",
+  "experiment_id": "supervised_labeler_v9",
+  "gpu_work_run": false,
+  "model": {
+    "download_bytes": 307337786,
+    "files_rehashed": 3,
+    "repo_id": "PekingU/rtdetr_v2_r101vd",
+    "revision": "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  },
+  "sampling_weight_counts": {
+    "1.0": 804,
+    "2.0": 2142
+  },
+  "schema_version": 1,
+  "sealed_audit_images": 48,
+  "sealed_audit_pixels_read": 0,
+  "source_group_overlap": 0,
+  "split_manifest_sha256": "6e5a806bab1265cc71d09efcf6dfac0d699db6c74d81e7e71423913b1498ff59",
+  "split_path": "splits/supervised_labeler_v9_split.json",
+  "status": "cpu_preflight_passed_gpu_training_waiting",
+  "test_images_read": 0,
+  "training_groups": 2840,
+  "training_helmet_annotations": 10972,
+  "training_images": 2946,
+  "training_pixels_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

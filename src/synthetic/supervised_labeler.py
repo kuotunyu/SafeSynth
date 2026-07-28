@@ -18,8 +18,8 @@ from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v8_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v9_split.json"
 
 
 def load_supervised_labeler_config(
@@ -34,6 +34,7 @@ def load_supervised_labeler_config(
     supported_models = {
         "PekingU/rtdetr_v2_r18vd": "rtdetr_v2_r18vd_helmet_only",
         "PekingU/rtdetr_v2_r50vd": "rtdetr_v2_r50vd_helmet_only",
+        "PekingU/rtdetr_v2_r101vd": "rtdetr_v2_r101vd_helmet_only",
     }
     if (
         model["license"] != "apache-2.0"

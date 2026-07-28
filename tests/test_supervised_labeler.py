@@ -39,6 +39,7 @@ from src.synthetic.whole_image import (
 
 V7_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
 V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
+V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -76,7 +77,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260822
+    assert first["split_seed"] == 20260829
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(
@@ -160,6 +161,44 @@ def test_v8_frozen_split_seals_new_audit_from_v7_history() -> None:
     assert v8["test_images_read"] == 0
 
 
+def test_v9_frozen_split_seals_new_audit_from_v8_history() -> None:
+    config = load_supervised_labeler_config(V9_CONFIG_PATH)
+    v8 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v8_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    v9 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v9_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    revealed = set(v8["calibration_image_ids"]) | set(
+        v8["untouched_audit_image_ids"]
+    )
+
+    assert config["status"] == "cpu_preflight_passed_gpu_smoke_pending"
+    assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
+    assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
+    assert config["split_manifest_sha256"] == v9["manifest_sha256"]
+    assert set(v9["calibration_image_ids"]) == revealed
+    assert set(v9["untouched_audit_image_ids"]).isdisjoint(revealed)
+    assert set(v9["training_group_ids"]).isdisjoint(
+        v9["calibration_group_ids"]
+    )
+    assert set(v9["training_group_ids"]).isdisjoint(
+        v9["untouched_audit_group_ids"]
+    )
+    assert set(v9["calibration_group_ids"]).isdisjoint(
+        v9["untouched_audit_group_ids"]
+    )
+    assert v9["training_images"] == 2946
+    assert v9["calibration_images"] == 480
+    assert v9["untouched_audit_images"] == 48
+    assert v9["validation_images_read"] == 0
+    assert v9["test_images_read"] == 0
+
+
 def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
     report = json.loads(
         (
@@ -198,6 +237,34 @@ def test_v8_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
         "1.0": 821,
         "2.0": 2174,
     }
+    assert report["source_group_overlap"] == 0
+    assert report["training_pixels_read"] == 0
+    assert report["calibration_pixels_read"] == 0
+    assert report["sealed_audit_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
+
+
+def test_v9_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v9_preflight.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "cpu_preflight_passed_gpu_training_waiting"
+    assert report["sampling_weight_counts"] == {
+        "1.0": 804,
+        "2.0": 2142,
+    }
+    assert report["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
+    assert report["model"]["revision"] == (
+        "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+    )
     assert report["source_group_overlap"] == 0
     assert report["training_pixels_read"] == 0
     assert report["calibration_pixels_read"] == 0
