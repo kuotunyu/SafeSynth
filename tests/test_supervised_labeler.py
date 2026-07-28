@@ -24,6 +24,9 @@ from scripts.prepare_supervised_labeler_v12_gt_review import (
     POOL_PATH as V12_GT_POOL_PATH,
 )
 from scripts.prepare_supervised_labeler_v13_gt_review import (
+    CONFIG_PATH as V13_GT_CONFIG_PATH,
+)
+from scripts.prepare_supervised_labeler_v13_gt_review import (
     EVIDENCE_PATH as V13_GT_EVIDENCE_PATH,
 )
 from scripts.prepare_supervised_labeler_v13_gt_review import (
@@ -981,6 +984,32 @@ def test_v13_gt_review_contains_no_model_output_or_training() -> None:
     for page in evidence["pages"]:
         path = PROJECT_ROOT / page["path"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v13_config_pins_rendered_gt_review_evidence() -> None:
+    if not V13_GT_EVIDENCE_PATH.is_file():
+        pytest.skip("v13 GT review has not been rendered yet")
+    config = yaml.safe_load(V13_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["render_outcome"]
+    evidence = json.loads(
+        V13_GT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert outcome["status"] == evidence["status"]
+    assert outcome["evidence_sha256"] == evidence["evidence_sha256"]
+    assert hashlib.sha256(V13_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        outcome["evidence_file_sha256"]
+    )
+    assert outcome["v13_training_started"] is False
+    assert outcome["model_inference_run"] is False
+    assert outcome["sealed_reserve_pixels_read"] == 0
+    assert outcome["validation_images_read"] == 0
+    assert outcome["test_images_read"] == 0
+    for rendered_page, pinned_page in zip(
+        evidence["pages"], outcome["pages"], strict=True
+    ):
+        assert rendered_page == pinned_page
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

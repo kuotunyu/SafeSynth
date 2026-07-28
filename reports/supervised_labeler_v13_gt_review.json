@@ -1,0 +1,2075 @@
+{
+  "cases": [
+    {
+      "cell": 1,
+      "group_id": 3987,
+      "image_id": 4119,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          14.769230769230774,
+          123.74545454545454,
+          79.68269230769229,
+          187.12727272727273
+        ],
+        [
+          321.2211538461538,
+          16.599999999999998,
+          405.75961538461536,
+          114.69090909090909
+        ]
+      ]
+    },
+    {
+      "cell": 2,
+      "group_id": 4591,
+      "image_id": 4767,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          229.46634615384613,
+          248.40287769784172,
+          280.38461538461536,
+          302.27338129496405
+        ],
+        [
+          166.56730769230768,
+          17.956834532374103,
+          227.96875,
+          76.31654676258992
+        ],
+        [
+          331.3028846153846,
+          163.10791366906474,
+          385.21634615384613,
+          216.97841726618705
+        ],
+        [
+          178.5480769230769,
+          95.76978417266187,
+          230.96394230769226,
+          148.14388489208633
+        ],
+        [
+          313.3317307692307,
+          191.53956834532374,
+          356.7620192307692,
+          234.93525179856115
+        ]
+      ]
+    },
+    {
+      "cell": 3,
+      "group_id": 4344,
+      "image_id": 4507,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          0.0,
+          303.2235576923077,
+          372.0
+        ]
+      ]
+    },
+    {
+      "cell": 4,
+      "group_id": 2877,
+      "image_id": 2954,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          63,
+          8,
+          352,
+          416
+        ],
+        "detected_sides": [
+          "top",
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          51.69550173010381,
+          61.5,
+          101.95501730103807,
+          123.25980392156862
+        ],
+        [
+          300.121107266436,
+          0.0,
+          361.86851211072667,
+          44.26470588235293
+        ]
+      ]
+    },
+    {
+      "cell": 5,
+      "group_id": 4147,
+      "image_id": 4295,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          280.84615384615387,
+          171.82608695652175,
+          387.8581730769231,
+          245.68115942028987
+        ]
+      ]
+    },
+    {
+      "cell": 6,
+      "group_id": 2782,
+      "image_id": 2854,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          70,
+          0,
+          345,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          98.0909090909091,
+          0.0,
+          286.7272727272727,
+          229.13461538461536
+        ]
+      ]
+    },
+    {
+      "cell": 7,
+      "group_id": 1151,
+      "image_id": 1157,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          77,
+          416,
+          338
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          171.9543269230769,
+          38.160919540229884,
+          281.59134615384613,
+          182.85440613026822
+        ],
+        [
+          30.538461538461547,
+          179.6743295019157,
+          57.550480769230774,
+          209.8850574712644
+        ],
+        [
+          383.28365384615387,
+          162.18390804597703,
+          416.0,
+          193.98467432950193
+        ]
+      ]
+    },
+    {
+      "cell": 8,
+      "group_id": 4406,
+      "image_id": 4573,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 9,
+      "group_id": 4463,
+      "image_id": 4634,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          10.81730769230768,
+          197.76173285198556,
+          70.72115384615384,
+          263.6823104693141
+        ]
+      ]
+    },
+    {
+      "cell": 10,
+      "group_id": 1980,
+      "image_id": 2008,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          138.11298076923075,
+          139.33212996389892,
+          171.06009615384613,
+          184.27797833935017
+        ],
+        [
+          406.18269230769226,
+          110.86642599277978,
+          416.0,
+          178.28519855595667
+        ],
+        [
+          187.5336538461538,
+          136.33574007220216,
+          215.98798076923077,
+          176.7870036101083
+        ],
+        [
+          308.83894230769226,
+          137.83393501805054,
+          341.7860576923077,
+          179.78339350180505
+        ],
+        [
+          268.40384615384613,
+          161.80505415162455,
+          296.85817307692304,
+          194.76534296028882
+        ]
+      ]
+    },
+    {
+      "cell": 11,
+      "group_id": 1497,
+      "image_id": 1512,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          73,
+          416,
+          343
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          240.8581730769231,
+          93.98518518518519,
+          293.24759615384613,
+          161.77777777777777
+        ],
+        [
+          176.1418269230769,
+          109.39259259259259,
+          220.8269230769231,
+          164.85925925925926
+        ],
+        [
+          393.40384615384613,
+          167.94074074074075,
+          416.0,
+          197.21481481481482
+        ],
+        [
+          75.9855769230769,
+          95.52592592592593,
+          99.09855769230768,
+          130.96296296296296
+        ],
+        [
+          42.08653846153845,
+          95.52592592592593,
+          63.65865384615384,
+          129.42222222222222
+        ]
+      ]
+    },
+    {
+      "cell": 12,
+      "group_id": 1893,
+      "image_id": 1919,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 13,
+      "group_id": 1017,
+      "image_id": 1020,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 14,
+      "group_id": 4022,
+      "image_id": 4160,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          77,
+          416,
+          338
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          30.21072796934866,
+          67.08413461538461,
+          170.13409961685824
+        ]
+      ]
+    },
+    {
+      "cell": 15,
+      "group_id": 3228,
+      "image_id": 3323,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          201.8293269230769,
+          150.66666666666666,
+          227.17788461538464,
+          176.0
+        ],
+        [
+          253.8605769230769,
+          130.66666666666666,
+          276.5408653846154,
+          158.66666666666666
+        ]
+      ]
+    },
+    {
+      "cell": 16,
+      "group_id": 2849,
+      "image_id": 2923,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          145.60096153846152,
+          206.50359712230215,
+          189.03125,
+          260.37410071942446
+        ],
+        [
+          43.764423076923066,
+          335.19424460431657,
+          82.70192307692307,
+          375.59712230215825
+        ]
+      ]
+    },
+    {
+      "cell": 17,
+      "group_id": 2313,
+      "image_id": 2353,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          304.3461538461538,
+          272.6714801444043,
+          337.2932692307692,
+          307.12996389891697
+        ],
+        [
+          238.45192307692304,
+          274.1696750902527,
+          260.91586538461536,
+          299.6389891696751
+        ],
+        [
+          162.07451923076923,
+          269.6750902527076,
+          183.04086538461536,
+          293.6462093862816
+        ],
+        [
+          269.90144230769226,
+          269.6750902527076,
+          286.375,
+          290.64981949458485
+        ]
+      ]
+    },
+    {
+      "cell": 18,
+      "group_id": 205,
+      "image_id": 206,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          220.48076923076923,
+          221.73285198555956,
+          263.9110576923077,
+          277.16606498194943
+        ],
+        [
+          0.0,
+          163.30324909747293,
+          27.290865384615387,
+          236.7148014440433
+        ],
+        [
+          112.65384615384613,
+          116.85920577617328,
+          151.59134615384613,
+          164.80144404332128
+        ],
+        [
+          162.07451923076923,
+          76.40794223826714,
+          190.52884615384613,
+          121.35379061371842
+        ],
+        [
+          245.9399038461538,
+          100.37906137184115,
+          284.8774038461538,
+          145.32490974729242
+        ]
+      ]
+    },
+    {
+      "cell": 19,
+      "group_id": 4345,
+      "image_id": 4508,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 20,
+      "group_id": 165,
+      "image_id": 166,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 21,
+      "group_id": 804,
+      "image_id": 806,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          73.71634615384613,
+          40.45126353790614,
+          124.63461538461536,
+          106.37184115523465
+        ]
+      ]
+    },
+    {
+      "cell": 22,
+      "group_id": 3486,
+      "image_id": 3593,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          0.0,
+          240.15144230769232,
+          284.8695652173913
+        ]
+      ]
+    },
+    {
+      "cell": 23,
+      "group_id": 1424,
+      "image_id": 1438,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 24,
+      "group_id": 4806,
+      "image_id": 4999,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          62,
+          408,
+          354
+        ],
+        "detected_sides": [
+          "top",
+          "bottom",
+          "right"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 25,
+      "group_id": 2732,
+      "image_id": 2797,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          64,
+          416,
+          352
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          92.92307692307693,
+          0.0,
+          250.39663461538464,
+          160.33333333333334
+        ]
+      ]
+    },
+    {
+      "cell": 26,
+      "group_id": 972,
+      "image_id": 975,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          363
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 27,
+      "group_id": 4670,
+      "image_id": 4853,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          64.41346153846155,
+          98.66666666666666,
+          140.4591346153846,
+          197.33333333333331
+        ],
+        [
+          195.15865384615387,
+          122.66666666666666,
+          260.53125,
+          192.0
+        ],
+        [
+          247.18990384615387,
+          58.666666666666664,
+          327.2379807692308,
+          152.0
+        ]
+      ]
+    },
+    {
+      "cell": 28,
+      "group_id": 3150,
+      "image_id": 3241,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          62,
+          416,
+          353
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          87.33413461538461,
+          145.4639175257732,
+          138.6514423076923,
+          211.06529209621993
+        ]
+      ]
+    },
+    {
+      "cell": 29,
+      "group_id": 29,
+      "image_id": 30,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          267.2019230769231,
+          128.0,
+          304.5576923076923,
+          173.33333333333331
+        ],
+        [
+          127.11778846153845,
+          130.66666666666666,
+          157.8028846153846,
+          168.0
+        ],
+        [
+          399.28125,
+          124.0,
+          416.0,
+          168.0
+        ],
+        [
+          187.1538461538462,
+          128.0,
+          212.50240384615387,
+          168.0
+        ],
+        [
+          117.77884615384616,
+          136.0,
+          133.78846153846155,
+          172.0
+        ],
+        [
+          224.50961538461542,
+          146.66666666666666,
+          236.5168269230769,
+          164.0
+        ],
+        [
+          253.8605769230769,
+          138.66666666666666,
+          265.86778846153845,
+          157.33333333333331
+        ]
+      ]
+    },
+    {
+      "cell": 30,
+      "group_id": 2525,
+      "image_id": 2575,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 31,
+      "group_id": 2618,
+      "image_id": 2677,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          0.0,
+          29.96389891696751,
+          52.75,
+          101.87725631768953
+        ]
+      ]
+    },
+    {
+      "cell": 32,
+      "group_id": 2441,
+      "image_id": 2488,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          51,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          10.288461538461533,
+          160.43130990415335,
+          42.13461538461539,
+          201.5335463258786
+        ],
+        [
+          165.53846153846152,
+          163.08306709265176,
+          196.05769230769232,
+          197.555910543131
+        ],
+        [
+          89.90384615384616,
+          149.82428115015975,
+          115.11538461538461,
+          186.94888178913737
+        ],
+        [
+          403.05769230769226,
+          153.80191693290735,
+          416.0,
+          186.94888178913737
+        ],
+        [
+          292.9230769230769,
+          149.82428115015975,
+          318.13461538461536,
+          185.62300319488818
+        ],
+        [
+          213.30769230769232,
+          159.10543130990416,
+          242.5,
+          193.57827476038338
+        ]
+      ]
+    },
+    {
+      "cell": 33,
+      "group_id": 2478,
+      "image_id": 2526,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          96.18028846153845,
+          155.81227436823104,
+          132.12259615384613,
+          199.25992779783394
+        ],
+        [
+          293.8629807692307,
+          71.91335740072202,
+          329.80528846153845,
+          115.36101083032491
+        ]
+      ]
+    },
+    {
+      "cell": 34,
+      "group_id": 1659,
+      "image_id": 1679,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          52.75,
+          200.7581227436823,
+          147.09855769230768,
+          304.1335740072202
+        ],
+        [
+          281.8822115384615,
+          280.1624548736462,
+          362.7524038461538,
+          376.0469314079422
+        ],
+        [
+          269.90144230769226,
+          155.81227436823104,
+          298.3557692307692,
+          185.77617328519855
+        ]
+      ]
+    },
+    {
+      "cell": 35,
+      "group_id": 680,
+      "image_id": 681,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          363,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          78.72990353697749,
+          95.09855769230771,
+          133.44051446945338,
+          163.1394230769231
+        ],
+        [
+          304.24437299035367,
+          81.75721153846155,
+          358.95498392282957,
+          144.46153846153845
+        ],
+        [
+          225.5144694533762,
+          223.17548076923077,
+          270.88424437299034,
+          268.5360576923077
+        ],
+        [
+          120.09646302250803,
+          311.2283653846154,
+          192.15434083601286,
+          399.28125
+        ]
+      ]
+    },
+    {
+      "cell": 36,
+      "group_id": 3880,
+      "image_id": 4006,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          69,
+          0,
+          346,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          164.80144404332128,
+          147.09855769230768,
+          251.69675090252707,
+          239.94951923076923
+        ]
+      ]
+    },
+    {
+      "cell": 37,
+      "group_id": 2674,
+      "image_id": 2737,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          242.9447115384615,
+          175.28880866425993,
+          271.39903846153845,
+          203.75451263537906
+        ],
+        [
+          183.04086538461536,
+          224.7292418772563,
+          211.49519230769226,
+          245.70397111913357
+        ]
+      ]
+    },
+    {
+      "cell": 38,
+      "group_id": 1703,
+      "image_id": 1724,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          97,
+          416,
+          319
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          86.125,
+          65.58558558558559,
+          142.375,
+          129.2972972972973
+        ],
+        [
+          206.125,
+          127.42342342342342,
+          260.5,
+          176.14414414414415
+        ]
+      ]
+    },
+    {
+      "cell": 39,
+      "group_id": 1185,
+      "image_id": 1192,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          30,
+          416,
+          385
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 40,
+      "group_id": 4226,
+      "image_id": 4379,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 41,
+      "group_id": 1748,
+      "image_id": 1770,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          386.35096153846155,
+          107.01449275362319,
+          416.0,
+          155.24637681159422
+        ],
+        [
+          0.0,
+          171.82608695652175,
+          15.57692307692308,
+          212.52173913043478
+        ]
+      ]
+    },
+    {
+      "cell": 42,
+      "group_id": 529,
+      "image_id": 530,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          94.68269230769229,
+          151.31768953068593,
+          144.10336538461536,
+          206.75090252707582
+        ]
+      ]
+    },
+    {
+      "cell": 43,
+      "group_id": 770,
+      "image_id": 772,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          68,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          236.77163461538458,
+          121.97132616487454,
+          297.77884615384613,
+          187.41935483870967
+        ]
+      ]
+    },
+    {
+      "cell": 44,
+      "group_id": 642,
+      "image_id": 643,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          28.78846153846152,
+          115.36101083032491,
+          124.63461538461536,
+          239.71119133574007
+        ],
+        [
+          383.71874999999994,
+          217.23826714801444,
+          416.0,
+          293.6462093862816
+        ]
+      ]
+    },
+    {
+      "cell": 45,
+      "group_id": 409,
+      "image_id": 410,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          67,
+          416,
+          349
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 46,
+      "group_id": 4566,
+      "image_id": 4742,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          69,
+          0,
+          346,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          55.43321299638989,
+          120.1418269230769,
+          109.36823104693141,
+          177.05048076923077
+        ]
+      ]
+    },
+    {
+      "cell": 47,
+      "group_id": 2252,
+      "image_id": 2291,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          45,
+          0,
+          370,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          154.5076923076923,
+          366.77884615384613,
+          214.5230769230769,
+          416.0
+        ]
+      ]
+    },
+    {
+      "cell": 48,
+      "group_id": 1982,
+      "image_id": 2010,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          156.08413461538458,
+          22.47292418772563,
+          317.8245192307692,
+          200.7581227436823
+        ]
+      ]
+    },
+    {
+      "cell": 49,
+      "group_id": 470,
+      "image_id": 2690,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          69,
+          0,
+          346,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          82.40072202166064,
+          293.8629807692307,
+          152.81588447653428,
+          367.24519230769226
+        ],
+        [
+          191.76895306859205,
+          157.58173076923077,
+          242.70758122743683,
+          208.5
+        ],
+        [
+          170.7942238267148,
+          52.75,
+          206.75090252707582,
+          84.19951923076923
+        ]
+      ]
+    },
+    {
+      "cell": 50,
+      "group_id": 2807,
+      "image_id": 2879,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          77,
+          416,
+          338
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          23.85057471264368,
+          117.93028846153845,
+          189.21455938697318
+        ]
+      ]
+    },
+    {
+      "cell": 51,
+      "group_id": 3042,
+      "image_id": 3125,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          97.67788461538461,
+          179.78339350180505,
+          120.1418269230769,
+          209.74729241877256
+        ],
+        [
+          165.06971153846155,
+          176.7870036101083,
+          193.52403846153845,
+          212.7436823104693
+        ],
+        [
+          202.50961538461536,
+          161.80505415162455,
+          223.4759615384615,
+          200.7581227436823
+        ],
+        [
+          232.46153846153845,
+          181.28158844765343,
+          251.93028846153845,
+          215.74007220216606
+        ],
+        [
+          284.8774038461538,
+          191.76895306859205,
+          308.83894230769226,
+          220.23465703971118
+        ],
+        [
+          310.33653846153845,
+          170.7942238267148,
+          332.8004807692307,
+          199.25992779783394
+        ],
+        [
+          370.2403846153846,
+          176.7870036101083,
+          395.69951923076917,
+          208.24909747292418
+        ]
+      ]
+    },
+    {
+      "cell": 52,
+      "group_id": 431,
+      "image_id": 432,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          317.89903846153845,
+          166.66666666666666,
+          375.26682692307696,
+          236.0
+        ]
+      ]
+    },
+    {
+      "cell": 53,
+      "group_id": 2350,
+      "image_id": 2394,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          62,
+          416,
+          354
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          105.86538461538461,
+          368.986301369863,
+          124.39663461538461,
+          388.93150684931504
+        ],
+        [
+          174.28846153846155,
+          296.32876712328766,
+          188.54326923076923,
+          314.8493150684931
+        ],
+        [
+          201.37259615384613,
+          313.42465753424653,
+          217.05288461538458,
+          331.94520547945206
+        ],
+        [
+          279.77403846153845,
+          312.0,
+          295.4543269230769,
+          330.52054794520546
+        ]
+      ]
+    },
+    {
+      "cell": 54,
+      "group_id": 2862,
+      "image_id": 2937,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          332.8004807692307,
+          115.36101083032491,
+          367.24519230769226,
+          158.8086642599278
+        ],
+        [
+          162.07451923076923,
+          136.33574007220216,
+          196.51923076923077,
+          179.78339350180505
+        ]
+      ]
+    },
+    {
+      "cell": 55,
+      "group_id": 584,
+      "image_id": 585,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          363
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 56,
+      "group_id": 1555,
+      "image_id": 4530,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          364,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          114.66666666666666,
+          180.4831730769231,
+          200.0,
+          281.87740384615387
+        ],
+        [
+          284.0,
+          175.1466346153846,
+          368.0,
+          284.5456730769231
+        ]
+      ]
+    },
+    {
+      "cell": 57,
+      "group_id": 4284,
+      "image_id": 4444,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          46,
+          416,
+          369
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          191.31250000000003,
+          39.8297213622291,
+          263.1971153846154,
+          122.05882352941174
+        ]
+      ]
+    },
+    {
+      "cell": 58,
+      "group_id": 1666,
+      "image_id": 1686,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          80,
+          416,
+          335
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 59,
+      "group_id": 3454,
+      "image_id": 3560,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          364,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          186.66666666666666,
+          0.0,
+          296.0,
+          60.41105769230771
+        ]
+      ]
+    },
+    {
+      "cell": 60,
+      "group_id": 1320,
+      "image_id": 1331,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          259.7451923076923,
+          36.173913043478265,
+          307.97596153846155,
+          94.95652173913044
+        ]
+      ]
+    },
+    {
+      "cell": 61,
+      "group_id": 2555,
+      "image_id": 2608,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          74,
+          416,
+          342
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 62,
+      "group_id": 4732,
+      "image_id": 4921,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          363
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "cell": 63,
+      "group_id": 2335,
+      "image_id": 2376,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          59,
+          416,
+          356
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          172.1875,
+          255.7070707070707,
+          191.74038461538464,
+          273.87205387205387
+        ],
+        [
+          142.8581730769231,
+          237.54208754208753,
+          162.4110576923077,
+          262.6936026936027
+        ],
+        [
+          99.5625,
+          238.93939393939394,
+          120.51201923076923,
+          262.6936026936027
+        ],
+        [
+          0.0,
+          226.36363636363635,
+          7.384615384615387,
+          245.92592592592592
+        ]
+      ]
+    },
+    {
+      "cell": 64,
+      "group_id": 1822,
+      "image_id": 1847,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          71,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          115.32692307692307,
+          148.7883211678832,
+          151.78846153846155,
+          192.81751824817516
+        ],
+        [
+          24.173076923076906,
+          170.04379562043795,
+          56.076923076923066,
+          211.03649635036496
+        ],
+        [
+          194.32692307692304,
+          145.75182481751824,
+          223.19230769230768,
+          189.7810218978102
+        ],
+        [
+          80.38461538461539,
+          163.97080291970804,
+          104.69230769230768,
+          201.92700729927006
+        ]
+      ]
+    }
+  ],
+  "evidence_sha256": "dbe3abb6769e48b1f8310c412ba08265a7ed460826b53536dbe512e2671d15f7",
+  "experiment_id": "supervised_labeler_v13_gt_review",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_boxes_present": false,
+  "model_inference_run": false,
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v13_gt_review/page_01.png",
+      "sha256": "10cd590e7c8b605aab4da49b7fa26f7937ab5584fada0d6fd07a34b91e81f7ec"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v13_gt_review/page_02.png",
+      "sha256": "62f7c2a6a7ef649325257068dc29776e38b8e69b6724781d16af6e280791f9c1"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v13_gt_review/page_03.png",
+      "sha256": "4b5850bbde2e115f485474487bd5db970e8f9866b2133521dfe171f3a77b5284"
+    },
+    {
+      "cells": [
+        49,
+        64
+      ],
+      "path": "reports/figures/supervised_labeler_v13_gt_review/page_04.png",
+      "sha256": "b8fdd6789febae555667ee89723644d68b6e63e1889e2ea6f4ddfab2a45ace2a"
+    }
+  ],
+  "pool_manifest_sha256": "04dee80b5b8d82c8d187083da32cf09d62b3016b10025a58259ccc2b345dfd64",
+  "primary_images_normalized": 64,
+  "primary_images_read": 64,
+  "review_stage": "gt_only",
+  "schema_version": 1,
+  "sealed_reserve_images": 32,
+  "sealed_reserve_pixels_read": 0,
+  "status": "v13_gt_only_primary_review_rendered_before_training",
+  "test_images_read": 0,
+  "v13_training_started": false,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
