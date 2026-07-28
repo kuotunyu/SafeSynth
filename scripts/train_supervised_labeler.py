@@ -684,6 +684,7 @@ def _train() -> None:
         weights = supervised_sampling_weights(
             image_ids=training.image_ids,
             annotations=training.annotations,
+            image_records=training.images,
             helmet_category_id=training.helmet_category_id,
             empty_image_weight=float(sampling["empty_image_weight"]),
             close_helmet_pair_weight=float(
@@ -693,6 +694,12 @@ def _train() -> None:
                 sampling[
                     "close_pair_center_distance_over_mean_sqrt_area_max"
                 ]
+            ),
+            small_helmet_weight=float(
+                sampling.get("small_helmet_weight", 1.0)
+            ),
+            small_helmet_relative_area_max=float(
+                sampling.get("small_helmet_relative_area_max", 0.0)
             ),
         )
         sampler = WeightedRandomSampler(

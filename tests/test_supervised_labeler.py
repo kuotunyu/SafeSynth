@@ -37,6 +37,9 @@ from src.synthetic.whole_image import (
     human_review_evidence_sha256,
 )
 
+V7_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
+V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
+
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     config = load_supervised_labeler_config()
@@ -73,7 +76,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260815
+    assert first["split_seed"] == 20260822
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(
@@ -90,7 +93,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
 
 
 def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
-    config = load_supervised_labeler_config()
+    config = load_supervised_labeler_config(V7_CONFIG_PATH)
     v6 = json.loads(
         (
             PROJECT_ROOT / "splits" / "supervised_labeler_v6_split.json"
@@ -123,6 +126,40 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
     assert v7["test_images_read"] == 0
 
 
+def test_v8_frozen_split_seals_new_audit_from_v7_history() -> None:
+    config = load_supervised_labeler_config(V8_CONFIG_PATH)
+    v7 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v7_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    v8 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v8_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    revealed = set(v7["calibration_image_ids"]) | set(
+        v7["untouched_audit_image_ids"]
+    )
+
+    assert config["status"] == "cpu_preflight_passed_gpu_smoke_pending"
+    assert config["split_manifest_sha256"] == v8["manifest_sha256"]
+    assert set(v8["calibration_image_ids"]) == revealed
+    assert set(v8["untouched_audit_image_ids"]).isdisjoint(revealed)
+    assert set(v8["training_group_ids"]).isdisjoint(
+        v8["calibration_group_ids"]
+    )
+    assert set(v8["training_group_ids"]).isdisjoint(
+        v8["untouched_audit_group_ids"]
+    )
+    assert set(v8["calibration_group_ids"]).isdisjoint(
+        v8["untouched_audit_group_ids"]
+    )
+    assert v8["untouched_audit_images"] == 48
+    assert v8["validation_images_read"] == 0
+    assert v8["test_images_read"] == 0
+
+
 def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
     report = json.loads(
         (
@@ -136,6 +173,30 @@ def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
     assert report["sampling_weight_counts"] == {
         "1.0": 2035,
         "2.0": 1010,
+    }
+    assert report["source_group_overlap"] == 0
+    assert report["training_pixels_read"] == 0
+    assert report["calibration_pixels_read"] == 0
+    assert report["sealed_audit_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
+
+
+def test_v8_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v8_preflight.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "cpu_preflight_passed_gpu_training_waiting"
+    assert report["sampling_weight_counts"] == {
+        "1.0": 821,
+        "2.0": 2174,
     }
     assert report["source_group_overlap"] == 0
     assert report["training_pixels_read"] == 0
@@ -162,7 +223,7 @@ def test_v7_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
 
 
 def test_v7_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
-    config = load_supervised_labeler_config()
+    config = load_supervised_labeler_config(V7_CONFIG_PATH)
     report_path = (
         PROJECT_ROOT / "reports" / "supervised_labeler_v7_training.json"
     )
@@ -222,7 +283,7 @@ def test_v7_owner_review_manifest_freezes_every_presented_file() -> None:
 
 
 def test_v7_owner_review_rejection_is_canonical_and_generation_stays_closed() -> None:
-    config = load_supervised_labeler_config()
+    config = load_supervised_labeler_config(V7_CONFIG_PATH)
     outcome = config["human_review_outcome"]
     path = PROJECT_ROOT / outcome["evidence_path"]
     evidence = json.loads(path.read_text(encoding="utf-8"))
@@ -574,6 +635,36 @@ def test_v7_sampling_weights_empty_and_close_pair_images() -> None:
     )
 
     assert weights == [2.0, 1.0, 2.0, 1.0]
+
+
+def test_v8_sampling_adds_small_helmet_images_without_stacking_weights() -> None:
+    annotations = {
+        1: [],
+        2: [{"category_id": 1, "bbox": [0, 0, 5, 5]}],
+        3: [{"category_id": 1, "bbox": [0, 0, 20, 20]}],
+        4: [
+            {"category_id": 1, "bbox": [0, 0, 5, 5]},
+            {"category_id": 1, "bbox": [4, 0, 5, 5]},
+        ],
+    }
+    image_records = {
+        image_id: {"width": 100, "height": 100}
+        for image_id in annotations
+    }
+
+    weights = supervised_sampling_weights(
+        image_ids=[1, 2, 3, 4],
+        annotations=annotations,
+        image_records=image_records,
+        helmet_category_id=1,
+        empty_image_weight=2.0,
+        close_helmet_pair_weight=2.0,
+        close_pair_ratio_max=1.0,
+        small_helmet_weight=2.0,
+        small_helmet_relative_area_max=0.0075,
+    )
+
+    assert weights == [2.0, 2.0, 1.0, 2.0]
 
 
 def test_exact_audit_evidence_preserves_boxes_without_raster_parsing() -> None:

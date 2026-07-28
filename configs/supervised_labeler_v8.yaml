@@ -1,0 +1,154 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v8"
+status: "cpu_preflight_passed_gpu_smoke_pending"
+architecture: "rtdetr_v2_r50vd_helmet_only"
+split_seed: 20260822
+training_seed: 20260809
+split_manifest_sha256: "4239968da2a96636e7160af0fc7fcbe93c6d090e397cd61bcbcf9fa1ecd0663f"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r50vd"
+  revision: "282494075698cab9faa1096ae26856890030c817"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 172182583
+  allow_files:
+    config.json: 5283
+    model.safetensors: 172176856
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  prior_history_terminal_experiment: "supervised_labeler_v7"
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 2.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 2.0
+  small_helmet_relative_area_max: 0.0075
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Preserve the v7 empty-image and close-pair weights. The only v7
+    owner-reported miss not recoverable by the preregistered geometry
+    relaxation was a very small helmet with relative annotation area 0.0063
+    and a matching score of 0.0052. Weight Train images containing a helmet
+    at or below the outward-rounded relative area 0.0075 by two.
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3/v6/v7 training seed"
+
+postprocessing:
+  max_relative_area: 0.14
+  max_relative_height: 0.40
+  min_aspect_ratio: 0.25
+  max_aspect_ratio: 4.0
+  selection_basis: >-
+    On revealed v7 evidence, five of six owner-reported missed helmet
+    instances had matching high-score boxes removed by the geometry filter.
+    Maximum relative area 0.14 and maximum relative height 0.40 are the
+    smallest round-number outward bounds covering all five. Across all 432
+    revealed Train calibration/audit images this retained calibration
+    precision 0.9057 and revealed-audit precision 0.9541 at threshold 0.023.
+    Aspect bounds remain unchanged.
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  precision_margin_basis: >-
+    Retain the frozen v6/v7 calibration policy. The v7 low-score diagnostic
+    showed that lowering the global threshold to 0.005 would create 1,268
+    false positives on the revealed 48-image audit, so no lower threshold is
+    added.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_false_positive"
+    - "missed_helmet"
+    - "merged_multiple_helmets"
+    - "other_visual_failure"
+
+diagnostic_evidence:
+  owner_review:
+    source: "reports/supervised_labeler_v7_human_review.json"
+    file_sha256: "259f3f237bd70ce6410cd743922bd35d1fa302969eef97401c2e7c798b192f9c"
+    evidence_sha256: "757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6"
+    problem_cells:
+      - 8
+      - 11
+      - 13
+      - 36
+      - 39
+  miss_diagnosis:
+    source: "reports/supervised_labeler_v7_review_diagnosis.json"
+    file_sha256: "d8b96aeefcb895a5fc2cc888afa0103021d9456ddf9da37eb0f8628dcf24f1c8"
+    problem_instances: 6
+    removed_by_geometry_filter: 5
+    below_score_threshold: 1
+  geometry_diagnosis:
+    source: "reports/supervised_labeler_v7_geometry_diagnosis.json"
+    file_sha256: "7402c04a2d2283cab515bc2c18ecc86dc51aae3f79aac355b7c01652a45d7e90"
+    revealed_images: 432
+    selected_max_relative_area: 0.14
+    selected_max_relative_height: 0.40
+  eligible_for_v8_gate: false
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v8 is preregistered but has not completed its new sealed numeric audit and
+    owner-only 48-case zero-problem human review.

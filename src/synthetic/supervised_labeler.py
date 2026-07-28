@@ -18,8 +18,8 @@ from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v7_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v8_split.json"
 
 
 def load_supervised_labeler_config(
@@ -73,6 +73,10 @@ def load_supervised_labeler_config(
         sampling.get("strategy") != "deterministic_weighted_replacement"
         or float(sampling["empty_image_weight"]) < 1
         or float(sampling["close_helmet_pair_weight"]) < 1
+        or float(sampling.get("small_helmet_weight", 1.0)) < 1
+        or not 0
+        <= float(sampling.get("small_helmet_relative_area_max", 0.0))
+        <= 1
         or float(
             sampling["close_pair_center_distance_over_mean_sqrt_area_max"]
         )
@@ -119,12 +123,15 @@ def supervised_sampling_weights(
     *,
     image_ids: Sequence[int],
     annotations: Mapping[int, Sequence[Mapping[str, Any]]],
+    image_records: Mapping[int, Mapping[str, Any]] | None = None,
     helmet_category_id: int,
     empty_image_weight: float,
     close_helmet_pair_weight: float,
     close_pair_ratio_max: float,
+    small_helmet_weight: float = 1.0,
+    small_helmet_relative_area_max: float = 0.0,
 ) -> list[float]:
-    """Weight empty and close-pair Train images using annotations only."""
+    """Weight registered hard examples using Train annotations only."""
 
     weights = []
     for image_id in image_ids:
@@ -153,6 +160,24 @@ def supervised_sampling_weights(
                 break
         if close_pair:
             weight = max(weight, float(close_helmet_pair_weight))
+        if (
+            boxes
+            and float(small_helmet_weight) > 1.0
+            and float(small_helmet_relative_area_max) > 0.0
+        ):
+            if image_records is None:
+                raise ValueError("Small-helmet weighting requires image records")
+            image = image_records[int(image_id)]
+            image_area = max(
+                float(image["width"]) * float(image["height"]),
+                1.0,
+            )
+            if any(
+                box[2] * box[3] / image_area
+                <= float(small_helmet_relative_area_max)
+                for box in boxes
+            ):
+                weight = max(weight, float(small_helmet_weight))
         weights.append(weight)
     return weights
 
