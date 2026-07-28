@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v9"
-status: "cpu_preflight_passed_gpu_smoke_pending"
+status: "gpu_smoke_passed_training_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260829
 training_seed: 20260809

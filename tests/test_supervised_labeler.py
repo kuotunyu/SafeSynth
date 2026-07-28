@@ -177,7 +177,7 @@ def test_v9_frozen_split_seals_new_audit_from_v8_history() -> None:
         v8["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "cpu_preflight_passed_gpu_smoke_pending"
+    assert config["status"] == "gpu_smoke_passed_training_pending"
     assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
     assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
     assert config["split_manifest_sha256"] == v9["manifest_sha256"]
@@ -298,6 +298,22 @@ def test_v8_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
 
     assert report["status"] == "smoke_passed"
     assert report["batch_size"] == 8
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+
+
+def test_v9_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT / "reports" / "supervised_labeler_v9_smoke.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["loss"] == pytest.approx(226.901611328125)
+    assert report["peak_vram_gib"] == pytest.approx(9.324644088745117)
     assert report["untouched_audit_images_read"] == 0
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0

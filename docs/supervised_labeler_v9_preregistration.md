@@ -53,3 +53,7 @@ Validation/Test reads remain zero.
 The CPU-only preflight rehashed all three R101 model files and verified the
 split without reading any image pixels. The frozen weighted sampler assigns
 ordinary weight to 804 training images and weight 2.0 to 2,142 images.
+
+The preregistered batch-8 GPU smoke test completed with finite loss 226.90 and
+9.325 GiB peak VRAM. It read one training batch, zero sealed-audit images, and
+zero Validation/Test images. Full v9 training may proceed.
