@@ -27,6 +27,9 @@ from scripts.record_supervised_labeler_v12_gt_review import (
 from scripts.record_supervised_labeler_v12_gt_review import (
     OWNER_REVIEW_PATH as V12_GT_OWNER_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v12_model_review import (
+    OUTPUT_PATH as V12_MODEL_HUMAN_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -823,6 +826,31 @@ def test_v12_model_audit_uses_only_the_frozen_adjudicated_cases() -> None:
     for page in report["pages"]:
         path = PROJECT_ROOT / page["path"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v12_model_human_review_rejects_the_numeric_pass() -> None:
+    if not V12_MODEL_HUMAN_REVIEW_PATH.is_file():
+        pytest.skip("v12 model human review has not been recorded yet")
+    review = json.loads(
+        V12_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(review)
+    embedded_sha = canonical.pop("review_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["decision"] == "reject"
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["problem_count"] == 10
+    assert review["problem_cells"] == [3, 10, 13, 20, 25, 26, 27, 29, 43, 45]
+    assert review["categories"] == {
+        "model_false_positive_cells": [3, 10, 13, 20, 25, 27, 29, 45],
+        "model_missed_helmeted_head_cells": [26, 43],
+    }
+    assert review["generation_allowed"] is False
+    assert review["validation_images_read"] == 0
+    assert review["test_images_read"] == 0
+    assert review["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

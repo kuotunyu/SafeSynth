@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v12_gt_review"
-status: "numeric_audit_passed_owner_model_review_pending"
+status: "owner_model_review_rejected"
 source_split: "Train"
 split_seed: 20260913
 
@@ -94,8 +94,9 @@ review_stages:
 generation_gate:
   allowed: false
   reason: >-
-    The corrected GT-only adjudication and numeric model audit passed, but the
-    separate owner review of the model boxes has not completed.
+    The corrected GT-only adjudication and numeric model audit passed, but
+    kuotunyu found eight false-positive cells and two missed-helmet cells in
+    the separate model review. The required zero-problem gate failed.
 
 freeze_outcome:
   status: "v12_gt_only_pool_frozen_before_pixel_review"
@@ -240,3 +241,20 @@ model_audit_outcome:
     - path: "reports/figures/supervised_labeler_v12_model_audit/page_03.png"
       sha256: "a7faf140b57facc52c7df2ecfd213f9f03288643c2286c681d78785a0ac2ca75"
       cells: [33, 48]
+
+model_human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  evidence_path: "reports/supervised_labeler_v12_model_human_review.json"
+  evidence_file_sha256: "467ed71a7cd154e5464d32cefeb2ca62d4e44b472d8ad6c8f349396a3ce53794"
+  review_sha256: "31874624fa0728954eb95508c6a76297f4569f226f3f26f1eb7fcf853302ebb7"
+  problem_count: 10
+  problem_cells: [3, 10, 13, 20, 25, 26, 27, 29, 43, 45]
+  categories:
+    model_false_positive_cells: [3, 10, 13, 20, 25, 27, 29, 45]
+    model_missed_helmeted_head_cells: [26, 43]
+  generation_allowed: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
