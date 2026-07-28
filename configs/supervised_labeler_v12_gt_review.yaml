@@ -174,3 +174,32 @@ adjudicated_audit_outcome:
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
+
+model_audit_registration:
+  status: "frozen_before_v12_model_inference"
+  source_experiment: "supervised_labeler_v11"
+  source_training_report: "reports/supervised_labeler_v11_training.json"
+  source_training_report_sha256: "c273548854392a4bc4425e487169bf58faba43ab5c75d81ef62eb4bcf05acbca"
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v11_train20260809_split20260912\best
+  checkpoint_sha256: "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4"
+  checkpoint_selection: >-
+    Requalify the already-frozen v11 checkpoint on the semantics-correct,
+    owner-adjudicated v12 audit. Do not tune from v12 results.
+  score_threshold: 0.03
+  match_iou: 0.50
+  postprocessing:
+    max_relative_area: 0.15
+    max_relative_height: 0.60
+    min_aspect_ratio: 0.20
+    max_aspect_ratio: 4.0
+  numeric_gates:
+    min_precision: 0.80
+    min_recall: 0.70
+    min_median_matched_iou: 0.60
+  owner_review_after_numeric_pass: true
+  required_owner_problem_count: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false

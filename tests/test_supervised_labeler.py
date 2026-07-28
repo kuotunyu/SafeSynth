@@ -3,8 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import defaultdict
+from pathlib import Path
 
 import pytest
+import yaml
 from PIL import Image, ImageDraw
 
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
@@ -54,6 +56,9 @@ V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
 V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
 V10_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
 V11_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
+V12_GT_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "supervised_labeler_v12_gt_review.yaml"
+)
 SEMANTICS_ERRATUM_PATH = (
     PROJECT_ROOT
     / "reports"
@@ -728,6 +733,37 @@ def test_v12_adjudicated_audit_is_frozen_before_model_inference() -> None:
     assert audit["validation_images_read"] == 0
     assert audit["test_images_read"] == 0
     assert audit["whole_image_generation_run"] is False
+
+
+def test_v12_model_audit_registration_is_frozen_before_inference() -> None:
+    config = yaml.safe_load(V12_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    registration = config["model_audit_registration"]
+    report_path = PROJECT_ROOT / registration["source_training_report"]
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    checkpoint_path = (
+        Path(registration["checkpoint_path"]) / "model.safetensors"
+    )
+
+    assert registration["status"] == "frozen_before_v12_model_inference"
+    assert registration["source_experiment"] == "supervised_labeler_v11"
+    assert hashlib.sha256(report_path.read_bytes()).hexdigest() == (
+        registration["source_training_report_sha256"]
+    )
+    assert report["checkpoint_sha256"] == registration["checkpoint_sha256"]
+    assert hashlib.sha256(checkpoint_path.read_bytes()).hexdigest() == (
+        registration["checkpoint_sha256"]
+    )
+    assert registration["score_threshold"] == 0.03
+    assert registration["match_iou"] == 0.50
+    assert registration["numeric_gates"] == {
+        "min_median_matched_iou": 0.60,
+        "min_precision": 0.80,
+        "min_recall": 0.70,
+    }
+    assert registration["sealed_reserve_pixels_read"] == 0
+    assert registration["validation_images_read"] == 0
+    assert registration["test_images_read"] == 0
+    assert registration["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
