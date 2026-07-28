@@ -30,12 +30,12 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def extract_model_marks(
+def extract_model_boxes(
     *,
     frozen_panel: Image.Image,
     original_panel: Image.Image,
-) -> Image.Image:
-    """Extract cyan model box lines without the nearby score glyphs."""
+) -> list[tuple[int, int, int, int]]:
+    """Extract cyan model box coordinates without nearby score glyphs."""
 
     frozen = np.asarray(frozen_panel.convert("RGB"), dtype=np.int16)
     original = np.asarray(original_panel.convert("RGB"), dtype=np.int16)
@@ -53,7 +53,7 @@ def extract_model_marks(
         raw,
         connectivity=8,
     )
-    boxes_only = np.zeros_like(raw)
+    boxes = []
     panel_height, panel_width = raw.shape
     for component_id in range(1, count):
         x, y, width, height, area = (
@@ -86,14 +86,15 @@ def extract_model_marks(
             and area >= max(width, height)
         )
         if normal_box or compact_rectangle or clipped_box_line:
-            cv2.rectangle(
-                boxes_only,
-                (x, y),
-                (x + width - 1, y + height - 1),
-                color=255,
-                thickness=1,
+            boxes.append(
+                (
+                    x,
+                    y,
+                    x + width - 1,
+                    y + height - 1,
+                )
             )
-    return Image.fromarray(boxes_only, mode="L")
+    return boxes
 
 
 def _draw_truth(
@@ -120,25 +121,46 @@ def _draw_truth(
         )
 
 
-def _paint_model_marks(image: Image.Image, mask: Image.Image) -> None:
-    magenta = Image.new("RGB", image.size, (255, 0, 255))
-    image.paste(magenta, mask=mask)
+def _draw_model_boxes(
+    image: Image.Image,
+    boxes: list[tuple[int, int, int, int]],
+    *,
+    source_size: tuple[int, int],
+) -> None:
+    """Draw complete one-pixel model boxes at the final panel resolution."""
+
+    draw = ImageDraw.Draw(image)
+    scale_x = image.width / source_size[0]
+    scale_y = image.height / source_size[1]
+    for x1, y1, x2, y2 in boxes:
+        scaled_x1 = max(0, int(np.floor(x1 * scale_x)))
+        scaled_y1 = max(0, int(np.floor(y1 * scale_y)))
+        scaled_x2 = min(
+            image.width - 1,
+            int(np.ceil((x2 + 1) * scale_x)) - 1,
+        )
+        scaled_y2 = min(
+            image.height - 1,
+            int(np.ceil((y2 + 1) * scale_y)) - 1,
+        )
+        draw.rectangle(
+            (scaled_x1, scaled_y1, scaled_x2, scaled_y2),
+            outline=(255, 0, 255),
+            width=1,
+        )
 
 
 def _render_case(
     *,
     original: Image.Image,
     truth: list[list[float]],
-    model_mask: Image.Image,
+    model_boxes: list[tuple[int, int, int, int]],
+    model_source_size: tuple[int, int],
     panel_size: int,
 ) -> tuple[Image.Image, Image.Image, Image.Image]:
     base = original.resize(
         (panel_size, panel_size),
         Image.Resampling.LANCZOS,
-    )
-    mask = model_mask.resize(
-        (panel_size, panel_size),
-        Image.Resampling.NEAREST,
     )
     truth_only = base.copy()
     _draw_truth(
@@ -148,7 +170,11 @@ def _render_case(
         width=2,
     )
     model_only = base.copy()
-    _paint_model_marks(model_only, mask)
+    _draw_model_boxes(
+        model_only,
+        model_boxes,
+        source_size=model_source_size,
+    )
     overlay = base.copy()
     _draw_truth(
         overlay,
@@ -156,7 +182,11 @@ def _render_case(
         source_size=original.size,
         width=2,
     )
-    _paint_model_marks(overlay, mask)
+    _draw_model_boxes(
+        overlay,
+        model_boxes,
+        source_size=model_source_size,
+    )
     return truth_only, model_only, overlay
 
 
@@ -234,14 +264,15 @@ def render_separated_pages() -> list[dict[str, Any]]:
                 (frozen_panel_size, frozen_panel_size),
                 Image.Resampling.LANCZOS,
             )
-            model_mask = extract_model_marks(
+            model_boxes = extract_model_boxes(
                 frozen_panel=frozen_panel,
                 original_panel=original_frozen_size,
             )
             truth_only, model_only, overlay = _render_case(
                 original=original,
                 truth=item["truth"],
-                model_mask=model_mask,
+                model_boxes=model_boxes,
+                model_source_size=original_frozen_size.size,
                 panel_size=panel,
             )
             group_column = local_index % cases_per_row

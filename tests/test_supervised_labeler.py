@@ -15,8 +15,8 @@ from scripts.record_supervised_labeler_v6_review import (
 )
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
-    _paint_model_marks,
-    extract_model_marks,
+    _draw_model_boxes,
+    extract_model_boxes,
 )
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.grounded_labeler import load_whole_image_config
@@ -349,7 +349,7 @@ def test_human_review_sheet_splits_into_three_zoomable_pages(
         assert second.getpixel((0, 58)) == (80, 0, 0)
 
 
-def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
+def test_separated_review_extracts_only_new_cyan_model_boxes() -> None:
     original = Image.new("RGB", (20, 20), (0, 220, 220))
     frozen = original.copy()
     draw = ImageDraw.Draw(frozen)
@@ -359,16 +359,12 @@ def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
     draw.line((2, 12, 4, 12), fill=(0, 255, 255))
     draw.line((2, 12, 2, 16), fill=(0, 255, 255))
 
-    mask = extract_model_marks(
+    boxes = extract_model_boxes(
         frozen_panel=frozen,
         original_panel=original,
     )
 
-    assert mask.getpixel((2, 2)) == 0
-    assert mask.getpixel((11, 11)) == 255
-    assert mask.getpixel((13, 14)) == 0
-    assert mask.getpixel((2, 12)) == 0
-    assert mask.getpixel((0, 0)) == 0
+    assert boxes == [(11, 11, 18, 18)]
 
 
 def test_separated_review_keeps_narrow_and_clipped_model_boxes() -> None:
@@ -378,22 +374,27 @@ def test_separated_review_keeps_narrow_and_clipped_model_boxes() -> None:
     draw.rectangle((3, 5, 7, 18), outline=(0, 255, 255), width=2)
     draw.line((20, 29, 29, 29), fill=(0, 255, 255), width=1)
 
-    mask = extract_model_marks(
+    boxes = extract_model_boxes(
         frozen_panel=frozen,
         original_panel=original,
     )
 
-    assert mask.getpixel((3, 5)) == 255
-    assert mask.getpixel((20, 29)) == 255
+    assert boxes == [(3, 5, 7, 18), (20, 29, 29, 29)]
 
 
-def test_separated_review_does_not_thicken_model_marks() -> None:
-    image = Image.new("RGB", (9, 9), "black")
-    mask = Image.new("L", image.size, 0)
-    mask.putpixel((4, 4), 255)
+def test_separated_review_draws_complete_thin_model_rectangle() -> None:
+    image = Image.new("RGB", (20, 20), "black")
 
-    _paint_model_marks(image, mask)
+    _draw_model_boxes(
+        image,
+        [(3, 5, 7, 18)],
+        source_size=(30, 30),
+    )
 
-    assert image.getpixel((4, 4)) == (255, 0, 255)
+    for x in range(2, 6):
+        assert image.getpixel((x, 3)) == (255, 0, 255)
+        assert image.getpixel((x, 12)) == (255, 0, 255)
+    for y in range(3, 13):
+        assert image.getpixel((2, y)) == (255, 0, 255)
+        assert image.getpixel((5, y)) == (255, 0, 255)
     assert image.getpixel((3, 4)) == (0, 0, 0)
-    assert image.getpixel((4, 3)) == (0, 0, 0)
