@@ -11,6 +11,9 @@ from PIL import Image, ImageDraw
 
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
+from scripts.diagnose_supervised_labeler_v12_review import (
+    OUTPUT_PATH as V12_REVIEW_DIAGNOSIS_PATH,
+)
 from scripts.prepare_supervised_labeler_v12_gt_review import (
     EVIDENCE_PATH as V12_GT_EVIDENCE_PATH,
 )
@@ -851,6 +854,31 @@ def test_v12_model_human_review_rejects_the_numeric_pass() -> None:
     assert review["validation_images_read"] == 0
     assert review["test_images_read"] == 0
     assert review["whole_image_generation_run"] is False
+
+
+def test_v12_review_diagnosis_reads_only_revealed_problem_images() -> None:
+    if not V12_REVIEW_DIAGNOSIS_PATH.is_file():
+        pytest.skip("v12 owner-review diagnosis has not run yet")
+    diagnosis = json.loads(
+        V12_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(diagnosis)
+    embedded_sha = canonical.pop("diagnosis_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert diagnosis["status"] == "v12_owner_review_diagnosed"
+    assert [
+        row["cell"] for row in diagnosis["false_positive_diagnoses"]
+    ] == [3, 10, 13, 20, 25, 27, 29, 45]
+    assert [
+        row["cell"] for row in diagnosis["missed_helmet_diagnoses"]
+    ] == [26, 43]
+    assert diagnosis["revealed_problem_images_read_for_gpu_diagnosis"] == 2
+    assert diagnosis["new_audit_images_read"] == 0
+    assert diagnosis["sealed_reserve_pixels_read"] == 0
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

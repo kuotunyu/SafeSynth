@@ -258,3 +258,19 @@ model_human_review_outcome:
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
+
+review_diagnosis_outcome:
+  status: "v12_owner_review_diagnosed"
+  report_path: "reports/supervised_labeler_v12_review_diagnosis.json"
+  report_file_sha256: "672e8a5765351571a2f780b024d1274b1cf34aa0354c835c57a7c6e927d7c027"
+  diagnosis_sha256: "af4ccf8d447557d1d759b04722a6325d979bf047ec1ca0a5af6c8416dee816fa"
+  owner_gt_semantics_conflict_cells: [27, 45]
+  missed_cells_below_threshold_and_removed_by_geometry: [26, 43]
+  numeric_audit_disposition: >-
+    diagnostic_only_due_owner_gt_semantics_conflicts
+  revealed_problem_images_read_for_gpu_diagnosis: 2
+  new_audit_images_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
