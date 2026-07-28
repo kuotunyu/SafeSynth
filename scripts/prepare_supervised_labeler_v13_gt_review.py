@@ -47,7 +47,12 @@ V12_POOL_PATH = (
 def _read_config() -> dict[str, Any]:
     config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
     if (
-        config["status"] != "preregistered_before_pool_freeze"
+        config["status"]
+        not in {
+            "preregistered_before_pool_freeze",
+            "pool_frozen_before_pixel_review_or_training",
+            "gt_only_primary_review_pending_owner",
+        }
         or config["source_split"] != "Train"
         or config["protocol"]["label_semantics"]
         != "class_direct_helmeted_head_region"

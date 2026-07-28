@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v13_gt_review"
-status: "preregistered_before_pool_freeze"
+status: "pool_frozen_before_pixel_review_or_training"
 source_split: "Train"
 split_seed: 20260915
 
@@ -116,3 +116,20 @@ generation_gate:
   reason: >-
     v13 GT adjudication, base-only training, independent numeric audit, and
     separate zero-problem owner model review have not completed.
+
+freeze_outcome:
+  status: "v13_gt_only_pool_frozen_before_pixel_review_or_training"
+  pool_path: "splits/supervised_labeler_v13_gt_pool.json"
+  pool_file_sha256: "0c180dcc6c7e3cabc08286844f90c1b1d00ae1a7a2e027f8fb5d672c6aab5809"
+  pool_manifest_sha256: "04dee80b5b8d82c8d187083da32cf09d62b3016b10025a58259ccc2b345dfd64"
+  excluded_prior_groups: 720
+  primary_images: 64
+  sealed_reserve_images: 32
+  future_v13_training_exclusion_groups: 96
+  primary_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  v13_training_started: false
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
