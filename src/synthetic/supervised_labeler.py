@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Mapping, Sequence
 from contextlib import nullcontext
 from pathlib import Path
@@ -17,8 +18,8 @@ from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v6.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v6_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v7_split.json"
 
 
 def load_supervised_labeler_config(
@@ -56,11 +57,29 @@ def load_supervised_labeler_config(
     if config["generation_gate"]["allowed"] is not False:
         raise RuntimeError("Generation cannot open before supervised audit")
     postprocessing = config.get("postprocessing")
-    if postprocessing is not None and (
-        not 0 < float(postprocessing["max_relative_area"]) <= 1
-        or not 0 < float(postprocessing["max_relative_height"]) <= 1
+    if postprocessing is not None:
+        min_aspect_ratio = float(postprocessing.get("min_aspect_ratio", 0.0))
+        max_aspect_ratio = float(postprocessing.get("max_aspect_ratio", math.inf))
+        if (
+            not 0 < float(postprocessing["max_relative_area"]) <= 1
+            or not 0 < float(postprocessing["max_relative_height"]) <= 1
+            or min_aspect_ratio < 0
+            or max_aspect_ratio <= 0
+            or min_aspect_ratio > max_aspect_ratio
+        ):
+            raise RuntimeError("Supervised geometry filter is invalid")
+    sampling = config.get("sampling")
+    if sampling is not None and (
+        sampling.get("strategy") != "deterministic_weighted_replacement"
+        or float(sampling["empty_image_weight"]) < 1
+        or float(sampling["close_helmet_pair_weight"]) < 1
+        or float(
+            sampling["close_pair_center_distance_over_mean_sqrt_area_max"]
+        )
+        <= 0
+        or sampling.get("overlap_policy") != "maximum_weight"
     ):
-        raise RuntimeError("Supervised geometry filter is invalid")
+        raise RuntimeError("Supervised sampling registration is invalid")
     return config
 
 
@@ -71,8 +90,10 @@ def filter_prediction_geometry(
     image_height: int,
     max_relative_area: float,
     max_relative_height: float,
+    min_aspect_ratio: float = 0.0,
+    max_aspect_ratio: float = math.inf,
 ) -> list[tuple[float, list[float]]]:
-    """Drop predictions exceeding fixed normalized size limits."""
+    """Drop predictions outside fixed normalized size/aspect limits."""
 
     image_area = max(float(image_width) * float(image_height), 1.0)
     kept = []
@@ -80,13 +101,60 @@ def filter_prediction_geometry(
         x1, y1, x2, y2 = (float(value) for value in box)
         width = max(0.0, x2 - x1)
         height = max(0.0, y2 - y1)
+        if width == 0 or height == 0:
+            continue
+        aspect_ratio = width / height
         if (
             width * height / image_area <= float(max_relative_area)
             and height / max(float(image_height), 1.0)
             <= float(max_relative_height)
+            and aspect_ratio >= float(min_aspect_ratio)
+            and aspect_ratio <= float(max_aspect_ratio)
         ):
             kept.append((float(score), [x1, y1, x2, y2]))
     return kept
+
+
+def supervised_sampling_weights(
+    *,
+    image_ids: Sequence[int],
+    annotations: Mapping[int, Sequence[Mapping[str, Any]]],
+    helmet_category_id: int,
+    empty_image_weight: float,
+    close_helmet_pair_weight: float,
+    close_pair_ratio_max: float,
+) -> list[float]:
+    """Weight empty and close-pair Train images using annotations only."""
+
+    weights = []
+    for image_id in image_ids:
+        boxes = [
+            [float(value) for value in annotation["bbox"]]
+            for annotation in annotations[int(image_id)]
+            if int(annotation["category_id"]) == int(helmet_category_id)
+        ]
+        weight = float(empty_image_weight) if not boxes else 1.0
+        close_pair = False
+        for left_index, left in enumerate(boxes):
+            for right in boxes[left_index + 1 :]:
+                left_scale = math.sqrt(max(left[2] * left[3], 0.0))
+                right_scale = math.sqrt(max(right[2] * right[3], 0.0))
+                mean_scale = max((left_scale + right_scale) / 2.0, 1e-9)
+                center_distance = math.hypot(
+                    (left[0] + left[2] / 2.0)
+                    - (right[0] + right[2] / 2.0),
+                    (left[1] + left[3] / 2.0)
+                    - (right[1] + right[3] / 2.0),
+                )
+                if center_distance / mean_scale <= float(close_pair_ratio_max):
+                    close_pair = True
+                    break
+            if close_pair:
+                break
+        if close_pair:
+            weight = max(weight, float(close_helmet_pair_weight))
+        weights.append(weight)
+    return weights
 
 
 def model_directory(paths: ProjectPaths, config: Mapping[str, Any]) -> Path:
@@ -301,6 +369,12 @@ def predict_helmet_boxes(
             image_height=image.height,
             max_relative_area=float(geometry_filter["max_relative_area"]),
             max_relative_height=float(geometry_filter["max_relative_height"]),
+            min_aspect_ratio=float(
+                geometry_filter.get("min_aspect_ratio", 0.0)
+            ),
+            max_aspect_ratio=float(
+                geometry_filter.get("max_aspect_ratio", math.inf)
+            ),
         )
         predictions.append(sorted(rows, key=lambda item: -item[0]))
     return predictions

@@ -27,6 +27,7 @@ from src.synthetic.supervised_labeler import (
     load_supervised_labeler_config,
     require_verified_audited_checkpoint,
     require_verified_model,
+    supervised_sampling_weights,
 )
 from src.synthetic.whole_image import human_review_evidence_sha256
 
@@ -66,7 +67,7 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     )
 
     assert first == second
-    assert first["split_seed"] == 20260814
+    assert first["split_seed"] == 20260815
     assert first["calibration_images"] == 96
     assert first["untouched_audit_images"] == 48
     assert set(first["training_group_ids"]).isdisjoint(
@@ -325,6 +326,53 @@ def test_geometry_filter_drops_only_oversized_predictions() -> None:
     )
 
     assert kept == [(0.9, [10.0, 10.0, 30.0, 30.0])]
+
+
+def test_geometry_filter_rejects_extreme_aspect_and_degenerate_boxes() -> None:
+    predictions = [
+        (0.9, [10, 10, 30, 30]),
+        (0.8, [0, 0, 60, 10]),
+        (0.7, [0, 0, 10, 60]),
+        (0.6, [4, 4, 4, 10]),
+    ]
+
+    kept = filter_prediction_geometry(
+        predictions,
+        image_width=100,
+        image_height=100,
+        max_relative_area=1.0,
+        max_relative_height=1.0,
+        min_aspect_ratio=0.25,
+        max_aspect_ratio=4.0,
+    )
+
+    assert kept == [(0.9, [10.0, 10.0, 30.0, 30.0])]
+
+
+def test_v7_sampling_weights_empty_and_close_pair_images() -> None:
+    annotations = {
+        1: [],
+        2: [{"category_id": 1, "bbox": [0, 0, 10, 10]}],
+        3: [
+            {"category_id": 1, "bbox": [0, 0, 10, 10]},
+            {"category_id": 1, "bbox": [8, 0, 10, 10]},
+        ],
+        4: [
+            {"category_id": 1, "bbox": [0, 0, 10, 10]},
+            {"category_id": 1, "bbox": [30, 0, 10, 10]},
+        ],
+    }
+
+    weights = supervised_sampling_weights(
+        image_ids=[1, 2, 3, 4],
+        annotations=annotations,
+        helmet_category_id=1,
+        empty_image_weight=2.0,
+        close_helmet_pair_weight=2.0,
+        close_pair_ratio_max=1.0,
+    )
+
+    assert weights == [2.0, 1.0, 2.0, 1.0]
 
 
 def test_geometry_candidate_requires_precision_floor() -> None:

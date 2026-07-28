@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 import torch
 from PIL import Image, ImageDraw
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from transformers import (
     AutoConfig,
     AutoImageProcessor,
@@ -34,6 +34,7 @@ from src.synthetic.supervised_labeler import (
     load_supervised_labeler_config,
     model_directory,
     require_verified_model,
+    supervised_sampling_weights,
 )
 
 EXPERIMENT_STEM = CONFIG_PATH.stem
@@ -333,6 +334,15 @@ def _predict(
                         max_relative_height=float(
                             geometry_filter["max_relative_height"]
                         ),
+                        min_aspect_ratio=float(
+                            geometry_filter.get("min_aspect_ratio", 0.0)
+                        ),
+                        max_aspect_ratio=float(
+                            geometry_filter.get(
+                                "max_aspect_ratio",
+                                math.inf,
+                            )
+                        ),
                     )
                 predictions[int(image_id)] = rows
     return image_ids, truth, predictions
@@ -604,11 +614,35 @@ def _train() -> None:
     )
     model.to("cuda")
     generator = torch.Generator().manual_seed(seed)
+    sampling = config.get("sampling")
+    sampler = None
+    if sampling is not None:
+        weights = supervised_sampling_weights(
+            image_ids=training.image_ids,
+            annotations=training.annotations,
+            helmet_category_id=training.helmet_category_id,
+            empty_image_weight=float(sampling["empty_image_weight"]),
+            close_helmet_pair_weight=float(
+                sampling["close_helmet_pair_weight"]
+            ),
+            close_pair_ratio_max=float(
+                sampling[
+                    "close_pair_center_distance_over_mean_sqrt_area_max"
+                ]
+            ),
+        )
+        sampler = WeightedRandomSampler(
+            weights=weights,
+            num_samples=len(training),
+            replacement=True,
+            generator=generator,
+        )
     training_loader = DataLoader(
         training,
         batch_size=int(config["optimization"]["train_batch_size"]),
-        shuffle=True,
-        generator=generator,
+        shuffle=sampler is None,
+        sampler=sampler,
+        generator=generator if sampler is None else None,
         num_workers=int(config["optimization"]["dataloader_num_workers"]),
         collate_fn=lambda batch: _training_collate(processor, batch),
     )

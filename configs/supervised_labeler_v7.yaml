@@ -1,0 +1,129 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v7"
+status: "preregistered_pending_split_freeze"
+architecture: "rtdetr_v2_r50vd_helmet_only"
+split_seed: 20260815
+training_seed: 20260809
+split_manifest_sha256: "pending_freeze"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r50vd"
+  revision: "282494075698cab9faa1096ae26856890030c817"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 172182583
+  allow_files:
+    config.json: 5283
+    model.safetensors: 172176856
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  prior_history_terminal_experiment: "supervised_labeler_v6"
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 2.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    The consumed v6 human review found background false positives and merged
+    nearby helmets. Empty Train images and close-pair Train images are therefore
+    each sampled at twice the ordinary weight; the rule uses annotations only.
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3/v6 training seed"
+
+postprocessing:
+  max_relative_area: 0.08
+  max_relative_height: 0.35
+  min_aspect_ratio: 0.25
+  max_aspect_ratio: 4.0
+  selection_basis: >-
+    Preserve the v6 size rules. Add an aspect interval rounded outward beyond
+    the frozen Train helmet p1-p99 interval [0.3913, 3.7143], motivated by the
+    elongated background predictions in the consumed v6 review.
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  precision_margin_basis: >-
+    Retain the frozen v6 calibration policy so v7 changes only Train sampling
+    and the preregistered aspect guard before the new audit is selected.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  reject_categories:
+    - "background_false_positive"
+    - "missed_helmet"
+    - "merged_multiple_helmets"
+    - "other_visual_failure"
+
+diagnostic_evidence:
+  source: "reports/supervised_labeler_v6_human_review.json"
+  evidence_sha256: "4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec"
+  problem_cells:
+    - 4
+    - 6
+    - 7
+    - 13
+    - 23
+    - 27
+    - 38
+    - 43
+    - 45
+  eligible_for_v7_gate: false
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v7 is preregistered but its group-disjoint Train-only split, training,
+    numeric audit, and owner-only human review have not completed.
