@@ -55,3 +55,22 @@ and read zero calibration, sealed-audit, Validation, or Test images. The frozen
 The 48 new audit images may be read only once after training. Numeric success
 still cannot open generation: `kuotunyu` must inspect every exact-box review
 case and report zero problems.
+
+## Frozen numeric outcome
+
+The RTX 4090 completed all 12 epochs in 38.96 minutes. The frozen calibration
+rule selected epoch 3 at threshold 0.03. On the one-shot 48-image audit it
+produced 110 true positives, 12 false positives, and 26 false negatives:
+
+- precision 0.9016;
+- recall 0.8088;
+- F1 0.8527;
+- median matched IoU 0.8430.
+
+All numeric gates passed. The checkpoint SHA-256 is
+`9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4`.
+The exact predictions and six review renderings are frozen under manifest
+SHA-256
+`b6c3855ef4620d7a606e83aee32ad4caf98182c3f5f62ae86dd49990160f36cd`.
+Validation/Test reads and whole-image generation remain zero. Generation stays
+locked until the owner reports zero visual problems.

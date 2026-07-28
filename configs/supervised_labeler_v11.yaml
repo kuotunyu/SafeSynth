@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v11"
-status: "gpu_smoke_passed_full_training_pending"
+status: "numeric_audit_passed_human_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260912
 training_seed: 20260809
@@ -226,8 +226,35 @@ gpu_smoke_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v11_training.json"
+  report_file_sha256: "c273548854392a4bc4425e487169bf58faba43ab5c75d81ef62eb4bcf05acbca"
+  split_manifest_sha256: "b45ae47e54de2adce00cede09aea40a249434f44b30044587d34050675f2a4d7"
+  checkpoint_sha256: "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4"
+  checkpoint_epoch: 3
+  score_threshold: 0.03
+  elapsed_minutes: 38.96476329167684
+  audit_images: 48
+  true_positives: 110
+  false_positives: 12
+  false_negatives: 26
+  precision: 0.9016393442622951
+  recall: 0.8088235294117647
+  f1: 0.8527131782945736
+  median_matched_iou: 0.8429845884642673
+  audit_evidence_path: "reports/supervised_labeler_v11_audit_evidence.json"
+  audit_evidence_sha256: "fd82c50ad485e32447fccfc824926005d987a3debca49ba1e1ed60c90c8b1586"
+  owner_review_manifest_path: "reports/supervised_labeler_v11_review_manifest.json"
+  owner_review_manifest_sha256: "b6c3855ef4620d7a606e83aee32ad4caf98182c3f5f62ae86dd49990160f36cd"
+  owner_review_manifest_file_sha256: "cb121c7932a676665e49731bcb862ce1f612972185fc9bb49c16379d732cc341"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v11 is only preregistered. CPU preflight, GPU smoke, numeric audit, and an
-    owner review with zero problems must all pass before generation can open.
+    v11 passed CPU preflight, GPU smoke, and all frozen numeric gates. The exact
+    48-image evidence is frozen, but an owner review with zero problems is still
+    required before generation can open.

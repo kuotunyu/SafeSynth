@@ -371,6 +371,82 @@ def test_v11_gpu_smoke_keeps_calibration_and_new_audit_sealed() -> None:
     assert config["generation_gate"]["allowed"] is False
 
 
+def test_v11_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report_path = PROJECT_ROOT / outcome["report_path"]
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    evidence_path = PROJECT_ROOT / outcome["audit_evidence_path"]
+
+    assert hashlib.sha256(report_path.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["best_calibration"]["epoch"] == 3
+    assert report["best_calibration"]["threshold"] == 0.03
+    assert report["audit_metrics"] == {
+        "f1": pytest.approx(0.8527131782945736),
+        "false_negatives": 26,
+        "false_positives": 12,
+        "median_matched_iou": pytest.approx(0.8429845884642673),
+        "precision": pytest.approx(0.9016393442622951),
+        "recall": pytest.approx(0.8088235294117647),
+        "true_positives": 110,
+    }
+    assert hashlib.sha256(evidence_path.read_bytes()).hexdigest() == outcome[
+        "audit_evidence_sha256"
+    ]
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v11_owner_review_manifest_freezes_every_presented_file() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    path = PROJECT_ROOT / outcome["owner_review_manifest_path"]
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    embedded_sha = manifest.pop("manifest_sha256")
+    registration = manifest["registration"]
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "owner_review_manifest_file_sha256"
+    ]
+    assert embedded_sha == outcome["owner_review_manifest_sha256"]
+    assert canonical_mapping_sha256(manifest) == embedded_sha
+    assert manifest["status"] == "v11_owner_review_files_frozen"
+    assert len(registration["human_review"]["pages"]) == 3
+    assert len(registration["human_review"]["separated_pages"]) == 3
+    assert registration["audit_evidence"]["sha256"] == (
+        "fd82c50ad485e32447fccfc824926005d987a3debca49ba1e1ed60c90c8b1586"
+    )
+    assert registration["checkpoint_sha256"] == (
+        "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4"
+    )
+    assert registration["score_threshold"] == 0.03
+    assert registration["max_relative_area"] == 0.15
+    assert registration["max_relative_height"] == 0.60
+    assert registration["min_aspect_ratio"] == 0.20
+    assert registration["max_aspect_ratio"] == 4.0
+    assert registration["quarantined_gt_defect_image_ids"] == [
+        3060,
+        4155,
+        4364,
+    ]
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+
+
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
     config = load_supervised_labeler_config(V10_CONFIG_PATH)
     outcome = config["cpu_preflight_outcome"]
