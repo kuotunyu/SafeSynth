@@ -168,3 +168,12 @@ scaleup_gate:
   reason: >-
     the four-case v10 diagnostic must be generated once and pass kuotunyu's
     exact output review before any 64- or 300-image expansion
+
+review_semantics_erratum:
+  active: true
+  evidence_path: "reports/supervised_labeler_human_review_semantics_erratum.json"
+  protocol_path: "docs/human_review_protocol.md"
+  affected_reviews: ["v6", "v7", "v8", "v9", "v10", "v11"]
+  historical_human_outcomes_valid_for_generation_gate: false
+  generation_allowed: false
+  required_next_gate: "gt_only_adjudication_then_separate_model_review"

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "status": "active_superseding_erratum",
+  "created_on": "2026-07-29",
+  "created_by": "kuotunyu",
+  "reason": "The reviewer was not clearly told before the v6-v11 reviews that class_direct helmet means a worn helmeted-head region, while an unworn isolated hard hat is a negative. The original review evidence is preserved, but its pass/fail interpretation is not valid for opening the generation gate.",
+  "canonical_protocol": {
+    "path": "docs/human_review_protocol.md",
+    "label_semantics": "class_direct_helmeted_head_region",
+    "positive": "one box per visible person wearing a safety hard hat; include the hard hat plus the wearer's head or part of the face",
+    "negative": "unworn or isolated hard hat, logo, background, ordinary face, bare head, and other helmet-like objects",
+    "uncertain_policy": "quarantine and replace in a preregistered order; do not count as pass or model failure"
+  },
+  "affected_reviews": [
+    {
+      "experiment_id": "supervised_labeler_v6",
+      "path": "reports/supervised_labeler_v6_human_review.json",
+      "file_sha256": "b10e6fcb8d3d8d2351b42f6d0275080304e2d2922c3273f51ec5e1b7e9dbcf2a",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    },
+    {
+      "experiment_id": "supervised_labeler_v7",
+      "path": "reports/supervised_labeler_v7_human_review.json",
+      "file_sha256": "259f3f237bd70ce6410cd743922bd35d1fa302969eef97401c2e7c798b192f9c",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    },
+    {
+      "experiment_id": "supervised_labeler_v8",
+      "path": "reports/supervised_labeler_v8_human_review.json",
+      "file_sha256": "45ba11717b571bb2e596b296107e002b3cb60a3a92d40f77ad8b7aceec23c033",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    },
+    {
+      "experiment_id": "supervised_labeler_v9",
+      "path": "reports/supervised_labeler_v9_human_review.json",
+      "file_sha256": "95b485eaf9893b72fe34b309bf4d027f67bd9657d4c4e8308711b9adb910280f",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    },
+    {
+      "experiment_id": "supervised_labeler_v10",
+      "path": "reports/supervised_labeler_v10_human_review.json",
+      "file_sha256": "f4ec1cd86c4fa9d24a7b3371ba7f703be07d62c86bad5d49ba3695f34f498cb3",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    },
+    {
+      "experiment_id": "supervised_labeler_v11",
+      "path": "reports/supervised_labeler_v11_human_review.json",
+      "file_sha256": "0173a164b7a86a99c9b9e3aca6892351a742e66e075947d6c7ec2c33d83709c4",
+      "original_status": "rejected_by_kuotunyu",
+      "disposition": "diagnostic_only_semantics_inconclusive"
+    }
+  ],
+  "confirmed_impact_example": {
+    "experiment_id": "supervised_labeler_v10",
+    "cell": 42,
+    "image_id": 4364,
+    "old_interpretation": "the dataset GT and model both missed a loose hard hat",
+    "correct_interpretation": "the loose unworn hard hat is a negative and should have neither a green nor a magenta helmeted-head box"
+  },
+  "downstream_effect": {
+    "historical_files_mutated": false,
+    "historical_numeric_results_retained": true,
+    "historical_human_outcomes_valid_for_generation_gate": false,
+    "v7_to_v11_adaptations": "retained as exploratory diagnostics because they used potentially contaminated owner feedback",
+    "generation_allowed": false,
+    "validation_images_read": 0,
+    "test_images_read": 0,
+    "whole_image_generation_run": false
+  },
+  "required_recovery": [
+    "Retrospectively triage revealed v6-v11 cases under the canonical protocol for diagnosis only.",
+    "Freeze a new Train-only candidate pool and deterministic replacement order before model outputs are revealed.",
+    "Perform GT-only adjudication first and quarantine dataset defects or uncertain cases.",
+    "Freeze the valid audit set, then run the model and perform a separate model-only review.",
+    "Open generation only after numeric gates pass and the corrected model review has zero confirmed model problems."
+  ]
+}

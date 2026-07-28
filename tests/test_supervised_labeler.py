@@ -42,6 +42,11 @@ V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
 V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
 V10_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
 V11_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
+SEMANTICS_ERRATUM_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_human_review_semantics_erratum.json"
+)
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -485,6 +490,55 @@ def test_v11_owner_rejection_and_label_semantics_are_canonical() -> None:
     assert evidence["validation_images_read"] == 0
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
+
+
+def test_human_review_semantics_erratum_keeps_generation_locked() -> None:
+    erratum = json.loads(SEMANTICS_ERRATUM_PATH.read_text(encoding="utf-8"))
+    v11_config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    whole_image_config = load_whole_image_config()
+
+    assert erratum["status"] == "active_superseding_erratum"
+    assert erratum["canonical_protocol"]["label_semantics"] == (
+        "class_direct_helmeted_head_region"
+    )
+    assert erratum["confirmed_impact_example"] == {
+        "experiment_id": "supervised_labeler_v10",
+        "cell": 42,
+        "image_id": 4364,
+        "old_interpretation": (
+            "the dataset GT and model both missed a loose hard hat"
+        ),
+        "correct_interpretation": (
+            "the loose unworn hard hat is a negative and should have neither "
+            "a green nor a magenta helmeted-head box"
+        ),
+    }
+    assert [item["experiment_id"] for item in erratum["affected_reviews"]] == [
+        f"supervised_labeler_v{version}" for version in range(6, 12)
+    ]
+    for item in erratum["affected_reviews"]:
+        path = PROJECT_ROOT / item["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item[
+            "file_sha256"
+        ]
+        assert item["disposition"] == (
+            "diagnostic_only_semantics_inconclusive"
+        )
+
+    assert erratum["downstream_effect"][
+        "historical_human_outcomes_valid_for_generation_gate"
+    ] is False
+    assert erratum["downstream_effect"]["generation_allowed"] is False
+    assert erratum["downstream_effect"]["validation_images_read"] == 0
+    assert erratum["downstream_effect"]["test_images_read"] == 0
+    assert erratum["downstream_effect"]["whole_image_generation_run"] is False
+    assert v11_config["posthoc_semantics_erratum"]["active"] is True
+    assert v11_config["posthoc_semantics_erratum"][
+        "original_human_outcome_valid_for_generation_gate"
+    ] is False
+    assert v11_config["generation_gate"]["allowed"] is False
+    assert whole_image_config["review_semantics_erratum"]["active"] is True
+    assert whole_image_config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

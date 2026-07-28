@@ -295,3 +295,12 @@ generation_gate:
     v11 passed every frozen numeric gate, but kuotunyu found nine model-missed
     helmeted-head regions and one additional dataset-GT miss. The required
     zero-problem owner gate failed, so generation remains locked.
+
+posthoc_semantics_erratum:
+  active: true
+  evidence_path: "reports/supervised_labeler_human_review_semantics_erratum.json"
+  protocol_path: "docs/human_review_protocol.md"
+  original_review_files_mutated: false
+  original_human_outcome_valid_for_generation_gate: false
+  disposition: "diagnostic_only_semantics_inconclusive"
+  required_next_gate: "gt_only_adjudication_then_separate_model_review"
