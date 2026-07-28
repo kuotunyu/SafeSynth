@@ -1,10 +1,10 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v7"
-status: "preregistered_pending_split_freeze"
+status: "split_frozen_training_pending"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260815
 training_seed: 20260809
-split_manifest_sha256: "pending_freeze"
+split_manifest_sha256: "5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef"
 
 model:
   repo_id: "PekingU/rtdetr_v2_r50vd"

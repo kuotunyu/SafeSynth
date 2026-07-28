@@ -34,3 +34,17 @@ calibration have finished.
 Validation and Test pixels remain unread. Whole-image generation remains
 locked. Even a numeric v7 pass cannot unlock it: `kuotunyu` must review all
 48 cases, and approval requires zero reported problem cells.
+
+## Frozen split outcome
+
+The method was committed as `9a233d9` before split generation. The subsequent
+metadata-only freeze produced manifest
+`5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef`:
+
+- 3,045 training images from 2,936 source groups, with 11,364 helmet boxes;
+- 384 revealed v1-v6 images assigned to calibration history;
+- 48 new group-disjoint audit images kept sealed;
+- zero Validation/Test pixels read and zero new-audit pixels or metrics read.
+
+The audit IDs are stored for the future one-shot evaluation but are deliberately
+not printed in the freeze summary or this document.

@@ -83,6 +83,40 @@ def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
     assert first["test_images_read"] == 0
 
 
+def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
+    config = load_supervised_labeler_config()
+    v6 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v6_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    v7 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v7_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    revealed = set(v6["calibration_image_ids"]) | set(
+        v6["untouched_audit_image_ids"]
+    )
+
+    assert config["status"] == "split_frozen_training_pending"
+    assert config["split_manifest_sha256"] == v7["manifest_sha256"]
+    assert set(v7["calibration_image_ids"]) == revealed
+    assert set(v7["untouched_audit_image_ids"]).isdisjoint(revealed)
+    assert set(v7["training_group_ids"]).isdisjoint(
+        v7["calibration_group_ids"]
+    )
+    assert set(v7["training_group_ids"]).isdisjoint(
+        v7["untouched_audit_group_ids"]
+    )
+    assert set(v7["calibration_group_ids"]).isdisjoint(
+        v7["untouched_audit_group_ids"]
+    )
+    assert v7["untouched_audit_images"] == 48
+    assert v7["validation_images_read"] == 0
+    assert v7["test_images_read"] == 0
+
+
 def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
     model_dir = tmp_path / "model"
     model_dir.mkdir()
