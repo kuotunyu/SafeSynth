@@ -45,6 +45,12 @@ from scripts.record_supervised_labeler_v12_gt_review import (
 from scripts.record_supervised_labeler_v12_model_review import (
     OUTPUT_PATH as V12_MODEL_HUMAN_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v13_gt_review import (
+    AUDIT_PATH as V13_ADJUDICATED_AUDIT_PATH,
+)
+from scripts.record_supervised_labeler_v13_gt_review import (
+    OWNER_REVIEW_PATH as V13_GT_OWNER_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -995,7 +1001,9 @@ def test_v13_config_pins_rendered_gt_review_evidence() -> None:
         V13_GT_EVIDENCE_PATH.read_text(encoding="utf-8")
     )
 
-    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert config["status"] == (
+        "gt_only_approved_audit_frozen_training_pending"
+    )
     assert outcome["status"] == evidence["status"]
     assert outcome["evidence_sha256"] == evidence["evidence_sha256"]
     assert hashlib.sha256(V13_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
@@ -1010,6 +1018,93 @@ def test_v13_config_pins_rendered_gt_review_evidence() -> None:
         evidence["pages"], outcome["pages"], strict=True
     ):
         assert rendered_page == pinned_page
+
+
+def test_v13_gt_owner_review_approves_all_primary_cases() -> None:
+    if not V13_GT_OWNER_REVIEW_PATH.is_file():
+        pytest.skip("v13 GT-only owner review has not been recorded yet")
+    review = json.loads(
+        V13_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(review)
+    embedded_sha = canonical.pop("review_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert review["status"] == (
+        "v13_gt_only_primary_adjudicated_zero_problems"
+    )
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["reviewed_images"] == 64
+    assert review["pass_images"] == 64
+    assert review["problem_images"] == 0
+    assert review["quarantined_images"] == 0
+    assert all(
+        row["decision"] == "PASS" for row in review["decisions"]
+    )
+    assert review["categories"] == {
+        "dataset_gt_false_positive_cells": [],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [],
+        "uncertain_cells": [],
+    }
+    assert review["model_boxes_present"] is False
+    assert review["model_inference_run"] is False
+    assert review["v13_training_started"] is False
+    assert review["sealed_reserve_pixels_read"] == 0
+    assert review["validation_images_read"] == 0
+    assert review["test_images_read"] == 0
+    assert review["whole_image_generation_run"] is False
+    config = yaml.safe_load(V13_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["gt_owner_review_outcome"]
+    assert outcome["status"] == review["status"]
+    assert outcome["review_sha256"] == review["review_sha256"]
+    assert hashlib.sha256(V13_GT_OWNER_REVIEW_PATH.read_bytes()).hexdigest() == (
+        outcome["review_file_sha256"]
+    )
+
+
+def test_v13_adjudicated_audit_is_frozen_before_training() -> None:
+    if not V13_ADJUDICATED_AUDIT_PATH.is_file():
+        pytest.skip("v13 adjudicated audit has not been frozen yet")
+    audit = json.loads(
+        V13_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(audit)
+    embedded_sha = canonical.pop("manifest_sha256")
+    selected = audit["selected_cases"]
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert audit["status"] == "v13_adjudicated_audit_frozen_before_training"
+    assert audit["selected_images"] == 48
+    assert len(selected) == 48
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert len({int(row["image_id"]) for row in selected}) == 48
+    assert len({int(row["group_id"]) for row in selected}) == 48
+    assert audit["quarantined_primary_images"] == 0
+    assert audit["valid_primary_surplus_images"] == 16
+    assert audit["sealed_reserve_images"] == 32
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert len(audit["source_group_ids_reserved_from_training"]) == 96
+    assert audit["v13_training_started"] is False
+    assert audit["model_boxes_present"] is False
+    assert audit["model_inference_run"] is False
+    assert audit["validation_images_read"] == 0
+    assert audit["test_images_read"] == 0
+    assert audit["whole_image_generation_run"] is False
+    config = yaml.safe_load(V13_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["adjudicated_audit_outcome"]
+    assert outcome["status"] == audit["status"]
+    assert outcome["manifest_sha256"] == audit["manifest_sha256"]
+    assert (
+        hashlib.sha256(V13_ADJUDICATED_AUDIT_PATH.read_bytes()).hexdigest()
+        == outcome["manifest_file_sha256"]
+    )
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

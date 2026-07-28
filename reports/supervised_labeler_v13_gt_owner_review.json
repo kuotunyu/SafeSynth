@@ -1,0 +1,545 @@
+{
+  "categories": {
+    "dataset_gt_false_positive_cells": [],
+    "dataset_gt_localization_cells": [],
+    "dataset_gt_miss_cells": [],
+    "uncertain_cells": []
+  },
+  "decisions": [
+    {
+      "cell": 1,
+      "decision": "PASS",
+      "group_id": 3987,
+      "image_id": 4119,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 2,
+      "decision": "PASS",
+      "group_id": 4591,
+      "image_id": 4767,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 3,
+      "decision": "PASS",
+      "group_id": 4344,
+      "image_id": 4507,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 4,
+      "decision": "PASS",
+      "group_id": 2877,
+      "image_id": 2954,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 5,
+      "decision": "PASS",
+      "group_id": 4147,
+      "image_id": 4295,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 6,
+      "decision": "PASS",
+      "group_id": 2782,
+      "image_id": 2854,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 7,
+      "decision": "PASS",
+      "group_id": 1151,
+      "image_id": 1157,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 8,
+      "decision": "PASS",
+      "group_id": 4406,
+      "image_id": 4573,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 9,
+      "decision": "PASS",
+      "group_id": 4463,
+      "image_id": 4634,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 10,
+      "decision": "PASS",
+      "group_id": 1980,
+      "image_id": 2008,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 11,
+      "decision": "PASS",
+      "group_id": 1497,
+      "image_id": 1512,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 12,
+      "decision": "PASS",
+      "group_id": 1893,
+      "image_id": 1919,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 13,
+      "decision": "PASS",
+      "group_id": 1017,
+      "image_id": 1020,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 14,
+      "decision": "PASS",
+      "group_id": 4022,
+      "image_id": 4160,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 15,
+      "decision": "PASS",
+      "group_id": 3228,
+      "image_id": 3323,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 16,
+      "decision": "PASS",
+      "group_id": 2849,
+      "image_id": 2923,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 17,
+      "decision": "PASS",
+      "group_id": 2313,
+      "image_id": 2353,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 18,
+      "decision": "PASS",
+      "group_id": 205,
+      "image_id": 206,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 19,
+      "decision": "PASS",
+      "group_id": 4345,
+      "image_id": 4508,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 20,
+      "decision": "PASS",
+      "group_id": 165,
+      "image_id": 166,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 21,
+      "decision": "PASS",
+      "group_id": 804,
+      "image_id": 806,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 22,
+      "decision": "PASS",
+      "group_id": 3486,
+      "image_id": 3593,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 23,
+      "decision": "PASS",
+      "group_id": 1424,
+      "image_id": 1438,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 24,
+      "decision": "PASS",
+      "group_id": 4806,
+      "image_id": 4999,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 25,
+      "decision": "PASS",
+      "group_id": 2732,
+      "image_id": 2797,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 26,
+      "decision": "PASS",
+      "group_id": 972,
+      "image_id": 975,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 27,
+      "decision": "PASS",
+      "group_id": 4670,
+      "image_id": 4853,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 28,
+      "decision": "PASS",
+      "group_id": 3150,
+      "image_id": 3241,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 29,
+      "decision": "PASS",
+      "group_id": 29,
+      "image_id": 30,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 30,
+      "decision": "PASS",
+      "group_id": 2525,
+      "image_id": 2575,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 31,
+      "decision": "PASS",
+      "group_id": 2618,
+      "image_id": 2677,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 32,
+      "decision": "PASS",
+      "group_id": 2441,
+      "image_id": 2488,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 33,
+      "decision": "PASS",
+      "group_id": 2478,
+      "image_id": 2526,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 34,
+      "decision": "PASS",
+      "group_id": 1659,
+      "image_id": 1679,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 35,
+      "decision": "PASS",
+      "group_id": 680,
+      "image_id": 681,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 36,
+      "decision": "PASS",
+      "group_id": 3880,
+      "image_id": 4006,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 37,
+      "decision": "PASS",
+      "group_id": 2674,
+      "image_id": 2737,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 38,
+      "decision": "PASS",
+      "group_id": 1703,
+      "image_id": 1724,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 39,
+      "decision": "PASS",
+      "group_id": 1185,
+      "image_id": 1192,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 40,
+      "decision": "PASS",
+      "group_id": 4226,
+      "image_id": 4379,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 41,
+      "decision": "PASS",
+      "group_id": 1748,
+      "image_id": 1770,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 42,
+      "decision": "PASS",
+      "group_id": 529,
+      "image_id": 530,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 43,
+      "decision": "PASS",
+      "group_id": 770,
+      "image_id": 772,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 44,
+      "decision": "PASS",
+      "group_id": 642,
+      "image_id": 643,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 45,
+      "decision": "PASS",
+      "group_id": 409,
+      "image_id": 410,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 46,
+      "decision": "PASS",
+      "group_id": 4566,
+      "image_id": 4742,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 47,
+      "decision": "PASS",
+      "group_id": 2252,
+      "image_id": 2291,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 48,
+      "decision": "PASS",
+      "group_id": 1982,
+      "image_id": 2010,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 49,
+      "decision": "PASS",
+      "group_id": 470,
+      "image_id": 2690,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 50,
+      "decision": "PASS",
+      "group_id": 2807,
+      "image_id": 2879,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 51,
+      "decision": "PASS",
+      "group_id": 3042,
+      "image_id": 3125,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 52,
+      "decision": "PASS",
+      "group_id": 431,
+      "image_id": 432,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 53,
+      "decision": "PASS",
+      "group_id": 2350,
+      "image_id": 2394,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 54,
+      "decision": "PASS",
+      "group_id": 2862,
+      "image_id": 2937,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 55,
+      "decision": "PASS",
+      "group_id": 584,
+      "image_id": 585,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 56,
+      "decision": "PASS",
+      "group_id": 1555,
+      "image_id": 4530,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 57,
+      "decision": "PASS",
+      "group_id": 4284,
+      "image_id": 4444,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 58,
+      "decision": "PASS",
+      "group_id": 1666,
+      "image_id": 1686,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 59,
+      "decision": "PASS",
+      "group_id": 3454,
+      "image_id": 3560,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 60,
+      "decision": "PASS",
+      "group_id": 1320,
+      "image_id": 1331,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 61,
+      "decision": "PASS",
+      "group_id": 2555,
+      "image_id": 2608,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 62,
+      "decision": "PASS",
+      "group_id": 4732,
+      "image_id": 4921,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 63,
+      "decision": "PASS",
+      "group_id": 2335,
+      "image_id": 2376,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 64,
+      "decision": "PASS",
+      "group_id": 1822,
+      "image_id": 1847,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    }
+  ],
+  "experiment_id": "supervised_labeler_v13_gt_review",
+  "gt_review_evidence_sha256": "dbe3abb6769e48b1f8310c412ba08265a7ed460826b53536dbe512e2671d15f7",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_boxes_present": false,
+  "model_inference_run": false,
+  "owner_note": "All 64 frozen v13 GT-only primary cells are approved.",
+  "pass_images": 64,
+  "pool_manifest_sha256": "04dee80b5b8d82c8d187083da32cf09d62b3016b10025a58259ccc2b345dfd64",
+  "problem_images": 0,
+  "quarantined_images": 0,
+  "review_sha256": "e28d6245d38de8b00f2cfea2d2624e38c03a2f15cc95a153a776936522811fca",
+  "review_stage": "gt_only",
+  "reviewed_by": "kuotunyu",
+  "reviewed_images": 64,
+  "reviewed_on": "2026-07-29",
+  "schema_version": 1,
+  "sealed_reserve_images": 32,
+  "sealed_reserve_pixels_read": 0,
+  "status": "v13_gt_only_primary_adjudicated_zero_problems",
+  "test_images_read": 0,
+  "v13_training_started": false,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
