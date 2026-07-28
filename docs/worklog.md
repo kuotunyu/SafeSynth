@@ -8,13 +8,14 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-27 14:25 +08:00
-- **最後驗證 commit**：`dc753e9` docs(synthesis): record FLUX diagnostic result
+- **更新時間**：2026-07-28 15:22 +08:00
+- **最後驗證 commit**：`355fbd2` fix(synthesis): reject labeler v6 after owner review
 - **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成；`M9` 的 H6 已由
   kuotunyu 以 0/64 通過；`M11` Option A 的 64 圖 identity pilot 已因超過
   三格嚴重失敗而拒絕。四案例 FLUX.2 v2 Colab 診斷也未選出替代版本；
-  `M13`/`M14` 仍由 H4 阻擋。
-- **⚠️ 未 commit 的改動**：無；本快照描述的分析已在 `dc753e9` 提交。
+  supervised RT-DETRv2 v6 雖通過數值 audit，但 kuotunyu 在 48 格人工審查
+  找出 9 格問題，因此 whole-image v10、`M13`/`M14` 仍被硬閘門阻擋。
+- **⚠️ 未 commit 的改動**：無；v6 拒絕證據已在 `355fbd2` 提交。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
@@ -27,10 +28,12 @@
   `docs/environment.md §5` 的驗證表**十列全過**，
   含 `torch.cuda.is_available() == True` 與 `NVIDIA GeForce RTX 4090`。
   SAM2 2-pass 推論已完成，權重存在既有 Hugging Face cache。
-- **下一個動作（一句話、可直接動手）**：預註冊並實作輸入有效性與
-  anchor 定位防護，再決定是否產生一批全新 identity pilot。
+- **下一個動作（一句話、可直接動手）**：預註冊 supervised labeler v7，
+  只把已揭露的 v6 audit 當診斷資料，另凍結一批全新 Train-only untouched
+  audit，再處理背景誤框、漏框與相鄰安全帽實例分離。
 - **卡住的事**：舊 H4 AUC 0.7964 > 0.60；Option A v1 identity gate
-  失敗，v2 診斷沒有可選版本，因此 M13 硬阻擋。
+  失敗，v2 診斷沒有可選版本；supervised labeler v6 又因 9/48 人工問題格
+  被拒絕，因此所有生成與擴量閘門維持關閉。
 - **等使用者做的事**：目前無；遠端 GitHub repo 仍未建立。
 - **驗證本快照的指令**：
   ```
@@ -44,6 +47,22 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-28 · supervised labeler v6 人工審查拒絕
+
+- v6 數值 audit 為 precision 0.8995、recall 0.8584、median matched IoU
+  0.8430，但 kuotunyu 在固定 48 格 Train-only 審查中確認 9 個問題格：
+  `04, 06, 07, 13, 23, 27, 38, 43, 45`。
+- 問題包含背景誤框、04 漏掉一頂安全帽，以及 13/27 相鄰安全帽未逐一
+  分離。原始綠／青頁與分離後綠／洋紅頁的 SHA256 都已綁進拒絕證據。
+- 正式證據：
+  `reports/supervised_labeler_v6_human_review.json`，canonical evidence SHA256
+  `4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec`。
+- `generation_gate.allowed=false`；whole-image v10 不得執行。Validation/Test
+  讀取皆為 0，whole-image generation 亦為 false。
+- v6 的 48 格已揭露，只能供 v7 診斷，不能再作 v7 untouched audit。
+  驗證：`uv run ruff check src scripts tests` 通過，`uv run pytest -q`
+  為 161 passed；提交 `355fbd2`。
 
 ### 2026-07-27 · FLUX.2 v2 A100 診斷完成
 
