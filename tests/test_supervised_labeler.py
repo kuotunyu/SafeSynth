@@ -177,7 +177,7 @@ def test_v9_frozen_split_seals_new_audit_from_v8_history() -> None:
         v8["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
     assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
     assert config["split_manifest_sha256"] == v9["manifest_sha256"]
@@ -409,7 +409,7 @@ def test_v9_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     )
     evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert report["checks"] == {
         "audit_median_matched_iou": True,
@@ -548,6 +548,111 @@ def test_v8_owner_review_rejection_is_canonical_and_generation_stays_closed() ->
     assert evidence["validation_images_read"] == 0
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
+
+
+def test_v9_owner_review_rejection_is_canonical_and_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V9_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["evidence_path"]
+    evidence = json.loads(path.read_text(encoding="utf-8"))
+
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    assert embedded_sha == human_review_evidence_sha256(canonical)
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert evidence["status"] == "rejected_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == [6, 11, 12, 37]
+    assert evidence["problem_count"] == 4
+    assert outcome["categories"] == {
+        "background_or_other_false_positive": [6, 12],
+        "missed_helmet": [11, 37],
+    }
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+
+
+def test_v9_revealed_diagnoses_freeze_threshold_and_reflection_causes() -> None:
+    config = load_supervised_labeler_config(V9_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    diagnosis_path = PROJECT_ROOT / outcome["diagnosis_path"]
+    diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    reflection_path = PROJECT_ROOT / outcome["reflection_diagnosis_path"]
+    reflection = json.loads(reflection_path.read_text(encoding="utf-8"))
+    cases = {int(case["cell"]): case for case in diagnosis["problem_cases"]}
+    reflection_cases = {
+        int(case["cell"]): case for case in reflection["problem_images"]
+    }
+    threshold_grid = {
+        float(row["threshold"]): row for row in diagnosis["threshold_grid"]
+    }
+
+    assert hashlib.sha256(diagnosis_path.read_bytes()).hexdigest() == outcome[
+        "diagnosis_file_sha256"
+    ]
+    assert hashlib.sha256(reflection_path.read_bytes()).hexdigest() == outcome[
+        "reflection_diagnosis_file_sha256"
+    ]
+    assert diagnosis["eligible_for_generation_gate"] is False
+    assert diagnosis["owner_category_counts"] == {
+        "background_or_other_false_positive": 2,
+        "missed_helmet": 2,
+    }
+    assert diagnosis["automatic_miss_reason_counts"] == {
+        "below_score_threshold_and_removed_by_geometry_filter": 2,
+        "matching_box_below_frozen_score_threshold": 2,
+    }
+    assert diagnosis["owner_false_positive_scores"] == [
+        pytest.approx(0.055908203125),
+        pytest.approx(0.055908203125),
+    ]
+    assert len(cases[6]["accepted_false_positives"]) == 1
+    assert len(cases[12]["accepted_false_positives"]) == 1
+    assert len(cases[11]["misses"]) == 2
+    assert len(cases[37]["misses"]) == 2
+    assert threshold_grid[0.056]["true_positives"] == 173
+    assert threshold_grid[0.056]["false_positives"] < threshold_grid[0.05][
+        "false_positives"
+    ]
+    assert threshold_grid[0.056]["false_negatives"] == 21
+    assert threshold_grid[0.01]["false_positives"] == 1675
+
+    assert reflection["all_problem_images_reflection_detected"] is True
+    assert reflection["problem_cells"] == [6, 11, 12, 37]
+    assert reflection_cases[6]["reflection"]["detected_axes"] == [
+        "top_bottom"
+    ]
+    assert reflection_cases[11]["reflection"]["detected_axes"] == [
+        "left_right"
+    ]
+    assert reflection_cases[12]["reflection"]["detected_axes"] == [
+        "top_bottom"
+    ]
+    assert reflection_cases[37]["reflection"]["detected_axes"] == [
+        "top_bottom"
+    ]
+    assert reflection_cases[6]["false_positive_locations"][0][
+        "center_inside_clean_crop"
+    ] is False
+    assert reflection_cases[12]["false_positive_locations"][0][
+        "center_inside_clean_crop"
+    ] is False
+    assert sum(
+        miss["center_inside_clean_crop"]
+        for miss in reflection_cases[11]["missed_truth_locations"]
+    ) == 1
+    assert all(
+        miss["center_inside_clean_crop"]
+        for miss in reflection_cases[37]["missed_truth_locations"]
+    )
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
+    assert reflection["validation_images_read"] == 0
+    assert reflection["test_images_read"] == 0
+    assert reflection["whole_image_generation_run"] is False
 
 
 def test_v8_revealed_diagnosis_freezes_owner_failure_causes() -> None:

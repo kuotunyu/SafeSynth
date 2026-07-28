@@ -77,3 +77,29 @@ checkpoint SHA-256 is
 Validation/Test reads and whole-image generation remained zero. Numeric
 success does not open generation; the exact 48-case owner review remains
 mandatory.
+
+## Frozen owner-review outcome
+
+`kuotunyu` reviewed the exact frozen 48-case pages and rejected v9 on
+2026-07-28. Cells 06 and 12 contain magenta boxes on background, faces, or
+other non-helmet objects. Cells 11 and 37 contain real helmets without
+magenta boxes. The canonical review evidence is
+`reports/supervised_labeler_v9_human_review.json`, with evidence SHA-256
+`b9b14be99692aa51d5d16c0d2ca3e8278456b56d6ed073649ea2dd9a7bf3b44d`.
+The generation gate remains closed.
+
+The post-review diagnosis read only the now-revealed 48-image Train audit. It
+reproduced the frozen metrics and found both owner false positives at score
+0.055908. Raising the threshold from 0.05 to 0.056 removes those boxes but
+also reduces true positives from 176 to 173 and increases false negatives
+from 18 to 21. The four missed instances in cells 11 and 37 have matching
+raw candidates below threshold; two are also removed by the frozen geometry
+filter. Lowering the threshold is not viable: threshold 0.01 produces 1,675
+false positives on the revealed audit.
+
+All four problem images contain deterministic reflection padding detected by
+the already-verified production input guard. The false-positive centers in
+cells 06 and 12 lie outside the clean crop, while the misses in cells 11 and
+37 show that reflected duplicates split detector confidence. This consumed
+Train-only evidence supports preregistering reflection normalization as the
+next single-factor correction. It does not retroactively pass v9.

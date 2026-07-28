@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v9"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260829
 training_seed: 20260809
@@ -165,8 +165,36 @@ numeric_audit_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-28"
+  problem_count: 4
+  problem_cells:
+    - 6
+    - 11
+    - 12
+    - 37
+  categories:
+    background_or_other_false_positive:
+      - 6
+      - 12
+    missed_helmet:
+      - 11
+      - 37
+  evidence_path: "reports/supervised_labeler_v9_human_review.json"
+  evidence_sha256: "b9b14be99692aa51d5d16c0d2ca3e8278456b56d6ed073649ea2dd9a7bf3b44d"
+  diagnosis_path: "reports/supervised_labeler_v9_review_diagnosis.json"
+  diagnosis_file_sha256: "1066221455ad03ad850ac992057f554871c913a116023a8df85246f4c9a106a8"
+  reflection_diagnosis_path: "reports/supervised_labeler_v9_reflection_diagnosis.json"
+  reflection_diagnosis_file_sha256: "46e8881d1dbe9290787187d2210e2eefea9409dcbdaf9327660ecc8637aaeeec"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v9 passed every frozen numeric gate, but generation remains locked until
-    kuotunyu completes the owner-only 48-case human review with zero problems.
+    v9 passed every frozen numeric gate, but kuotunyu found false positives in
+    cells 06 and 12 and missed helmets in cells 11 and 37. Generation remains
+    locked.
