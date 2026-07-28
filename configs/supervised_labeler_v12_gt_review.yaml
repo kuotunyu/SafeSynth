@@ -1,0 +1,99 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v12_gt_review"
+status: "gt_only_candidate_pool_preregistered"
+source_split: "Train"
+split_seed: 20260913
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One box per visible person wearing a safety hard hat. The box includes the
+    hard hat plus the wearer's head or part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare head,
+    or other helmet-like object receives no helmet box.
+  uncertain_policy: "quarantine_and_replace_in_frozen_order"
+
+history_boundary:
+  exclude_revealed_experiments:
+    - "supervised_labeler_v2"
+    - "supervised_labeler_v3"
+    - "supervised_labeler_v4"
+    - "supervised_labeler_v5"
+    - "supervised_labeler_v6"
+    - "supervised_labeler_v7"
+    - "supervised_labeler_v8"
+    - "supervised_labeler_v9"
+    - "supervised_labeler_v10"
+    - "supervised_labeler_v11"
+  semantics_erratum: "reports/supervised_labeler_human_review_semantics_erratum.json"
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 12
+    positive_area_q2: 12
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 16
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order. A
+    DATASET_GT_DEFECT or UNCERTAIN case is quarantined and replaced by the next
+    preregistered case from the same stratum.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stages:
+  gt_only:
+    model_boxes_allowed: false
+    reviewer: "kuotunyu"
+    categories:
+      - "PASS"
+      - "DATASET_GT_FALSE_POSITIVE"
+      - "DATASET_GT_MISS"
+      - "DATASET_GT_LOCALIZATION"
+      - "UNCERTAIN"
+  model_review:
+    allowed_before_gt_freeze: false
+    required_problem_count: 0
+
+generation_gate:
+  allowed: false
+  reason: >-
+    The corrected GT-only adjudication and a separate fresh model review have
+    not completed.
+

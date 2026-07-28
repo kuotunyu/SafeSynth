@@ -9,6 +9,9 @@ from PIL import Image, ImageDraw
 
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
+from scripts.prepare_supervised_labeler_v12_gt_review import (
+    POOL_PATH as V12_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -539,6 +542,65 @@ def test_human_review_semantics_erratum_keeps_generation_locked() -> None:
     assert v11_config["generation_gate"]["allowed"] is False
     assert whole_image_config["review_semantics_erratum"]["active"] is True
     assert whole_image_config["generation_gate"]["allowed"] is False
+
+
+def test_v12_gt_only_pool_is_frozen_before_model_output() -> None:
+    if not V12_GT_POOL_PATH.is_file():
+        pytest.skip("v12 GT-only pool has not been frozen yet")
+    pool = json.loads(V12_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical = dict(pool)
+    embedded_sha = canonical.pop("manifest_sha256")
+    split_manifest = json.loads(
+        (PROJECT_ROOT / "splits" / "split_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    frozen = {
+        int(row["image_id"]): row for row in split_manifest["images"]
+    }
+    selected = [
+        *pool["primary_cases"],
+        *pool["sealed_reserve_cases"],
+    ]
+    selected_groups = {int(row["group_id"]) for row in selected}
+    revealed_groups = {
+        int(value)
+        for version in range(2, 12)
+        for key in (
+            "calibration_group_ids",
+            "untouched_audit_group_ids",
+            "quarantined_gt_defect_group_ids",
+        )
+        for value in json.loads(
+            (
+                PROJECT_ROOT
+                / "splits"
+                / f"supervised_labeler_v{version}_split.json"
+            ).read_text(encoding="utf-8")
+        ).get(key, [])
+    }
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert pool["status"] == (
+        "v12_gt_only_pool_frozen_before_pixel_review"
+    )
+    assert pool["label_semantics"] == "class_direct_helmeted_head_region"
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(selected_groups) == 96
+    assert selected_groups.isdisjoint(revealed_groups)
+    assert all(
+        frozen[int(row["image_id"])]["split"] == "train"
+        and int(frozen[int(row["image_id"])]["group_id"])
+        == int(row["group_id"])
+        for row in selected
+    )
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert pool["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
