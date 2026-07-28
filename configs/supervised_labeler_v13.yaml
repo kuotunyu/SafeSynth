@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v13"
-status: "gpu_smoke_passed_training_pending"
+status: "numeric_audit_passed_owner_model_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260915
 training_seed: 20260809
@@ -214,8 +214,67 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v13_training.json"
+  report_file_sha256: "d6efabb116591c3db9a969610f8ffe15235e7a0f6c6afa4c602ec6561cdb4f00"
+  markdown_path: "reports/supervised_labeler_v13_training.md"
+  markdown_file_sha256: "2a9c9b337b1af66db2695f627c272ac1ff4e362d019da898a80a756aa5d409c2"
+  split_manifest_sha256: "556801da8cdefe3975a339cd3992bbe685bff5a176685aff5e7d09af3f609a95"
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v13_train20260809_split20260915\best
+  checkpoint_sha256: "c6783be45f67638b96d9a075f6af8ac6f4c6b3628551edd0ef9b440f57f2ea65"
+  checkpoint_epoch: 2
+  score_threshold: 0.05
+  elapsed_minutes: 47.25556179285049
+  audit_images: 48
+  true_positives: 93
+  false_positives: 8
+  false_negatives: 6
+  precision: 0.9207920792079208
+  recall: 0.9393939393939394
+  f1: 0.9300000000000002
+  median_matched_iou: 0.8397744015796275
+  checks:
+    audit_precision: true
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v13_audit_evidence.json"
+  audit_evidence_sha256: "836a42e23862df2436392352803afc412d384ce707df943d4fd36892748dfbaf"
+  combined_figure_path: "reports/figures/supervised_labeler_v13_audit.png"
+  combined_figure_sha256: "83053d224c387f63bced62f1f00dec38a744c33f7a21bca463b325b92e61781f"
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+model_review_registration:
+  status: "supervised_labeler_v13_model_review_pages_frozen"
+  owner_review_status: "pending_kuotunyu"
+  manifest_path: "reports/supervised_labeler_v13_model_review_manifest.json"
+  manifest_file_sha256: "2a2c25e0ebf537ed70cb551dce452ae1fea2cbbfb28989c4c6302d6492d1b768"
+  manifest_sha256: "3534045318b19641c11edce5724ddaf26328603e67e23e93a5c0468146bbcea9"
+  reviewed_images: 48
+  approve_only_if_problem_count: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v13_model_review_page_01.png"
+      sha256: "24c2383c67f9ab436f247c8e1f2de8772705d3673b4ae993982feb91028db700"
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v13_model_review_page_02.png"
+      sha256: "96ca6f4c01397275403a1a5c94c3384bb8390214f4a600b334e7e53e775b50c5"
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v13_model_review_page_03.png"
+      sha256: "0f0b94f1ba51938a0317dca5cf7d3711d453b1d20912659e87e8db4b8c1cfee3"
+      cells: [33, 48]
+  render_model_inference_run: false
+  source_model_inference_images: 48
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v13 training, independent numeric audit, and the separate zero-problem
-    owner model review have not completed.
+    v13 passed every independent numeric gate, but the separate owner model
+    review has not yet achieved the required zero-problem approval.

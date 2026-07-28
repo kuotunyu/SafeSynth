@@ -96,6 +96,17 @@ V13_PREFLIGHT_PATH = (
 V13_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_smoke.json"
 )
+V13_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v13_training.json"
+)
+V13_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v13_audit_evidence.json"
+)
+V13_MODEL_REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v13_model_review_manifest.json"
+)
 V12_GT_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "supervised_labeler_v12_gt_review.yaml"
 )
@@ -1233,6 +1244,103 @@ def test_v13_gpu_smoke_uses_base_and_keeps_audit_unread() -> None:
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
     assert outcome["whole_image_generation_run"] is False
+
+
+def test_v13_independent_numeric_audit_passes_all_frozen_gates() -> None:
+    if not V13_TRAINING_REPORT_PATH.is_file():
+        pytest.skip("v13 formal training has not completed yet")
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    report = json.loads(
+        V13_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V13_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    outcome = config["numeric_audit_outcome"]
+    checkpoint = Path(report["checkpoint_path"]) / "model.safetensors"
+
+    assert config["status"] == (
+        "numeric_audit_passed_owner_model_review_pending"
+    )
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert outcome["status"] == report["status"]
+    assert report["split_manifest_sha256"] == (
+        config["split_manifest_sha256"]
+    )
+    assert hashlib.sha256(
+        V13_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert report["best_calibration"]["epoch"] == 2
+    assert report["best_calibration"]["threshold"] == 0.05
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["audit_metrics"] == {
+        "f1": 0.9300000000000002,
+        "false_negatives": 6,
+        "false_positives": 8,
+        "median_matched_iou": 0.8397744015796275,
+        "precision": 0.9207920792079208,
+        "recall": 0.9393939393939394,
+        "true_positives": 93,
+    }
+    assert report["untouched_audit_images_read"] == 48
+    assert len(evidence["cases"]) == 48
+    assert hashlib.sha256(
+        V13_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == report["audit_evidence_sha256"]
+    assert checkpoint.is_file()
+    assert hashlib.sha256(checkpoint.read_bytes()).hexdigest() == (
+        report["checkpoint_sha256"]
+    )
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert outcome["sealed_reserve_pixels_read"] == 0
+
+
+def test_v13_model_review_pages_pin_exact_audit_evidence() -> None:
+    if not V13_MODEL_REVIEW_MANIFEST_PATH.is_file():
+        pytest.skip("v13 model review pages have not been rendered yet")
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    manifest = json.loads(
+        V13_MODEL_REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(manifest)
+    embedded_sha = canonical.pop("manifest_sha256")
+    registration = config["model_review_registration"]
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert manifest["status"] == (
+        "supervised_labeler_v13_model_review_pages_frozen"
+    )
+    assert registration["manifest_sha256"] == embedded_sha
+    assert hashlib.sha256(
+        V13_MODEL_REVIEW_MANIFEST_PATH.read_bytes()
+    ).hexdigest() == registration["manifest_file_sha256"]
+    assert manifest["source_audit_evidence_sha256"] == hashlib.sha256(
+        V13_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest()
+    assert manifest["reviewed_images"] == 48
+    assert manifest["score_threshold"] == 0.05
+    assert manifest["numeric_checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert manifest["render_model_inference_run"] is False
+    assert manifest["source_model_inference_images"] == 48
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+    assert registration["owner_review_status"] == "pending_kuotunyu"
+    assert registration["approve_only_if_problem_count"] == 0
+    assert len(manifest["pages"]) == 3
+    for page in manifest["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

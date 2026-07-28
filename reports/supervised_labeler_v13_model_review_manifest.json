@@ -1,0 +1,67 @@
+{
+  "audit_metrics": {
+    "f1": 0.9300000000000002,
+    "false_negatives": 6,
+    "false_positives": 8,
+    "median_matched_iou": 0.8397744015796275,
+    "precision": 0.9207920792079208,
+    "recall": 0.9393939393939394,
+    "true_positives": 93
+  },
+  "checkpoint_epoch": 2,
+  "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v13_train20260809_split20260915\\best",
+  "checkpoint_sha256": "c6783be45f67638b96d9a075f6af8ac6f4c6b3628551edd0ef9b440f57f2ea65",
+  "experiment_id": "supervised_labeler_v13",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "manifest_sha256": "3534045318b19641c11edce5724ddaf26328603e67e23e93a5c0468146bbcea9",
+  "numeric_checks": {
+    "audit_median_matched_iou": true,
+    "audit_precision": true,
+    "audit_recall": true
+  },
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v13_model_review_page_01.png",
+      "sha256": "24c2383c67f9ab436f247c8e1f2de8772705d3673b4ae993982feb91028db700"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v13_model_review_page_02.png",
+      "sha256": "96ca6f4c01397275403a1a5c94c3384bb8390214f4a600b334e7e53e775b50c5"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v13_model_review_page_03.png",
+      "sha256": "0f0b94f1ba51938a0317dca5cf7d3711d453b1d20912659e87e8db4b8c1cfee3"
+    }
+  ],
+  "panel_order": [
+    "dataset_gt_green",
+    "model_magenta",
+    "overlay"
+  ],
+  "render_model_inference_run": false,
+  "reviewed_images": 48,
+  "schema_version": 1,
+  "score_threshold": 0.05,
+  "source_audit_evidence": "reports/supervised_labeler_v13_audit_evidence.json",
+  "source_audit_evidence_sha256": "836a42e23862df2436392352803afc412d384ce707df943d4fd36892748dfbaf",
+  "source_model_inference_images": 48,
+  "source_training_report": "reports/supervised_labeler_v13_training.json",
+  "source_training_report_sha256": "d6efabb116591c3db9a969610f8ffe15235e7a0f6c6afa4c602ec6561cdb4f00",
+  "split_manifest_sha256": "556801da8cdefe3975a339cd3992bbe685bff5a176685aff5e7d09af3f609a95",
+  "status": "supervised_labeler_v13_model_review_pages_frozen",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

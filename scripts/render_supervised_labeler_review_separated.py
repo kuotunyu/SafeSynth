@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -18,6 +19,13 @@ from scripts.train_supervised_labeler import (
     _build_datasets,
 )
 from src.data.paths import PROJECT_ROOT
+from src.synthetic.supervised_labeler import (
+    CONFIG_PATH as DEFAULT_CONFIG_PATH,
+)
+from src.synthetic.supervised_labeler import (
+    SPLIT_PATH as DEFAULT_SPLIT_PATH,
+)
+from src.synthetic.whole_image import canonical_mapping_sha256
 
 OUTPUT_STEM = FIGURE_PATH.with_name(f"{FIGURE_PATH.stem}_separated")
 
@@ -190,10 +198,41 @@ def _render_case(
     return truth_only, model_only, overlay
 
 
-def render_separated_pages() -> list[dict[str, Any]]:
+def render_separated_pages(
+    *,
+    config_path: Path = DEFAULT_CONFIG_PATH,
+    split_path: Path = DEFAULT_SPLIT_PATH,
+    evidence_path: Path = AUDIT_EVIDENCE_PATH,
+    figure_path: Path = FIGURE_PATH,
+    output_stem: Path = OUTPUT_STEM,
+    experiment_stem: str = EXPERIMENT_STEM,
+) -> list[dict[str, Any]]:
     """Render three deterministic 16-case pages without model inference."""
 
-    if not FIGURE_PATH.is_file():
+    config_path = (
+        config_path
+        if config_path.is_absolute()
+        else PROJECT_ROOT / config_path
+    )
+    split_path = (
+        split_path if split_path.is_absolute() else PROJECT_ROOT / split_path
+    )
+    evidence_path = (
+        evidence_path
+        if evidence_path.is_absolute()
+        else PROJECT_ROOT / evidence_path
+    )
+    figure_path = (
+        figure_path
+        if figure_path.is_absolute()
+        else PROJECT_ROOT / figure_path
+    )
+    output_stem = (
+        output_stem
+        if output_stem.is_absolute()
+        else PROJECT_ROOT / output_stem
+    )
+    if not evidence_path.is_file() and not figure_path.is_file():
         raise RuntimeError("Frozen supervised review sheet is missing")
     (
         _,
@@ -204,17 +243,20 @@ def render_separated_pages() -> list[dict[str, Any]]:
         _,
         _,
         audit,
-    ) = _build_datasets()
+    ) = _build_datasets(
+        config_path=config_path,
+        split_path=split_path,
+    )
     image_ids = [int(value) for value in split["untouched_audit_image_ids"]]
     if len(image_ids) != 48 or len(audit) != 48:
         raise RuntimeError("Expected the frozen 48-image supervised audit")
     evidence = None
-    if AUDIT_EVIDENCE_PATH.is_file():
+    if evidence_path.is_file():
         evidence = json.loads(
-            AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+            evidence_path.read_text(encoding="utf-8")
         )
         if (
-            evidence.get("experiment_id") != EXPERIMENT_STEM
+            evidence.get("experiment_id") != experiment_stem
             or evidence.get("split_manifest_sha256")
             != split["manifest_sha256"]
             or len(evidence.get("cases", [])) != 48
@@ -225,8 +267,10 @@ def render_separated_pages() -> list[dict[str, Any]]:
     frozen_caption = 30
     frozen_legend = 58
     frozen_columns = 4
-    with Image.open(FIGURE_PATH) as handle:
-        frozen_sheet = handle.convert("RGB").copy()
+    frozen_sheet = None
+    if evidence is None:
+        with Image.open(figure_path) as handle:
+            frozen_sheet = handle.convert("RGB").copy()
 
     panel = 170
     cases_per_page = 16
@@ -242,13 +286,13 @@ def render_separated_pages() -> list[dict[str, Any]]:
         page_draw = ImageDraw.Draw(page)
         page_draw.text(
             (8, 7),
-            f"{EXPERIMENT_STEM.upper()} REVIEW | GREEN ONLY = DATASET GT | "
+            f"{experiment_stem.upper()} REVIEW | GREEN ONLY = DATASET GT | "
             "MAGENTA ONLY = MODEL | OVERLAY = BOTH",
             fill="black",
         )
         page_draw.text(
             (8, 30),
-            "HELMET = HELMETED HEAD REGION (HARD HAT + HEAD), NOT PERSON. "
+            "BOX = WORN HARD HAT + HEAD, NOT PERSON; LOOSE HAT = NO BOX. "
             "Green without magenta = possible miss.",
             fill="black",
         )
@@ -260,23 +304,27 @@ def render_separated_pages() -> list[dict[str, Any]]:
             if image_id != image_ids[canonical_index]:
                 raise RuntimeError("Frozen audit order changed")
             original = item["image"].convert("RGB")
-            frozen_x = (canonical_index % frozen_columns) * frozen_panel_size
-            frozen_y = frozen_legend + (
-                canonical_index // frozen_columns
-            ) * (frozen_panel_size + frozen_caption)
-            frozen_panel = frozen_sheet.crop(
-                (
-                    frozen_x,
-                    frozen_y,
-                    frozen_x + frozen_panel_size,
-                    frozen_y + frozen_panel_size,
-                )
-            )
-            original_frozen_size = original.resize(
-                (frozen_panel_size, frozen_panel_size),
-                Image.Resampling.LANCZOS,
-            )
             if evidence is None:
+                if frozen_sheet is None:
+                    raise RuntimeError("Frozen review sheet was not loaded")
+                frozen_x = (
+                    canonical_index % frozen_columns
+                ) * frozen_panel_size
+                frozen_y = frozen_legend + (
+                    canonical_index // frozen_columns
+                ) * (frozen_panel_size + frozen_caption)
+                frozen_panel = frozen_sheet.crop(
+                    (
+                        frozen_x,
+                        frozen_y,
+                        frozen_x + frozen_panel_size,
+                        frozen_y + frozen_panel_size,
+                    )
+                )
+                original_frozen_size = original.resize(
+                    (frozen_panel_size, frozen_panel_size),
+                    Image.Resampling.LANCZOS,
+                )
                 model_boxes = extract_model_boxes(
                     frozen_panel=frozen_panel,
                     original_panel=original_frozen_size,
@@ -319,8 +367,8 @@ def render_separated_pages() -> list[dict[str, Any]]:
                 f"{train_images[image_id]['id']}",
                 fill="black",
             )
-        output_path = OUTPUT_STEM.with_name(
-            f"{OUTPUT_STEM.name}_page_{page_index + 1:02d}.png"
+        output_path = output_stem.with_name(
+            f"{output_stem.name}_page_{page_index + 1:02d}.png"
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         page.save(output_path, optimize=True)
@@ -331,19 +379,150 @@ def render_separated_pages() -> list[dict[str, Any]]:
                     "/",
                 ),
                 "sha256": _sha256(output_path),
+                "cells": [
+                    page_index * cases_per_page + 1,
+                    (page_index + 1) * cases_per_page,
+                ],
             }
         )
     return outputs
 
 
 def main() -> None:
-    outputs = render_separated_pages()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config-path",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+    )
+    parser.add_argument(
+        "--split-path",
+        type=Path,
+        default=DEFAULT_SPLIT_PATH,
+    )
+    parser.add_argument(
+        "--evidence-path",
+        type=Path,
+        default=AUDIT_EVIDENCE_PATH,
+    )
+    parser.add_argument(
+        "--figure-path",
+        type=Path,
+        default=FIGURE_PATH,
+    )
+    parser.add_argument(
+        "--output-stem",
+        type=Path,
+        default=OUTPUT_STEM,
+    )
+    parser.add_argument(
+        "--experiment-stem",
+        default=EXPERIMENT_STEM,
+    )
+    parser.add_argument(
+        "--training-report-path",
+        type=Path,
+    )
+    parser.add_argument(
+        "--manifest-path",
+        type=Path,
+    )
+    args = parser.parse_args()
+    outputs = render_separated_pages(
+        config_path=args.config_path,
+        split_path=args.split_path,
+        evidence_path=args.evidence_path,
+        figure_path=args.figure_path,
+        output_stem=args.output_stem,
+        experiment_stem=args.experiment_stem,
+    )
+    manifest = None
+    if args.manifest_path is not None:
+        if args.training_report_path is None:
+            raise RuntimeError(
+                "--training-report-path is required with --manifest-path"
+            )
+        report_path = (
+            args.training_report_path
+            if args.training_report_path.is_absolute()
+            else PROJECT_ROOT / args.training_report_path
+        )
+        evidence_path = (
+            args.evidence_path
+            if args.evidence_path.is_absolute()
+            else PROJECT_ROOT / args.evidence_path
+        )
+        manifest_path = (
+            args.manifest_path
+            if args.manifest_path.is_absolute()
+            else PROJECT_ROOT / args.manifest_path
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        checkpoint_path = (
+            Path(str(report["checkpoint_path"])) / "model.safetensors"
+        )
+        if (
+            report.get("status") != "supervised_labeler_audit_passed"
+            or report.get("audit_evidence_sha256") != _sha256(evidence_path)
+            or evidence.get("experiment_id") != args.experiment_stem
+            or evidence.get("split_manifest_sha256")
+            != report.get("split_manifest_sha256")
+            or len(evidence.get("cases", [])) != 48
+            or not checkpoint_path.is_file()
+            or _sha256(checkpoint_path) != report.get("checkpoint_sha256")
+        ):
+            raise RuntimeError("Frozen training/audit evidence changed")
+        manifest = {
+            "schema_version": 1,
+            "status": f"{args.experiment_stem}_model_review_pages_frozen",
+            "experiment_id": args.experiment_stem,
+            "source_training_report": str(
+                report_path.relative_to(PROJECT_ROOT)
+            ).replace("\\", "/"),
+            "source_training_report_sha256": _sha256(report_path),
+            "source_audit_evidence": str(
+                evidence_path.relative_to(PROJECT_ROOT)
+            ).replace("\\", "/"),
+            "source_audit_evidence_sha256": _sha256(evidence_path),
+            "split_manifest_sha256": str(
+                report["split_manifest_sha256"]
+            ),
+            "checkpoint_path": str(report["checkpoint_path"]),
+            "checkpoint_sha256": str(report["checkpoint_sha256"]),
+            "checkpoint_epoch": int(report["best_calibration"]["epoch"]),
+            "score_threshold": float(
+                report["best_calibration"]["threshold"]
+            ),
+            "audit_metrics": report["audit_metrics"],
+            "numeric_checks": report["checks"],
+            "reviewed_images": 48,
+            "label_semantics": "class_direct_helmeted_head_region",
+            "panel_order": [
+                "dataset_gt_green",
+                "model_magenta",
+                "overlay",
+            ],
+            "pages": outputs,
+            "render_model_inference_run": False,
+            "source_model_inference_images": 48,
+            "validation_images_read": 0,
+            "test_images_read": 0,
+            "whole_image_generation_run": False,
+        }
+        manifest["manifest_sha256"] = canonical_mapping_sha256(manifest)
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
     print(
         json.dumps(
             {
                 "status": "separated_review_pages_rendered",
-                "source": str(FIGURE_PATH),
+                "source": str(args.evidence_path),
                 "pages": outputs,
+                "manifest": manifest,
                 "model_inference_run": False,
                 "validation_images_read": 0,
                 "test_images_read": 0,
