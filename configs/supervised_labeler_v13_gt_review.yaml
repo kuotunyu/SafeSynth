@@ -1,0 +1,118 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v13_gt_review"
+status: "preregistered_before_pool_freeze"
+source_split: "Train"
+split_seed: 20260915
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One box per visible person wearing a safety hard hat. The box includes the
+    hard hat plus the wearer's head or part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare head,
+    or other helmet-like object receives no helmet box.
+  uncertain_policy: "quarantine_complete_image"
+
+independence_boundary:
+  prior_revealed_split_versions: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  exclude_v12_pool_path: "splits/supervised_labeler_v12_gt_pool.json"
+  exclude_every_v12_primary_and_reserve_group: true
+  required_future_model_initialization: "pinned_base_checkpoint_only"
+  required_future_training_exclusion: >-
+    Every v13 primary and sealed-reserve source group must be excluded from
+    both v13 training and calibration before the base checkpoint is opened.
+  v12_independence_erratum: >-
+    reports/supervised_labeler_v12_audit_independence_erratum.json
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 12
+    positive_area_q2: 12
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 16
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order. A
+    DATASET_GT_DEFECT or UNCERTAIN case is quarantined. Use valid primary
+    surplus first and open same-stratum sealed reserve cases only if needed.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stage:
+  name: "gt_only"
+  reviewer: "kuotunyu"
+  model_boxes_allowed: false
+  categories:
+    - "PASS"
+    - "DATASET_GT_FALSE_POSITIVE"
+    - "DATASET_GT_MISS"
+    - "DATASET_GT_LOCALIZATION"
+    - "UNCERTAIN"
+
+future_v13_intervention:
+  status: "preregistered_before_v13_pool_pixels_or_training"
+  initialization: "pinned_base_checkpoint_only"
+  rationale:
+    false_positive_evidence: >-
+      Five owner-reported v12 false-positive cells were dataset-GT-empty and
+      one additional positive case contained a numerically unmatched
+      background box.
+    large_helmet_evidence: >-
+      Both owner-reported v12 misses had correctly localized raw candidates,
+      but scores were below 0.03 and geometry rejected them. Their truth
+      relative areas were 0.2313 and 0.1663.
+  model_facing_changes:
+    empty_image_weight: 4.0
+    large_helmet_weight: 3.0
+    large_helmet_relative_area_min: 0.15
+    max_relative_area: 0.30
+    max_relative_height: 0.75
+  held_constant:
+    architecture: "rtdetr_v2_r101vd_helmet_only"
+    epochs: 12
+    training_seed: 20260809
+    close_helmet_pair_weight: 2.0
+    small_helmet_weight: 2.0
+    score_grid_and_numeric_gates: "v11"
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v13 GT adjudication, base-only training, independent numeric audit, and
+    separate zero-problem owner model review have not completed.

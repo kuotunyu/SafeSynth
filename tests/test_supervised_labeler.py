@@ -23,6 +23,12 @@ from scripts.prepare_supervised_labeler_v12_gt_review import (
 from scripts.prepare_supervised_labeler_v12_gt_review import (
     POOL_PATH as V12_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v13_gt_review import (
+    EVIDENCE_PATH as V13_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v13_gt_review import (
+    POOL_PATH as V13_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -911,6 +917,70 @@ def test_v12_independence_erratum_invalidates_only_the_numeric_claim() -> None:
     assert erratum["validation_images_read"] == 0
     assert erratum["test_images_read"] == 0
     assert erratum["whole_image_generation_run"] is False
+
+
+def test_v13_gt_pool_is_frozen_before_pixels_or_training() -> None:
+    if not V13_GT_POOL_PATH.is_file():
+        pytest.skip("v13 GT pool has not been frozen yet")
+    pool = json.loads(V13_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical = dict(pool)
+    embedded_sha = canonical.pop("manifest_sha256")
+    v12_pool = json.loads(V12_GT_POOL_PATH.read_text(encoding="utf-8"))
+    v12_groups = {
+        int(row["group_id"])
+        for row in [
+            *v12_pool["primary_cases"],
+            *v12_pool["sealed_reserve_cases"],
+        ]
+    }
+    selected = [*pool["primary_cases"], *pool["sealed_reserve_cases"]]
+    selected_groups = {int(row["group_id"]) for row in selected}
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert pool["status"] == (
+        "v13_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(selected_groups) == 96
+    assert selected_groups.isdisjoint(v12_groups)
+    assert set(pool["future_v13_training_exclusion_group_ids"]) == (
+        selected_groups
+    )
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["v13_training_started"] is False
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert pool["whole_image_generation_run"] is False
+
+
+def test_v13_gt_review_contains_no_model_output_or_training() -> None:
+    if not V13_GT_EVIDENCE_PATH.is_file():
+        pytest.skip("v13 GT review has not been rendered yet")
+    evidence = json.loads(
+        V13_GT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert evidence["status"] == (
+        "v13_gt_only_primary_review_rendered_before_training"
+    )
+    assert evidence["review_stage"] == "gt_only"
+    assert len(evidence["cases"]) == 64
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["v13_training_started"] is False
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+    for page in evidence["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
