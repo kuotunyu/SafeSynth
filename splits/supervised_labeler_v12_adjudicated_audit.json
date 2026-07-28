@@ -1,0 +1,2155 @@
+{
+  "experiment_id": "supervised_labeler_v12_gt_review",
+  "gt_review_evidence_sha256": "577c43fc80b082bce013c8623ff893c27063307af8256a76f08e8b2916d42d43",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "manifest_sha256": "1681734f98cc7a428d9a2c45d33cf1132d1dd4f378fb3040afd75cf627947b0a",
+  "model_boxes_present": false,
+  "model_inference_run": false,
+  "owner_review_sha256": "b001ff023c3fd3ff4cfd16be66d21d8b8178acc8f863cfcc725c8809494c8a62",
+  "pool_manifest_sha256": "af9f9599d822b0148c6f8aa718013f85535af27338291f3b1131d51684e800bf",
+  "quarantined_primary_cases": [
+    {
+      "decision": "UNCERTAIN",
+      "file_name": "images/hard_hat_workers1469.png",
+      "group_id": 523,
+      "image_id": 524,
+      "primary_cell": 53,
+      "reason": "edge_clipped_target_not_reliably_adjudicable",
+      "source_image_sha256": "b10f25b1490eae90ddfed201b2d0f5225c7a71a878bff99d56390a7177bb1f5b",
+      "stratum": "positive_area_q1"
+    },
+    {
+      "decision": "UNCERTAIN",
+      "file_name": "images/hard_hat_workers3011.png",
+      "group_id": 2203,
+      "image_id": 2239,
+      "primary_cell": 64,
+      "reason": "edge_clipped_target_not_reliably_adjudicable",
+      "source_image_sha256": "a70f2a9cf82c0ac1bac85a14b77b306d8e7abc763e59a8cf4b477ae39c81fb33",
+      "stratum": "positive_area_q3"
+    }
+  ],
+  "quarantined_primary_images": 2,
+  "quotas": {
+    "dataset_gt_empty": 8,
+    "positive_area_q1": 10,
+    "positive_area_q2": 10,
+    "positive_area_q3": 10,
+    "positive_area_q4": 10
+  },
+  "schema_version": 1,
+  "sealed_reserve_group_count": 32,
+  "sealed_reserve_images": 32,
+  "sealed_reserve_pixels_read": 0,
+  "selected_cases": [
+    {
+      "audit_cell": 1,
+      "file_name": "images/hard_hat_workers2871.png",
+      "group_id": 2052,
+      "image_id": 2082,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          59,
+          416,
+          357
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 1,
+      "source_image_sha256": "94fde6b7b0eacecff366e5c0a137e121a8f1795e1dbb3da76a5bcf71dbb43b71",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          176.37740384615387,
+          82.36241610738254,
+          221.06971153846155,
+          136.80536912751677
+        ],
+        [
+          346.7668269230769,
+          68.40268456375838,
+          388.6658653846154,
+          122.84563758389261
+        ],
+        [
+          282.52163461538464,
+          47.46308724832215,
+          330.00721153846155,
+          106.09395973154362
+        ],
+        [
+          222.4663461538462,
+          92.13422818791946,
+          254.58894230769232,
+          132.61744966442953
+        ],
+        [
+          269.9519230769231,
+          85.15436241610738,
+          299.28125,
+          128.4295302013423
+        ],
+        [
+          401.23557692307696,
+          72.59060402684564,
+          416.0,
+          114.46979865771812
+        ],
+        [
+          70.2331730769231,
+          73.98657718120805,
+          99.5625,
+          108.88590604026845
+        ],
+        [
+          320.2307692307692,
+          83.75838926174497,
+          352.3533653846154,
+          118.65771812080537
+        ]
+      ]
+    },
+    {
+      "audit_cell": 2,
+      "file_name": "images/hard_hat_workers4983.png",
+      "group_id": 4270,
+      "image_id": 4428,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 2,
+      "source_image_sha256": "99ad625693648cf6b20d17e82b62c9e683beab326e5dbbb847d301244558b1cf",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          299.85336538461536,
+          94.38628158844764,
+          370.2403846153846,
+          184.27797833935017
+        ],
+        [
+          404.68509615384613,
+          46.44404332129964,
+          416.0,
+          169.29602888086643
+        ]
+      ]
+    },
+    {
+      "audit_cell": 3,
+      "file_name": "images/hard_hat_workers4426.png",
+      "group_id": 3696,
+      "image_id": 3810,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          67,
+          416,
+          348
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 3,
+      "source_image_sha256": "93b54165176d9e6701f817263f4a41dfc10bde5b91d01eb652b1ef99d52c4a8a",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 4,
+      "file_name": "images/hard_hat_workers1234.png",
+      "group_id": 263,
+      "image_id": 264,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          77,
+          416,
+          339
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 4,
+      "source_image_sha256": "6ead5ebf424b3cc5ea2d927e936eb7e7b09724f510944b0f02c732630fbe129b",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          233.9230769230769,
+          57.16030534351145,
+          281.59134615384613,
+          125.43511450381679
+        ],
+        [
+          76.61778846153845,
+          55.57251908396947,
+          127.46394230769232,
+          120.67175572519083
+        ]
+      ]
+    },
+    {
+      "audit_cell": 5,
+      "file_name": "images/hard_hat_workers4896.png",
+      "group_id": 4180,
+      "image_id": 4331,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 5,
+      "source_image_sha256": "6b97d6f27e20542b653e8a387719c26f05502ce53755f86a00e76727ab5e71b7",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          233.95913461538458,
+          13.483754512635379,
+          346.27884615384613,
+          169.29602888086643
+        ]
+      ]
+    },
+    {
+      "audit_cell": 6,
+      "file_name": "images/hard_hat_workers786.png",
+      "group_id": 4588,
+      "image_id": 4764,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          65,
+          416,
+          350
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 6,
+      "source_image_sha256": "3d48a9e34a3dc622e4f776b3ebd8cf65b40771be016724be196c94905f8b6a43",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          0.0,
+          109.21052631578948,
+          33.19230769230768,
+          218.42105263157896
+        ],
+        [
+          315.7980769230769,
+          90.28070175438597,
+          387.1778846153846,
+          182.01754385964912
+        ],
+        [
+          136.6201923076923,
+          109.21052631578948,
+          196.3461538461538,
+          195.12280701754386
+        ],
+        [
+          256.07211538461536,
+          107.75438596491229,
+          311.4278846153846,
+          189.2982456140351
+        ],
+        [
+          18.625,
+          112.12280701754386,
+          55.043269230769226,
+          198.03508771929825
+        ]
+      ]
+    },
+    {
+      "audit_cell": 7,
+      "file_name": "images/hard_hat_workers1630.png",
+      "group_id": 702,
+      "image_id": 704,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 7,
+      "source_image_sha256": "be030daf98407fb7091a0f9a2b917a8615bb8642b32fbdc4f9efa5a8611def6f",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          197.94951923076923,
+          135.65217391304347,
+          244.67307692307696,
+          185.3913043478261
+        ],
+        [
+          157.25480769230768,
+          188.40579710144928,
+          203.97836538461542,
+          230.6086956521739
+        ]
+      ]
+    },
+    {
+      "audit_cell": 8,
+      "file_name": "images/hard_hat_workers4178.png",
+      "group_id": 3429,
+      "image_id": 3534,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 8,
+      "source_image_sha256": "64b89e9895a8212c43c8f07c052c788bc17cfdc4b9cf8dbda66fa94b499c985a",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 9,
+      "file_name": "images/hard_hat_workers1990.png",
+      "group_id": 1097,
+      "image_id": 1103,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          68,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 9,
+      "source_image_sha256": "9bbaa9d006cb7cc9ba30005f5d1a8f02b1e6971c416bc3c36bdd16509d67b25c",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          160.88461538461536,
+          157.67025089605735,
+          254.6274038461538,
+          266.2544802867383
+        ]
+      ]
+    },
+    {
+      "audit_cell": 10,
+      "file_name": "images/hard_hat_workers1304.png",
+      "group_id": 341,
+      "image_id": 342,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 10,
+      "source_image_sha256": "fcd2eaa2e702960125fd60bacc2ca23db5477a67047f4f69eac2b1c39ad98de0",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          379.2259615384615,
+          89.89169675090253,
+          416.0,
+          175.28880866425993
+        ],
+        [
+          215.98798076923077,
+          145.32490974729242,
+          251.93028846153845,
+          182.77978339350182
+        ],
+        [
+          100.6730769230769,
+          161.80505415162455,
+          118.64423076923075,
+          187.27436823104694
+        ]
+      ]
+    },
+    {
+      "audit_cell": 11,
+      "file_name": "images/hard_hat_workers2975.png",
+      "group_id": 2162,
+      "image_id": 2197,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 11,
+      "source_image_sha256": "e07b91fe383e146b835f9daff66ace3134369afad5e40dda53a4252c8760a8c4",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          44.96153846153845,
+          227.87272727272727,
+          70.625,
+          256.54545454545456
+        ],
+        [
+          93.26923076923077,
+          126.76363636363637,
+          106.85576923076923,
+          144.87272727272727
+        ]
+      ]
+    },
+    {
+      "audit_cell": 12,
+      "file_name": "images/hard_hat_workers3557.png",
+      "group_id": 2773,
+      "image_id": 2844,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          69,
+          0,
+          346,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "primary_cell": 12,
+      "source_image_sha256": "c12e68393e18b431e71ac9fd1f4d1a16d5c6f743ebcaae5f883cc362adc22dec",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          25.469314079422382,
+          70.72115384615384,
+          185.77617328519855,
+          169.5625
+        ]
+      ]
+    },
+    {
+      "audit_cell": 13,
+      "file_name": "images/hard_hat_workers2977.png",
+      "group_id": 2164,
+      "image_id": 2199,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 13,
+      "source_image_sha256": "d695f33fb246a8ed5c4ce0efa46b4f1821c23f4e0b0e5abc0320038075d31c6e",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 14,
+      "file_name": "images/hard_hat_workers1363.png",
+      "group_id": 406,
+      "image_id": 407,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          364,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "primary_cell": 14,
+      "source_image_sha256": "3a161b27cd95ff031f52e53e4ddc881b19cea1eae3cce959f54ccaf76f938a5c",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          150.66666666666666,
+          84.42548076923077,
+          224.0,
+          157.8028846153846
+        ],
+        [
+          205.33333333333331,
+          64.41346153846155,
+          277.3333333333333,
+          136.45673076923077
+        ]
+      ]
+    },
+    {
+      "audit_cell": 15,
+      "file_name": "images/hard_hat_workers3576.png",
+      "group_id": 2793,
+      "image_id": 2865,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          59,
+          416,
+          357
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 15,
+      "source_image_sha256": "e15b8f89447d8e016388371ccd7bb153c7b4d8958b6e3655ce30d3cf0d61ce47",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          113.52884615384616,
+          315.48993288590606,
+          148.44471153846155,
+          358.76510067114094
+        ],
+        [
+          190.34375,
+          147.9731543624161,
+          216.87980769230768,
+          181.4765100671141
+        ],
+        [
+          179.1706730769231,
+          29.315436241610737,
+          197.3269230769231,
+          51.651006711409394
+        ],
+        [
+          283.9182692307692,
+          163.3288590604027,
+          313.2475961538462,
+          198.2281879194631
+        ],
+        [
+          363.5264423076923,
+          174.49664429530202,
+          416.0,
+          268.0268456375839
+        ]
+      ]
+    },
+    {
+      "audit_cell": 16,
+      "file_name": "images/hard_hat_workers1278.png",
+      "group_id": 311,
+      "image_id": 312,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          62,
+          416,
+          353
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 16,
+      "source_image_sha256": "d686b2a593e7812bd4fac1ada9d3d1560000ce4a3ccc109252d61aa2a6e89679",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          16.060096153846146,
+          12.835051546391753,
+          117.26923076923077,
+          145.4639175257732
+        ],
+        [
+          207.07451923076923,
+          31.374570446735397,
+          285.47596153846155,
+          152.59450171821305
+        ],
+        [
+          323.96394230769226,
+          55.61855670103093,
+          398.08894230769226,
+          156.87285223367698
+        ]
+      ]
+    },
+    {
+      "audit_cell": 17,
+      "file_name": "images/hard_hat_workers2684.png",
+      "group_id": 1849,
+      "image_id": 1874,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          100,
+          416,
+          315
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 17,
+      "source_image_sha256": "9770ce2a17c9eb03131975c2580585667ce5f143b8859a6258f6e1c7d279fca7",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          353.27163461538464,
+          11.58139534883721,
+          416.0,
+          138.97674418604652
+        ],
+        [
+          0.0,
+          75.27906976744187,
+          7.75,
+          200.74418604651163
+        ],
+        [
+          220.08173076923077,
+          77.2093023255814,
+          314.66586538461536,
+          193.0232558139535
+        ],
+        [
+          42.49519230769229,
+          96.51162790697676,
+          133.21875,
+          210.39534883720933
+        ]
+      ]
+    },
+    {
+      "audit_cell": 18,
+      "file_name": "images/hard_hat_workers1510.png",
+      "group_id": 570,
+      "image_id": 571,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          71,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 18,
+      "source_image_sha256": "7c25a8bf89dbe8f97ea66bbfd4b569e86cc7371fc82f8845127d921c5922b188",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          390.30769230769226,
+          4.554744525547445,
+          416.0,
+          72.87591240875912
+        ],
+        [
+          168.5,
+          238.36496350364962,
+          214.07692307692304,
+          296.05839416058393
+        ],
+        [
+          83.4230769230769,
+          12.145985401459853,
+          139.6346153846154,
+          71.35766423357664
+        ],
+        [
+          273.32692307692304,
+          71.35766423357664,
+          315.8653846153846,
+          122.97810218978101
+        ]
+      ]
+    },
+    {
+      "audit_cell": 19,
+      "file_name": "images/hard_hat_workers1424.png",
+      "group_id": 474,
+      "image_id": 475,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          60,
+          416,
+          356
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 19,
+      "source_image_sha256": "147b5240baa34952b2e2142e111a5a7ae7b3e4afcdcbf6a9261e762594132974",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          14.4375,
+          96.97297297297298,
+          98.8125,
+          172.86486486486487
+        ],
+        [
+          231.0,
+          37.94594594594595,
+          304.125,
+          120.86486486486487
+        ]
+      ]
+    },
+    {
+      "audit_cell": 20,
+      "file_name": "images/hard_hat_workers1227.png",
+      "group_id": 255,
+      "image_id": 256,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 20,
+      "source_image_sha256": "40ffd4cdf0f056a7fb2b9b5ba35415f2841dc478269fa6a744780d8fd18833cf",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 21,
+      "file_name": "images/hard_hat_workers932.png",
+      "group_id": 4738,
+      "image_id": 4927,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          76,
+          416,
+          340
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 21,
+      "source_image_sha256": "02d65a90a4ca6b93e101491b470637048902e17ad017418f2d6befb7fd3bdc6c",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 22,
+      "file_name": "images/hard_hat_workers1237.png",
+      "group_id": 266,
+      "image_id": 267,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 22,
+      "source_image_sha256": "96742577394b373b7d844ec4b1370bb9d2510631c4c26021a57f4939ac0671bd",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          338.79086538461536,
+          31.424460431654676,
+          416.0,
+          127.19424460431655
+        ]
+      ]
+    },
+    {
+      "audit_cell": 23,
+      "file_name": "images/hard_hat_workers1346.png",
+      "group_id": 387,
+      "image_id": 388,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          345
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 23,
+      "source_image_sha256": "9669696889cfdc1f3465f5beb03a83e177e28d5142d445620dffe6c968e1b38b",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          156.6730769230769,
+          173.54545454545453,
+          230.64423076923077,
+          239.94545454545454
+        ],
+        [
+          117.4230769230769,
+          110.16363636363636,
+          168.75,
+          159.96363636363637
+        ],
+        [
+          401.2307692307692,
+          152.4181818181818,
+          416.0,
+          202.21818181818182
+        ],
+        [
+          245.74038461538458,
+          217.3090909090909,
+          334.8076923076923,
+          295.78181818181815
+        ],
+        [
+          339.33653846153845,
+          172.03636363636363,
+          383.1153846153846,
+          218.8181818181818
+        ],
+        [
+          171.76923076923077,
+          161.47272727272727,
+          230.64423076923077,
+          196.1818181818182
+        ],
+        [
+          40.43269230769229,
+          126.76363636363637,
+          82.70192307692307,
+          166.0
+        ]
+      ]
+    },
+    {
+      "audit_cell": 24,
+      "file_name": "images/hard_hat_workers3298.png",
+      "group_id": 2506,
+      "image_id": 2556,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          64,
+          416,
+          352
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 24,
+      "source_image_sha256": "1f3b9b3dd227bae0d0c734dc7ebc0809ec5763ffee522d2cea06ebdee13fe0a1",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          10.57451923076924,
+          111.22222222222221,
+          53.91586538461539,
+          157.44444444444443
+        ],
+        [
+          77.03125,
+          132.88888888888889,
+          110.25961538461539,
+          171.88888888888889
+        ],
+        [
+          126.15144230769232,
+          156.0,
+          155.0456730769231,
+          186.33333333333334
+        ],
+        [
+          178.16105769230774,
+          135.77777777777777,
+          205.61057692307696,
+          170.44444444444443
+        ],
+        [
+          202.72115384615387,
+          157.44444444444443,
+          225.83653846153845,
+          184.88888888888889
+        ],
+        [
+          250.39663461538464,
+          166.11111111111111,
+          274.9567307692308,
+          197.88888888888889
+        ],
+        [
+          283.625,
+          173.33333333333334,
+          303.85096153846155,
+          202.22222222222223
+        ],
+        [
+          313.9639423076923,
+          171.88888888888889,
+          334.18990384615387,
+          199.33333333333334
+        ],
+        [
+          342.8581730769231,
+          166.11111111111111,
+          367.4182692307693,
+          195.0
+        ]
+      ]
+    },
+    {
+      "audit_cell": 25,
+      "file_name": "images/hard_hat_workers4064.png",
+      "group_id": 3306,
+      "image_id": 3408,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 25,
+      "source_image_sha256": "9020bedebcbd1a27877839d38cad2d5e2461a8431091d2b260cc6c611190370d",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 26,
+      "file_name": "images/hard_hat_workers1054.png",
+      "group_id": 63,
+      "image_id": 64,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 26,
+      "source_image_sha256": "c8169352d9275267aec54370a357b6045d7e17de8b7c78ce8434054e6a1488aa",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          265.4086538461538,
+          11.985559566787003,
+          416.0,
+          277.16606498194943
+        ]
+      ]
+    },
+    {
+      "audit_cell": 27,
+      "file_name": "images/hard_hat_workers48.png",
+      "group_id": 4083,
+      "image_id": 4224,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 27,
+      "source_image_sha256": "33eba09cf388a3af8e71b026d09f762a4237692e4fc40193dfe2eed38dc9e804",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          249.19471153846155,
+          52.7536231884058,
+          285.3677884615385,
+          107.01449275362319
+        ],
+        [
+          133.1394230769231,
+          25.6231884057971,
+          173.83413461538464,
+          73.85507246376812
+        ],
+        [
+          315.5120192307692,
+          78.3768115942029,
+          365.25,
+          143.18840579710144
+        ],
+        [
+          149.71875000000003,
+          73.85507246376812,
+          191.9206730769231,
+          125.10144927536233
+        ],
+        [
+          185.89182692307696,
+          107.01449275362319,
+          206.99278846153845,
+          135.65217391304347
+        ]
+      ]
+    },
+    {
+      "audit_cell": 28,
+      "file_name": "images/hard_hat_workers1648.png",
+      "group_id": 721,
+      "image_id": 723,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 28,
+      "source_image_sha256": "4d9ae9411544ea8ca3428d9b3fb7dcbd02ae04b4bcef3bca6a22da1bc1df4163",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 29,
+      "file_name": "images/hard_hat_workers4383.png",
+      "group_id": 3649,
+      "image_id": 3762,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          79,
+          416,
+          336
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 29,
+      "source_image_sha256": "e30ee7b6a74f008bb79b87061f166181d06940b2d4e530e7decb6c9c21e54a93",
+      "stratum": "dataset_gt_empty",
+      "truth_boxes": []
+    },
+    {
+      "audit_cell": 30,
+      "file_name": "images/hard_hat_workers2664.png",
+      "group_id": 1827,
+      "image_id": 1852,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          363,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "primary_cell": 30,
+      "source_image_sha256": "f5cef68bfd3de9d11d613b0cedf81eda7cb9a3e31982bedbb2c0a28e39c8b1cc",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          144.11575562700963,
+          0.0,
+          202.82958199356912,
+          64.41346153846155
+        ],
+        [
+          45.369774919614144,
+          365.92788461538464,
+          77.39549839228296,
+          397.9471153846154
+        ]
+      ]
+    },
+    {
+      "audit_cell": 31,
+      "file_name": "images/hard_hat_workers1138.png",
+      "group_id": 156,
+      "image_id": 157,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          52,
+          0,
+          364,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "primary_cell": 31,
+      "source_image_sha256": "de97cf4b2891bd00c687dd6f4296bac8d0ba0d697cba520995511dbc99b79ad4",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          313.3333333333333,
+          319.2331730769231,
+          352.0,
+          352.58653846153845
+        ]
+      ]
+    },
+    {
+      "audit_cell": 32,
+      "file_name": "images/hard_hat_workers952.png",
+      "group_id": 4759,
+      "image_id": 4949,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 32,
+      "source_image_sha256": "6c5a459edb880c6fa65704f02746eeafa4e6b0031c3e28ed40ff6901fd604da2",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          162.07451923076923,
+          169.29602888086643,
+          211.49519230769226,
+          233.71841155234657
+        ]
+      ]
+    },
+    {
+      "audit_cell": 33,
+      "file_name": "images/hard_hat_workers4919.png",
+      "group_id": 4204,
+      "image_id": 4357,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 33,
+      "source_image_sha256": "4803e18db61e4ca114b4be47fd31cee7f92c911868a012558d4c3722d1d110ad",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          132.12259615384613,
+          76.40794223826714,
+          199.51442307692304,
+          151.31768953068593
+        ],
+        [
+          329.80528846153845,
+          68.91696750902527,
+          407.68028846153845,
+          130.34296028880865
+        ]
+      ]
+    },
+    {
+      "audit_cell": 34,
+      "file_name": "images/hard_hat_workers4861.png",
+      "group_id": 4145,
+      "image_id": 4293,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          347
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 34,
+      "source_image_sha256": "67743d8f8ecd5e34abfa5945db14c553902148a1acae4ae2ce82bd4607f52ec5",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          156.08413461538458,
+          28.431654676258994,
+          236.9543269230769,
+          125.69784172661872
+        ]
+      ]
+    },
+    {
+      "audit_cell": 35,
+      "file_name": "images/hard_hat_workers4765.png",
+      "group_id": 4046,
+      "image_id": 4186,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 35,
+      "source_image_sha256": "9a6d23bd5d05cbfda62787d5661bc7d9f282100a624ae761cdfa0320e1b26ab8",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          27.130434782608695,
+          84.90865384615387,
+          200.46376811594203
+        ],
+        [
+          226.58653846153845,
+          91.94202898550725,
+          351.6850961538462,
+          265.27536231884056
+        ]
+      ]
+    },
+    {
+      "audit_cell": 36,
+      "file_name": "images/hard_hat_workers3815.png",
+      "group_id": 3048,
+      "image_id": 3131,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 37,
+      "source_image_sha256": "e7991c4b7598a87a393a28ddec9244721fd84cb1b812c5a922be7d9c5461d4e7",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          325.9038461538462,
+          142.66666666666666,
+          393.94471153846155,
+          201.33333333333331
+        ],
+        [
+          12.382211538461547,
+          192.0,
+          52.40625,
+          254.66666666666666
+        ]
+      ]
+    },
+    {
+      "audit_cell": 37,
+      "file_name": "images/hard_hat_workers2001.png",
+      "group_id": 1111,
+      "image_id": 1117,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          72,
+          416,
+          344
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 38,
+      "source_image_sha256": "626447dc1d9d37f9296f9232ab009a732819bc9c6be5a7ff0937c8396e287abe",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          195.76923076923077,
+          172.8235294117647,
+          243.1634615384615,
+          235.52941176470586
+        ],
+        [
+          267.625,
+          166.70588235294116,
+          319.6057692307692,
+          237.05882352941174
+        ]
+      ]
+    },
+    {
+      "audit_cell": 38,
+      "file_name": "images/hard_hat_workers3498.png",
+      "group_id": 2713,
+      "image_id": 2778,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 40,
+      "source_image_sha256": "55617a39bb244c8e8dae2853db7c2fa4815a7dd64d47bd30330001bc3b86d120",
+      "stratum": "positive_area_q3",
+      "truth_boxes": [
+        [
+          88.42788461538461,
+          132.0,
+          161.80528846153848,
+          224.0
+        ],
+        [
+          232.5144230769231,
+          96.0,
+          287.2139423076923,
+          168.0
+        ]
+      ]
+    },
+    {
+      "audit_cell": 39,
+      "file_name": "images/hard_hat_workers825.png",
+      "group_id": 4628,
+      "image_id": 4808,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 41,
+      "source_image_sha256": "6c76f532c227d773b4d1982d5d68810b8ac811114fc062dab61d87f039356a60",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          349.27403846153845,
+          161.80505415162455,
+          392.7043269230769,
+          196.26353790613717
+        ],
+        [
+          404.68509615384613,
+          151.31768953068593,
+          416.0,
+          181.28158844765343
+        ]
+      ]
+    },
+    {
+      "audit_cell": 40,
+      "file_name": "images/hard_hat_workers3532.png",
+      "group_id": 2751,
+      "image_id": 2817,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          67,
+          416,
+          349
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 43,
+      "source_image_sha256": "84f64d7950e16a0bcc62a1188356ac6c64817d36869da2eaa5cf97de7d36a3bf",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          81.13475177304964,
+          70.73557692307693,
+          225.70212765957444
+        ],
+        [
+          287.7019230769231,
+          126.86524822695034,
+          386.5913461538462,
+          238.9787234042553
+        ]
+      ]
+    },
+    {
+      "audit_cell": 41,
+      "file_name": "images/hard_hat_workers2071.png",
+      "group_id": 1187,
+      "image_id": 1194,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          69,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 44,
+      "source_image_sha256": "bd62d89e1a114370bf73f5c9383058db6568a252d0ba2169236b6f0b0a83395e",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          356.7620192307692,
+          86.89530685920577,
+          406.18269230769226,
+          157.31046931407943
+        ],
+        [
+          175.55288461538458,
+          121.35379061371842,
+          223.4759615384615,
+          199.25992779783394
+        ],
+        [
+          263.9110576923077,
+          101.87725631768953,
+          326.81009615384613,
+          182.77978339350182
+        ],
+        [
+          37.77403846153845,
+          119.85559566787003,
+          90.18990384615384,
+          193.26714801444044
+        ],
+        [
+          232.46153846153845,
+          148.32129963898916,
+          260.91586538461536,
+          184.27797833935017
+        ],
+        [
+          392.7043269230769,
+          130.34296028880865,
+          416.0,
+          173.79061371841155
+        ]
+      ]
+    },
+    {
+      "audit_cell": 42,
+      "file_name": "images/hard_hat_workers2333.png",
+      "group_id": 1471,
+      "image_id": 1485,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          69,
+          0,
+          346,
+          416
+        ],
+        "detected_sides": [
+          "left",
+          "right"
+        ]
+      },
+      "primary_cell": 45,
+      "source_image_sha256": "7dd0f50baaa0d509abcd2a86a102a068013c775d4c59e471b675018d972c7620",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          146.8231046931408,
+          0.0,
+          311.6245487364621,
+          165.06971153846155
+        ]
+      ]
+    },
+    {
+      "audit_cell": 43,
+      "file_name": "images/hard_hat_workers3208.png",
+      "group_id": 2410,
+      "image_id": 2457,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          55,
+          416,
+          361
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 46,
+      "source_image_sha256": "f139384fdb2976f3397ccf6bb85eb9c81d6a0aa97f78baf5212753cfd22bc258",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          172.625,
+          1.3594771241830066,
+          331.8125,
+          182.16993464052288
+        ]
+      ]
+    },
+    {
+      "audit_cell": 44,
+      "file_name": "images/hard_hat_workers4592.png",
+      "group_id": 3869,
+      "image_id": 3994,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 47,
+      "source_image_sha256": "f83d48581951feb0fe402532846ee177a8d59914c03cc1b7873d120a80503bbf",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          32.394230769230774,
+          105.33333333333333,
+          67.08173076923077,
+          137.33333333333331
+        ],
+        [
+          172.4783653846154,
+          154.66666666666666,
+          200.49519230769232,
+          185.33333333333331
+        ],
+        [
+          340.5793269230769,
+          108.0,
+          379.2692307692308,
+          146.66666666666666
+        ],
+        [
+          408.6201923076923,
+          116.0,
+          416.0,
+          144.0
+        ]
+      ]
+    },
+    {
+      "audit_cell": 45,
+      "file_name": "images/hard_hat_workers484.png",
+      "group_id": 4124,
+      "image_id": 4269,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          72,
+          416,
+          343
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 48,
+      "source_image_sha256": "81e63bb49c5c04212242c390d40517f635240279e4cf9e8383f977716e267b9c",
+      "stratum": "positive_area_q4",
+      "truth_boxes": [
+        [
+          0.0,
+          98.00738007380073,
+          41.59375,
+          208.26568265682656
+        ],
+        [
+          173.28125,
+          90.35055350553505,
+          288.125,
+          209.7970479704797
+        ]
+      ]
+    },
+    {
+      "audit_cell": 46,
+      "file_name": "images/hard_hat_workers3386.png",
+      "group_id": 1062,
+      "image_id": 2654,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          63,
+          416,
+          352
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 49,
+      "source_image_sha256": "28ec5dd5a418e33b1e6d1215266dbe5283af2e381a7ee58a578310fb0830f921",
+      "stratum": "positive_area_q2",
+      "truth_boxes": [
+        [
+          135.31009615384613,
+          157.95847750865053,
+          184.10336538461536,
+          222.57785467128028
+        ],
+        [
+          300.3461538461538,
+          7.179930795847751,
+          359.18509615384613,
+          90.46712802768167
+        ],
+        [
+          27.677884615384613,
+          192.42214532871972,
+          60.68509615384613,
+          226.88581314878894
+        ],
+        [
+          240.07211538461536,
+          97.64705882352942,
+          273.0793269230769,
+          140.7266435986159
+        ],
+        [
+          415.15384615384613,
+          132.1107266435986,
+          416.0,
+          157.95847750865053
+        ]
+      ]
+    },
+    {
+      "audit_cell": 47,
+      "file_name": "images/hard_hat_workers352.png",
+      "group_id": 2738,
+      "image_id": 2803,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          70,
+          416,
+          346
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 51,
+      "source_image_sha256": "5db7116784f0ad82bdcfc3d65010e6ed40cd444ec2d0a2d6db9383c288f2d40a",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          304.9615384615385,
+          208.0,
+          338.1201923076923,
+          239.65217391304347
+        ],
+        [
+          395.3942307692308,
+          224.57971014492753,
+          416.0,
+          257.7391304347826
+        ],
+        [
+          271.80288461538464,
+          232.1159420289855,
+          295.9182692307692,
+          260.7536231884058
+        ],
+        [
+          188.90625,
+          241.15942028985506,
+          211.5144230769231,
+          266.7826086956522
+        ],
+        [
+          157.25480769230768,
+          229.1014492753623,
+          184.38461538461542,
+          257.7391304347826
+        ],
+        [
+          235.62980769230774,
+          239.65217391304347,
+          262.7596153846154,
+          268.28985507246375
+        ],
+        [
+          118.06730769230771,
+          220.05797101449275,
+          142.18269230769232,
+          245.68115942028987
+        ]
+      ]
+    },
+    {
+      "audit_cell": 48,
+      "file_name": "images/hard_hat_workers2936.png",
+      "group_id": 2120,
+      "image_id": 2154,
+      "input_normalization": {
+        "applied": true,
+        "crop_xyxy": [
+          0,
+          52,
+          416,
+          364
+        ],
+        "detected_sides": [
+          "top",
+          "bottom"
+        ]
+      },
+      "primary_cell": 57,
+      "source_image_sha256": "db0458aaa1b322fea76b4f52e068638181240d04e051d9cfceb2415e75f06d13",
+      "stratum": "positive_area_q1",
+      "truth_boxes": [
+        [
+          15.050480769230774,
+          229.33333333333331,
+          44.40144230769231,
+          260.0
+        ],
+        [
+          45.73557692307692,
+          213.33333333333331,
+          72.41826923076923,
+          244.0
+        ],
+        [
+          152.46634615384616,
+          218.66666666666666,
+          176.48076923076923,
+          244.0
+        ],
+        [
+          116.44471153846155,
+          229.33333333333331,
+          143.12740384615384,
+          252.0
+        ],
+        [
+          75.08653846153845,
+          222.66666666666666,
+          95.09855769230771,
+          245.33333333333331
+        ],
+        [
+          3.0432692307692264,
+          212.0,
+          29.725961538461547,
+          241.33333333333331
+        ],
+        [
+          208.5,
+          230.66666666666666,
+          227.17788461538464,
+          250.66666666666666
+        ],
+        [
+          393.94471153846155,
+          246.66666666666666,
+          409.95432692307696,
+          262.66666666666663
+        ]
+      ]
+    }
+  ],
+  "selected_images": 48,
+  "selected_stratum_counts": {
+    "dataset_gt_empty": 8,
+    "positive_area_q1": 10,
+    "positive_area_q2": 10,
+    "positive_area_q3": 10,
+    "positive_area_q4": 10
+  },
+  "selection_policy": "Accept the first valid GT-only cases in each frozen stratum order. A DATASET_GT_DEFECT or UNCERTAIN case is quarantined and replaced by the next preregistered case from the same stratum.",
+  "source_group_ids_reserved_from_training": [
+    63,
+    96,
+    156,
+    255,
+    263,
+    266,
+    311,
+    334,
+    341,
+    378,
+    387,
+    406,
+    474,
+    523,
+    533,
+    565,
+    566,
+    570,
+    594,
+    600,
+    626,
+    702,
+    721,
+    810,
+    1016,
+    1023,
+    1039,
+    1062,
+    1097,
+    1111,
+    1187,
+    1251,
+    1401,
+    1471,
+    1575,
+    1667,
+    1777,
+    1827,
+    1849,
+    1948,
+    1955,
+    2052,
+    2120,
+    2162,
+    2164,
+    2203,
+    2295,
+    2410,
+    2506,
+    2676,
+    2713,
+    2738,
+    2751,
+    2757,
+    2768,
+    2773,
+    2793,
+    2907,
+    2909,
+    2933,
+    2947,
+    2988,
+    3048,
+    3061,
+    3141,
+    3216,
+    3306,
+    3429,
+    3438,
+    3540,
+    3586,
+    3649,
+    3653,
+    3696,
+    3775,
+    3869,
+    3960,
+    4028,
+    4033,
+    4046,
+    4048,
+    4083,
+    4124,
+    4127,
+    4142,
+    4145,
+    4180,
+    4204,
+    4255,
+    4270,
+    4588,
+    4598,
+    4628,
+    4635,
+    4738,
+    4759
+  ],
+  "source_split": "Train",
+  "status": "v12_adjudicated_audit_frozen_before_model_inference",
+  "test_images_read": 0,
+  "valid_primary_surplus_cases": [
+    {
+      "file_name": "images/hard_hat_workers1507.png",
+      "group_id": 566,
+      "image_id": 567,
+      "primary_cell": 36,
+      "source_image_sha256": "2e732c68f0b1e4ff1d7ca718204bd54b249a8404704fad3494dd91145bdaf862",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers3827.png",
+      "group_id": 3061,
+      "image_id": 3144,
+      "primary_cell": 39,
+      "source_image_sha256": "7a5ad3c779cd41ac7a3afa7a5b6b697443432623178ee0e0c5cec7da35ff0822",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers2616.png",
+      "group_id": 1777,
+      "image_id": 1799,
+      "primary_cell": 42,
+      "source_image_sha256": "90eb331a2e5878911b67f6ffd4ead6716a57980c9fd028fcf710d55eaa81f49a",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers4186.png",
+      "group_id": 3438,
+      "image_id": 3543,
+      "primary_cell": 50,
+      "source_image_sha256": "39a6b543285e8735222133f0ee07e07c4c9e572f1e705d0984229f673ce09418",
+      "stratum": "positive_area_q2"
+    },
+    {
+      "file_name": "images/hard_hat_workers4842.png",
+      "group_id": 4127,
+      "image_id": 4272,
+      "primary_cell": 52,
+      "source_image_sha256": "8a3d0b11f6407e0669cce6dee0012632772319bb02d7f4ba21ff039f3416d7d9",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers1506.png",
+      "group_id": 565,
+      "image_id": 566,
+      "primary_cell": 54,
+      "source_image_sha256": "cee62c9e6ba7833fcae0046c5eb4b88717797247e79785961838630d492b6d86",
+      "stratum": "positive_area_q3"
+    },
+    {
+      "file_name": "images/hard_hat_workers4859.png",
+      "group_id": 4142,
+      "image_id": 4290,
+      "primary_cell": 55,
+      "source_image_sha256": "019bf9115208d51e6e762ad2d836778a08a015003e36f5469b6a1f73bc40139a",
+      "stratum": "positive_area_q4"
+    },
+    {
+      "file_name": "images/hard_hat_workers1914.png",
+      "group_id": 1016,
+      "image_id": 1019,
+      "primary_cell": 56,
+      "source_image_sha256": "8595f3209ccb23fc2b871449dfefffb2992af3f94b6ea3049db4886dd4c92a5f",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers4323.png",
+      "group_id": 3586,
+      "image_id": 3696,
+      "primary_cell": 58,
+      "source_image_sha256": "03760a9e5aef9fe6842fafd7b4ce86bad90f8b7d20bd7da8c1df7a3a46613569",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers3684.png",
+      "group_id": 2907,
+      "image_id": 2985,
+      "primary_cell": 59,
+      "source_image_sha256": "25335c504525fef3dcf14515ef5c908d0e2b880a57c81dc38c21dd833bd907a9",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers3539.png",
+      "group_id": 2757,
+      "image_id": 2824,
+      "primary_cell": 60,
+      "source_image_sha256": "6fcd87592f9dac7afe11894d9b76d5e5bf998d76a0c6bc4adc12bfd6de3564f8",
+      "stratum": "positive_area_q4"
+    },
+    {
+      "file_name": "images/hard_hat_workers4678.png",
+      "group_id": 3960,
+      "image_id": 4089,
+      "primary_cell": 61,
+      "source_image_sha256": "50244b39ec364d3d5f2f20106cd2a71c99f399e25424f3534bc87620ba7ab607",
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "file_name": "images/hard_hat_workers4747.png",
+      "group_id": 4028,
+      "image_id": 4166,
+      "primary_cell": 62,
+      "source_image_sha256": "e8773f4270c9064ca9345a6642cce3f04960ea4bdc024542e80533d93b56301a",
+      "stratum": "positive_area_q1"
+    },
+    {
+      "file_name": "images/hard_hat_workers227.png",
+      "group_id": 1401,
+      "image_id": 1414,
+      "primary_cell": 63,
+      "source_image_sha256": "321c18c3e658cd848c4c5de3c4db019c27f40aa97928747869a0886dbe85187f",
+      "stratum": "positive_area_q2"
+    }
+  ],
+  "valid_primary_surplus_images": 14,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

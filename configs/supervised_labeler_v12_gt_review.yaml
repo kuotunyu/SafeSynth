@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v12_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "adjudicated_audit_frozen_model_review_pending"
 source_split: "Train"
 split_seed: 20260913
 
@@ -94,8 +94,8 @@ review_stages:
 generation_gate:
   allowed: false
   reason: >-
-    The corrected GT-only adjudication and a separate fresh model review have
-    not completed.
+    The corrected GT-only adjudication passed, but a separate fresh model
+    review has not completed.
 
 freeze_outcome:
   status: "v12_gt_only_pool_frozen_before_pixel_review"
@@ -136,3 +136,41 @@ render_outcome:
     - path: "reports/figures/supervised_labeler_v12_gt_review/page_04.png"
       sha256: "c106c3960f0d2030460b288fac67b1d57c7d104e28e0ba575c438bc8624fd2c6"
       cells: [49, 64]
+
+gt_owner_review_outcome:
+  status: "v12_gt_only_primary_adjudicated"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  review_path: "reports/supervised_labeler_v12_gt_owner_review.json"
+  review_file_sha256: "a76456ce9d88fdda8c8aae2dcec13a5afc18b00aeb7065501231829d6b0f12e9"
+  review_sha256: "b001ff023c3fd3ff4cfd16be66d21d8b8178acc8f863cfcc725c8809494c8a62"
+  reviewed_images: 64
+  pass_images: 62
+  quarantined_images: 2
+  uncertain_edge_clipped_cells: [53, 64]
+  model_inference_run: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+adjudicated_audit_outcome:
+  status: "v12_adjudicated_audit_frozen_before_model_inference"
+  manifest_path: "splits/supervised_labeler_v12_adjudicated_audit.json"
+  manifest_file_sha256: "c62e83908a2ca2967178c5a4220cd1a528a891208fd8827a59d6cefb07ca99df"
+  manifest_sha256: "1681734f98cc7a428d9a2c45d33cf1132d1dd4f378fb3040afd75cf627947b0a"
+  selected_images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  valid_primary_surplus_images: 14
+  quarantined_primary_images: 2
+  sealed_reserve_images: 32
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false

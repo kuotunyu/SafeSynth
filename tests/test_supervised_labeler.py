@@ -19,6 +19,12 @@ from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
 )
+from scripts.record_supervised_labeler_v12_gt_review import (
+    AUDIT_PATH as V12_ADJUDICATED_AUDIT_PATH,
+)
+from scripts.record_supervised_labeler_v12_gt_review import (
+    OWNER_REVIEW_PATH as V12_GT_OWNER_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -645,6 +651,83 @@ def test_v12_gt_only_primary_review_contains_no_model_output() -> None:
     assert evidence["validation_images_read"] == 0
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
+
+
+def test_v12_gt_owner_review_quarantines_only_ambiguous_edge_cases() -> None:
+    if not V12_GT_OWNER_REVIEW_PATH.is_file():
+        pytest.skip("v12 GT-only owner review has not been recorded yet")
+    review = json.loads(
+        V12_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(review)
+    embedded_sha = canonical.pop("review_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert review["status"] == "v12_gt_only_primary_adjudicated"
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["reviewed_images"] == 64
+    assert review["pass_images"] == 62
+    assert review["quarantined_images"] == 2
+    assert review["categories"] == {
+        "dataset_gt_false_positive_cells": [],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [],
+        "uncertain_edge_clipped_cells": [53, 64],
+    }
+    assert {
+        int(row["cell"])
+        for row in review["decisions"]
+        if row["decision"] == "UNCERTAIN"
+    } == {53, 64}
+    assert review["model_boxes_present"] is False
+    assert review["model_inference_run"] is False
+    assert review["sealed_reserve_pixels_read"] == 0
+    assert review["validation_images_read"] == 0
+    assert review["test_images_read"] == 0
+    assert review["whole_image_generation_run"] is False
+
+
+def test_v12_adjudicated_audit_is_frozen_before_model_inference() -> None:
+    if not V12_ADJUDICATED_AUDIT_PATH.is_file():
+        pytest.skip("v12 adjudicated audit has not been frozen yet")
+    audit = json.loads(
+        V12_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(audit)
+    embedded_sha = canonical.pop("manifest_sha256")
+    selected = audit["selected_cases"]
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert audit["status"] == (
+        "v12_adjudicated_audit_frozen_before_model_inference"
+    )
+    assert audit["selected_images"] == 48
+    assert len(selected) == 48
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert len({int(row["image_id"]) for row in selected}) == 48
+    assert len({int(row["group_id"]) for row in selected}) == 48
+    assert {int(row["primary_cell"]) for row in selected}.isdisjoint(
+        {53, 64}
+    )
+    assert {
+        int(row["primary_cell"])
+        for row in audit["quarantined_primary_cases"]
+    } == {53, 64}
+    assert audit["valid_primary_surplus_images"] == 14
+    assert audit["sealed_reserve_images"] == 32
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert len(audit["source_group_ids_reserved_from_training"]) == 96
+    assert audit["model_boxes_present"] is False
+    assert audit["model_inference_run"] is False
+    assert audit["validation_images_read"] == 0
+    assert audit["test_images_read"] == 0
+    assert audit["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
