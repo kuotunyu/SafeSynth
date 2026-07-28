@@ -355,6 +355,9 @@ def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
     draw = ImageDraw.Draw(frozen)
     draw.rectangle((2, 2, 8, 8), outline=(0, 255, 0), width=2)
     draw.rectangle((11, 11, 18, 18), outline=(0, 255, 255), width=2)
+    draw.line((13, 11, 13, 15), fill=(0, 255, 255))
+    draw.line((2, 12, 4, 12), fill=(0, 255, 255))
+    draw.line((2, 12, 2, 16), fill=(0, 255, 255))
 
     mask = extract_model_marks(
         frozen_panel=frozen,
@@ -363,7 +366,25 @@ def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
 
     assert mask.getpixel((2, 2)) == 0
     assert mask.getpixel((11, 11)) == 255
+    assert mask.getpixel((13, 14)) == 0
+    assert mask.getpixel((2, 12)) == 0
     assert mask.getpixel((0, 0)) == 0
+
+
+def test_separated_review_keeps_narrow_and_clipped_model_boxes() -> None:
+    original = Image.new("RGB", (30, 30), "black")
+    frozen = original.copy()
+    draw = ImageDraw.Draw(frozen)
+    draw.rectangle((3, 5, 7, 18), outline=(0, 255, 255), width=2)
+    draw.line((20, 29, 29, 29), fill=(0, 255, 255), width=1)
+
+    mask = extract_model_marks(
+        frozen_panel=frozen,
+        original_panel=original,
+    )
+
+    assert mask.getpixel((3, 5)) == 255
+    assert mask.getpixel((20, 29)) == 255
 
 
 def test_separated_review_does_not_thicken_model_marks() -> None:

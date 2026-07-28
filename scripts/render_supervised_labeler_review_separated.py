@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
@@ -34,7 +35,7 @@ def extract_model_marks(
     frozen_panel: Image.Image,
     original_panel: Image.Image,
 ) -> Image.Image:
-    """Extract cyan model marks by differencing the frozen rendered panel."""
+    """Extract cyan model box lines without the nearby score glyphs."""
 
     frozen = np.asarray(frozen_panel.convert("RGB"), dtype=np.int16)
     original = np.asarray(original_panel.convert("RGB"), dtype=np.int16)
@@ -47,8 +48,52 @@ def extract_model_marks(
         & (frozen[..., 2] >= 135)
         & ((frozen[..., 1] + frozen[..., 2] - 2 * frozen[..., 0]) >= 160)
     )
-    mask = np.where(changed & cyan_like, 255, 0).astype(np.uint8)
-    return Image.fromarray(mask, mode="L")
+    raw = np.where(changed & cyan_like, 1, 0).astype(np.uint8)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        raw,
+        connectivity=8,
+    )
+    boxes_only = np.zeros_like(raw)
+    panel_height, panel_width = raw.shape
+    for component_id in range(1, count):
+        x, y, width, height, area = (
+            int(value) for value in stats[component_id]
+        )
+        component = (
+            labels[y : y + height, x : x + width] == component_id
+        )
+        side_coverages = (
+            float(component[0, :].mean()),
+            float(component[-1, :].mean()),
+            float(component[:, 0].mean()),
+            float(component[:, -1].mean()),
+        )
+        touches_panel_edge = (
+            x == 0
+            or y == 0
+            or x + width == panel_width
+            or y + height == panel_height
+        )
+        normal_box = width >= 7 and height >= 7
+        compact_rectangle = (
+            min(width, height) >= 4
+            and max(width, height) >= 5
+            and min(side_coverages) >= 0.75
+        )
+        clipped_box_line = (
+            touches_panel_edge
+            and max(width, height) >= 7
+            and area >= max(width, height)
+        )
+        if normal_box or compact_rectangle or clipped_box_line:
+            cv2.rectangle(
+                boxes_only,
+                (x, y),
+                (x + width - 1, y + height - 1),
+                color=255,
+                thickness=1,
+            )
+    return Image.fromarray(boxes_only, mode="L")
 
 
 def _draw_truth(
