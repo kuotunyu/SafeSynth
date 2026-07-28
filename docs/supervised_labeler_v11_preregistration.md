@@ -45,8 +45,12 @@ images. All source groups are disjoint. The split manifest SHA-256 is
 The CPU preflight read all training and calibration images and rehashed all
 three pinned model files. It found zero invalid transformed boxes. It read zero
 quarantined-image pixels, zero sealed-audit pixels, and zero Validation/Test
-images. No GPU work or whole-image generation ran. A one-batch GPU smoke is the
-next permitted action, followed by the frozen 12-epoch run.
+images. No GPU work or whole-image generation ran.
+
+The one-batch GPU smoke then completed with finite loss 287.36 and 9.316 GiB
+peak VRAM. It consumed 32 transformed helmet boxes from eight training images
+and read zero calibration, sealed-audit, Validation, or Test images. The frozen
+12-epoch run is now the next permitted action.
 
 The 48 new audit images may be read only once after training. Numeric success
 still cannot open generation: `kuotunyu` must inspect every exact-box review
