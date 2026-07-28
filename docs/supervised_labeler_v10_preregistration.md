@@ -67,3 +67,10 @@ All four revealed v9 problem images received the preregistered crop, including
 top/bottom removal for image IDs 345, 1124, and 3569 and left/right removal
 for image 1027. The R101 model files were rehashed, no GPU work ran, and
 whole-image generation remained locked.
+
+## Frozen GPU smoke outcome
+
+The preregistered batch-8 R101 smoke completed with finite loss 287.36 and
+9.316 GiB peak VRAM. It consumed 32 transformed helmet boxes from the first
+training batch and read zero calibration, sealed-audit, Validation, or Test
+images. Full v10 training may proceed.

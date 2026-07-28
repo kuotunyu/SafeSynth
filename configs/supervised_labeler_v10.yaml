@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v10"
-status: "cpu_preflight_passed_gpu_smoke_pending"
+status: "gpu_smoke_passed_full_training_ready"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260905
 training_seed: 20260809
@@ -187,8 +187,21 @@ cpu_preflight_outcome:
   gpu_work_run: false
   whole_image_generation_run: false
 
+gpu_smoke_outcome:
+  status: "smoke_passed"
+  report_path: "reports/supervised_labeler_v10_smoke.json"
+  report_file_sha256: "35598983aba1d51657b6c2b75532187a2354c9c8b4180570b5303fc81174a361"
+  batch_size: 8
+  helmet_boxes: 32
+  loss: 287.3628234863281
+  peak_vram_gib: 9.315727710723877
+  untouched_audit_images_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v10 passed CPU normalization preflight but has not passed GPU smoke, frozen
-    numeric audit, and zero-problem owner review. Generation remains locked.
+    v10 passed CPU normalization preflight and GPU smoke but has not passed
+    frozen numeric audit and zero-problem owner review. Generation remains
+    locked.
