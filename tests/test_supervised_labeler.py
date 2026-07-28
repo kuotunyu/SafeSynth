@@ -32,6 +32,12 @@ from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
     extract_model_boxes,
 )
+from scripts.run_supervised_labeler_v12_model_audit import (
+    EVIDENCE_PATH as V12_MODEL_AUDIT_EVIDENCE_PATH,
+)
+from scripts.run_supervised_labeler_v12_model_audit import (
+    REPORT_PATH as V12_MODEL_AUDIT_REPORT_PATH,
+)
 from scripts.train_supervised_labeler import (
     build_audit_evidence,
     select_calibration_candidate,
@@ -764,6 +770,59 @@ def test_v12_model_audit_registration_is_frozen_before_inference() -> None:
     assert registration["validation_images_read"] == 0
     assert registration["test_images_read"] == 0
     assert registration["whole_image_generation_run"] is False
+
+
+def test_v12_model_audit_uses_only_the_frozen_adjudicated_cases() -> None:
+    if not V12_MODEL_AUDIT_REPORT_PATH.is_file():
+        pytest.skip("v12 model audit has not run yet")
+    report = json.loads(
+        V12_MODEL_AUDIT_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V12_MODEL_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    audit = json.loads(
+        V12_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    config = yaml.safe_load(V12_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["model_audit_outcome"]
+    canonical_report = dict(report)
+    report_sha = canonical_report.pop("report_sha256")
+    canonical_evidence = dict(evidence)
+    evidence_sha = canonical_evidence.pop("evidence_sha256")
+
+    assert canonical_mapping_sha256(canonical_report) == report_sha
+    assert canonical_mapping_sha256(canonical_evidence) == evidence_sha
+    assert report["status"] == "v12_numeric_audit_passed_owner_review_pending"
+    assert all(report["checks"].values())
+    assert outcome["report_sha256"] == report["report_sha256"]
+    assert outcome["evidence_sha256"] == evidence["evidence_sha256"]
+    assert hashlib.sha256(
+        V12_MODEL_AUDIT_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert hashlib.sha256(
+        V12_MODEL_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["evidence_file_sha256"]
+    assert report["audit_manifest_sha256"] == audit["manifest_sha256"]
+    assert evidence["audit_manifest_sha256"] == audit["manifest_sha256"]
+    assert [row["image_id"] for row in evidence["cases"]] == [
+        row["image_id"] for row in audit["selected_cases"]
+    ]
+    assert [row["truth_boxes"] for row in evidence["cases"]] == [
+        row["truth_boxes"] for row in audit["selected_cases"]
+    ]
+    assert report["model_images_read"] == 48
+    assert evidence["model_images_read"] == 48
+    assert len(evidence["cases"]) == 48
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert len(report["pages"]) == 3
+    for page in report["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

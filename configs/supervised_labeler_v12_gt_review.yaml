@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v12_gt_review"
-status: "adjudicated_audit_frozen_model_review_pending"
+status: "numeric_audit_passed_owner_model_review_pending"
 source_split: "Train"
 split_seed: 20260913
 
@@ -94,8 +94,8 @@ review_stages:
 generation_gate:
   allowed: false
   reason: >-
-    The corrected GT-only adjudication passed, but a separate fresh model
-    review has not completed.
+    The corrected GT-only adjudication and numeric model audit passed, but the
+    separate owner review of the model boxes has not completed.
 
 freeze_outcome:
   status: "v12_gt_only_pool_frozen_before_pixel_review"
@@ -203,3 +203,40 @@ model_audit_registration:
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
+
+model_audit_outcome:
+  status: "v12_numeric_audit_passed_owner_review_pending"
+  report_path: "reports/supervised_labeler_v12_model_audit.json"
+  report_file_sha256: "155e5a54faf575df216f70a43ca1d01a510bca8ba2e6a896a8ede72d2f9aedb6"
+  report_sha256: "67b688064d2bc06ba6b167449a500af6f433369bdecaa1e4bee8fea551486df1"
+  evidence_path: "reports/supervised_labeler_v12_model_audit_evidence.json"
+  evidence_file_sha256: "740c47a3a4c6b85ea4c8ece3f2fb14472301b362b52db351d7b1454653d6ae60"
+  evidence_sha256: "f3770008bc6b1a73ab0e643bcf1ad65141a777c2ac51086203314e9211a0d25a"
+  model_images_read: 48
+  true_positives: 112
+  false_positives: 22
+  false_negatives: 11
+  precision: 0.835820895522388
+  recall: 0.9105691056910569
+  f1: 0.8715953307392997
+  median_matched_iou: 0.8698941405967063
+  checks:
+    precision: true
+    recall: true
+    median_matched_iou: true
+  peak_vram_gib: 1.1923856735229492
+  elapsed_seconds: 5.017476797103882
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+  pages:
+    - path: "reports/figures/supervised_labeler_v12_model_audit/page_01.png"
+      sha256: "e38893a93bae1a8ad663c27366e3153b87bde3541ff818dfe726720546e50d15"
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v12_model_audit/page_02.png"
+      sha256: "618cd6dcd95f7b117b9669a064dc364cf3445373da0a459f3190317234718edb"
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v12_model_audit/page_03.png"
+      sha256: "a7faf140b57facc52c7df2ecfd213f9f03288643c2286c681d78785a0ac2ca75"
+      cells: [33, 48]
