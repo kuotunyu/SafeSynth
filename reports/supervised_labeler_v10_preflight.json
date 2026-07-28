@@ -1,0 +1,136 @@
+{
+  "calibration": {
+    "detected_side_counts": {
+      "bottom": 477,
+      "left": 51,
+      "right": 50,
+      "top": 476
+    },
+    "images_becoming_empty": 4,
+    "images_read": 528,
+    "invalid_boxes": 0,
+    "normalized_images": 525,
+    "removed_helmet_annotations": 724,
+    "source_helmet_annotations": 2157,
+    "transformed_helmet_annotations": 1433
+  },
+  "config_path": "configs/supervised_labeler_v10.yaml",
+  "experiment_id": "supervised_labeler_v10",
+  "gpu_work_run": false,
+  "input_normalization": {
+    "guard": {
+      "action": "normalize_cover_crop",
+      "max_pad_fraction": 0.31,
+      "max_pair_mae": 3.0,
+      "min_pad_px": 8,
+      "min_pair_correlation": 0.97,
+      "min_texture_std": 5.0,
+      "orthogonal_sample_size": 64
+    },
+    "implementation": "src.synthetic.compose.normalize_reflected_padding",
+    "method": "reflected_padding_normalize_cover_crop",
+    "output_shape": "source_native",
+    "selection_basis": "All four v9 owner-failure images contain deterministic reflected padding. The v9 false-positive centers lie in mirrored border regions, and mirrored duplicates split confidence on missed central helmets. Reuse the already verified production normalization as the only model-facing v10 change.",
+    "transform_helmet_annotations": true
+  },
+  "model": {
+    "download_bytes": 307337786,
+    "files_rehashed": 3,
+    "repo_id": "PekingU/rtdetr_v2_r101vd",
+    "revision": "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  },
+  "sampling_weight_counts": {
+    "1.0": 787,
+    "2.0": 2106
+  },
+  "schema_version": 1,
+  "sealed_audit_pixels_read": 0,
+  "source_group_overlap": 0,
+  "split_manifest_sha256": "9b36cedc3c159614f668b5fafaa12ad33f36d8ff84d62aba69337e1097aa4d6b",
+  "split_path": "splits/supervised_labeler_v10_split.json",
+  "status": "cpu_normalization_preflight_passed_gpu_smoke_waiting",
+  "test_images_read": 0,
+  "training": {
+    "detected_side_counts": {
+      "bottom": 2558,
+      "left": 352,
+      "right": 349,
+      "top": 2547
+    },
+    "images_becoming_empty": 17,
+    "images_read": 2893,
+    "invalid_boxes": 0,
+    "normalized_images": 2875,
+    "removed_helmet_annotations": 3368,
+    "source_helmet_annotations": 10775,
+    "transformed_helmet_annotations": 7407
+  },
+  "v9_problem_images": {
+    "1027": {
+      "applied": true,
+      "crop_xyxy": [
+        69,
+        0,
+        346,
+        416
+      ],
+      "detected_sides": [
+        "left",
+        "right"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 3,
+      "transformed_helmet_annotations": 3
+    },
+    "1124": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        71,
+        416,
+        344
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 2,
+      "transformed_helmet_annotations": 1
+    },
+    "345": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        69,
+        416,
+        346
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 3,
+      "transformed_helmet_annotations": 3
+    },
+    "3569": {
+      "applied": true,
+      "crop_xyxy": [
+        0,
+        79,
+        416,
+        336
+      ],
+      "detected_sides": [
+        "top",
+        "bottom"
+      ],
+      "partition": "calibration",
+      "source_helmet_annotations": 4,
+      "transformed_helmet_annotations": 1
+    }
+  },
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

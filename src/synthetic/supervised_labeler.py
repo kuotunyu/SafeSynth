@@ -18,8 +18,8 @@ from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths
 
-CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
-SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v9_split.json"
+CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
+SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v10_split.json"
 
 
 def load_supervised_labeler_config(
@@ -57,6 +57,27 @@ def load_supervised_labeler_config(
         raise RuntimeError("Supervised labeler data boundary changed")
     if config["generation_gate"]["allowed"] is not False:
         raise RuntimeError("Generation cannot open before supervised audit")
+    input_normalization = config.get("input_normalization")
+    if input_normalization is not None:
+        expected_guard = {
+            "action": "normalize_cover_crop",
+            "min_pad_px": 8,
+            "max_pad_fraction": 0.31,
+            "orthogonal_sample_size": 64,
+            "max_pair_mae": 3.0,
+            "min_pair_correlation": 0.97,
+            "min_texture_std": 5.0,
+        }
+        if (
+            input_normalization.get("method")
+            != "reflected_padding_normalize_cover_crop"
+            or input_normalization.get("implementation")
+            != "src.synthetic.compose.normalize_reflected_padding"
+            or input_normalization.get("output_shape") != "source_native"
+            or input_normalization.get("transform_helmet_annotations") is not True
+            or input_normalization.get("guard") != expected_guard
+        ):
+            raise RuntimeError("Supervised input normalization changed")
     postprocessing = config.get("postprocessing")
     if postprocessing is not None:
         min_aspect_ratio = float(postprocessing.get("min_aspect_ratio", 0.0))

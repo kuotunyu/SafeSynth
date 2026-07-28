@@ -40,6 +40,7 @@ from src.synthetic.whole_image import (
 V7_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v7.yaml"
 V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
 V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
+V10_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
 
 
 def test_supervised_split_is_group_disjoint_and_deterministic() -> None:
@@ -197,6 +198,84 @@ def test_v9_frozen_split_seals_new_audit_from_v8_history() -> None:
     assert v9["untouched_audit_images"] == 48
     assert v9["validation_images_read"] == 0
     assert v9["test_images_read"] == 0
+
+
+def test_v10_frozen_split_seals_new_audit_from_v9_history() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    v9 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v9_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    v10 = json.loads(
+        (
+            PROJECT_ROOT / "splits" / "supervised_labeler_v10_split.json"
+        ).read_text(encoding="utf-8")
+    )
+    revealed = set(v9["calibration_image_ids"]) | set(
+        v9["untouched_audit_image_ids"]
+    )
+
+    assert config["status"] == "cpu_preflight_passed_gpu_smoke_pending"
+    assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
+    assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
+    assert config["split_manifest_sha256"] == v10["manifest_sha256"]
+    assert set(v10["calibration_image_ids"]) == revealed
+    assert set(v10["untouched_audit_image_ids"]).isdisjoint(revealed)
+    assert set(v10["training_group_ids"]).isdisjoint(
+        v10["calibration_group_ids"]
+    )
+    assert set(v10["training_group_ids"]).isdisjoint(
+        v10["untouched_audit_group_ids"]
+    )
+    assert set(v10["calibration_group_ids"]).isdisjoint(
+        v10["untouched_audit_group_ids"]
+    )
+    assert v10["training_images"] == 2893
+    assert v10["calibration_images"] == 528
+    assert v10["untouched_audit_images"] == 48
+    assert v10["validation_images_read"] == 0
+    assert v10["test_images_read"] == 0
+
+
+def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    path = PROJECT_ROOT / outcome["report_path"]
+    report = json.loads(path.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert report["status"] == (
+        "cpu_normalization_preflight_passed_gpu_smoke_waiting"
+    )
+    assert report["training"]["images_read"] == 2893
+    assert report["training"]["normalized_images"] == 2875
+    assert report["training"]["source_helmet_annotations"] == 10775
+    assert report["training"]["transformed_helmet_annotations"] == 7407
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 528
+    assert report["calibration"]["normalized_images"] == 525
+    assert report["calibration"]["source_helmet_annotations"] == 2157
+    assert report["calibration"]["transformed_helmet_annotations"] == 1433
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["sampling_weight_counts"] == {"1.0": 787, "2.0": 2106}
+    assert set(report["v9_problem_images"]) == {
+        "345",
+        "1027",
+        "1124",
+        "3569",
+    }
+    assert all(
+        record["applied"]
+        for record in report["v9_problem_images"].values()
+    )
+    assert report["sealed_audit_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
 
 
 def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:

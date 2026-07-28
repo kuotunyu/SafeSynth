@@ -1,0 +1,194 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v10"
+status: "cpu_preflight_passed_gpu_smoke_pending"
+architecture: "rtdetr_v2_r101vd_helmet_only"
+split_seed: 20260905
+training_seed: 20260809
+split_manifest_sha256: "9b36cedc3c159614f668b5fafaa12ad33f36d8ff84d62aba69337e1097aa4d6b"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r101vd"
+  revision: "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 307337786
+  allow_files:
+    config.json: 5342
+    model.safetensors: 307332000
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  prior_consumed_sets_become_calibration: true
+  prior_history_terminal_experiment: "supervised_labeler_v9"
+  new_untouched_audit_images: 48
+  exclude_complete_source_groups_from_training: true
+  validation_images_read: 0
+  test_images_read: 0
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  selection_basis: >-
+    All four v9 owner-failure images contain deterministic reflected padding.
+    The v9 false-positive centers lie in mirrored border regions, and mirrored
+    duplicates split confidence on missed central helmets. Reuse the already
+    verified production normalization as the only model-facing v10 change.
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 2.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 2.0
+  small_helmet_relative_area_max: 0.0075
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Freeze the v9 sampling policy. v10 changes only deterministic input
+    normalization, so hard-example sampling cannot also change.
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse the stable v1/v3/v6/v7/v8/v9 training seed"
+
+postprocessing:
+  max_relative_area: 0.14
+  max_relative_height: 0.40
+  min_aspect_ratio: 0.25
+  max_aspect_ratio: 4.0
+  selection_basis: >-
+    Freeze the v9 geometry policy. The v9 failure evidence supports an input
+    correction, not post-hoc geometry tuning.
+
+calibration:
+  score_thresholds:
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  precision_margin_basis: >-
+    Freeze the v9 threshold grid and precision floor. Post-hoc threshold 0.056
+    removes the two v9 owner false positives but also loses three additional
+    true positives, so it is not a complete repair.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_false_positive"
+    - "missed_helmet"
+    - "merged_multiple_helmets"
+    - "other_visual_failure"
+
+diagnostic_evidence:
+  owner_review:
+    source: "reports/supervised_labeler_v9_human_review.json"
+    file_sha256: "95b485eaf9893b72fe34b309bf4d027f67bd9657d4c4e8308711b9adb910280f"
+    evidence_sha256: "b9b14be99692aa51d5d16c0d2ca3e8278456b56d6ed073649ea2dd9a7bf3b44d"
+    problem_cells:
+      - 6
+      - 11
+      - 12
+      - 37
+  failure_diagnosis:
+    source: "reports/supervised_labeler_v9_review_diagnosis.json"
+    file_sha256: "1066221455ad03ad850ac992057f554871c913a116023a8df85246f4c9a106a8"
+    owner_false_positive_boxes: 2
+    below_score_threshold_instances: 4
+    threshold_and_geometry_blocked_instances: 2
+    max_owner_false_positive_score: 0.055908203125
+    false_positives_at_threshold_0_01: 1675
+  reflection_diagnosis:
+    source: "reports/supervised_labeler_v9_reflection_diagnosis.json"
+    file_sha256: "46e8881d1dbe9290787187d2210e2eefea9409dcbdaf9327660ecc8637aaeeec"
+    all_problem_images_reflection_detected: true
+    false_positive_centers_outside_clean_crop: 2
+    missed_truth_centers_inside_clean_crop: 3
+  eligible_for_v10_gate: false
+
+model_change:
+  from: "raw_source_pixels_and_boxes"
+  to: "reflection_normalized_source_pixels_and_transformed_boxes"
+  selection_basis: >-
+    The v9 owner failures all share reflected padding. Normalize detected
+    mirrored borders before both training and evaluation, transform helmet
+    boxes through the identical crop-resize mapping, and preserve the R101
+    model plus every optimizer, sampler, calibration, geometry, and gate rule.
+
+cpu_preflight_outcome:
+  status: "cpu_normalization_preflight_passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v10_preflight.json"
+  report_file_sha256: "1636a685c7d8affc533832e3bcbd4f1d00e4fd8934a252f36c19013f9e5ac494"
+  training_images_read: 2893
+  training_images_normalized: 2875
+  training_source_helmet_annotations: 10775
+  training_transformed_helmet_annotations: 7407
+  training_invalid_boxes: 0
+  calibration_images_read: 528
+  calibration_images_normalized: 525
+  calibration_source_helmet_annotations: 2157
+  calibration_transformed_helmet_annotations: 1433
+  calibration_invalid_boxes: 0
+  sealed_audit_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
+  whole_image_generation_run: false
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v10 passed CPU normalization preflight but has not passed GPU smoke, frozen
+    numeric audit, and zero-problem owner review. Generation remains locked.

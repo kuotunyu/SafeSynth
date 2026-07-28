@@ -25,7 +25,11 @@ from transformers import (
 )
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
-from src.synthetic.compose import _load_context
+from src.synthetic.compose import (
+    _load_context,
+    normalize_reflected_padding,
+    reflected_padding_guard,
+)
 from src.synthetic.grounded_labeler import greedy_detection_metrics
 from src.synthetic.supervised_labeler import (
     CONFIG_PATH,
@@ -73,12 +77,14 @@ class HelmetDataset(Dataset):
         annotations: Mapping[int, Sequence[Mapping[str, Any]]],
         image_root: Path,
         helmet_category_id: int,
+        input_normalization: Mapping[str, Any] | None = None,
     ) -> None:
         self.image_ids = [int(value) for value in image_ids]
         self.images = images
         self.annotations = annotations
         self.image_root = image_root
         self.helmet_category_id = int(helmet_category_id)
+        self.input_normalization = input_normalization
 
     def __len__(self) -> int:
         return len(self.image_ids)
@@ -89,13 +95,45 @@ class HelmetDataset(Dataset):
         path = self.image_root / str(image_record["file_name"])
         with Image.open(path) as handle:
             image = handle.convert("RGB").copy()
+        helmet_annotations = [
+            dict(annotation)
+            for annotation in self.annotations[image_id]
+            if int(annotation["category_id"]) == self.helmet_category_id
+        ]
+        normalization_record = {
+            "applied": False,
+            "detected_sides": [],
+            "crop_xyxy": [0, 0, image.width, image.height],
+        }
+        if self.input_normalization is not None:
+            image_rgb = np.asarray(image, dtype=np.uint8)
+            reflection = reflected_padding_guard(
+                image_rgb,
+                guard_config=self.input_normalization["guard"],
+            )
+            normalized, transformed, _, normalization = (
+                normalize_reflected_padding(
+                    image_rgb,
+                    annotations=helmet_annotations,
+                    pass1={
+                        int(annotation["id"]): {}
+                        for annotation in helmet_annotations
+                    },
+                    reflection=reflection,
+                    output_shape=image_rgb.shape[:2],
+                    transform_masks=False,
+                )
+            )
+            image = Image.fromarray(normalized, mode="RGB")
+            helmet_annotations = list(transformed)
+            normalization_record = {
+                "applied": bool(normalization.applied),
+                "detected_sides": list(normalization.detected_sides),
+                "crop_xyxy": list(normalization.crop_xyxy),
+            }
         coco_annotations = []
         truth = []
-        for annotation_index, annotation in enumerate(
-            self.annotations[image_id]
-        ):
-            if int(annotation["category_id"]) != self.helmet_category_id:
-                continue
+        for annotation_index, annotation in enumerate(helmet_annotations):
             box = [float(value) for value in annotation["bbox"]]
             coco_annotations.append(
                 {
@@ -116,6 +154,7 @@ class HelmetDataset(Dataset):
                 "annotations": coco_annotations,
             },
             "truth": truth,
+            "input_normalization": normalization_record,
         }
 
 
@@ -555,6 +594,7 @@ def _build_datasets(
             annotations=annotations,
             image_root=paths.hardhat_raw,
             helmet_category_id=helmet_category_id,
+            input_normalization=config.get("input_normalization"),
         )
 
     return (
