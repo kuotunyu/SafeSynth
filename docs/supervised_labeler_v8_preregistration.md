@@ -55,3 +55,27 @@ generation remained zero. The checkpoint SHA-256 is
 `b546c10603abe61bd5e65200e55f29b25fc7874499c309d4cac6b67b84dfb914`.
 Numeric success does not open generation; the exact 48-case owner review
 remains mandatory.
+
+## Frozen owner-review outcome
+
+`kuotunyu` reviewed the exact frozen 48-case pages and rejected v8 on
+2026-07-28. Cells 01, 06, and 10 contain magenta boxes on background, faces,
+or other non-helmet objects. Cells 16 and 42 contain real helmets without
+magenta boxes. Cell 41 is a severe localization failure: the displayed box
+covers only about half of the helmet. The canonical review evidence is
+`reports/supervised_labeler_v8_human_review.json`, with evidence SHA-256
+`c1f32644f4d2e1f7f8b9e8d9e85820c2b3995d82b52600ce60548893ba5f3f2c`.
+The generation gate remains closed.
+
+The post-review GPU diagnosis read only the now-revealed 48-image Train
+audit. It confirmed four false-positive boxes across the three
+owner-reported false-positive cells. Cell 16 has two correctly localized raw
+candidates below the frozen 0.035 score threshold. Cell 42 has no matching
+localization. Cell 41's displayed partial box has IoU 0.333, while a second
+complete raw candidate has IoU 0.920 but falls below the score threshold and
+also exceeds the frozen geometry limit.
+
+A global threshold change cannot repair v8: removing the highest-score
+owner-reported false positive requires threshold 0.083, which drops revealed
+audit recall from 0.8677 to 0.0847. These consumed-set results may motivate a
+new preregistered experiment but cannot pass a gate.

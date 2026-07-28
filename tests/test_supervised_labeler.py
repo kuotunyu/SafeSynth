@@ -142,7 +142,7 @@ def test_v8_frozen_split_seals_new_audit_from_v7_history() -> None:
         v7["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert config["split_manifest_sha256"] == v8["manifest_sha256"]
     assert set(v8["calibration_image_ids"]) == revealed
     assert set(v8["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -287,7 +287,7 @@ def test_v8_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     )
     evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert report["checks"] == {
         "audit_median_matched_iou": True,
@@ -377,6 +377,76 @@ def test_v7_owner_review_rejection_is_canonical_and_generation_stays_closed() ->
     assert evidence["validation_images_read"] == 0
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
+
+
+def test_v8_owner_review_rejection_is_canonical_and_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V8_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["evidence_path"]
+    evidence = json.loads(path.read_text(encoding="utf-8"))
+
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    assert embedded_sha == human_review_evidence_sha256(canonical)
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert evidence["status"] == "rejected_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == [1, 6, 10, 16, 41, 42]
+    assert evidence["problem_count"] == 6
+    assert outcome["categories"] == {
+        "background_or_other_false_positive": [1, 6, 10],
+        "missed_helmet": [16, 42],
+        "severe_localization_failure": [41],
+    }
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+
+
+def test_v8_revealed_diagnosis_freezes_owner_failure_causes() -> None:
+    config = load_supervised_labeler_config(V8_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["diagnosis_path"]
+    diagnosis = json.loads(path.read_text(encoding="utf-8"))
+    file_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    cases = {int(case["cell"]): case for case in diagnosis["problem_cases"]}
+    threshold_grid = {
+        float(row["threshold"]): row for row in diagnosis["threshold_grid"]
+    }
+
+    assert file_sha == outcome["diagnosis_file_sha256"]
+    assert diagnosis["eligible_for_generation_gate"] is False
+    assert diagnosis["problem_cells"] == [1, 6, 10, 16, 41, 42]
+    assert diagnosis["owner_category_counts"] == {
+        "background_or_other_false_positive": 3,
+        "missed_helmet": 2,
+        "severe_localization_failure": 1,
+    }
+    assert diagnosis["automatic_miss_reason_counts"] == {
+        "below_score_threshold_and_removed_by_geometry_filter": 1,
+        "matching_box_below_frozen_score_threshold": 3,
+        "no_matching_localization": 2,
+    }
+    assert diagnosis["max_owner_false_positive_score"] == pytest.approx(
+        0.08251953125
+    )
+    assert len(cases[1]["accepted_false_positives"]) == 1
+    assert len(cases[6]["accepted_false_positives"]) == 1
+    assert len(cases[10]["accepted_false_positives"]) == 2
+    assert cases[41]["owner_category"] == "severe_localization_failure"
+    assert cases[41]["accepted_false_positives"][0][
+        "best_truth_iou"
+    ] == pytest.approx(0.3333147110294451)
+    assert cases[41]["misses"][0]["best_raw_candidate"][
+        "iou"
+    ] == pytest.approx(0.9195399122723662)
+    assert threshold_grid[0.083]["recall"] == pytest.approx(
+        0.08465608465608465
+    )
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
 
 
 def test_v7_revealed_diagnoses_freeze_geometry_and_low_score_causes() -> None:

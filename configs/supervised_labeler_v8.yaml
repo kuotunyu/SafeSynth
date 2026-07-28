@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v8"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260822
 training_seed: 20260809
@@ -165,8 +165,39 @@ numeric_audit_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-28"
+  problem_count: 6
+  problem_cells:
+    - 1
+    - 6
+    - 10
+    - 16
+    - 41
+    - 42
+  categories:
+    background_or_other_false_positive:
+      - 1
+      - 6
+      - 10
+    missed_helmet:
+      - 16
+      - 42
+    severe_localization_failure:
+      - 41
+  evidence_path: "reports/supervised_labeler_v8_human_review.json"
+  evidence_sha256: "c1f32644f4d2e1f7f8b9e8d9e85820c2b3995d82b52600ce60548893ba5f3f2c"
+  diagnosis_path: "reports/supervised_labeler_v8_review_diagnosis.json"
+  diagnosis_file_sha256: "0a4a240669e418cb34b807607a8ab38c770a232880620cf055c099e4476dcd83"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v8 passed every frozen numeric gate, but generation remains locked until
-    kuotunyu completes the owner-only 48-case human review with zero problems.
+    v8 passed every frozen numeric gate, but kuotunyu found false positives,
+    missed helmets, and one severe localization failure in six of the 48
+    owner-review cells. Generation remains locked.
