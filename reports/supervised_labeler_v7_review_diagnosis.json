@@ -1,0 +1,305 @@
+{
+  "checkpoint_sha256": "4ae6f96c22fd818bac826b21c1400e9a92856772d3486e60a68a97a873d2fd72",
+  "eligible_for_generation_gate": false,
+  "experiment_id": "supervised_labeler_v7",
+  "frozen_threshold": 0.023,
+  "problem_cases": [
+    {
+      "cell": 8,
+      "image_id": 1039,
+      "misses": [
+        {
+          "best_raw_candidate_box": [
+            78.62374877929688,
+            68.50611877441406,
+            201.54579162597656,
+            196.70281982421875
+          ],
+          "best_raw_candidate_geometry_kept": false,
+          "best_raw_candidate_iou": 0.959563086896805,
+          "best_raw_candidate_score": 0.055908203125,
+          "reason": "removed_by_frozen_geometry_filter",
+          "truth_box": [
+            80.0,
+            68.0,
+            200.0,
+            195.0
+          ],
+          "truth_index": 0
+        }
+      ],
+      "owner_category": "missed_helmet",
+      "unmatched_truth_count": 1
+    },
+    {
+      "cell": 11,
+      "image_id": 1282,
+      "misses": [
+        {
+          "best_raw_candidate_box": [
+            100.68551635742188,
+            125.85100555419922,
+            216.24771118164062,
+            237.26889038085938
+          ],
+          "best_raw_candidate_geometry_kept": true,
+          "best_raw_candidate_iou": 0.8668699754088484,
+          "best_raw_candidate_score": 0.005218505859375,
+          "reason": "removed_by_frozen_geometry_filter",
+          "truth_box": [
+            108.0,
+            120.0,
+            219.0,
+            238.0
+          ],
+          "truth_index": 0
+        }
+      ],
+      "owner_category": "missed_helmet",
+      "unmatched_truth_count": 1
+    },
+    {
+      "cell": 13,
+      "image_id": 1357,
+      "misses": [
+        {
+          "best_raw_candidate_box": [
+            109.8602294921875,
+            68.33939361572266,
+            250.7323760986328,
+            233.27517700195312
+          ],
+          "best_raw_candidate_geometry_kept": false,
+          "best_raw_candidate_iou": 0.8343895396392321,
+          "best_raw_candidate_score": 0.064453125,
+          "reason": "removed_by_frozen_geometry_filter",
+          "truth_box": [
+            103.0,
+            70.0,
+            236.0,
+            231.0
+          ],
+          "truth_index": 0
+        }
+      ],
+      "owner_category": "missed_helmet",
+      "unmatched_truth_count": 1
+    },
+    {
+      "cell": 36,
+      "image_id": 3920,
+      "misses": [
+        {
+          "best_raw_candidate_box": [
+            62.38679885864258,
+            95.68818664550781,
+            171.97769165039062,
+            224.61471557617188
+          ],
+          "best_raw_candidate_geometry_kept": false,
+          "best_raw_candidate_iou": 0.9250872636502034,
+          "best_raw_candidate_score": 0.06103515625,
+          "reason": "removed_by_frozen_geometry_filter",
+          "truth_box": [
+            65.0,
+            97.0,
+            170.0,
+            228.0
+          ],
+          "truth_index": 0
+        },
+        {
+          "best_raw_candidate_box": [
+            355.44671630859375,
+            80.14796447753906,
+            414.5801696777344,
+            240.15711975097656
+          ],
+          "best_raw_candidate_geometry_kept": false,
+          "best_raw_candidate_iou": 0.8297723337715862,
+          "best_raw_candidate_score": 0.068359375,
+          "reason": "removed_by_frozen_geometry_filter",
+          "truth_box": [
+            352.0,
+            77.0,
+            415.0,
+            258.0
+          ],
+          "truth_index": 1
+        }
+      ],
+      "owner_category": "missed_helmet",
+      "unmatched_truth_count": 2
+    },
+    {
+      "cell": 39,
+      "image_id": 4236,
+      "misses": [
+        {
+          "best_raw_candidate_box": [
+            92.93609619140625,
+            154.0623779296875,
+            117.98059844970703,
+            177.90475463867188
+          ],
+          "best_raw_candidate_geometry_kept": true,
+          "best_raw_candidate_iou": 0.550341435328495,
+          "best_raw_candidate_score": 0.005218505859375,
+          "reason": "matching_box_below_frozen_score_threshold",
+          "truth_box": [
+            90.0,
+            143.0,
+            121.0,
+            178.0
+          ],
+          "truth_index": 1
+        }
+      ],
+      "owner_category": "missed_helmet",
+      "unmatched_truth_count": 1
+    }
+  ],
+  "problem_cells": [
+    8,
+    11,
+    13,
+    36,
+    39
+  ],
+  "problem_instances": 6,
+  "reason": "The 48 audit images were revealed to kuotunyu. This diagnosis may motivate a new preregistered experiment but cannot pass a gate.",
+  "reason_counts": {
+    "matching_box_below_frozen_score_threshold": 1,
+    "removed_by_frozen_geometry_filter": 5
+  },
+  "reproduced_frozen_audit_metrics": {
+    "f1": 0.9309462915601023,
+    "false_negatives": 19,
+    "false_positives": 8,
+    "median_matched_iou": 0.8511458832997453,
+    "precision": 0.9578947368421052,
+    "recall": 0.9054726368159204,
+    "true_positives": 182
+  },
+  "revealed_audit_images_read": 48,
+  "review_evidence_sha256": "757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6",
+  "schema_version": 1,
+  "score_floor": 0.001,
+  "source_split_manifest_sha256": "5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef",
+  "status": "diagnostic_on_revealed_v7_train_only_audit",
+  "test_images_read": 0,
+  "threshold_grid": [
+    {
+      "f1": 0.08396946564885496,
+      "false_negatives": 3,
+      "false_positives": 4317,
+      "median_matched_iou": 0.8474034469253297,
+      "precision": 0.043853820598006646,
+      "recall": 0.9850746268656716,
+      "threshold": 0.001,
+      "true_positives": 198
+    },
+    {
+      "f1": 0.08519793459552495,
+      "false_negatives": 3,
+      "false_positives": 4249,
+      "median_matched_iou": 0.8474034469253297,
+      "precision": 0.044524398470879245,
+      "recall": 0.9850746268656716,
+      "threshold": 0.002,
+      "true_positives": 198
+    },
+    {
+      "f1": 0.23649459783913565,
+      "false_negatives": 4,
+      "false_positives": 1268,
+      "median_matched_iou": 0.8475537707734497,
+      "precision": 0.13447098976109215,
+      "recall": 0.9800995024875622,
+      "threshold": 0.005,
+      "true_positives": 197
+    },
+    {
+      "f1": 0.7958333333333333,
+      "false_negatives": 10,
+      "false_positives": 88,
+      "median_matched_iou": 0.847616011050751,
+      "precision": 0.6845878136200717,
+      "recall": 0.9502487562189055,
+      "threshold": 0.01,
+      "true_positives": 191
+    },
+    {
+      "f1": 0.9095354523227384,
+      "false_negatives": 15,
+      "false_positives": 22,
+      "median_matched_iou": 0.8500372702751996,
+      "precision": 0.8942307692307693,
+      "recall": 0.9253731343283582,
+      "threshold": 0.015,
+      "true_positives": 186
+    },
+    {
+      "f1": 0.9292929292929293,
+      "false_negatives": 17,
+      "false_positives": 11,
+      "median_matched_iou": 0.8500372702751996,
+      "precision": 0.9435897435897436,
+      "recall": 0.9154228855721394,
+      "threshold": 0.02,
+      "true_positives": 184
+    },
+    {
+      "f1": 0.9309462915601023,
+      "false_negatives": 19,
+      "false_positives": 8,
+      "median_matched_iou": 0.8511458832997453,
+      "precision": 0.9578947368421052,
+      "recall": 0.9054726368159204,
+      "threshold": 0.023,
+      "true_positives": 182
+    },
+    {
+      "f1": 0.9333333333333332,
+      "false_negatives": 19,
+      "false_positives": 7,
+      "median_matched_iou": 0.8511458832997453,
+      "precision": 0.9629629629629629,
+      "recall": 0.9054726368159204,
+      "threshold": 0.025,
+      "true_positives": 182
+    },
+    {
+      "f1": 0.9105263157894737,
+      "false_negatives": 28,
+      "false_positives": 6,
+      "median_matched_iou": 0.8523418279874274,
+      "precision": 0.9664804469273743,
+      "recall": 0.8606965174129353,
+      "threshold": 0.03,
+      "true_positives": 173
+    },
+    {
+      "f1": 0.7047619047619047,
+      "false_negatives": 90,
+      "false_positives": 3,
+      "median_matched_iou": 0.8613113845095879,
+      "precision": 0.9736842105263158,
+      "recall": 0.5522388059701493,
+      "threshold": 0.04,
+      "true_positives": 111
+    },
+    {
+      "f1": 0.41106719367588934,
+      "false_negatives": 149,
+      "false_positives": 0,
+      "median_matched_iou": 0.8507445878810673,
+      "precision": 1.0,
+      "recall": 0.25870646766169153,
+      "threshold": 0.05,
+      "true_positives": 52
+    }
+  ],
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

@@ -71,3 +71,22 @@ All three numeric gates passed. The checkpoint SHA-256 is
 Validation/Test reads and whole-image generation remained zero. Numeric success
 does not open generation; the exact 48-case review still requires a zero-problem
 decision from `kuotunyu`.
+
+## Frozen owner-review outcome
+
+`kuotunyu` reviewed the exact frozen 48-case pages and rejected v7 on
+2026-07-28. Cells 08, 11, 13, 36, and 39 contain real helmets without
+corresponding magenta model boxes. The canonical review evidence is
+`reports/supervised_labeler_v7_human_review.json`, with evidence SHA-256
+`757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6`.
+The generation gate remains closed.
+
+The post-review GPU diagnosis used only the now-revealed 48-image Train audit.
+Five of the six missed helmet instances had a matching high-score box removed
+by the frozen geometry filter; the remaining very small helmet had only a
+0.0052 matching score. A second diagnostic over all 432 revealed Train
+calibration/audit images selected the smallest round-number relaxation that
+recovers all five geometry-filtered misses: maximum relative area 0.14 and
+maximum relative height 0.40. At the unchanged calibration-selected threshold
+0.023, the revealed v7 audit precision remained 0.9541 and recall rose to
+0.9303. These consumed-set results may preregister v8 but cannot pass a gate.

@@ -1,0 +1,585 @@
+{
+  "candidate_grid": [
+    {
+      "calibration_metrics": {
+        "f1": 0.8982229402261712,
+        "false_negatives": 183,
+        "false_positives": 132,
+        "median_matched_iou": 0.8447616633484658,
+        "precision": 0.9132720105124835,
+        "recall": 0.8836617927527018,
+        "true_positives": 1390
+      },
+      "geometry_misses_recovered": 0,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.35,
+      "owner_misses_recovered": 0,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9309462915601023,
+        "false_negatives": 19,
+        "false_positives": 8,
+        "median_matched_iou": 0.8511458832997453,
+        "precision": 0.9578947368421052,
+        "recall": 0.9054726368159204,
+        "true_positives": 182
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8979328165374677,
+        "false_negatives": 183,
+        "false_positives": 133,
+        "median_matched_iou": 0.8447616633484658,
+        "precision": 0.912672357189757,
+        "recall": 0.8836617927527018,
+        "true_positives": 1390
+      },
+      "geometry_misses_recovered": 1,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.4,
+      "owner_misses_recovered": 1,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9336734693877551,
+        "false_negatives": 18,
+        "false_positives": 8,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9581151832460733,
+        "recall": 0.9104477611940298,
+        "true_positives": 183
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8979328165374677,
+        "false_negatives": 183,
+        "false_positives": 133,
+        "median_matched_iou": 0.8447616633484658,
+        "precision": 0.912672357189757,
+        "recall": 0.8836617927527018,
+        "true_positives": 1390
+      },
+      "geometry_misses_recovered": 1,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.45,
+      "owner_misses_recovered": 1,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9336734693877551,
+        "false_negatives": 18,
+        "false_positives": 8,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9581151832460733,
+        "recall": 0.9104477611940298,
+        "true_positives": 183
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8979328165374677,
+        "false_negatives": 183,
+        "false_positives": 133,
+        "median_matched_iou": 0.8447616633484658,
+        "precision": 0.912672357189757,
+        "recall": 0.8836617927527018,
+        "true_positives": 1390
+      },
+      "geometry_misses_recovered": 1,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.08,
+      "max_relative_height": 0.5,
+      "owner_misses_recovered": 1,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9336734693877551,
+        "false_negatives": 18,
+        "false_positives": 8,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9581151832460733,
+        "recall": 0.9104477611940298,
+        "true_positives": 183
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.898840206185567,
+        "false_negatives": 178,
+        "false_positives": 136,
+        "median_matched_iou": 0.8449516101765493,
+        "precision": 0.9111691704768126,
+        "recall": 0.8868404322949778,
+        "true_positives": 1395
+      },
+      "geometry_misses_recovered": 2,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.1,
+      "max_relative_height": 0.35,
+      "owner_misses_recovered": 2,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9363867684478373,
+        "false_negatives": 17,
+        "false_positives": 8,
+        "median_matched_iou": 0.8521733280982675,
+        "precision": 0.9583333333333334,
+        "recall": 0.9154228855721394,
+        "true_positives": 184
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8985507246376812,
+        "false_negatives": 178,
+        "false_positives": 137,
+        "median_matched_iou": 0.8449516101765493,
+        "precision": 0.910574412532637,
+        "recall": 0.8868404322949778,
+        "true_positives": 1395
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.1,
+      "max_relative_height": 0.4,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9390862944162437,
+        "false_negatives": 16,
+        "false_positives": 8,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9585492227979274,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8985507246376812,
+        "false_negatives": 178,
+        "false_positives": 137,
+        "median_matched_iou": 0.8449516101765493,
+        "precision": 0.910574412532637,
+        "recall": 0.8868404322949778,
+        "true_positives": 1395
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.1,
+      "max_relative_height": 0.45,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9390862944162437,
+        "false_negatives": 16,
+        "false_positives": 8,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9585492227979274,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8982614294913072,
+        "false_negatives": 178,
+        "false_positives": 138,
+        "median_matched_iou": 0.8449516101765493,
+        "precision": 0.9099804305283757,
+        "recall": 0.8868404322949778,
+        "true_positives": 1395
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.1,
+      "max_relative_height": 0.5,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9390862944162437,
+        "false_negatives": 16,
+        "false_positives": 8,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9585492227979274,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8980379543261499,
+        "false_negatives": 177,
+        "false_positives": 140,
+        "median_matched_iou": 0.8449752589205203,
+        "precision": 0.9088541666666666,
+        "recall": 0.8874761602034329,
+        "true_positives": 1396
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.12,
+      "max_relative_height": 0.35,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9367088607594938,
+        "false_negatives": 16,
+        "false_positives": 9,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9536082474226805,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.898876404494382,
+        "false_negatives": 173,
+        "false_positives": 142,
+        "median_matched_iou": 0.8450813531960302,
+        "precision": 0.9079118028534371,
+        "recall": 0.8900190718372537,
+        "true_positives": 1400
+      },
+      "geometry_misses_recovered": 4,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.12,
+      "max_relative_height": 0.4,
+      "owner_misses_recovered": 4,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9393939393939394,
+        "false_negatives": 15,
+        "false_positives": 9,
+        "median_matched_iou": 0.8511458832997453,
+        "precision": 0.9538461538461539,
+        "recall": 0.9253731343283582,
+        "true_positives": 186
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.898876404494382,
+        "false_negatives": 173,
+        "false_positives": 142,
+        "median_matched_iou": 0.8450813531960302,
+        "precision": 0.9079118028534371,
+        "recall": 0.8900190718372537,
+        "true_positives": 1400
+      },
+      "geometry_misses_recovered": 4,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.12,
+      "max_relative_height": 0.45,
+      "owner_misses_recovered": 4,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9393939393939394,
+        "false_negatives": 15,
+        "false_positives": 9,
+        "median_matched_iou": 0.8511458832997453,
+        "precision": 0.9538461538461539,
+        "recall": 0.9253731343283582,
+        "true_positives": 186
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8985879332477537,
+        "false_negatives": 173,
+        "false_positives": 143,
+        "median_matched_iou": 0.8450813531960302,
+        "precision": 0.9073233959818535,
+        "recall": 0.8900190718372537,
+        "true_positives": 1400
+      },
+      "geometry_misses_recovered": 4,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.12,
+      "max_relative_height": 0.5,
+      "owner_misses_recovered": 4,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9393939393939394,
+        "false_negatives": 15,
+        "false_positives": 9,
+        "median_matched_iou": 0.8511458832997453,
+        "precision": 0.9538461538461539,
+        "recall": 0.9253731343283582,
+        "true_positives": 186
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8975265017667844,
+        "false_negatives": 176,
+        "false_positives": 143,
+        "median_matched_iou": 0.8449989076644913,
+        "precision": 0.9071428571428571,
+        "recall": 0.8881118881118881,
+        "true_positives": 1397
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.14,
+      "max_relative_height": 0.35,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9367088607594938,
+        "false_negatives": 16,
+        "false_positives": 9,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9536082474226805,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8987828315182576,
+        "false_negatives": 170,
+        "false_positives": 146,
+        "median_matched_iou": 0.8451637987275692,
+        "precision": 0.9057456423499032,
+        "recall": 0.8919262555626192,
+        "true_positives": 1403
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.14,
+      "max_relative_height": 0.4,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8987828315182576,
+        "false_negatives": 170,
+        "false_positives": 146,
+        "median_matched_iou": 0.8451637987275692,
+        "precision": 0.9057456423499032,
+        "recall": 0.8919262555626192,
+        "true_positives": 1403
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.14,
+      "max_relative_height": 0.45,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.898495036823567,
+        "false_negatives": 170,
+        "false_positives": 147,
+        "median_matched_iou": 0.8451637987275692,
+        "precision": 0.9051612903225806,
+        "recall": 0.8919262555626192,
+        "true_positives": 1403
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.14,
+      "max_relative_height": 0.5,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8963747192813604,
+        "false_negatives": 176,
+        "false_positives": 147,
+        "median_matched_iou": 0.8449989076644913,
+        "precision": 0.9047927461139896,
+        "recall": 0.8881118881118881,
+        "true_positives": 1397
+      },
+      "geometry_misses_recovered": 3,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.16,
+      "max_relative_height": 0.35,
+      "owner_misses_recovered": 3,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9367088607594938,
+        "false_negatives": 16,
+        "false_positives": 9,
+        "median_matched_iou": 0.8520048282091077,
+        "precision": 0.9536082474226805,
+        "recall": 0.9203980099502488,
+        "true_positives": 185
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8974113135186962,
+        "false_negatives": 169,
+        "false_positives": 152,
+        "median_matched_iou": 0.8451645299307711,
+        "precision": 0.9023136246786633,
+        "recall": 0.8925619834710744,
+        "true_positives": 1404
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.16,
+      "max_relative_height": 0.4,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8981156180134142,
+        "false_negatives": 167,
+        "false_positives": 152,
+        "median_matched_iou": 0.8453263269062297,
+        "precision": 0.9024390243902439,
+        "recall": 0.8938334392879848,
+        "true_positives": 1406
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.16,
+      "max_relative_height": 0.45,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    },
+    {
+      "calibration_metrics": {
+        "f1": 0.8978288633461048,
+        "false_negatives": 167,
+        "false_positives": 153,
+        "median_matched_iou": 0.8453263269062297,
+        "precision": 0.9018601667735728,
+        "recall": 0.8938334392879848,
+        "true_positives": 1406
+      },
+      "geometry_misses_recovered": 5,
+      "geometry_misses_total": 5,
+      "max_relative_area": 0.16,
+      "max_relative_height": 0.5,
+      "owner_misses_recovered": 5,
+      "owner_misses_total": 6,
+      "revealed_audit_metrics": {
+        "f1": 0.9420654911838792,
+        "false_negatives": 14,
+        "false_positives": 9,
+        "median_matched_iou": 0.8502869383903828,
+        "precision": 0.9540816326530612,
+        "recall": 0.9303482587064676,
+        "true_positives": 187
+      },
+      "selected_threshold": 0.023
+    }
+  ],
+  "checkpoint_sha256": "4ae6f96c22fd818bac826b21c1400e9a92856772d3486e60a68a97a873d2fd72",
+  "eligible_for_generation_gate": false,
+  "reason": "All calibration and v7 audit images are revealed Train-only history. Results may preregister v8 but cannot pass a gate.",
+  "recommendation_basis": "Smallest round-number outward bounds covering every owner-reported miss removed by the v7 geometry filter.",
+  "recommended_candidate": {
+    "calibration_metrics": {
+      "f1": 0.8987828315182576,
+      "false_negatives": 170,
+      "false_positives": 146,
+      "median_matched_iou": 0.8451637987275692,
+      "precision": 0.9057456423499032,
+      "recall": 0.8919262555626192,
+      "true_positives": 1403
+    },
+    "geometry_misses_recovered": 5,
+    "geometry_misses_total": 5,
+    "max_relative_area": 0.14,
+    "max_relative_height": 0.4,
+    "owner_misses_recovered": 5,
+    "owner_misses_total": 6,
+    "revealed_audit_metrics": {
+      "f1": 0.9420654911838792,
+      "false_negatives": 14,
+      "false_positives": 9,
+      "median_matched_iou": 0.8502869383903828,
+      "precision": 0.9540816326530612,
+      "recall": 0.9303482587064676,
+      "true_positives": 187
+    },
+    "selected_threshold": 0.023
+  },
+  "revealed_audit_images_read": 48,
+  "revealed_calibration_images_read": 384,
+  "revealed_images_read": 432,
+  "review_evidence_sha256": "757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6",
+  "schema_version": 1,
+  "source_split_manifest_sha256": "5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef",
+  "status": "geometry_diagnostic_on_revealed_v7_train_only_history",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

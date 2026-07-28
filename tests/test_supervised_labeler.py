@@ -105,7 +105,7 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
         v6["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert config["split_manifest_sha256"] == v7["manifest_sha256"]
     assert set(v7["calibration_image_ids"]) == revealed
     assert set(v7["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -219,6 +219,69 @@ def test_v7_owner_review_manifest_freezes_every_presented_file() -> None:
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
+
+
+def test_v7_owner_review_rejection_is_canonical_and_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config()
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["evidence_path"]
+    evidence = json.loads(path.read_text(encoding="utf-8"))
+
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    assert embedded_sha == human_review_evidence_sha256(canonical)
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert evidence["status"] == "rejected_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == [8, 11, 13, 36, 39]
+    assert evidence["problem_count"] == 5
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+
+
+def test_v7_revealed_diagnoses_freeze_geometry_and_low_score_causes() -> None:
+    review_diagnosis = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v7_review_diagnosis.json"
+        ).read_text(encoding="utf-8")
+    )
+    geometry_diagnosis = json.loads(
+        (
+            PROJECT_ROOT
+            / "reports"
+            / "supervised_labeler_v7_geometry_diagnosis.json"
+        ).read_text(encoding="utf-8")
+    )
+    recommended = geometry_diagnosis["recommended_candidate"]
+
+    assert review_diagnosis["eligible_for_generation_gate"] is False
+    assert review_diagnosis["problem_instances"] == 6
+    assert review_diagnosis["reason_counts"] == {
+        "matching_box_below_frozen_score_threshold": 1,
+        "removed_by_frozen_geometry_filter": 5,
+    }
+    assert geometry_diagnosis["eligible_for_generation_gate"] is False
+    assert geometry_diagnosis["revealed_images_read"] == 432
+    assert recommended["max_relative_area"] == 0.14
+    assert recommended["max_relative_height"] == 0.40
+    assert recommended["geometry_misses_recovered"] == 5
+    assert recommended["geometry_misses_total"] == 5
+    assert recommended["revealed_audit_metrics"]["precision"] == pytest.approx(
+        0.9540816326530612
+    )
+    assert recommended["revealed_audit_metrics"]["recall"] == pytest.approx(
+        0.9303482587064676
+    )
+    assert review_diagnosis["validation_images_read"] == 0
+    assert review_diagnosis["test_images_read"] == 0
+    assert geometry_diagnosis["validation_images_read"] == 0
+    assert geometry_diagnosis["test_images_read"] == 0
+    assert review_diagnosis["whole_image_generation_run"] is False
+    assert geometry_diagnosis["whole_image_generation_run"] is False
 
 
 def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:

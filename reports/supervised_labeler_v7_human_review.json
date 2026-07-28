@@ -1,0 +1,58 @@
+{
+  "audit_evidence": {
+    "path": "reports/supervised_labeler_v7_audit_evidence.json",
+    "sha256": "3a36ba7ee0a66c7764fddbf4e3cecc92136751b5eb26ae0759727370957b832b"
+  },
+  "audit_images": 48,
+  "checkpoint_sha256": "4ae6f96c22fd818bac826b21c1400e9a92856772d3486e60a68a97a873d2fd72",
+  "evidence_sha256": "757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6",
+  "experiment_id": "supervised_labeler_v7",
+  "figure": "reports/figures/supervised_labeler_v7_audit.png",
+  "figure_sha256": "8b31b671b4917c6f5a49512b64e910487fafa4baaad042d3cb5b46b91555cb6c",
+  "pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_page_01.png",
+      "sha256": "ae3db1abc43980f0c0b9c8cbeb67fbfecbc731f83164f075d1bfa29c4cc63fe0"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_page_02.png",
+      "sha256": "364d97226df8a63f09cbc06f0ba88c205f19a7483b7bda3ec439847b5ca4fb8c"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_page_03.png",
+      "sha256": "dd844ef353845f53d9467ba9c6036ddfcece2ef3b4f019e0ae7eb4109ae54cc8"
+    }
+  ],
+  "problem_cells": [
+    8,
+    11,
+    13,
+    36,
+    39
+  ],
+  "problem_count": 5,
+  "review_note": "kuotunyu reported true helmets without magenta model boxes in cells 08, 11, 13, 36, and 39.",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-28",
+  "schema_version": 1,
+  "score_threshold": 0.023,
+  "separated_pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_separated_page_01.png",
+      "sha256": "7ec0811a02eab456edd18a902fe3365997ae877bcfec4e36e5b131f738456d19"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_separated_page_02.png",
+      "sha256": "986a1393bff45def14d4e0215bcb58bf30dbe5b0823e53ee12e3875b86a45538"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v7_audit_separated_page_03.png",
+      "sha256": "e3e62497e764eb2e6ccf9d07bdede381d25aa0b28c79b33610a5d33b5597bdd5"
+    }
+  ],
+  "split_manifest_sha256": "5c391442b6a873e8d8642b64ff4a3d154381f2f8731ce2efad4426fe7ac292ef",
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

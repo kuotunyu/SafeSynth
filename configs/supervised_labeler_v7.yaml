@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v7"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r50vd_helmet_only"
 split_seed: 20260815
 training_seed: 20260809
@@ -145,8 +145,26 @@ numeric_audit_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-28"
+  problem_count: 5
+  problem_cells:
+    - 8
+    - 11
+    - 13
+    - 36
+    - 39
+  problem_category: "missed_helmet"
+  evidence_path: "reports/supervised_labeler_v7_human_review.json"
+  evidence_sha256: "757ecc68fccea7c9472da918d1fe66d20a144b0c0715e60ff9e9adf2369f9ab6"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v7 passed every frozen numeric gate, but generation remains locked until
-    kuotunyu completes the owner-only 48-case human review with zero problems.
+    v7 passed every frozen numeric gate, but kuotunyu found missed helmets in
+    five of the 48 owner-review cells. Generation remains locked.
