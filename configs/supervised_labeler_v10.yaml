@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v10"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260905
 training_seed: 20260809
@@ -224,9 +224,60 @@ numeric_audit_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-28"
+  problem_count: 12
+  problem_cells:
+    - 6
+    - 7
+    - 10
+    - 27
+    - 29
+    - 31
+    - 34
+    - 39
+    - 40
+    - 41
+    - 42
+    - 47
+  categories:
+    model_missed_helmet:
+      - 6
+      - 7
+      - 10
+      - 27
+      - 39
+      - 40
+    model_false_positive:
+      - 29
+      - 34
+      - 47
+    dataset_gt_false_positive_label:
+      - 31
+    dataset_gt_missed_helmet:
+      - 41
+    model_and_dataset_gt_missed_helmet:
+      - 42
+  evidence_path: "reports/supervised_labeler_v10_human_review.json"
+  evidence_sha256: "e9e707692cc96ec26a46aa4595daf0ea5f83f287d775903674e6013df4394f92"
+  evidence_file_sha256: "f4ec1cd86c4fa9d24a7b3371ba7f703be07d62c86bad5d49ba3695f34f498cb3"
+  diagnosis_path: "reports/supervised_labeler_v10_review_diagnosis.json"
+  diagnosis_file_sha256: "d20ff7bb16cda289787658e549a1d0054f2f3737ba3a7b0f0e2f42a60e6b504b"
+  owner_confirmed_gt_defect_cells:
+    - 31
+    - 41
+    - 42
+  numeric_audit_contaminated_by_gt_defects: true
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v10 passed CPU normalization preflight, GPU smoke, and every frozen numeric
-    audit gate. Generation remains locked until kuotunyu completes the exact
-    48-case owner review with zero problems.
+    v10 passed every frozen numeric gate, but kuotunyu found model misses,
+    model false positives, and dataset-GT defects in 12 review cells. The
+    numeric audit is contaminated by owner-confirmed GT defects and generation
+    remains locked.

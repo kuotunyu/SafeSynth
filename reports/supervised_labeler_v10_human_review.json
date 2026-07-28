@@ -1,0 +1,65 @@
+{
+  "audit_evidence": {
+    "path": "reports/supervised_labeler_v10_audit_evidence.json",
+    "sha256": "7d04f00bc880061e6f0007c1853dd69dbbbdedd66f092c19a486b7044b3ed30d"
+  },
+  "audit_images": 48,
+  "checkpoint_sha256": "e987c97fa72f68a80520afa237c3d7b00ca9d27af10853b95ef154a68a7d35bb",
+  "evidence_sha256": "e9e707692cc96ec26a46aa4595daf0ea5f83f287d775903674e6013df4394f92",
+  "experiment_id": "supervised_labeler_v10",
+  "figure": "reports/figures/supervised_labeler_v10_audit.png",
+  "figure_sha256": "c7f9d1837b634e16b876a0a233e1218e9c97ccf51ccbf16548f7c65ed0febfb4",
+  "pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_page_01.png",
+      "sha256": "45aea06f16c33b22ce063242f0e056704815e993f2414d40fe84de99045e773f"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_page_02.png",
+      "sha256": "42454ed2f3617d070060675030302b9d3eb6ec17af868b9d7c04be74f53b6e12"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_page_03.png",
+      "sha256": "5a0c9069d5d7905fec8b14408a4452d6418a4283316ad0040e4fa7666ef77a6d"
+    }
+  ],
+  "problem_cells": [
+    6,
+    7,
+    10,
+    27,
+    29,
+    31,
+    34,
+    39,
+    40,
+    41,
+    42,
+    47
+  ],
+  "problem_count": 12,
+  "review_note": "kuotunyu reported true helmets without magenta boxes in cells 06, 07, 10, 27, 39, 40, and 42; magenta boxes on background, faces, or other objects in cells 29, 34, and 47; a dataset-GT logo false label in cell 31; and dataset-GT missed helmets in cells 41 and 42.",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-28",
+  "schema_version": 1,
+  "score_threshold": 0.05,
+  "separated_pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_separated_page_01.png",
+      "sha256": "30c228a31cce5e7e57508bacd66fc14e560362dd1696ab42c8dc3433e145dc15"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_separated_page_02.png",
+      "sha256": "12d2a35ffad2657d23cc09d0b42b94d22acf7a46fcccf8d505555ee9ccba140c"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v10_audit_separated_page_03.png",
+      "sha256": "58ac587b15191ff90f31cba71c972c7ce8075e06fcf8c15bcc46114f012fa4bc"
+    }
+  ],
+  "split_manifest_sha256": "9b36cedc3c159614f668b5fafaa12ad33f36d8ff84d62aba69337e1097aa4d6b",
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

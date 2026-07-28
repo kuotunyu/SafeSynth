@@ -216,7 +216,7 @@ def test_v10_frozen_split_seals_new_audit_from_v9_history() -> None:
         v9["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert config["architecture"] == "rtdetr_v2_r101vd_helmet_only"
     assert config["model"]["repo_id"] == "PekingU/rtdetr_v2_r101vd"
     assert config["split_manifest_sha256"] == v10["manifest_sha256"]
@@ -308,7 +308,7 @@ def test_v10_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     assert hashlib.sha256(report_path.read_bytes()).hexdigest() == outcome[
         "report_file_sha256"
     ]
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert report["checks"] == {
         "audit_median_matched_iou": True,
@@ -363,6 +363,94 @@ def test_v10_owner_review_manifest_freezes_every_presented_file() -> None:
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
+
+
+def test_v10_owner_rejection_and_gt_defects_are_canonical() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["evidence_path"]
+    evidence = json.loads(path.read_text(encoding="utf-8"))
+
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    assert embedded_sha == human_review_evidence_sha256(canonical)
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "evidence_file_sha256"
+    ]
+    assert evidence["status"] == "rejected_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == [
+        6,
+        7,
+        10,
+        27,
+        29,
+        31,
+        34,
+        39,
+        40,
+        41,
+        42,
+        47,
+    ]
+    assert outcome["categories"] == {
+        "model_missed_helmet": [6, 7, 10, 27, 39, 40],
+        "model_false_positive": [29, 34, 47],
+        "dataset_gt_false_positive_label": [31],
+        "dataset_gt_missed_helmet": [41],
+        "model_and_dataset_gt_missed_helmet": [42],
+    }
+    assert outcome["owner_confirmed_gt_defect_cells"] == [31, 41, 42]
+    assert outcome["numeric_audit_contaminated_by_gt_defects"] is True
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+
+
+def test_v10_revealed_diagnosis_separates_model_and_gt_failures() -> None:
+    config = load_supervised_labeler_config(V10_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["diagnosis_path"]
+    diagnosis = json.loads(path.read_text(encoding="utf-8"))
+    cases = {int(case["cell"]): case for case in diagnosis["problem_cases"]}
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "diagnosis_file_sha256"
+    ]
+    assert diagnosis["eligible_for_generation_gate"] is False
+    assert diagnosis["owner_confirmed_gt_defect_cells"] == [31, 41, 42]
+    assert diagnosis["audit_numeric_metrics_contaminated_by_gt_defects"] is True
+    assert diagnosis["owner_category_counts"] == {
+        "dataset_gt_false_positive_label": 1,
+        "dataset_gt_missed_helmet": 1,
+        "model_and_dataset_gt_missed_helmet": 1,
+        "model_false_positive": 3,
+        "model_missed_helmet": 6,
+    }
+    assert diagnosis["automatic_miss_reason_counts_against_dataset_gt"] == {
+        "matching_box_below_frozen_score_threshold": 4,
+        "removed_by_frozen_geometry_filter": 4,
+    }
+    assert diagnosis["max_owner_false_positive_score"] == pytest.approx(
+        0.09423828125
+    )
+    assert cases[6]["misses_against_dataset_gt"][0][
+        "best_raw_candidate"
+    ]["score"] == pytest.approx(0.1953125)
+    assert cases[7]["misses_against_dataset_gt"][0][
+        "best_raw_candidate"
+    ]["score"] == pytest.approx(0.1416015625)
+    assert cases[40]["misses_against_dataset_gt"][0][
+        "best_raw_candidate"
+    ]["score"] == pytest.approx(0.1875)
+    assert cases[31]["numeric_metrics_reliable"] is False
+    assert cases[41]["numeric_metrics_reliable"] is False
+    assert cases[42]["numeric_metrics_reliable"] is False
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
 
 
 def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:

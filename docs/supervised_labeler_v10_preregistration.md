@@ -98,3 +98,29 @@ The exact 48-case evidence and three separated review pages were frozen in
 `81733517ac707e6ae92722e0cff5d6bacbb8cdd037d86f6c78bed1d89c3f4f61`.
 `kuotunyu` must judge the magenta model boxes against the green dataset boxes;
 any reported problem rejects v10.
+
+## Frozen owner-review outcome
+
+`kuotunyu` reviewed the exact 48 cases and rejected v10 on 2026-07-28.
+Cells 06, 07, 10, 27, 39, 40, and 42 contain real helmets without magenta
+boxes. Cells 29, 34, and 47 contain magenta boxes on background, faces, or
+other non-helmet objects. The review also exposed dataset-GT defects: cell 31
+labels a lower-right logo as a helmet, cells 41 and 42 omit visible helmets,
+and cell 42 is missed by both GT and the model. The canonical review evidence
+SHA-256 is
+`e9e707692cc96ec26a46aa4595daf0ea5f83f287d775903674e6013df4394f92`.
+Generation remains locked.
+
+The revealed-audit diagnosis reproduced the frozen metrics, but those metrics
+are no longer trustworthy as final evidence because cells 31, 41, and 42
+contain owner-confirmed GT errors. Against the existing GT, four misses have
+matching boxes below threshold and four correct high-score boxes are removed
+by the frozen geometry filter. In particular, cells 06, 07, and 40 have
+correct raw candidates with IoU 0.81–0.88 and score 0.14–0.20 that are removed
+by the 0.40 relative-height cap. Cells 10, 27, and 39 include low-score
+localizations. The three owner false-positive cells contain numerical false
+positives up to score 0.0942, so a small threshold increase cannot repair the
+mixture.
+
+This consumed Train-only evidence may support a preregistered GT-repair and
+geometry experiment, but it cannot retroactively pass v10.
