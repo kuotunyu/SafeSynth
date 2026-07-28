@@ -102,7 +102,7 @@ def test_v7_frozen_split_seals_new_audit_from_v6_history() -> None:
         v6["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "cpu_preflight_passed_gpu_training_waiting"
+    assert config["status"] == "gpu_smoke_passed_training_pending"
     assert config["split_manifest_sha256"] == v7["manifest_sha256"]
     assert set(v7["calibration_image_ids"]) == revealed
     assert set(v7["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -142,6 +142,20 @@ def test_v7_cpu_preflight_kept_all_pixels_and_gpu_sealed() -> None:
     assert report["test_images_read"] == 0
     assert report["gpu_work_run"] is False
     assert report["whole_image_generation_run"] is False
+
+
+def test_v7_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT / "reports" / "supervised_labeler_v7_smoke.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
 
 
 def test_supervised_model_is_rehashed_before_use(tmp_path) -> None:
