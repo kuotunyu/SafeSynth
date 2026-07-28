@@ -46,3 +46,17 @@ The three separated pages show, left to right, dataset GT in green, model boxes
 in magenta, and both overlaid. Generation remains locked until `kuotunyu`
 reviews every case and reports zero problems. A numeric pass alone is not
 approval.
+
+After the owner states the decision, record it without editing JSON by hand:
+
+```powershell
+uv run python -m scripts.record_supervised_labeler_v7_review `
+  --decision approve `
+  --reviewed-on YYYY-MM-DD `
+  --problem-cells "" `
+  --note "All 48 cases reviewed."
+```
+
+For rejection, use `--decision reject` and supply the comma-separated problem
+cells. The recorder verifies the checkpoint, split, raw figure, six review
+pages, and exact box sidecar before writing owner-only evidence.
