@@ -1,0 +1,63 @@
+{
+  "audit_evidence": {
+    "path": "reports/supervised_labeler_v11_audit_evidence.json",
+    "sha256": "fd82c50ad485e32447fccfc824926005d987a3debca49ba1e1ed60c90c8b1586"
+  },
+  "audit_images": 48,
+  "checkpoint_sha256": "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4",
+  "evidence_sha256": "3771543cde8bcaf881f3a395c411f26779ae726b897f316dbeaf5bd95bae64c4",
+  "experiment_id": "supervised_labeler_v11",
+  "figure": "reports/figures/supervised_labeler_v11_audit.png",
+  "figure_sha256": "f058a4d9cae4157fb00a572aa5481244168ed17124c510c78bcd9f977cdde49f",
+  "pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_page_01.png",
+      "sha256": "26071553553979ef21a63c2479068bc5ced5e8b74d11538aa529989f050fe858"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_page_02.png",
+      "sha256": "63cba4e995763a2a5869e40eea4da3e8946590aa205d4840e724d64e43c69951"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_page_03.png",
+      "sha256": "4f593da55f96dff2b83bbe524cf2008077f9b12a1117929176a88f4aab040bc6"
+    }
+  ],
+  "problem_cells": [
+    3,
+    6,
+    7,
+    8,
+    14,
+    17,
+    18,
+    19,
+    24,
+    44
+  ],
+  "problem_count": 10,
+  "review_note": "Cell 03 has owner-reported dataset-GT misses. Cells 06, 07, 08, 14, 17, 18, 19, 24, and 44 contain real helmets without model magenta boxes.",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-28",
+  "schema_version": 1,
+  "score_threshold": 0.03,
+  "separated_pages": [
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_separated_page_01.png",
+      "sha256": "6350d8fc8c49fab38eb24cc746448e2b9723d3f065570a17d4ef7a97e456c3c8"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_separated_page_02.png",
+      "sha256": "02be3b0e69dbb823f99966256d1bf65d08f6f95c2b80acc0de895da4978fd16e"
+    },
+    {
+      "path": "reports/figures/supervised_labeler_v11_audit_separated_page_03.png",
+      "sha256": "182262a17294120bcb6057659c9eef77b3366131f58bb880bfc8bad0cf2c5a04"
+    }
+  ],
+  "split_manifest_sha256": "b45ae47e54de2adce00cede09aea40a249434f44b30044587d34050675f2a4d7",
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

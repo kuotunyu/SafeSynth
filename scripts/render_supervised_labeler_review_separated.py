@@ -248,8 +248,8 @@ def render_separated_pages() -> list[dict[str, Any]]:
         )
         page_draw.text(
             (8, 30),
-            "Judge model boxes only. Green without magenta = possible miss; "
-            "magenta on background = false positive.",
+            "HELMET = HELMETED HEAD REGION (HARD HAT + HEAD), NOT PERSON. "
+            "Green without magenta = possible miss.",
             fill="black",
         )
         start = page_index * cases_per_page

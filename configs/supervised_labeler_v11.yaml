@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v11"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260912
 training_seed: 20260809
@@ -252,9 +252,46 @@ numeric_audit_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-28"
+  label_semantics: "class_direct_helmeted_head_region"
+  problem_count: 10
+  problem_cells:
+    - 3
+    - 6
+    - 7
+    - 8
+    - 14
+    - 17
+    - 18
+    - 19
+    - 24
+    - 44
+  categories:
+    dataset_gt_missed_helmeted_head:
+      - 3
+    model_missed_helmeted_head:
+      - 6
+      - 7
+      - 8
+      - 14
+      - 17
+      - 18
+      - 19
+      - 24
+      - 44
+  evidence_path: "reports/supervised_labeler_v11_human_review.json"
+  evidence_sha256: "3771543cde8bcaf881f3a395c411f26779ae726b897f316dbeaf5bd95bae64c4"
+  evidence_file_sha256: "0173a164b7a86a99c9b9e3aca6892351a742e66e075947d6c7ec2c33d83709c4"
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v11 passed CPU preflight, GPU smoke, and all frozen numeric gates. The exact
-    48-image evidence is frozen, but an owner review with zero problems is still
-    required before generation can open.
+    v11 passed every frozen numeric gate, but kuotunyu found nine model-missed
+    helmeted-head regions and one additional dataset-GT miss. The required
+    zero-problem owner gate failed, so generation remains locked.

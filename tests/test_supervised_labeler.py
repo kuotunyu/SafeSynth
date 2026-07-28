@@ -381,7 +381,7 @@ def test_v11_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     assert hashlib.sha256(report_path.read_bytes()).hexdigest() == outcome[
         "report_file_sha256"
     ]
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert report["checks"] == {
         "audit_median_matched_iou": True,
@@ -445,6 +445,46 @@ def test_v11_owner_review_manifest_freezes_every_presented_file() -> None:
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
+
+
+def test_v11_owner_rejection_and_label_semantics_are_canonical() -> None:
+    config = load_supervised_labeler_config(V11_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    path = PROJECT_ROOT / outcome["evidence_path"]
+    evidence = json.loads(path.read_text(encoding="utf-8"))
+
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    assert embedded_sha == human_review_evidence_sha256(canonical)
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == outcome[
+        "evidence_file_sha256"
+    ]
+    assert evidence["status"] == "rejected_by_kuotunyu"
+    assert evidence["reviewed_by"] == "kuotunyu"
+    assert evidence["problem_cells"] == [
+        3,
+        6,
+        7,
+        8,
+        14,
+        17,
+        18,
+        19,
+        24,
+        44,
+    ]
+    assert outcome["label_semantics"] == (
+        "class_direct_helmeted_head_region"
+    )
+    assert outcome["categories"] == {
+        "dataset_gt_missed_helmeted_head": [3],
+        "model_missed_helmeted_head": [6, 7, 8, 14, 17, 18, 19, 24, 44],
+    }
+    assert config["generation_gate"]["allowed"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

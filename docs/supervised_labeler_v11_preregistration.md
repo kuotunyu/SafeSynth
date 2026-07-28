@@ -74,3 +74,18 @@ SHA-256
 `b6c3855ef4620d7a606e83aee32ad4caf98182c3f5f62ae86dd49990160f36cd`.
 Validation/Test reads and whole-image generation remain zero. Generation stays
 locked until the owner reports zero visual problems.
+
+## Frozen owner-review outcome
+
+`kuotunyu` rejected v11 on 2026-07-28. Cell 03 contains owner-reported missing
+dataset GT for small helmeted-head regions. Cells 06, 07, 08, 14, 17, 18, 19,
+24, and 44 contain visible helmeted heads without model magenta boxes. The
+canonical review evidence SHA-256 is
+`3771543cde8bcaf881f3a395c411f26779ae726b897f316dbeaf5bd95bae64c4`.
+Generation remains locked.
+
+The project uses the H1/ADR-007 `class_direct` label semantics: a `helmet` box
+bounds the helmeted **head region**, normally including the hard hat plus the
+wearer's head or part of the face. It is not a shell-only box, and it must not
+expand to the upper body or whole person. Each visible helmeted head receives a
+separate box. Future review sheets state this rule directly in their header.
