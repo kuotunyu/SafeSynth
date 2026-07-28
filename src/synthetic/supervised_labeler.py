@@ -96,8 +96,12 @@ def load_supervised_labeler_config(
         or float(sampling["empty_image_weight"]) < 1
         or float(sampling["close_helmet_pair_weight"]) < 1
         or float(sampling.get("small_helmet_weight", 1.0)) < 1
+        or float(sampling.get("large_helmet_weight", 1.0)) < 1
         or not 0
         <= float(sampling.get("small_helmet_relative_area_max", 0.0))
+        <= 1
+        or not 0
+        <= float(sampling.get("large_helmet_relative_area_min", 1.0))
         <= 1
         or float(
             sampling["close_pair_center_distance_over_mean_sqrt_area_max"]
@@ -152,6 +156,8 @@ def supervised_sampling_weights(
     close_pair_ratio_max: float,
     small_helmet_weight: float = 1.0,
     small_helmet_relative_area_max: float = 0.0,
+    large_helmet_weight: float = 1.0,
+    large_helmet_relative_area_min: float = 1.0,
 ) -> list[float]:
     """Weight registered hard examples using Train annotations only."""
 
@@ -200,6 +206,24 @@ def supervised_sampling_weights(
                 for box in boxes
             ):
                 weight = max(weight, float(small_helmet_weight))
+        if (
+            boxes
+            and float(large_helmet_weight) > 1.0
+            and float(large_helmet_relative_area_min) < 1.0
+        ):
+            if image_records is None:
+                raise ValueError("Large-helmet weighting requires image records")
+            image = image_records[int(image_id)]
+            image_area = max(
+                float(image["width"]) * float(image["height"]),
+                1.0,
+            )
+            if any(
+                box[2] * box[3] / image_area
+                >= float(large_helmet_relative_area_min)
+                for box in boxes
+            ):
+                weight = max(weight, float(large_helmet_weight))
         weights.append(weight)
     return weights
 

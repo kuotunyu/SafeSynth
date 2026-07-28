@@ -86,6 +86,13 @@ V8_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v8.yaml"
 V9_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v9.yaml"
 V10_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
 V11_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
+V13_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v13.yaml"
+V13_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v13_split.json"
+)
+V13_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
+)
 V12_GT_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "supervised_labeler_v12_gt_review.yaml"
 )
@@ -1105,6 +1112,99 @@ def test_v13_adjudicated_audit_is_frozen_before_training() -> None:
         hashlib.sha256(V13_ADJUDICATED_AUDIT_PATH.read_bytes()).hexdigest()
         == outcome["manifest_file_sha256"]
     )
+
+
+def test_v13_model_registration_keeps_preregistered_intervention() -> None:
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+
+    assert config["experiment_id"] == "supervised_labeler_v13"
+    assert config["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
+    assert config["sampling"]["empty_image_weight"] == 4.0
+    assert config["sampling"]["large_helmet_weight"] == 3.0
+    assert config["sampling"]["large_helmet_relative_area_min"] == 0.15
+    assert config["postprocessing"]["max_relative_area"] == 0.30
+    assert config["postprocessing"]["max_relative_height"] == 0.75
+    assert config["generation_gate"]["allowed"] is False
+    assert config["independence_registration"]["v13_reserved_groups"] == 96
+    assert config["independence_registration"][
+        "v12_pool_excluded_from_model_data"
+    ] is True
+    assert config["independence_registration"]["v13_training_started"] is False
+    assert config["independence_registration"][
+        "audit_model_inference_run"
+    ] is False
+    assert config["data"]["validation_images_read"] == 0
+    assert config["data"]["test_images_read"] == 0
+
+
+def test_v13_model_split_excludes_both_frozen_pools() -> None:
+    if not V13_SPLIT_PATH.is_file():
+        pytest.skip("v13 model split has not been frozen yet")
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    split = json.loads(V13_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+    training_groups = set(split["training_group_ids"])
+    calibration_groups = set(split["calibration_group_ids"])
+    audit_groups = set(split["untouched_audit_group_ids"])
+    v13_groups = set(split["v13_reserved_group_ids"])
+    v12_groups = set(split["v12_development_excluded_group_ids"])
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert config["split_manifest_sha256"] == embedded_sha
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["untouched_audit_images"] == 48
+    assert len(audit_groups) == 48
+    assert split["v13_reserved_groups"] == 96
+    assert split["v12_development_excluded_groups"] == 96
+    assert len(v13_groups) == 96
+    assert len(v12_groups) == 96
+    assert v13_groups.isdisjoint(v12_groups)
+    assert training_groups.isdisjoint(calibration_groups | v13_groups)
+    assert calibration_groups.isdisjoint(v13_groups)
+    assert (training_groups | calibration_groups).isdisjoint(v12_groups)
+    assert audit_groups <= v13_groups
+    assert split["v13_training_started"] is False
+    assert split["sealed_reserve_pixels_read"] == 0
+    assert split["validation_images_read"] == 0
+    assert split["test_images_read"] == 0
+    assert split["whole_image_generation_run"] is False
+
+
+def test_v13_cpu_preflight_keeps_independent_audit_unread() -> None:
+    if not V13_PREFLIGHT_PATH.is_file():
+        pytest.skip("v13 CPU preflight has not run yet")
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    report = json.loads(V13_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+    outcome = config["cpu_preflight_outcome"]
+
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert outcome["status"] == report["status"]
+    assert hashlib.sha256(V13_PREFLIGHT_PATH.read_bytes()).hexdigest() == (
+        outcome["report_file_sha256"]
+    )
+    assert report["training"]["images_read"] == 2644
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["sampling_weight_counts"] == {
+        "1.0": 701,
+        "2.0": 1654,
+        "3.0": 42,
+        "4.0": 247,
+    }
+    assert report["training_calibration_group_overlap"] == 0
+    assert report["v13_reserved_groups_in_model_data"] == 0
+    assert report["v12_development_groups_in_model_data"] == 0
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
@@ -2186,6 +2286,38 @@ def test_v8_sampling_adds_small_helmet_images_without_stacking_weights() -> None
     )
 
     assert weights == [2.0, 2.0, 1.0, 2.0]
+
+
+def test_v13_sampling_adds_large_helmet_images_without_stacking_weights() -> None:
+    annotations = {
+        1: [],
+        2: [{"category_id": 1, "bbox": [0, 0, 5, 5]}],
+        3: [{"category_id": 1, "bbox": [0, 0, 40, 40]}],
+        4: [
+            {"category_id": 1, "bbox": [0, 0, 40, 40]},
+            {"category_id": 1, "bbox": [35, 0, 40, 40]},
+        ],
+    }
+    image_records = {
+        image_id: {"width": 100, "height": 100}
+        for image_id in annotations
+    }
+
+    weights = supervised_sampling_weights(
+        image_ids=[1, 2, 3, 4],
+        annotations=annotations,
+        image_records=image_records,
+        helmet_category_id=1,
+        empty_image_weight=4.0,
+        close_helmet_pair_weight=2.0,
+        close_pair_ratio_max=1.0,
+        small_helmet_weight=2.0,
+        small_helmet_relative_area_max=0.0075,
+        large_helmet_weight=3.0,
+        large_helmet_relative_area_min=0.15,
+    )
+
+    assert weights == [4.0, 2.0, 3.0, 3.0]
 
 
 def test_exact_audit_evidence_preserves_boxes_without_raster_parsing() -> None:

@@ -53,6 +53,39 @@ AUDIT_EVIDENCE_PATH = (
 )
 
 
+def configure_experiment_paths(config_path: Path) -> None:
+    """Point run evidence at the experiment named by a selected config."""
+
+    global EXPERIMENT_STEM
+    global REPORT_PATH
+    global SMOKE_REPORT_PATH
+    global MARKDOWN_PATH
+    global FIGURE_PATH
+    global AUDIT_EVIDENCE_PATH
+
+    EXPERIMENT_STEM = config_path.stem
+    REPORT_PATH = (
+        PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_training.json"
+    )
+    SMOKE_REPORT_PATH = (
+        PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_smoke.json"
+    )
+    MARKDOWN_PATH = (
+        PROJECT_ROOT / "reports" / f"{EXPERIMENT_STEM}_training.md"
+    )
+    FIGURE_PATH = (
+        PROJECT_ROOT
+        / "reports"
+        / "figures"
+        / f"{EXPERIMENT_STEM}_audit.png"
+    )
+    AUDIT_EVIDENCE_PATH = (
+        PROJECT_ROOT
+        / "reports"
+        / f"{EXPERIMENT_STEM}_audit_evidence.json"
+    )
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -609,7 +642,11 @@ def _build_datasets(
     )
 
 
-def _smoke() -> None:
+def _smoke(
+    *,
+    config_path: Path = CONFIG_PATH,
+    split_path: Path = SPLIT_PATH,
+) -> None:
     (
         config,
         _,
@@ -619,7 +656,7 @@ def _smoke() -> None:
         training,
         _,
         _,
-    ) = _build_datasets()
+    ) = _build_datasets(config_path=config_path, split_path=split_path)
     if not torch.cuda.is_available():
         raise RuntimeError("Supervised labeler smoke requires CUDA")
     seed = int(config.get("training_seed", config.get("root_seed", -1)))
@@ -676,7 +713,11 @@ def _smoke() -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def _train() -> None:
+def _train(
+    *,
+    config_path: Path = CONFIG_PATH,
+    split_path: Path = SPLIT_PATH,
+) -> None:
     (
         config,
         split,
@@ -686,7 +727,7 @@ def _train() -> None:
         training,
         calibration,
         audit,
-    ) = _build_datasets()
+    ) = _build_datasets(config_path=config_path, split_path=split_path)
     if not torch.cuda.is_available():
         raise RuntimeError("Supervised labeler training requires CUDA")
     seed = int(config.get("training_seed", config.get("root_seed", -1)))
@@ -740,6 +781,12 @@ def _train() -> None:
             ),
             small_helmet_relative_area_max=float(
                 sampling.get("small_helmet_relative_area_max", 0.0)
+            ),
+            large_helmet_weight=float(
+                sampling.get("large_helmet_weight", 1.0)
+            ),
+            large_helmet_relative_area_min=float(
+                sampling.get("large_helmet_relative_area_min", 1.0)
             ),
         )
         sampler = WeightedRandomSampler(
@@ -996,11 +1043,28 @@ def _train() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("smoke", "train"))
+    parser.add_argument(
+        "--config-path",
+        type=Path,
+        default=CONFIG_PATH,
+    )
+    parser.add_argument(
+        "--split-path",
+        type=Path,
+        default=SPLIT_PATH,
+    )
     args = parser.parse_args()
+    configure_experiment_paths(args.config_path)
     if args.action == "smoke":
-        _smoke()
+        _smoke(
+            config_path=args.config_path,
+            split_path=args.split_path,
+        )
     else:
-        _train()
+        _train(
+            config_path=args.config_path,
+            split_path=args.split_path,
+        )
 
 
 if __name__ == "__main__":
