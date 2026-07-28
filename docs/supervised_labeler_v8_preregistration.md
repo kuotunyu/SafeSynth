@@ -37,3 +37,21 @@ images stratified by helmet size. Before v8 training:
 
 After a numeric pass, `kuotunyu` must review 48 exact-box cases. Any reported
 problem rejects v8.
+
+## Frozen numeric outcome
+
+The RTX 4090 run completed all 12 epochs in 21.74 minutes. The frozen
+calibration rule selected epoch 6 at threshold 0.035. On the one-shot new
+48-image sealed audit it produced 164 true positives, 14 false positives, and
+25 false negatives:
+
+- precision 0.9213;
+- recall 0.8677;
+- F1 0.8937;
+- median matched IoU 0.8442.
+
+All three numeric gates passed. Validation/Test reads and whole-image
+generation remained zero. The checkpoint SHA-256 is
+`b546c10603abe61bd5e65200e55f29b25fc7874499c309d4cac6b67b84dfb914`.
+Numeric success does not open generation; the exact 48-case owner review
+remains mandatory.

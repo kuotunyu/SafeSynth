@@ -142,7 +142,7 @@ def test_v8_frozen_split_seals_new_audit_from_v7_history() -> None:
         v7["untouched_audit_image_ids"]
     )
 
-    assert config["status"] == "gpu_smoke_passed_training_pending"
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
     assert config["split_manifest_sha256"] == v8["manifest_sha256"]
     assert set(v8["calibration_image_ids"]) == revealed
     assert set(v8["untouched_audit_image_ids"]).isdisjoint(revealed)
@@ -274,6 +274,45 @@ def test_v7_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     assert config["generation_gate"]["allowed"] is False
 
 
+def test_v8_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V8_CONFIG_PATH)
+    report_path = (
+        PROJECT_ROOT / "reports" / "supervised_labeler_v8_training.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    evidence_path = (
+        PROJECT_ROOT
+        / "reports"
+        / "supervised_labeler_v8_audit_evidence.json"
+    )
+    evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["best_calibration"]["epoch"] == 6
+    assert report["best_calibration"]["threshold"] == 0.035
+    assert report["audit_metrics"]["precision"] == pytest.approx(
+        0.9213483146067416
+    )
+    assert report["audit_metrics"]["recall"] == pytest.approx(
+        0.8677248677248677
+    )
+    assert report["audit_metrics"]["median_matched_iou"] == pytest.approx(
+        0.8442019578744363
+    )
+    assert evidence_sha == report["audit_evidence_sha256"]
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
 def test_v7_owner_review_manifest_freezes_every_presented_file() -> None:
     path = (
         PROJECT_ROOT
@@ -291,6 +330,30 @@ def test_v7_owner_review_manifest_freezes_every_presented_file() -> None:
     assert registration["audit_evidence"]["sha256"] == (
         "3a36ba7ee0a66c7764fddbf4e3cecc92136751b5eb26ae0759727370957b832b"
     )
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+
+
+def test_v8_owner_review_manifest_freezes_every_presented_file() -> None:
+    path = (
+        PROJECT_ROOT
+        / "reports"
+        / "supervised_labeler_v8_review_manifest.json"
+    )
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    embedded_sha = manifest.pop("manifest_sha256")
+    registration = manifest["registration"]
+
+    assert canonical_mapping_sha256(manifest) == embedded_sha
+    assert manifest["status"] == "v8_owner_review_files_frozen"
+    assert len(registration["human_review"]["pages"]) == 3
+    assert len(registration["human_review"]["separated_pages"]) == 3
+    assert registration["audit_evidence"]["sha256"] == (
+        "99ce9cf898d4ab1da7d90e43c780511464341bd6184d52288ea4a424c3fda41a"
+    )
+    assert registration["max_relative_area"] == 0.14
+    assert registration["max_relative_height"] == 0.40
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
