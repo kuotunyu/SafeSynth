@@ -76,6 +76,7 @@ def build_review_evidence(
         "figure": review["figure"],
         "figure_sha256": review["figure_sha256"],
         "pages": review["pages"],
+        "separated_pages": review["separated_pages"],
         "problem_count": len(problem_cells),
         "problem_cells": problem_cells,
         "validation_images_read": 0,
@@ -94,6 +95,7 @@ def _verify_review_images(registration: dict[str, Any]) -> None:
             "sha256": review["figure_sha256"],
         },
         *review["pages"],
+        *review["separated_pages"],
     ]
     for record in records:
         path = PROJECT_ROOT / str(record["path"])

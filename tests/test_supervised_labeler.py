@@ -14,6 +14,9 @@ from scripts.record_supervised_labeler_v6_review import (
     parse_problem_cells,
 )
 from scripts.render_supervised_labeler_review import split_review_sheet
+from scripts.render_supervised_labeler_review_separated import (
+    extract_model_marks,
+)
 from scripts.train_supervised_labeler import select_calibration_candidate
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.supervised_labeler import (
@@ -210,6 +213,9 @@ def test_v6_human_review_record_is_canonical_and_owner_only() -> None:
     assert evidence["reviewed_by"] == "kuotunyu"
     assert evidence["problem_count"] == 0
     assert evidence["problem_cells"] == []
+    assert evidence["separated_pages"] == registration["human_review"][
+        "separated_pages"
+    ]
     assert evidence["evidence_sha256"] == human_review_evidence_sha256(
         evidence
     )
@@ -340,3 +346,20 @@ def test_human_review_sheet_splits_into_three_zoomable_pages(
     ]
     with Image.open(pages[1]) as second:
         assert second.getpixel((0, 58)) == (80, 0, 0)
+
+
+def test_separated_review_extracts_only_new_cyan_model_marks() -> None:
+    original = Image.new("RGB", (20, 20), (0, 220, 220))
+    frozen = original.copy()
+    draw = ImageDraw.Draw(frozen)
+    draw.rectangle((2, 2, 8, 8), outline=(0, 255, 0), width=2)
+    draw.rectangle((11, 11, 18, 18), outline=(0, 255, 255), width=2)
+
+    mask = extract_model_marks(
+        frozen_panel=frozen,
+        original_panel=original,
+    )
+
+    assert mask.getpixel((2, 2)) == 0
+    assert mask.getpixel((11, 11)) == 255
+    assert mask.getpixel((0, 0)) == 0

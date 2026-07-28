@@ -193,6 +193,8 @@ def require_generation_approval(
         or human_review_report.get("figure_sha256")
         != labeler_review["figure_sha256"]
         or human_review_report.get("pages") != labeler_review["pages"]
+        or human_review_report.get("separated_pages")
+        != labeler_review["separated_pages"]
         or int(human_review_report.get("problem_count", -1)) != 0
         or human_review_report.get("problem_cells") != []
         or int(human_review_report.get("validation_images_read", -1)) != 0

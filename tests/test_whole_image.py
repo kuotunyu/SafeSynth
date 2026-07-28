@@ -66,6 +66,7 @@ def _approved_human_review(config: dict) -> dict:
         "figure": review["figure"],
         "figure_sha256": review["figure_sha256"],
         "pages": review["pages"],
+        "separated_pages": review["separated_pages"],
         "problem_count": 0,
         "problem_cells": [],
         "validation_images_read": 0,
