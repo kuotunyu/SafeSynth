@@ -222,6 +222,20 @@ def test_v7_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
     assert report["test_images_read"] == 0
 
 
+def test_v8_gpu_smoke_never_reads_sealed_audit_or_val_test() -> None:
+    report = json.loads(
+        (
+            PROJECT_ROOT / "reports" / "supervised_labeler_v8_smoke.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+
+
 def test_v7_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
     config = load_supervised_labeler_config(V7_CONFIG_PATH)
     report_path = (
