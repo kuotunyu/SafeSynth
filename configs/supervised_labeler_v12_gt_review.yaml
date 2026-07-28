@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v12_gt_review"
-status: "gt_only_candidate_pool_preregistered"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260913
 
@@ -96,3 +96,43 @@ generation_gate:
   reason: >-
     The corrected GT-only adjudication and a separate fresh model review have
     not completed.
+
+freeze_outcome:
+  status: "v12_gt_only_pool_frozen_before_pixel_review"
+  pool_path: "splits/supervised_labeler_v12_gt_pool.json"
+  pool_file_sha256: "050f710179faeff9265d228987bf5b3a2509d92fedd86c6828c83a8e0aaad2cd"
+  pool_manifest_sha256: "af9f9599d822b0148c6f8aa718013f85535af27338291f3b1131d51684e800bf"
+  excluded_revealed_groups: 624
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_pixels_read_before_freeze: 0
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
+render_outcome:
+  status: "v12_gt_only_primary_review_rendered"
+  evidence_path: "reports/supervised_labeler_v12_gt_review.json"
+  evidence_file_sha256: "a90ab370821c9c6796033ae861c272bcc7c70a437ab44c19bfd6ac78c6d60abb"
+  evidence_sha256: "577c43fc80b082bce013c8623ff893c27063307af8256a76f08e8b2916d42d43"
+  primary_images_read: 64
+  primary_images_normalized: 64
+  sealed_reserve_pixels_read: 0
+  model_boxes_present: false
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v12_gt_review/page_01.png"
+      sha256: "104f926a20e0bc876aef3e87de1c03d533ea9b030cc07cf186b27e55243c6e73"
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v12_gt_review/page_02.png"
+      sha256: "e41e46647f2b4ec4ed69ea81d6a623c1593571717d97bd091478cad68bb22c30"
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v12_gt_review/page_03.png"
+      sha256: "17bd74ace65f32a070c5c418982381664aa9ad868925febc41c2c059d0be0ce3"
+      cells: [33, 48]
+    - path: "reports/figures/supervised_labeler_v12_gt_review/page_04.png"
+      sha256: "c106c3960f0d2030460b288fac67b1d57c7d104e28e0ba575c438bc8624fd2c6"
+      cells: [49, 64]

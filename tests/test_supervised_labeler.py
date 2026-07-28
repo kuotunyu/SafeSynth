@@ -10,6 +10,9 @@ from PIL import Image, ImageDraw
 from scripts.diagnose_labeler_postprocessing import select_geometry_candidate
 from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.prepare_supervised_labeler_v12_gt_review import (
+    EVIDENCE_PATH as V12_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v12_gt_review import (
     POOL_PATH as V12_GT_POOL_PATH,
 )
 from scripts.record_supervised_labeler_v6_review import (
@@ -601,6 +604,47 @@ def test_v12_gt_only_pool_is_frozen_before_model_output() -> None:
     assert pool["validation_images_read"] == 0
     assert pool["test_images_read"] == 0
     assert pool["whole_image_generation_run"] is False
+
+
+def test_v12_gt_only_primary_review_contains_no_model_output() -> None:
+    if not V12_GT_EVIDENCE_PATH.is_file():
+        pytest.skip("v12 GT-only primary review has not been rendered yet")
+    evidence = json.loads(
+        V12_GT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    pool = json.loads(V12_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+    primary_ids = [int(row["image_id"]) for row in pool["primary_cases"]]
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert evidence["status"] == "v12_gt_only_primary_review_rendered"
+    assert evidence["review_stage"] == "gt_only"
+    assert evidence["label_semantics"] == (
+        "class_direct_helmeted_head_region"
+    )
+    assert evidence["pool_manifest_sha256"] == pool["manifest_sha256"]
+    assert [int(row["image_id"]) for row in evidence["cases"]] == primary_ids
+    assert len(evidence["cases"]) == 64
+    assert all(
+        not row["truth_boxes"]
+        if row["stratum"] == "dataset_gt_empty"
+        else bool(row["truth_boxes"])
+        for row in evidence["cases"]
+    )
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["primary_images_read"] == 64
+    assert evidence["primary_images_normalized"] == 64
+    assert evidence["sealed_reserve_images"] == 32
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert len(evidence["pages"]) == 4
+    for page in evidence["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
