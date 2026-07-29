@@ -316,6 +316,10 @@ V18_MODEL_REVIEW_MANIFEST_PATH = (
     / "reports"
     / "supervised_labeler_v18_model_review_manifest.json"
 )
+V19_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v19.yaml"
+V19_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v19_split.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -2974,6 +2978,37 @@ def test_v19_gt_adjudication_quarantines_tiny_cell_36_edge_fragment() -> None:
     ).hexdigest() == config["owner_adjudication_outcome"][
         "adjudicated_audit_file_sha256"
     ]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v19_split_replays_cell_36_failure_and_stays_independent() -> None:
+    config = load_supervised_labeler_config(V19_CONFIG_PATH)
+    split = json.loads(V19_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert len(split["v19_reserved_group_ids"]) == 96
+    assert split["v19_prior_training_groups_removed"] == 96
+    assert split["v18_revealed_audit_groups"] == 48
+    assert split["v18_nonselected_excluded_groups"] == 48
+    assert 4618 in split["hard_negative_error_replay_image_ids"]
+    assert 4618 in split["training_image_ids"]
+    assert 4901 not in split["training_image_ids"]
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["calibration_group_ids"]
+    )
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["v19_reserved_group_ids"]
+    )
+    assert set(split["calibration_group_ids"]).isdisjoint(
+        split["v19_reserved_group_ids"]
+    )
+    assert config["split_manifest_sha256"] == embedded_sha
     assert config["generation_gate"]["allowed"] is False
 
 
