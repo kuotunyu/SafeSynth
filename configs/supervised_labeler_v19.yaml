@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v19"
-status: "numeric_audit_passed_model_review_render_pending"
+status: "owner_model_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260803
 training_seed: 20260809
@@ -354,6 +354,35 @@ numeric_audit_outcome:
   combined_figure_file_sha256: >-
     44d7334b06413754f4ffc736fbbe946aef2d484f878899d2a8cda9bbb28cf12d
   sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+model_review_registration:
+  status: "supervised_labeler_v19_model_review_pages_frozen"
+  owner_review_status: "pending_kuotunyu"
+  manifest_path: "reports/supervised_labeler_v19_model_review_manifest.json"
+  manifest_file_sha256: >-
+    89860fd3e4aa6843a1efdaef98f386c21ea91680e9c639d4dabdbd866253d6de
+  manifest_sha256: >-
+    664d222b28ad3b49ee5ca63aae2dddd54954ffe2d5dfd3e24aba8d7fea9e986f
+  reviewed_images: 48
+  approve_only_if_problem_count: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v19_model_review/review_page_01.png"
+      sha256: >-
+        30be3928ef8bd3c9f47f4ba420dae6b450f6b81001b5707b4900eb9ed144d9a7
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v19_model_review/review_page_02.png"
+      sha256: >-
+        df04ce9da4901d2bac8e52896935ff883df88db2a648cfc8c30b70e438c67d87
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v19_model_review/review_page_03.png"
+      sha256: >-
+        2e3594eea78fcefc521c755d50dd3e8d3bb1914cbe1b1a1aab0fcb9bb4c2e124
+      cells: [33, 48]
+  render_model_inference_run: false
+  source_model_inference_images: 48
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false

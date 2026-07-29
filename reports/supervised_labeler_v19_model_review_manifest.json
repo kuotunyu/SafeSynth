@@ -1,0 +1,67 @@
+{
+  "audit_metrics": {
+    "f1": 0.8943089430894309,
+    "false_negatives": 14,
+    "false_positives": 12,
+    "median_matched_iou": 0.8525134071565326,
+    "precision": 0.9016393442622951,
+    "recall": 0.8870967741935484,
+    "true_positives": 110
+  },
+  "checkpoint_epoch": 4,
+  "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v19_train20260809_split20260803\\best",
+  "checkpoint_sha256": "d8b61ad89ae7526bc486ad1eb0a7b63c6cce5bd319760e1292d347dc68ddbe0c",
+  "experiment_id": "supervised_labeler_v19",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "manifest_sha256": "664d222b28ad3b49ee5ca63aae2dddd54954ffe2d5dfd3e24aba8d7fea9e986f",
+  "numeric_checks": {
+    "audit_median_matched_iou": true,
+    "audit_precision": true,
+    "audit_recall": true
+  },
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_01.png",
+      "sha256": "30be3928ef8bd3c9f47f4ba420dae6b450f6b81001b5707b4900eb9ed144d9a7"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_02.png",
+      "sha256": "df04ce9da4901d2bac8e52896935ff883df88db2a648cfc8c30b70e438c67d87"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_03.png",
+      "sha256": "2e3594eea78fcefc521c755d50dd3e8d3bb1914cbe1b1a1aab0fcb9bb4c2e124"
+    }
+  ],
+  "panel_order": [
+    "dataset_gt_green",
+    "model_magenta",
+    "overlay"
+  ],
+  "render_model_inference_run": false,
+  "reviewed_images": 48,
+  "schema_version": 1,
+  "score_threshold": 0.028,
+  "source_audit_evidence": "reports/supervised_labeler_v19_audit_evidence.json",
+  "source_audit_evidence_sha256": "1855c7a8304b4067ff73c0d9b3d84551dbdb37355162106583bc179a89848982",
+  "source_model_inference_images": 48,
+  "source_training_report": "reports/supervised_labeler_v19_training.json",
+  "source_training_report_sha256": "68136e39419ddaf5d1fc88eacb9882fe0f45b3047583ce2508c4107c301dc165",
+  "split_manifest_sha256": "1cebdf094dfa5df1ce94305cc325c0eb1cd49071413bed09ce3235340099b264",
+  "status": "supervised_labeler_v19_model_review_pages_frozen",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
