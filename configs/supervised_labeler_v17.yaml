@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v17"
-status: "gpu_smoke_passed_formal_training_ready"
+status: "numeric_audit_passed_owner_model_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260801
 training_seed: 20260809
@@ -273,9 +273,68 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v17_training.json"
+  report_file_sha256: "3d48e6354e9ce5b44be39df9b3715dc38481a28a271a9d5f5100e7f6e5f7354a"
+  markdown_path: "reports/supervised_labeler_v17_training.md"
+  markdown_file_sha256: "7ba5d05fbbb502302305bd8d6ce58f82bf8f45fc847f34f339feab8d3a283532"
+  split_manifest_sha256: "51daf490a065b669a0189ec6e9e33b096a49c4ede2a8d4c703e6dc6d6e573d5b"
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v17_train20260809_split20260801\best
+  checkpoint_sha256: "af92663dc6853a20c928d05c4c21c0b1aa74f05a4385090b7349e245455529da"
+  checkpoint_epoch: 3
+  score_threshold: 0.040
+  elapsed_minutes: 21.006762452920277
+  audit_images: 48
+  true_positives: 105
+  false_positives: 13
+  false_negatives: 24
+  precision: 0.8898305084745762
+  recall: 0.813953488372093
+  f1: 0.8502024291497976
+  median_matched_iou: 0.8259032686517893
+  checks:
+    audit_precision: true
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v17_audit_evidence.json"
+  audit_evidence_file_sha256: "b0934ce34c3a3d8e6f4bdd19772aa0d7bf1b71c8564ad9367ba79b51b7754a1d"
+  combined_figure_path: "reports/figures/supervised_labeler_v17_audit.png"
+  combined_figure_file_sha256: "9b93759d3b28a6cb5a257df32e3309a0fcfc61e2de9201ce28e61d9c0c7947ff"
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+model_review_registration:
+  status: "supervised_labeler_v17_model_review_pages_frozen"
+  owner_review_status: "pending_kuotunyu"
+  manifest_path: "reports/supervised_labeler_v17_model_review_manifest.json"
+  manifest_file_sha256: "bae2a1bf526757990536cf94f03b3d8c29e07dd648ca3456438f49754b5bff8a"
+  manifest_sha256: "4a62edbe5f0e5cdae61e8d4e596fd636351f42096fcc89cda3fe60432a99c289"
+  reviewed_images: 48
+  approve_only_if_problem_count: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v17_model_review/review_page_01.png"
+      sha256: "ba30ca32081b517ff932cd3cb46ab8506957932b5125aed742e9fe3ad3ba9d4d"
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v17_model_review/review_page_02.png"
+      sha256: "c363999b5bc43661c7e188a9748e60b4bbfdfd0af2ed5f7d41380f9dda475a01"
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v17_model_review/review_page_03.png"
+      sha256: "72d500576e398c0bfd7958379043cb13f34f65acd283294efdc08c42c14f8c44"
+      cells: [33, 48]
+  render_model_inference_run: false
+  source_model_inference_images: 48
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v17 GT adjudication passed. Split freeze, CPU preflight, GPU smoke,
-    base-only training, one-shot independent numeric audit, and a separate
-    zero-problem owner model review remain required.
+    v17 GT adjudication, split freeze, CPU preflight, GPU smoke, base-only
+    training, and the one-shot independent numeric audit passed. Generation
+    remains closed until kuotunyu approves the frozen 48-image model review
+    with zero problems.
