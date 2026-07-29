@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v13"
-status: "numeric_audit_passed_owner_model_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260915
 training_seed: 20260809
@@ -273,8 +273,28 @@ model_review_registration:
   test_images_read: 0
   whole_image_generation_run: false
 
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  decision: "reject"
+  problem_count: 3
+  problem_cells: [3, 22, 34]
+  categories:
+    model_false_positive_cells: []
+    model_missed_helmeted_head_cells: [3, 22, 34]
+  problem_image_ids: [4507, 3593, 681]
+  evidence_path: "reports/supervised_labeler_v13_model_human_review.json"
+  evidence_file_sha256: "f689bb594b5bc2955160d441cde265d5bd7e92abe48622c569dadd1f40335e1b"
+  evidence_sha256: "3c6cdaab840fa547f617830e4088d9bf8a1394ae9ebf92a1411156de3f8bfbd0"
+  generation_allowed: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v13 passed every independent numeric gate, but the separate owner model
-    review has not yet achieved the required zero-problem approval.
+    v13 passed every independent numeric gate, but kuotunyu found three
+    missed worn-helmeted heads in cells 03, 22, and 34. The required
+    zero-problem owner gate failed.

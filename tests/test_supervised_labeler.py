@@ -51,6 +51,9 @@ from scripts.record_supervised_labeler_v13_gt_review import (
 from scripts.record_supervised_labeler_v13_gt_review import (
     OWNER_REVIEW_PATH as V13_GT_OWNER_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v13_model_review import (
+    OUTPUT_PATH as V13_MODEL_HUMAN_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -1259,9 +1262,7 @@ def test_v13_independent_numeric_audit_passes_all_frozen_gates() -> None:
     outcome = config["numeric_audit_outcome"]
     checkpoint = Path(report["checkpoint_path"]) / "model.safetensors"
 
-    assert config["status"] == (
-        "numeric_audit_passed_owner_model_review_pending"
-    )
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert outcome["status"] == report["status"]
     assert report["split_manifest_sha256"] == (
@@ -1341,6 +1342,47 @@ def test_v13_model_review_pages_pin_exact_audit_evidence() -> None:
     for page in manifest["pages"]:
         path = PROJECT_ROOT / page["path"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v13_owner_model_review_records_exact_three_misses() -> None:
+    if not V13_MODEL_HUMAN_REVIEW_PATH.is_file():
+        pytest.skip("v13 owner model review has not been recorded yet")
+    review = json.loads(
+        V13_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(review)
+    embedded_sha = canonical.pop("review_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["experiment_id"] == "supervised_labeler_v13"
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["decision"] == "reject"
+    assert review["problem_count"] == 3
+    assert review["problem_cells"] == [3, 22, 34]
+    assert review["categories"] == {
+        "model_false_positive_cells": [],
+        "model_missed_helmeted_head_cells": [3, 22, 34],
+    }
+    assert {
+        (row["cell"], row["image_id"]) for row in review["problem_cases"]
+    } == {(3, 4507), (22, 3593), (34, 681)}
+    assert review["numeric_audit_status"] == (
+        "supervised_labeler_audit_passed"
+    )
+    assert review["generation_allowed"] is False
+    assert review["validation_images_read"] == 0
+    assert review["test_images_read"] == 0
+    assert review["whole_image_generation_run"] is False
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    outcome = config["human_review_outcome"]
+    assert outcome["status"] == review["status"]
+    assert outcome["problem_cells"] == review["problem_cells"]
+    assert outcome["evidence_sha256"] == review["review_sha256"]
+    assert hashlib.sha256(
+        V13_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["evidence_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
