@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v17_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_two_images_quarantined"
 source_split: "Train"
 split_seed: 20260801
 
@@ -225,9 +225,33 @@ render_outcome:
       path: "reports/figures/supervised_labeler_v17_gt_review/page_04.png"
       sha256: "dd75a05b6707237b8429680e5e0c5a12c1e982ae0b4674e1d52939ab6920015c"
 
+owner_adjudication_outcome:
+  status: "v17_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v17_gt_owner_review.json"
+  owner_review_file_sha256: "bd5472b103f3948e8f4c269aae11a12d4eb8f43c1889d86c7131607afd16538c"
+  owner_review_sha256: "8b1e40af08233afd12e49bcf899fdb467806e06851310e25b0e105f7c158af10"
+  adjudicated_audit_path: "splits/supervised_labeler_v17_adjudicated_audit.json"
+  adjudicated_audit_file_sha256: "87c04f9871322219a1e98732e6cd359ee71fc24450a266fcc0ab0a01e232c863"
+  adjudicated_audit_sha256: "e22f8257d36801dc57e7a63b0f5ad8fd9f6c62e03cee455f2fd5d4bb27b8da64"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  reviewed_images: 64
+  passed_images: 62
+  quarantined_cells: [10, 21]
+  quarantined_image_ids: [1767, 2225]
+  quarantined_group_ids: [1745, 2189]
+  adjudicated_audit_images: 48
+  valid_primary_surplus_images: 14
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  v17_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v17 is preregistered only. Fresh GT adjudication, split freeze, CPU
-    preflight, GPU smoke, base-only training, independent numeric audit, and a
-    separate zero-problem owner model review are all required.
+    Fresh v17 GT adjudication passed with images 10 and 21 quarantined and a
+    clean 48-image audit frozen. Split freeze, CPU preflight, GPU smoke,
+    base-only training, independent numeric audit, and a separate zero-problem
+    owner model review are still required.
