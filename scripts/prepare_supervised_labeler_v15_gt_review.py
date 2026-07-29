@@ -38,6 +38,15 @@ FIGURE_DIR = (
     / "figures"
     / "supervised_labeler_v15_gt_review"
 )
+VERSION = 15
+
+
+def _version_name() -> str:
+    return f"v{VERSION}"
+
+
+def _intervention_key() -> str:
+    return f"future_{_version_name()}_intervention"
 
 
 def _read_config() -> dict[str, Any]:
@@ -53,8 +62,8 @@ def _read_config() -> dict[str, Any]:
         or config["protocol"]["label_semantics"]
         != "class_direct_helmeted_head_region"
         or config["review_stage"]["model_boxes_allowed"] is not False
-        or config["future_v15_intervention"]["status"]
-        != "preregistered_before_v15_pool_pixels_or_training"
+        or config[_intervention_key()]["status"]
+        != f"preregistered_before_{_version_name()}_pool_pixels_or_training"
         or config["independence_boundary"][
             "required_future_model_initialization"
         ]
@@ -63,7 +72,9 @@ def _read_config() -> dict[str, Any]:
         or int(config["independence_boundary"]["validation_images_read"]) != 0
         or int(config["independence_boundary"]["test_images_read"]) != 0
     ):
-        raise RuntimeError("v15 GT-only preregistration changed")
+        raise RuntimeError(
+            f"{_version_name()} GT-only preregistration changed"
+        )
     return config
 
 
@@ -168,7 +179,7 @@ def freeze_pool() -> dict[str, Any]:
                 positive_ids,
                 key=lambda value: _rank(
                     seed,
-                    "v15_positive_representative",
+                    f"{_version_name()}_positive_representative",
                     value,
                 ),
             )
@@ -187,7 +198,7 @@ def freeze_pool() -> dict[str, Any]:
                 image_ids,
                 key=lambda value: _rank(
                     seed,
-                    "v15_empty_representative",
+                    f"{_version_name()}_empty_representative",
                     value,
                 ),
             )
@@ -222,7 +233,7 @@ def freeze_pool() -> dict[str, Any]:
             strata[stratum],
             key=lambda row: _rank(
                 seed,
-                f"v15_stratum_{stratum}",
+                f"{_version_name()}_stratum_{stratum}",
                 int(row["group_id"]),
             ),
         )
@@ -233,16 +244,26 @@ def freeze_pool() -> dict[str, Any]:
             config["candidate_pool"]["sealed_reserve_quotas"][stratum]
         )
         if len(rows) < primary_quota + reserve_quota:
-            raise RuntimeError(f"Insufficient fresh v15 cases: {stratum}")
+            raise RuntimeError(
+                f"Insufficient fresh {_version_name()} cases: {stratum}"
+            )
         primary.extend(rows[:primary_quota])
         reserve.extend(rows[primary_quota : primary_quota + reserve_quota])
         eligible_counts[stratum] = len(rows)
 
     primary.sort(
-        key=lambda row: _rank(seed, "v15_primary_sheet", row["image_id"])
+        key=lambda row: _rank(
+            seed,
+            f"{_version_name()}_primary_sheet",
+            row["image_id"],
+        )
     )
     reserve.sort(
-        key=lambda row: _rank(seed, "v15_sealed_reserve", row["image_id"])
+        key=lambda row: _rank(
+            seed,
+            f"{_version_name()}_sealed_reserve",
+            row["image_id"],
+        )
     )
     for cell, row in enumerate(primary, start=1):
         row["cell"] = cell
@@ -259,11 +280,16 @@ def freeze_pool() -> dict[str, Any]:
         or groups & excluded_groups
         or ids & test_ids
     ):
-        raise RuntimeError("v15 pool violates its frozen boundary")
+        raise RuntimeError(
+            f"{_version_name()} pool violates its frozen boundary"
+        )
 
     payload = {
         "schema_version": 1,
-        "status": "v15_gt_only_pool_frozen_before_pixel_review_or_training",
+        "status": (
+            f"{_version_name()}_gt_only_pool_frozen_before_"
+            "pixel_review_or_training"
+        ),
         "experiment_id": str(config["experiment_id"]),
         "split_seed": seed,
         "source_split": "Train",
@@ -274,12 +300,14 @@ def freeze_pool() -> dict[str, Any]:
         "eligible_group_counts": eligible_counts,
         "primary_cases": primary,
         "sealed_reserve_cases": reserve,
-        "future_v15_training_exclusion_group_ids": sorted(groups),
+        (
+            f"future_{_version_name()}_training_exclusion_group_ids"
+        ): sorted(groups),
         "primary_images": len(primary),
         "sealed_reserve_images": len(reserve),
         "primary_pixels_read": 0,
         "sealed_reserve_pixels_read": 0,
-        "v15_training_started": False,
+        f"{_version_name()}_training_started": False,
         "model_inference_run": False,
         "validation_images_read": 0,
         "test_images_read": 0,
@@ -314,7 +342,8 @@ def _render_pages(
         draw.text(
             (16, 10),
             (
-                f"V15 GT-ONLY REVIEW {page_index + 1}/4 | "
+                f"{_version_name().upper()} GT-ONLY REVIEW "
+                f"{page_index + 1}/4 | "
                 f"CELLS {first:02d}-{last:02d}"
             ),
             fill="black",
@@ -371,7 +400,7 @@ def _render_pages(
 
 
 def render_primary() -> dict[str, Any]:
-    """Render only the 64 frozen v15 primary cases with green GT boxes."""
+    """Render only the 64 frozen primary cases with green GT boxes."""
 
     config = _read_config()
     pool = json.loads(POOL_PATH.read_text(encoding="utf-8"))
@@ -380,13 +409,18 @@ def render_primary() -> dict[str, Any]:
     if (
         canonical_mapping_sha256(canonical) != embedded_sha
         or pool.get("status")
-        != "v15_gt_only_pool_frozen_before_pixel_review_or_training"
+        != (
+            f"{_version_name()}_gt_only_pool_frozen_before_"
+            "pixel_review_or_training"
+        )
         or int(pool["primary_pixels_read"]) != 0
         or int(pool["sealed_reserve_pixels_read"]) != 0
-        or pool["v15_training_started"] is not False
+        or pool[f"{_version_name()}_training_started"] is not False
         or pool["model_inference_run"] is not False
     ):
-        raise RuntimeError("Frozen v15 pool changed before rendering")
+        raise RuntimeError(
+            f"Frozen {_version_name()} pool changed before rendering"
+        )
 
     paths = load_project_paths()
     coco, _, train_images, annotations, frozen, test_ids = _load_context(paths)
@@ -400,7 +434,9 @@ def render_primary() -> dict[str, Any]:
         int(row["image_id"]) for row in pool["sealed_reserve_cases"]
     }
     if test_ids & (set(primary_ids) | reserve_ids):
-        raise RuntimeError("Val/Test leakage entered v15 review")
+        raise RuntimeError(
+            f"Val/Test leakage entered {_version_name()} review"
+        )
     dataset = HelmetDataset(
         image_ids=primary_ids,
         images=train_images,
@@ -421,7 +457,9 @@ def render_primary() -> dict[str, Any]:
             or int(frozen[image_id]["group_id"])
             != int(registration["group_id"])
         ):
-            raise RuntimeError("v15 primary review order changed")
+            raise RuntimeError(
+                f"{_version_name()} primary review order changed"
+            )
         image = item["image"].convert("RGB")
         normalized += int(item["input_normalization"]["applied"])
         panel = image.resize((480, 480), Image.Resampling.LANCZOS)
@@ -447,14 +485,17 @@ def render_primary() -> dict[str, Any]:
 
     evidence = {
         "schema_version": 1,
-        "status": "v15_gt_only_primary_review_rendered_before_training",
+        "status": (
+            f"{_version_name()}_gt_only_primary_review_"
+            "rendered_before_training"
+        ),
         "experiment_id": str(config["experiment_id"]),
         "pool_manifest_sha256": str(pool["manifest_sha256"]),
         "label_semantics": str(config["protocol"]["label_semantics"]),
         "review_stage": "gt_only",
         "model_boxes_present": False,
         "model_inference_run": False,
-        "v15_training_started": False,
+        f"{_version_name()}_training_started": False,
         "cases": evidence_cases,
         "primary_images_read": len(evidence_cases),
         "primary_images_normalized": normalized,
@@ -480,20 +521,24 @@ def main() -> None:
     args = parser.parse_args()
     if args.action == "freeze":
         if POOL_PATH.exists():
-            raise RuntimeError(f"v15 pool already exists: {POOL_PATH}")
+            raise RuntimeError(
+                f"{_version_name()} pool already exists: {POOL_PATH}"
+            )
         payload = freeze_pool()
     elif args.action == "render":
         if EVIDENCE_PATH.exists() or FIGURE_DIR.exists():
-            raise RuntimeError("v15 GT review evidence already exists")
+            raise RuntimeError(
+                f"{_version_name()} GT review evidence already exists"
+            )
         payload = render_primary()
     else:
         payload = json.loads(POOL_PATH.read_text(encoding="utf-8"))
         canonical = dict(payload)
         embedded_sha = str(canonical.pop("manifest_sha256", ""))
         if canonical_mapping_sha256(canonical) != embedded_sha:
-            raise RuntimeError("v15 pool hash changed")
+            raise RuntimeError(f"{_version_name()} pool hash changed")
         payload = {
-            "status": "v15_gt_pool_verified",
+            "status": f"{_version_name()}_gt_pool_verified",
             "manifest_sha256": embedded_sha,
             "validation_images_read": 0,
             "test_images_read": 0,
