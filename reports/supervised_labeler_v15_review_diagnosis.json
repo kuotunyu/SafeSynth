@@ -1,0 +1,113 @@
+{
+  "ambiguous_gt_quarantines": [
+    {
+      "action": "quarantine_complete_image_and_group",
+      "cell": 29,
+      "count_as_model_failure": false,
+      "group_id": 785,
+      "image_id": 787,
+      "matched_iou": 0.8294853421587681,
+      "matched_truth_index": 1,
+      "reason": "occlusion_makes_boxing_optional"
+    },
+    {
+      "action": "quarantine_complete_image_and_group",
+      "cell": 38,
+      "count_as_model_failure": false,
+      "group_id": 242,
+      "image_id": 243,
+      "matched_iou": 0.8802829891275966,
+      "matched_truth_index": 0,
+      "reason": "viewing_angle_makes_helmet_identity_uncertain"
+    }
+  ],
+  "cause_counts": {
+    "ambiguous_dataset_gt_complete_image_quarantine": 2,
+    "unmatched_prediction_above_threshold": 2
+  },
+  "confirmed_model_failure": {
+    "cell": 11,
+    "diagnosed_cause": "unmatched_predictions_on_empty_gt",
+    "false_positive_count": 2,
+    "false_positives": [
+      {
+        "box": [
+          50.96488571166992,
+          98.28970336914062,
+          96.00431823730469,
+          150.3294219970703
+        ],
+        "minimum_exclusive_threshold": 0.05029296975,
+        "score": 0.05029296875
+      },
+      {
+        "box": [
+          285.4473571777344,
+          363.73468017578125,
+          341.57269287109375,
+          415.3858337402344
+        ],
+        "minimum_exclusive_threshold": 0.048095704125,
+        "score": 0.048095703125
+      }
+    ],
+    "group_id": 3971,
+    "image_id": 4100,
+    "truth_box_count": 0
+  },
+  "frozen_inputs": {
+    "checkpoint_sha256": "8dd1823bbe29e8962ece1577f76af20ce13a2e15b9a08396d36c0393133168ae",
+    "config_path": "configs\\supervised_labeler_v15.yaml",
+    "config_sha256": "363d63c4f00013d0eee6d5d8e1972f6b53b91ee8cc9adf0741556bb71e2755ba",
+    "evidence_path": "reports\\supervised_labeler_v15_audit_evidence.json",
+    "evidence_sha256": "ccbae317a8e9abb820981756c7cc4e089f463019aaa4e2b871a7264e55e5abce",
+    "review_path": "reports\\supervised_labeler_v15_model_human_review.json",
+    "review_sha256": "a87b4403f4e1e974c241de85932cdcd19fa18ebe5dc0e1bf21f31019c303b278",
+    "score_threshold": 0.035,
+    "split_path": "splits\\supervised_labeler_v15_split.json",
+    "split_sha256": "555a962e0d2caef6f86657ab3d1bc5718f0a15e293eb26c7b011d7ee79856487",
+    "training_path": "reports\\supervised_labeler_v15_training.json",
+    "training_sha256": "7115dac09091e39bbf0b5ae78ca509e00b8785cd65c5c498384e7ac9dd303417"
+  },
+  "generation_allowed": false,
+  "schema_version": 1,
+  "scope": {
+    "already_revealed_audit_cells_only": [
+      11,
+      29,
+      38
+    ],
+    "model_inference_run": false,
+    "sidecar_images_read": 3,
+    "source_image_pixels_read": 0,
+    "test_images_read": 0,
+    "validation_images_read": 0,
+    "whole_image_generation_run": false
+  },
+  "status": "v15_owner_outcome_diagnosed_without_new_inference",
+  "v16_intervention": {
+    "hard_negative_error_replay_image_ids": [
+      210,
+      361,
+      4100
+    ],
+    "hard_negative_error_replay_weight": 12.0,
+    "new_quarantined_group_ids": [
+      242,
+      785
+    ],
+    "new_quarantined_image_ids": [
+      243,
+      787
+    ],
+    "overlap_policy": "maximum_weight",
+    "positive_error_replay_image_ids": [
+      361,
+      2534,
+      3605
+    ],
+    "positive_error_replay_weight": 12.0,
+    "reason": "A threshold above 0.05029296975 would be required to remove both confirmed cell-11 false positives. Do not tune the threshold on revealed audit outcomes; use exact revealed hard-negative replay and fresh independent audit data.",
+    "score_threshold_grid_change": false
+  }
+}

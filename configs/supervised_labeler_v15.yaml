@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v15"
-status: "numeric_audit_passed_owner_model_review_pending"
+status: "rejected_by_owner_v16_preregistration_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260730
 training_seed: 20260809
@@ -255,7 +255,7 @@ numeric_audit_outcome:
 
 model_review_registration:
   status: "supervised_labeler_v15_model_review_pages_frozen"
-  owner_review_status: "pending_kuotunyu"
+  owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v15_model_review_manifest.json"
   manifest_file_sha256: "d6043c4ec08b1aa53a2207a99bbcf75045d60c57de7c2ee62fc14ca3bf31e364"
   manifest_sha256: "5882f315730ef7b1dc72e4400e192a602b21c5fc28a872d92f8446e1f53d9af0"
@@ -277,9 +277,41 @@ model_review_registration:
   test_images_read: 0
   whole_image_generation_run: false
 
+owner_model_review_outcome:
+  status: "rejected_by_kuotunyu"
+  review_path: "reports/supervised_labeler_v15_model_human_review.json"
+  review_file_sha256: "a87b4403f4e1e974c241de85932cdcd19fa18ebe5dc0e1bf21f31019c303b278"
+  review_sha256: "045da482b895da38bb9583220a85f4066e2214cda4f5cff244a3c8031e7ff573"
+  problem_count: 3
+  confirmed_model_false_positive_cells: [11]
+  model_missed_helmeted_head_cells: []
+  ambiguous_dataset_gt_quarantine_cells: [29, 38]
+  new_quarantined_image_ids: [243, 787]
+  new_quarantined_group_ids: [242, 785]
+  numeric_audit_valid_for_final_acceptance: false
+  generation_allowed: false
+
+owner_review_diagnosis:
+  status: "complete_without_new_inference"
+  report_path: "reports/supervised_labeler_v15_review_diagnosis.json"
+  report_file_sha256: "400cf2ee5f52bcd332b169db98b0d393cf34ff6b3d8745bbf1fe7addc2bc71bc"
+  confirmed_model_failure_cell: 11
+  confirmed_model_false_positives: 2
+  false_positive_scores: [0.05029296875, 0.048095703125]
+  ambiguous_gt_complete_image_quarantines: 2
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v15 GT adjudication passed with three quarantines. Split freeze, CPU
     preflight, GPU smoke, base-only training, and independent numeric audit
-    passed. A separate zero-problem owner model review remains incomplete.
+    passed, but the owner rejected the final model review. Cell 11 contains
+    two confirmed false positives. Cells 29 and 38 were newly adjudicated as
+    ambiguous GT and quarantined, invalidating the v15 numeric audit for final
+    acceptance. A preregistered v16 intervention and fresh independent audit
+    are required.

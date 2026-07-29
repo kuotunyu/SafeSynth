@@ -17,6 +17,9 @@ from scripts.diagnose_supervised_labeler_failure import diagnostic_thresholds
 from scripts.diagnose_supervised_labeler_v12_review import (
     OUTPUT_PATH as V12_REVIEW_DIAGNOSIS_PATH,
 )
+from scripts.diagnose_supervised_labeler_v15_review import (
+    OUTPUT_PATH as V15_REVIEW_DIAGNOSIS_PATH,
+)
 from scripts.prepare_supervised_labeler_v12_gt_review import (
     EVIDENCE_PATH as V12_GT_EVIDENCE_PATH,
 )
@@ -86,6 +89,9 @@ from scripts.record_supervised_labeler_v15_gt_review import (
 )
 from scripts.record_supervised_labeler_v15_gt_review import (
     OWNER_REVIEW_PATH as V15_GT_OWNER_REVIEW_PATH,
+)
+from scripts.record_supervised_labeler_v15_model_review import (
+    OUTPUT_PATH as V15_MODEL_HUMAN_REVIEW_PATH,
 )
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
@@ -2303,6 +2309,75 @@ def test_v15_model_review_pages_are_frozen_without_new_inference() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v15_owner_rejects_one_model_failure_and_quarantines_ambiguity() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    review = json.loads(
+        V15_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V15_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    embedded_review_sha = canonical_review.pop("review_sha256")
+    outcome = config["owner_model_review_outcome"]
+    diagnosis_outcome = config["owner_review_diagnosis"]
+
+    assert canonical_mapping_sha256(canonical_review) == embedded_review_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["categories"] == {
+        "ambiguous_dataset_gt_quarantine_cells": [29, 38],
+        "model_false_positive_cells": [11],
+        "model_missed_helmeted_head_cells": [],
+    }
+    assert {
+        int(row["cell"]): (int(row["image_id"]), row["category"])
+        for row in review["problem_cases"]
+    } == {
+        11: (4100, "model_false_positive"),
+        29: (787, "ambiguous_dataset_gt_quarantine"),
+        38: (243, "ambiguous_dataset_gt_quarantine"),
+    }
+    assert review["numeric_audit_status"] == (
+        "invalidated_for_final_acceptance_by_two_ambiguous_gt_images"
+    )
+    assert hashlib.sha256(
+        V15_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["review_file_sha256"]
+    assert outcome["new_quarantined_image_ids"] == [243, 787]
+    assert outcome["new_quarantined_group_ids"] == [242, 785]
+
+    assert diagnosis["status"] == (
+        "v15_owner_outcome_diagnosed_without_new_inference"
+    )
+    assert diagnosis["confirmed_model_failure"]["cell"] == 11
+    assert diagnosis["confirmed_model_failure"]["false_positive_count"] == 2
+    assert [
+        row["score"]
+        for row in diagnosis["confirmed_model_failure"]["false_positives"]
+    ] == [pytest.approx(0.05029296875), pytest.approx(0.048095703125)]
+    assert {
+        int(row["cell"]): (
+            int(row["image_id"]),
+            int(row["group_id"]),
+            row["count_as_model_failure"],
+        )
+        for row in diagnosis["ambiguous_gt_quarantines"]
+    } == {
+        29: (787, 785, False),
+        38: (243, 242, False),
+    }
+    assert diagnosis["scope"]["model_inference_run"] is False
+    assert diagnosis["scope"]["source_image_pixels_read"] == 0
+    assert diagnosis["v16_intervention"][
+        "hard_negative_error_replay_image_ids"
+    ] == [210, 361, 4100]
+    assert diagnosis["v16_intervention"]["score_threshold_grid_change"] is False
+    assert hashlib.sha256(
+        V15_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == diagnosis_outcome["report_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

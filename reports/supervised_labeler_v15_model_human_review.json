@@ -1,0 +1,85 @@
+{
+  "ambiguity_policy": "A sample without one reliable class-direct answer cannot reward or penalize the model; quarantine the complete image.",
+  "categories": {
+    "ambiguous_dataset_gt_quarantine_cells": [
+      29,
+      38
+    ],
+    "model_false_positive_cells": [
+      11
+    ],
+    "model_missed_helmeted_head_cells": []
+  },
+  "checkpoint_sha256": "8dd1823bbe29e8962ece1577f76af20ce13a2e15b9a08396d36c0393133168ae",
+  "decision": "reject",
+  "experiment_id": "supervised_labeler_v15",
+  "generation_allowed": false,
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_evidence_file_sha256": "ccbae317a8e9abb820981756c7cc4e089f463019aaa4e2b871a7264e55e5abce",
+  "model_evidence_path": "reports/supervised_labeler_v15_audit_evidence.json",
+  "model_review_manifest_file_sha256": "d6043c4ec08b1aa53a2207a99bbcf75045d60c57de7c2ee62fc14ca3bf31e364",
+  "model_review_manifest_path": "reports/supervised_labeler_v15_model_review_manifest.json",
+  "model_review_manifest_sha256": "5882f315730ef7b1dc72e4400e192a602b21c5fc28a872d92f8446e1f53d9af0",
+  "numeric_audit_report_file_sha256": "7115dac09091e39bbf0b5ae78ca509e00b8785cd65c5c498384e7ac9dd303417",
+  "numeric_audit_report_path": "reports/supervised_labeler_v15_training.json",
+  "numeric_audit_status": "invalidated_for_final_acceptance_by_two_ambiguous_gt_images",
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v15_model_review_page_01.png",
+      "sha256": "229e6601d27f1e6be4a95fad3e43b30f2b107e7fc5b63240bd97c5e67752908a"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v15_model_review_page_02.png",
+      "sha256": "223a5a277360cbf3aeb1fa64089899088f99faa0d91bccbc37b9ba514a7a2709"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v15_model_review_page_03.png",
+      "sha256": "ee139f82e9991d12e7fd5258b3ada2310d53c5bca36ba0b4bba15f086215a112"
+    }
+  ],
+  "problem_cases": [
+    {
+      "category": "model_false_positive",
+      "cell": 11,
+      "image_id": 4100
+    },
+    {
+      "category": "ambiguous_dataset_gt_quarantine",
+      "cell": 29,
+      "image_id": 787
+    },
+    {
+      "category": "ambiguous_dataset_gt_quarantine",
+      "cell": 38,
+      "image_id": 243
+    }
+  ],
+  "problem_cells": [
+    11,
+    29,
+    38
+  ],
+  "problem_count": 3,
+  "review_note": "Cell 11 contains confirmed model false positives on non-target content. Cells 29 and 38 are semantically ambiguous: occlusion or viewing angle makes either boxing or not boxing defensible. Those complete images are quarantined and are not counted as model failures.",
+  "review_sha256": "045da482b895da38bb9583220a85f4066e2214cda4f5cff244a3c8031e7ff573",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-29",
+  "schema_version": 1,
+  "score_threshold": 0.035,
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
