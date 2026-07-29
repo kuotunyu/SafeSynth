@@ -418,6 +418,12 @@ def _predict(
                                 math.inf,
                             )
                         ),
+                        max_outside_fraction=float(
+                            geometry_filter.get(
+                                "max_outside_fraction",
+                                1.0,
+                            )
+                        ),
                     )
                 predictions[int(image_id)] = rows
     return image_ids, truth, predictions

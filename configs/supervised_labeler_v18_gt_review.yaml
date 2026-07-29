@@ -1,0 +1,226 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v18_gt_review"
+status: "preregistered_before_pool_freeze"
+source_split: "Train"
+split_seed: 20260802
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One green box per visible person wearing a safety hard hat. The box includes
+    the hard hat plus the wearer's head or visible part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare head,
+    or other helmet-like object receives no green box.
+  border_policy: >-
+    A partly visible helmeted head touching an image edge is positive only when
+    enough of the hard hat and wearer remain identifiable for a meaningful box.
+    Ambiguous edge fragments are not forced into the audit.
+  uncertain_policy: "quarantine_complete_image"
+
+independence_boundary:
+  prior_revealed_split_versions:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+  exclude_pool_paths:
+    - "splits/supervised_labeler_v12_gt_pool.json"
+    - "splits/supervised_labeler_v13_gt_pool.json"
+    - "splits/supervised_labeler_v14_gt_pool.json"
+    - "splits/supervised_labeler_v15_gt_pool.json"
+    - "splits/supervised_labeler_v16_gt_pool.json"
+    - "splits/supervised_labeler_v17_gt_pool.json"
+  exclude_every_prior_primary_and_reserve_group: true
+  required_future_model_initialization: "pinned_base_checkpoint_only"
+  required_future_training_exclusion: >-
+    Every v18 primary and sealed-reserve source group must be excluded from
+    both v18 training and calibration before the pinned base checkpoint opens.
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 12
+    positive_area_q2: 12
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 16
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order.
+    Quarantine any DATASET_GT_DEFECT, AMBIGUOUS, or UNCERTAIN image. Use valid
+    primary surplus before opening a same-stratum sealed reserve.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stage:
+  name: "gt_only"
+  reviewer: "kuotunyu"
+  model_boxes_allowed: false
+  instruction: >-
+    Review green dataset boxes only. Report a cell if a worn helmeted head is
+    missing, a green box covers a non-worn object/background, multiple wearers
+    are merged into one box, localization is unusable, or either boxing choice
+    would be equally defensible.
+  categories:
+    - "PASS"
+    - "DATASET_GT_FALSE_POSITIVE"
+    - "DATASET_GT_MISS"
+    - "DATASET_GT_LOCALIZATION"
+    - "AMBIGUOUS"
+    - "UNCERTAIN"
+
+future_v18_intervention:
+  status: "preregistered_before_v18_pool_pixels_or_training"
+  initialization: "pinned_base_checkpoint_only"
+  revealed_development_evidence:
+    training_report: "reports/supervised_labeler_v17_training.json"
+    training_report_file_sha256: >-
+      3d48e6354e9ce5b44be39df9b3715dc38481a28a271a9d5f5100e7f6e5f7354a
+    owner_review: "reports/supervised_labeler_v17_model_human_review.json"
+    owner_review_file_sha256: >-
+      54052471150c79a326f5a89b73f192b58ced1275c1efcd583e36a20c72c17e69
+    owner_review_sha256: >-
+      2680f377fc9feca6243e9ca92ac4af6b025b58cf55a15888d9aa2c601b40fa69
+    diagnosis: "reports/supervised_labeler_v17_review_diagnosis.json"
+    diagnosis_file_sha256: >-
+      5be7a4d8424ebf4ffbe3bb66cd345f416cd0ee6b09e9e23abff805b2669a4439
+    failed_gate: "owner_visual_review"
+    numeric_audit_passed: true
+    owner_miss_cells: [4, 12]
+    owner_miss_image_ids: [857, 4187]
+    owner_false_positive_cells: [5, 21, 31]
+    owner_false_positive_image_ids: [2580, 2941, 2262]
+    cell_31_oversized_out_of_bounds_predictions: 4
+  model_facing_changes:
+    include_owner_approved_v17_audit_gt_as_revealed_training_development: true
+    empty_image_weight: 6.0
+    owner_miss_replay_image_ids:
+      - 857
+      - 4187
+    owner_miss_replay_weight: 16.0
+    positive_error_replay_image_ids:
+      - 361
+      - 551
+      - 688
+      - 774
+      - 1661
+      - 2171
+      - 2534
+      - 3313
+      - 3475
+      - 3605
+      - 3734
+      - 4051
+      - 4151
+      - 4363
+      - 4437
+    positive_error_replay_weight: 12.0
+    hard_negative_error_replay_image_ids:
+      - 210
+      - 361
+      - 774
+      - 1547
+      - 1635
+      - 1753
+      - 1873
+      - 2262
+      - 2580
+      - 2732
+      - 2829
+      - 2904
+      - 2941
+      - 3428
+      - 3934
+      - 4026
+      - 4086
+      - 4100
+      - 4151
+      - 4565
+    hard_negative_error_replay_weight: 16.0
+    max_outside_fraction: 0.10
+    overlap_policy: "maximum_weight"
+    min_calibration_precision: 0.86
+    epochs: 6
+  intervention_basis: >-
+    The v17 numeric audit passed but the owner found two missed worn helmeted
+    heads and three visual false-positive images. The exact miss images receive
+    stronger positive replay, and the exact false-positive images join the
+    hard-negative replay set before any v18 pool pixels are read. Cell 31
+    exposed four predictions whose raw rectangles extended materially outside
+    the image while passing all v17 size and aspect limits. v18 therefore drops
+    a prediction when more than 10 percent of its raw box area lies outside the
+    image. The fresh v18 audit alone decides acceptance.
+  held_constant:
+    architecture: "rtdetr_v2_r101vd_helmet_only"
+    training_seed: 20260809
+    close_helmet_pair_weight: 2.0
+    small_helmet_weight: 2.0
+    large_helmet_weight: 6.0
+    near_image_edge_helmet_weight: 4.0
+    max_relative_area: 0.70
+    max_relative_height: 0.90
+    min_aspect_ratio: 0.20
+    max_aspect_ratio: 4.0
+    match_iou: 0.50
+    audit_min_precision: 0.80
+    audit_min_recall: 0.70
+    audit_min_median_matched_iou: 0.60
+    calibration_threshold_grid: "v17"
+
+gpu_schedule:
+  smoke_estimate_minutes: [1, 3]
+  formal_training_and_calibration_estimate_minutes: [20, 30]
+  final_independent_audit_estimate_minutes: [1, 3]
+  recommended_contiguous_gpu_window_minutes: 35
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v18 intervention is frozen, but a fresh independent GT-only pool, owner GT
+    adjudication, split freeze, CPU preflight, GPU smoke, base-only training,
+    numeric audit, and zero-problem owner model review are still required.

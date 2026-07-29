@@ -4274,6 +4274,31 @@ def test_geometry_filter_rejects_extreme_aspect_and_degenerate_boxes() -> None:
     assert kept == [(0.9, [10.0, 10.0, 30.0, 30.0])]
 
 
+def test_geometry_filter_rejects_predictions_mostly_outside_image() -> None:
+    predictions = [
+        (0.9, [10, 10, 30, 30]),
+        (0.8, [-2, 10, 18, 30]),
+        (0.7, [-132.1132, 320.466, 272.619, 467.244]),
+        (0.6, [19.5573, 266.346, 428.659, 457.362]),
+    ]
+
+    kept = filter_prediction_geometry(
+        predictions,
+        image_width=416,
+        image_height=416,
+        max_relative_area=0.70,
+        max_relative_height=0.90,
+        min_aspect_ratio=0.20,
+        max_aspect_ratio=4.0,
+        max_outside_fraction=0.10,
+    )
+
+    assert kept == [
+        (0.9, [10.0, 10.0, 30.0, 30.0]),
+        (0.8, [-2.0, 10.0, 18.0, 30.0]),
+    ]
+
+
 def test_v7_sampling_weights_empty_and_close_pair_images() -> None:
     annotations = {
         1: [],

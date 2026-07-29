@@ -82,12 +82,16 @@ def load_supervised_labeler_config(
     if postprocessing is not None:
         min_aspect_ratio = float(postprocessing.get("min_aspect_ratio", 0.0))
         max_aspect_ratio = float(postprocessing.get("max_aspect_ratio", math.inf))
+        max_outside_fraction = float(
+            postprocessing.get("max_outside_fraction", 1.0)
+        )
         if (
             not 0 < float(postprocessing["max_relative_area"]) <= 1
             or not 0 < float(postprocessing["max_relative_height"]) <= 1
             or min_aspect_ratio < 0
             or max_aspect_ratio <= 0
             or min_aspect_ratio > max_aspect_ratio
+            or not 0 <= max_outside_fraction <= 1
         ):
             raise RuntimeError("Supervised geometry filter is invalid")
     sampling = config.get("sampling")
@@ -129,8 +133,9 @@ def filter_prediction_geometry(
     max_relative_height: float,
     min_aspect_ratio: float = 0.0,
     max_aspect_ratio: float = math.inf,
+    max_outside_fraction: float = 1.0,
 ) -> list[tuple[float, list[float]]]:
-    """Drop predictions outside fixed normalized size/aspect limits."""
+    """Drop predictions outside fixed normalized geometry limits."""
 
     image_area = max(float(image_width) * float(image_height), 1.0)
     kept = []
@@ -141,12 +146,24 @@ def filter_prediction_geometry(
         if width == 0 or height == 0:
             continue
         aspect_ratio = width / height
+        clipped_width = max(
+            0.0,
+            min(x2, float(image_width)) - max(x1, 0.0),
+        )
+        clipped_height = max(
+            0.0,
+            min(y2, float(image_height)) - max(y1, 0.0),
+        )
+        outside_fraction = 1.0 - (
+            clipped_width * clipped_height / (width * height)
+        )
         if (
             width * height / image_area <= float(max_relative_area)
             and height / max(float(image_height), 1.0)
             <= float(max_relative_height)
             and aspect_ratio >= float(min_aspect_ratio)
             and aspect_ratio <= float(max_aspect_ratio)
+            and outside_fraction <= float(max_outside_fraction)
         ):
             kept.append((float(score), [x1, y1, x2, y2]))
     return kept
