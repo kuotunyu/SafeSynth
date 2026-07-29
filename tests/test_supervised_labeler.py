@@ -249,6 +249,16 @@ V17_MODEL_REVIEW_MANIFEST_PATH = (
     / "reports"
     / "supervised_labeler_v17_model_review_manifest.json"
 )
+V17_MODEL_HUMAN_REVIEW_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v17_model_human_review.json"
+)
+V17_REVIEW_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v17_review_diagnosis.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -2996,6 +3006,66 @@ def test_v17_model_review_pages_are_frozen_without_new_inference() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v17_owner_rejects_visual_failures_and_diagnoses_cell_31() -> None:
+    config = load_supervised_labeler_config(V17_CONFIG_PATH)
+    review = json.loads(
+        V17_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V17_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_diagnosis = dict(diagnosis)
+    diagnosis_sha = canonical_diagnosis.pop("report_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_diagnosis) == diagnosis_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["problem_cells"] == [4, 5, 12, 21, 31]
+    assert review["categories"] == {
+        "ambiguous_dataset_gt_quarantine_cells": [],
+        "model_false_positive_cells": [5, 21, 31],
+        "model_missed_helmeted_head_cells": [4, 12],
+    }
+    assert {
+        int(row["cell"]): int(row["image_id"])
+        for row in review["problem_cases"]
+    } == {
+        4: 857,
+        5: 2580,
+        12: 4187,
+        21: 2941,
+        31: 2262,
+    }
+    assert review["generation_allowed"] is False
+    assert diagnosis["status"] == (
+        "v17_owner_review_diagnosed_without_new_inference"
+    )
+    cell_31 = diagnosis["cell_31"]
+    assert cell_31["image_id"] == 2262
+    assert cell_31["truth_box_count"] == 2
+    assert cell_31["model_prediction_count"] == 6
+    assert cell_31["oversized_background_prediction_count"] == 4
+    assert all(
+        row["extends_outside_image"]
+        and row["passes_frozen_geometry_filter"]
+        for row in cell_31["oversized_background_predictions"]
+    )
+    assert cell_31["rendering_bug"] is False
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    outcome = config["owner_model_review_outcome"]
+    diagnosis_outcome = config["owner_review_diagnosis"]
+    assert hashlib.sha256(
+        V17_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["review_file_sha256"]
+    assert hashlib.sha256(
+        V17_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == diagnosis_outcome["report_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v16_split_replays_v15_error_and_keeps_audit_independent() -> None:

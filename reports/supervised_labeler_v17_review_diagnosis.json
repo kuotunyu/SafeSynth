@@ -1,0 +1,85 @@
+{
+  "cell_31": {
+    "image_id": 2262,
+    "image_size": [
+      416,
+      416
+    ],
+    "model_prediction_count": 6,
+    "oversized_background_prediction_count": 4,
+    "oversized_background_predictions": [
+      {
+        "aspect_ratio": 2.757449917529816,
+        "box": [
+          -132.11322021484375,
+          320.4659729003906,
+          272.619384765625,
+          467.24383544921875
+        ],
+        "extends_outside_image": true,
+        "passes_frozen_geometry_filter": true,
+        "relative_area": 0.34327493217717037,
+        "relative_height": 0.3528314003577599,
+        "score": 0.054931640625
+      },
+      {
+        "aspect_ratio": 2.141709157283849,
+        "box": [
+          19.557266235351562,
+          266.3456726074219,
+          428.6588134765625,
+          457.362060546875
+        ],
+        "extends_outside_image": true,
+        "passes_frozen_geometry_filter": true,
+        "relative_area": 0.45155960992082134,
+        "relative_height": 0.4591740094698392,
+        "score": 0.05029296875
+      },
+      {
+        "aspect_ratio": 3.309874053728497,
+        "box": [
+          -135.02828979492188,
+          333.6467590332031,
+          248.0245819091797,
+          449.3771057128906
+        ],
+        "extends_outside_image": true,
+        "passes_frozen_geometry_filter": true,
+        "relative_area": 0.25616471916007266,
+        "relative_height": 0.2781979487492488,
+        "score": 0.04736328125
+      },
+      {
+        "aspect_ratio": 1.8946508923793475,
+        "box": [
+          27.091623306274414,
+          234.73526000976562,
+          426.3314208984375,
+          445.4547119140625
+        ],
+        "extends_outside_image": true,
+        "passes_frozen_geometry_filter": true,
+        "relative_area": 0.48612929529749344,
+        "relative_height": 0.5065371440007136,
+        "score": 0.0439453125
+      }
+    ],
+    "rendering_bug": false,
+    "rendering_explanation": "Coordinates outside the source image are clipped to the panel boundary, so complete predicted rectangles appear to grow from the bottom or side edges.",
+    "root_cause": "The model emitted high-enough-confidence background boxes. Their raw relative area, relative height, and aspect ratio still pass the preregistered v17 geometry limits.",
+    "truth_box_count": 2
+  },
+  "diagnosis_model_inference_run": false,
+  "experiment_id": "supervised_labeler_v17",
+  "future_intervention_constraint": "Do not change v17 threshold or geometry after audit. Any tighter geometry or background suppression must be preregistered for a fresh model and independent audit.",
+  "report_sha256": "719b7420039f76980ab2c44f363f4450a088e6851acc993d5a050755a99e17c0",
+  "schema_version": 1,
+  "scope": "frozen_audit_evidence_only",
+  "source_image_pixels_read": 0,
+  "source_owner_review_sha256": "2680f377fc9feca6243e9ca92ac4af6b025b58cf55a15888d9aa2c601b40fa69",
+  "status": "v17_owner_review_diagnosed_without_new_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}
