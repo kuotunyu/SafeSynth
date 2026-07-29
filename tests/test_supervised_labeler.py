@@ -32,6 +32,9 @@ from scripts.prepare_supervised_labeler_v13_gt_review import (
 from scripts.prepare_supervised_labeler_v13_gt_review import (
     POOL_PATH as V13_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v14_gt_review import (
+    CONFIG_PATH as V14_GT_CONFIG_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -1429,6 +1432,44 @@ def test_v13_review_diagnosis_freezes_geometry_and_score_blockers() -> None:
     assert cases[34]["misses"][0]["best_raw_candidate"]["score"] == pytest.approx(
         0.048095703125
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_intervention_is_preregistered_before_new_pool_pixels() -> None:
+    config = yaml.safe_load(V14_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v14_intervention"]
+
+    assert config["status"] in {
+        "preregistered_before_pool_freeze",
+        "pool_frozen_before_pixel_review_or_training",
+        "gt_only_primary_review_pending_owner",
+    }
+    assert config["protocol"]["label_semantics"] == (
+        "class_direct_helmeted_head_region"
+    )
+    assert config["review_stage"]["model_boxes_allowed"] is False
+    assert intervention["status"] == (
+        "preregistered_before_v14_pool_pixels_or_training"
+    )
+    assert intervention["revealed_development_evidence"]["problem_cells"] == [
+        3,
+        22,
+        34,
+    ]
+    assert intervention["model_facing_changes"] == {
+        "calibration_score_grid_minimum": 0.005,
+        "include_owner_approved_v13_primary_gt_as_revealed_training_development": True,
+        "large_helmet_relative_area_min": 0.15,
+        "large_helmet_weight": 6.0,
+        "max_relative_area": 0.70,
+        "max_relative_height": 0.90,
+        "near_image_edge_helmet_weight": 4.0,
+        "near_image_edge_margin_fraction": 0.05,
+        "owner_miss_replay_weight": 8.0,
+        "replay_v13_owner_miss_image_ids": [4507, 3593, 681],
+    }
+    assert config["independence_boundary"]["validation_images_read"] == 0
+    assert config["independence_boundary"]["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
 
 

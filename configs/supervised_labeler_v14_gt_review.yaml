@@ -1,0 +1,140 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v14_gt_review"
+status: "preregistered_before_pool_freeze"
+source_split: "Train"
+split_seed: 20260729
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One green box per visible person wearing a safety hard hat. The box includes
+    the hard hat plus the wearer's head or visible part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare head,
+    or other helmet-like object receives no green box.
+  border_policy: >-
+    A partly visible helmeted head touching an image edge is positive only when
+    enough of the hard hat and wearer remain identifiable for a meaningful box.
+    Ambiguous edge fragments are not forced into the audit.
+  uncertain_policy: "quarantine_complete_image"
+
+independence_boundary:
+  prior_revealed_split_versions: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+  exclude_pool_paths:
+    - "splits/supervised_labeler_v12_gt_pool.json"
+    - "splits/supervised_labeler_v13_gt_pool.json"
+  exclude_every_prior_primary_and_reserve_group: true
+  required_future_model_initialization: "pinned_base_checkpoint_only"
+  required_future_training_exclusion: >-
+    Every v14 primary and sealed-reserve source group must be excluded from
+    both v14 training and calibration before the pinned base checkpoint opens.
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 12
+    positive_area_q2: 12
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 16
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order.
+    Quarantine any DATASET_GT_DEFECT or UNCERTAIN image. Use valid primary
+    surplus before opening a same-stratum sealed reserve.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stage:
+  name: "gt_only"
+  reviewer: "kuotunyu"
+  model_boxes_allowed: false
+  instruction: >-
+    Review green dataset boxes only. Report a cell if a worn helmeted head is
+    missing, a green box covers a non-worn object/background, multiple wearers
+    are merged into one box, or localization is unusable.
+  categories:
+    - "PASS"
+    - "DATASET_GT_FALSE_POSITIVE"
+    - "DATASET_GT_MISS"
+    - "DATASET_GT_LOCALIZATION"
+    - "UNCERTAIN"
+
+future_v14_intervention:
+  status: "preregistered_before_v14_pool_pixels_or_training"
+  initialization: "pinned_base_checkpoint_only"
+  revealed_development_evidence:
+    owner_review: "reports/supervised_labeler_v13_model_human_review.json"
+    diagnosis: "reports/supervised_labeler_v13_review_diagnosis.json"
+    problem_cells: [3, 22, 34]
+    no_owner_reported_false_positive_cells: true
+    diagnosis_summary:
+      geometry_only: [3]
+      score_and_geometry: [22]
+      score_only: [34]
+  model_facing_changes:
+    include_owner_approved_v13_primary_gt_as_revealed_training_development: true
+    replay_v13_owner_miss_image_ids: [4507, 3593, 681]
+    owner_miss_replay_weight: 8.0
+    large_helmet_weight: 6.0
+    large_helmet_relative_area_min: 0.15
+    near_image_edge_helmet_weight: 4.0
+    near_image_edge_margin_fraction: 0.05
+    max_relative_area: 0.70
+    max_relative_height: 0.90
+    calibration_score_grid_minimum: 0.005
+  intervention_basis: >-
+    Cell 03 had a 0.946-IoU, 0.192-score candidate rejected only by geometry.
+    Cell 22 had a 0.943-IoU candidate blocked by both geometry and its 0.0057
+    score. Cell 34 had a 0.789-IoU candidate at 0.048, just below 0.050.
+    Geometry limits therefore expand with margin, while revealed approved v13
+    data and explicit miss replay target confidence without changing the model.
+  held_constant:
+    architecture: "rtdetr_v2_r101vd_helmet_only"
+    epochs: 12
+    training_seed: 20260809
+    empty_image_weight: 4.0
+    close_helmet_pair_weight: 2.0
+    small_helmet_weight: 2.0
+    match_iou: 0.50
+    numeric_gates: "v13"
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v14 has only been preregistered. Fresh GT adjudication, base-only training,
+    independent numeric audit, and a separate zero-problem owner model review
+    are all still required.
