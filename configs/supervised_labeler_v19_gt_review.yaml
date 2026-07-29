@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v19_gt_review"
-status: "pool_frozen_before_pixel_review_or_training"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260803
 
@@ -246,11 +246,44 @@ freeze_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+render_outcome:
+  status: "v19_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v19_gt_review.json"
+  evidence_file_sha256: >-
+    52b56c62b0297ece991d7b7661d1515ab1a15a020252ec864d31251a19abb5c8
+  evidence_sha256: >-
+    64b41e17725f346056c69f0faf7815d4de003fce6a527e17de8580029090ef57
+  primary_images_read: 64
+  primary_images_normalized: 63
+  sealed_reserve_pixels_read: 0
+  model_boxes_present: false
+  model_inference_run: false
+  v19_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - cells: [1, 16]
+      path: "reports/figures/supervised_labeler_v19_gt_review/page_01.png"
+      sha256: >-
+        3ceceb9145a94dfb927d1ffd643758041bfc1732f850c1e57f8034d8433f6943
+    - cells: [17, 32]
+      path: "reports/figures/supervised_labeler_v19_gt_review/page_02.png"
+      sha256: >-
+        b2b81f91933a2a2c59141b1322af8b69b082e5580a9c50471a8b6c773be18706
+    - cells: [33, 48]
+      path: "reports/figures/supervised_labeler_v19_gt_review/page_03.png"
+      sha256: >-
+        6bb6e412ee4114e78afde6d20583ac3674136580f2b44641a568a4991753c191
+    - cells: [49, 64]
+      path: "reports/figures/supervised_labeler_v19_gt_review/page_04.png"
+      sha256: >-
+        a2366a171203623b52114015d38546986e240b296d345a2fc6a474df53985434
+
 generation_gate:
   allowed: false
   reason: >-
     The v19 intervention and fresh GT-only pool are frozen before any pool
-    pixels or v19 training were opened. GT-only rendering and owner
-    adjudication, split freeze, CPU preflight, GPU smoke, base-only training,
-    independent numeric audit, and a separate zero-problem owner model review
-    are all still required.
+    pixels or v19 training were opened. The 64 primary GT-only cases are now
+    rendered with no model boxes and await owner adjudication. Split freeze,
+    CPU preflight, GPU smoke, base-only training, independent numeric audit,
+    and a separate zero-problem owner model review are all still required.
