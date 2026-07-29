@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v20_gt_review"
-status: "preregistered_before_pool_freeze"
+status: "pool_frozen_before_pixel_review_or_training"
 source_split: "Train"
 split_seed: 20260804
 
@@ -238,8 +238,26 @@ gpu_schedule:
   final_independent_audit_estimate_minutes: [1, 3]
   recommended_contiguous_gpu_window_minutes: 35
 
+freeze_outcome:
+  status: "v20_gt_only_pool_frozen_before_pixel_review_or_training"
+  pool_path: "splits/supervised_labeler_v20_gt_pool.json"
+  pool_file_sha256: >-
+    b49c1410b0293c75bd67e47d415299f4d47763e749f1fefde3bb6b0bd701b8ab
+  manifest_sha256: >-
+    f0e2d02a496414fb560edaeb3d348a9831e5321144b591009b76fb2140308942
+  excluded_group_count: 1392
+  primary_images: 64
+  sealed_reserve_images: 32
+  future_v20_training_exclusion_groups: 96
+  primary_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v20 intervention is preregistered, but the independent GT pool has not yet
-    been frozen or reviewed. No v20 model work is allowed yet.
+    v20 intervention and independent GT pool are frozen before pixels or
+    training, but the green-box primary review is still required. No v20 model
+    work is allowed yet.

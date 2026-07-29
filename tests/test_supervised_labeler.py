@@ -92,6 +92,9 @@ from scripts.prepare_supervised_labeler_v19_gt_review import (
 from scripts.prepare_supervised_labeler_v20_gt_review import (
     CONFIG_PATH as V20_GT_CONFIG_PATH,
 )
+from scripts.prepare_supervised_labeler_v20_gt_review import (
+    POOL_PATH as V20_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -2941,7 +2944,9 @@ def test_v20_intervention_is_preregistered_before_pool_pixels() -> None:
     changes = intervention["model_facing_changes"]
     evidence = intervention["revealed_development_evidence"]
 
-    assert config["status"] == "preregistered_before_pool_freeze"
+    assert config["status"] == (
+        "pool_frozen_before_pixel_review_or_training"
+    )
     assert intervention["status"] == (
         "preregistered_before_v20_pool_pixels_or_training"
     )
@@ -2981,6 +2986,27 @@ def test_v20_intervention_is_preregistered_before_pool_pixels() -> None:
     assert config["independence_boundary"]["validation_images_read"] == 0
     assert config["independence_boundary"]["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
+
+    pool = json.loads(V20_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical_pool = dict(pool)
+    pool_sha = canonical_pool.pop("manifest_sha256")
+    assert canonical_mapping_sha256(canonical_pool) == pool_sha
+    assert pool["status"] == (
+        "v20_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool["excluded_group_count"] == 1392
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(pool["future_v20_training_exclusion_group_ids"]) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["v20_training_started"] is False
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert hashlib.sha256(V20_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        config["freeze_outcome"]["pool_file_sha256"]
+    )
 
 
 def test_v19_gt_adjudication_quarantines_tiny_cell_36_edge_fragment() -> None:
