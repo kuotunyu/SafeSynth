@@ -1,0 +1,78 @@
+{
+  "accepted_exceptions": [
+    {
+      "cell": 29,
+      "counts_as_problem": false,
+      "decision": "acceptable_due_to_occlusion",
+      "image_id": 3981,
+      "observation": "partially_occluded_helmeted_head_not_predicted"
+    }
+  ],
+  "categories": {
+    "ambiguous_dataset_gt_quarantine_cells": [],
+    "model_false_positive_cells": [
+      36
+    ],
+    "model_missed_helmeted_head_cells": []
+  },
+  "checkpoint_sha256": "20629e557613d0c766a68c1a8351cd5b92714095c6e0c9e1ce1d5f53fe6de57e",
+  "decision": "reject",
+  "experiment_id": "supervised_labeler_v18",
+  "generation_allowed": false,
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_evidence_file_sha256": "c11db84fea8a18784b1fd87428536f661b2f275ff6cb665cfe50b5f7b053a9a1",
+  "model_evidence_path": "reports/supervised_labeler_v18_audit_evidence.json",
+  "model_review_manifest_file_sha256": "f4a2cce1a2cb8bee2c54543641421cbf74663937bdf191499d296a30ef4d54d7",
+  "model_review_manifest_path": "reports/supervised_labeler_v18_model_review_manifest.json",
+  "model_review_manifest_sha256": "810ac0c20f2a0ce7eff803608a9d4bebec2f793cf6149af1f0d14d8dcd1bb168",
+  "numeric_audit_report_file_sha256": "f135d42e8c23780164c81e60996f0c61f54fde48de23ab5d99cf4bb0f67e78fa",
+  "numeric_audit_report_path": "reports/supervised_labeler_v18_training.json",
+  "numeric_audit_status": "passed_but_owner_visual_gate_failed",
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v18_model_review/review_page_01.png",
+      "sha256": "ffac47ab749e270fcfebb3d8f3dae02c3384d02d7fb764ebcee3d525d8c72d41"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v18_model_review/review_page_02.png",
+      "sha256": "9fd5640781f8318ff4748db44b32aa8f15c16c7e8d8679c7d57ecf85f7aa32de"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v18_model_review/review_page_03.png",
+      "sha256": "d1bbf7e282f6d64a597754ec93c82d14e46a11f59273598e0faad3fb9265bf74"
+    }
+  ],
+  "problem_cases": [
+    {
+      "category": "model_false_positive",
+      "cell": 36,
+      "image_id": 4618
+    }
+  ],
+  "problem_cells": [
+    36
+  ],
+  "problem_count": 1,
+  "review_note": "Cell 29 contains one partially occluded missed helmeted head and is explicitly accepted. Cell 36 contains one large magenta model box on the lower-right ground/background and fails the required zero-problem visual gate. All other reviewed cells were accepted.",
+  "review_sha256": "974cdc27d029943c0bd4b1a68545cc21d72041c4fa63dcf7fcc341efc5419608",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-30",
+  "schema_version": 1,
+  "score_threshold": 0.028,
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

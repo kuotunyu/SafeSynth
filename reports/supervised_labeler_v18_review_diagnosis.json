@@ -1,0 +1,47 @@
+{
+  "accepted_cell_29": {
+    "counts_as_problem": false,
+    "decision": "acceptable_due_to_occlusion",
+    "image_id": 3981
+  },
+  "cell_36": {
+    "background_false_positive": {
+      "aspect_ratio": 0.8562689956764146,
+      "box": [
+        274.85833740234375,
+        238.21548461914062,
+        416.35174560546875,
+        403.4595947265625
+      ],
+      "extends_outside_image": true,
+      "outside_fraction": 0.0024859504759670026,
+      "passes_frozen_geometry_filter": true,
+      "relative_area": 0.13510627961233113,
+      "relative_height": 0.3972214185274564,
+      "score": 0.0289306640625,
+      "score_margin_above_threshold": 0.0009306640624999994,
+      "score_threshold": 0.028
+    },
+    "image_id": 4618,
+    "image_size": [
+      416,
+      416
+    ],
+    "model_prediction_count": 2,
+    "rendering_bug": false,
+    "root_cause": "The model emitted a low-confidence ground/background box only slightly above the frozen score threshold. The box is almost entirely inside the image and its size, height, aspect ratio, and outside fraction all pass the preregistered v18 geometry limits.",
+    "truth_box_count": 1
+  },
+  "diagnosis_model_inference_run": false,
+  "experiment_id": "supervised_labeler_v18",
+  "future_intervention_constraint": "Do not change the v18 threshold or geometry after audit. Any background suppression, harder calibration precision floor, or replay intervention must be preregistered for a fresh model and independent audit.",
+  "report_sha256": "6a420b0758002a18c1b18652b6634e77e1bbb478787fe773a4761a7b107201ba",
+  "schema_version": 1,
+  "scope": "frozen_audit_evidence_only",
+  "source_image_pixels_read": 0,
+  "source_owner_review_sha256": "974cdc27d029943c0bd4b1a68545cc21d72041c4fa63dcf7fcc341efc5419608",
+  "status": "v18_owner_review_diagnosed_without_new_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

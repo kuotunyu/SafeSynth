@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v18"
-status: "owner_model_review_pending"
+status: "owner_model_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260802
 training_seed: 20260809
@@ -352,7 +352,7 @@ numeric_audit_outcome:
 
 model_review_registration:
   status: "supervised_labeler_v18_model_review_pages_frozen"
-  owner_review_status: "pending_kuotunyu"
+  owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v18_model_review_manifest.json"
   manifest_file_sha256: >-
     f4a2cce1a2cb8bee2c54543641421cbf74663937bdf191499d296a30ef4d54d7
@@ -379,10 +379,47 @@ model_review_registration:
   test_images_read: 0
   whole_image_generation_run: false
 
+owner_model_review_outcome:
+  status: "rejected_by_kuotunyu"
+  review_path: "reports/supervised_labeler_v18_model_human_review.json"
+  review_file_sha256: >-
+    42f6d3f07f0ea62874121bfc803ec7dbae09f2c4c1cf8849908484b814cbceb6
+  review_sha256: >-
+    974cdc27d029943c0bd4b1a68545cc21d72041c4fa63dcf7fcc341efc5419608
+  problem_count: 1
+  model_false_positive_cells: [36]
+  model_missed_helmeted_head_cells: []
+  ambiguous_dataset_gt_quarantine_cells: []
+  accepted_occluded_miss_cells: [29]
+  numeric_audit_passed: true
+  owner_visual_gate_passed: false
+  generation_allowed: false
+
+owner_review_diagnosis:
+  status: "complete_without_new_inference"
+  report_path: "reports/supervised_labeler_v18_review_diagnosis.json"
+  report_file_sha256: >-
+    6eb68eeb81d97e3165764342958ee36f85f76c72fdd51dceae78002c9d7bac15
+  report_sha256: >-
+    6a420b0758002a18c1b18652b6634e77e1bbb478787fe773a4761a7b107201ba
+  cell_36_image_id: 4618
+  cell_36_score: 0.0289306640625
+  cell_36_score_margin_above_threshold: 0.0009306640625
+  cell_36_outside_fraction: 0.0024859504759670026
+  cell_36_passes_frozen_geometry_filter: true
+  cell_36_rendering_bug: false
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v18 GT adjudication, split freeze, CPU preflight, GPU smoke, base-only
-    training, and the one-shot independent numeric audit passed. A separate
-    zero-problem owner visual review of the frozen 48-image model evidence is
-    still required before generation may open.
+    training, and the one-shot independent numeric audit passed, but kuotunyu
+    rejected the frozen visual review. Cell 29's partially occluded miss is
+    explicitly accepted; cell 36 contains one large ground/background false
+    positive and fails the zero-problem visual gate. A preregistered fresh
+    intervention and independent audit are required.

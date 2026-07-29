@@ -138,6 +138,12 @@ from scripts.record_supervised_labeler_v18_gt_review import (
 from scripts.record_supervised_labeler_v18_gt_review import (
     OWNER_REVIEW_PATH as V18_GT_OWNER_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v18_model_review import (
+    DIAGNOSIS_PATH as V18_REVIEW_DIAGNOSIS_PATH,
+)
+from scripts.record_supervised_labeler_v18_model_review import (
+    OUTPUT_PATH as V18_MODEL_HUMAN_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -3249,6 +3255,78 @@ def test_v18_model_review_pages_are_frozen_without_new_inference() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v18_owner_rejects_cell_36_and_accepts_occluded_cell_29() -> None:
+    config = load_supervised_labeler_config(V18_CONFIG_PATH)
+    review = json.loads(
+        V18_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V18_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_diagnosis = dict(diagnosis)
+    diagnosis_sha = canonical_diagnosis.pop("report_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_diagnosis) == diagnosis_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["problem_cells"] == [36]
+    assert review["categories"] == {
+        "ambiguous_dataset_gt_quarantine_cells": [],
+        "model_false_positive_cells": [36],
+        "model_missed_helmeted_head_cells": [],
+    }
+    assert review["problem_cases"] == [
+        {
+            "category": "model_false_positive",
+            "cell": 36,
+            "image_id": 4618,
+        }
+    ]
+    assert review["accepted_exceptions"] == [
+        {
+            "cell": 29,
+            "counts_as_problem": False,
+            "decision": "acceptable_due_to_occlusion",
+            "image_id": 3981,
+            "observation": (
+                "partially_occluded_helmeted_head_not_predicted"
+            ),
+        }
+    ]
+    assert review["generation_allowed"] is False
+    assert diagnosis["status"] == (
+        "v18_owner_review_diagnosed_without_new_inference"
+    )
+    false_positive = diagnosis["cell_36"]["background_false_positive"]
+    assert diagnosis["cell_36"]["image_id"] == 4618
+    assert false_positive["score"] == pytest.approx(0.0289306640625)
+    assert false_positive["score_threshold"] == 0.028
+    assert false_positive["score_margin_above_threshold"] == pytest.approx(
+        0.0009306640625
+    )
+    assert false_positive["relative_area"] == pytest.approx(
+        0.13510627961233113
+    )
+    assert false_positive["outside_fraction"] == pytest.approx(
+        0.0024859504759670026
+    )
+    assert false_positive["passes_frozen_geometry_filter"] is True
+    assert diagnosis["cell_36"]["rendering_bug"] is False
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    outcome = config["owner_model_review_outcome"]
+    diagnosis_outcome = config["owner_review_diagnosis"]
+    assert hashlib.sha256(
+        V18_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["review_file_sha256"]
+    assert hashlib.sha256(
+        V18_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == diagnosis_outcome["report_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v17_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
