@@ -99,6 +99,8 @@ def load_supervised_labeler_config(
         or float(sampling.get("large_helmet_weight", 1.0)) < 1
         or float(sampling.get("near_image_edge_helmet_weight", 1.0)) < 1
         or float(sampling.get("owner_miss_replay_weight", 1.0)) < 1
+        or float(sampling.get("positive_error_replay_weight", 1.0)) < 1
+        or float(sampling.get("hard_negative_error_replay_weight", 1.0)) < 1
         or not 0
         <= float(sampling.get("small_helmet_relative_area_max", 0.0))
         <= 1
@@ -167,10 +169,20 @@ def supervised_sampling_weights(
     near_image_edge_margin_fraction: float = 0.0,
     owner_miss_replay_image_ids: Sequence[int] = (),
     owner_miss_replay_weight: float = 1.0,
+    positive_error_replay_image_ids: Sequence[int] = (),
+    positive_error_replay_weight: float = 1.0,
+    hard_negative_error_replay_image_ids: Sequence[int] = (),
+    hard_negative_error_replay_weight: float = 1.0,
 ) -> list[float]:
     """Weight registered hard examples using Train annotations only."""
 
     replay_ids = {int(value) for value in owner_miss_replay_image_ids}
+    positive_error_ids = {
+        int(value) for value in positive_error_replay_image_ids
+    }
+    hard_negative_error_ids = {
+        int(value) for value in hard_negative_error_replay_image_ids
+    }
     weights = []
     for image_id in image_ids:
         boxes = [
@@ -261,6 +273,10 @@ def supervised_sampling_weights(
                 )
         if int(image_id) in replay_ids:
             weight = max(weight, float(owner_miss_replay_weight))
+        if int(image_id) in positive_error_ids:
+            weight = max(weight, float(positive_error_replay_weight))
+        if int(image_id) in hard_negative_error_ids:
+            weight = max(weight, float(hard_negative_error_replay_weight))
         weights.append(weight)
     return weights
 

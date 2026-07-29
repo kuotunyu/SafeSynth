@@ -81,6 +81,12 @@ from scripts.record_supervised_labeler_v14_gt_review import (
 from scripts.record_supervised_labeler_v14_model_review import (
     OUTPUT_PATH as V14_MODEL_HUMAN_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v15_gt_review import (
+    AUDIT_PATH as V15_ADJUDICATED_AUDIT_PATH,
+)
+from scripts.record_supervised_labeler_v15_gt_review import (
+    OWNER_REVIEW_PATH as V15_GT_OWNER_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -145,6 +151,13 @@ V14_REVIEW_DIAGNOSIS_PATH = (
     PROJECT_ROOT
     / "reports"
     / "supervised_labeler_v14_review_diagnosis.json"
+)
+V15_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v15.yaml"
+V15_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v15_split.json"
+)
+V15_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v15_preflight.json"
 )
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
@@ -1946,7 +1959,9 @@ def test_v15_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
     canonical_evidence = dict(evidence)
     evidence_sha = canonical_evidence.pop("evidence_sha256")
 
-    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert config["status"] == (
+        "gt_only_primary_adjudicated_three_images_quarantined"
+    )
     assert intervention["status"] == (
         "preregistered_before_v15_pool_pixels_or_training"
     )
@@ -2012,6 +2027,154 @@ def test_v15_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v15_gt_adjudication_quarantines_exact_owner_reported_images() -> None:
+    config = yaml.safe_load(V15_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    review = json.loads(
+        V15_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    audit = json.loads(
+        V15_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_audit = dict(audit)
+    audit_sha = canonical_audit.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_audit) == audit_sha
+    assert review["status"] == (
+        "v15_gt_only_primary_adjudicated_three_quarantines"
+    )
+    assert review["categories"] == {
+        "dataset_gt_false_positive_cells": [6, 61],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [48],
+        "uncertain_cells": [],
+    }
+    assert review["accepted_ambiguities"] == {
+        "cell_06_overlapping_middle_hard_hats": (
+            "One or two boxes are both acceptable; this is not a defect."
+        )
+    }
+    problems = {
+        int(row["cell"]): int(row["image_id"])
+        for row in review["decisions"]
+        if row["decision"] != "PASS"
+    }
+    assert problems == {6: 3272, 48: 837, 61: 2686}
+    assert review["pass_images"] == 61
+    assert review["sealed_reserve_pixels_read"] == 0
+    assert review["v15_training_started"] is False
+
+    assert audit["status"] == (
+        "v15_adjudicated_audit_frozen_before_training"
+    )
+    assert audit["selected_images"] == 48
+    assert audit["valid_primary_surplus_images"] == 13
+    assert audit["quarantined_primary_images"] == 3
+    assert audit["sealed_reserve_images"] == 32
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert {
+        int(row["image_id"]) for row in audit["quarantined_primary_cases"]
+    } == {837, 2686, 3272}
+    assert not {
+        int(row["image_id"]) for row in audit["quarantined_primary_cases"]
+    } & {
+        int(row["image_id"]) for row in audit["selected_cases"]
+    }
+    outcome = config["owner_adjudication_outcome"]
+    assert hashlib.sha256(
+        V15_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["owner_review_file_sha256"]
+    assert hashlib.sha256(
+        V15_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == outcome["adjudicated_audit_file_sha256"]
+
+
+def test_v15_split_replays_revealed_errors_and_keeps_audit_independent() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    split = json.loads(V15_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["training_images"] == 2580
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert len(split["v15_reserved_group_ids"]) == 96
+    assert len(split["v14_approved_primary_group_ids"]) == 63
+    assert len(split["v13_approved_primary_group_ids"]) == 64
+    assert set(split["positive_error_replay_image_ids"]) == {
+        361,
+        2534,
+        3605,
+    }
+    assert set(split["hard_negative_error_replay_image_ids"]) == {210, 361}
+    assert {
+        837,
+        1171,
+        2686,
+        3060,
+        3272,
+        4155,
+        4364,
+    }.isdisjoint(split["training_image_ids"])
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["calibration_group_ids"]
+    )
+    assert (
+        set(split["training_group_ids"])
+        | set(split["calibration_group_ids"])
+    ).isdisjoint(split["v15_reserved_group_ids"])
+    outcome = config["split_outcome"]
+    assert embedded_sha == outcome["manifest_sha256"]
+    assert hashlib.sha256(V15_SPLIT_PATH.read_bytes()).hexdigest() == outcome[
+        "file_sha256"
+    ]
+
+
+def test_v15_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    report = json.loads(V15_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V15_PREFLIGHT_PATH.read_bytes()).hexdigest() == (
+        outcome["report_sha256"]
+    )
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["training"]["images_read"] == 2580
+    assert report["calibration"]["images_read"] == 621
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["error_replay_weights"] == {
+        "210": 12.0,
+        "361": 12.0,
+        "2534": 12.0,
+        "3605": 12.0,
+    }
+    assert report["overlap_policy"] == "maximum_weight"
+    assert report["v15_reserved_groups_in_model_data"] == 0
+    assert report["v14_sealed_reserve_groups_in_model_data"] == 0
+    assert report["v13_sealed_reserve_groups_in_model_data"] == 0
+    assert report["v12_development_groups_in_model_data"] == 0
+    assert report["v14_approved_primary_groups_in_training"] == 63
+    assert report["v13_approved_primary_groups_in_training"] == 64
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
@@ -3160,6 +3323,35 @@ def test_v14_sampling_adds_edge_and_owner_miss_replay_without_stacking() -> None
     )
 
     assert weights == [4.0, 2.0, 6.0, 4.0, 8.0, 6.0]
+
+
+def test_v15_positive_and_hard_negative_replay_use_maximum_weight() -> None:
+    annotations = {
+        1: [],
+        2: [{"category_id": 1, "bbox": [40, 40, 10, 10]}],
+        3: [{"category_id": 1, "bbox": [40, 40, 10, 10]}],
+        4: [{"category_id": 1, "bbox": [40, 40, 10, 10]}],
+    }
+    image_records = {
+        image_id: {"width": 100, "height": 100}
+        for image_id in annotations
+    }
+
+    weights = supervised_sampling_weights(
+        image_ids=[1, 2, 3, 4],
+        annotations=annotations,
+        image_records=image_records,
+        helmet_category_id=1,
+        empty_image_weight=4.0,
+        close_helmet_pair_weight=2.0,
+        close_pair_ratio_max=1.0,
+        positive_error_replay_image_ids=[2, 3],
+        positive_error_replay_weight=12.0,
+        hard_negative_error_replay_image_ids=[3, 4],
+        hard_negative_error_replay_weight=12.0,
+    )
+
+    assert weights == [4.0, 12.0, 12.0, 12.0]
 
 
 def test_exact_audit_evidence_preserves_boxes_without_raster_parsing() -> None:

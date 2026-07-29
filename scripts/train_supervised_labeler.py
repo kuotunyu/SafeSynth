@@ -801,6 +801,24 @@ def _train(
             owner_miss_replay_weight=float(
                 sampling.get("owner_miss_replay_weight", 1.0)
             ),
+            positive_error_replay_image_ids=tuple(
+                int(value)
+                for value in sampling.get(
+                    "positive_error_replay_image_ids", []
+                )
+            ),
+            positive_error_replay_weight=float(
+                sampling.get("positive_error_replay_weight", 1.0)
+            ),
+            hard_negative_error_replay_image_ids=tuple(
+                int(value)
+                for value in sampling.get(
+                    "hard_negative_error_replay_image_ids", []
+                )
+            ),
+            hard_negative_error_replay_weight=float(
+                sampling.get("hard_negative_error_replay_weight", 1.0)
+            ),
         )
         sampler = WeightedRandomSampler(
             weights=weights,

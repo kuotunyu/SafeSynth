@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v15_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_three_images_quarantined"
 source_split: "Train"
 split_seed: 20260730
 
@@ -146,9 +146,10 @@ gpu_schedule:
 generation_gate:
   allowed: false
   reason: >-
-    v15 is only preregistered. Fresh GT adjudication, split freeze, CPU
-    preflight, base-only training, independent numeric audit, and a separate
-    zero-problem owner model review are all still required.
+    Fresh GT adjudication passed with cells 06, 48, and 61 quarantined.
+    Split freeze and CPU preflight are complete. GPU smoke, base-only training,
+    independent numeric audit, and a separate zero-problem owner model review
+    are still required.
 
 freeze_outcome:
   status: "v15_gt_only_pool_frozen_before_pixel_review_or_training"
@@ -194,3 +195,34 @@ render_outcome:
     - path: "reports/figures/supervised_labeler_v15_gt_review/page_04.png"
       sha256: "a5c5ee29ac4def2660a703369f8730889cda24ca14af96ac7bc2c8b74c1330b5a0"
       cells: [49, 64]
+
+owner_adjudication_outcome:
+  status: "approved_with_three_complete_image_quarantines"
+  owner_review_path: "reports/supervised_labeler_v15_gt_owner_review.json"
+  owner_review_file_sha256: "ccef4a1d6d5d55ef72d5373067461fbd7fed6951f73ade9a2b35a66797054660"
+  owner_review_sha256: "29f7e49acbbcbfa84ca04afbd664d8c8baaca65a25890822936568c8111adc04"
+  adjudicated_audit_path: "splits/supervised_labeler_v15_adjudicated_audit.json"
+  adjudicated_audit_file_sha256: "5f14da63702c4fbc9858a64fb9c2d6168c9e3353f3620d88ceb96678a2f3a3fc"
+  adjudicated_audit_sha256: "19d8eca05fcfe3c294cafb650a6b4ab329da0db150d88e07b4ee1442467027f5"
+  passed_primary_images: 61
+  quarantined_primary_cells: [6, 48, 61]
+  quarantined_image_ids: [3272, 837, 2686]
+  selected_independent_audit_images: 48
+  valid_primary_surplus_images: 13
+  sealed_reserve_images_opened: 0
+  sealed_reserve_pixels_read: 0
+  v15_training_started: false
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  notes:
+    cell_06: >-
+      Quarantine the complete image because of the duplicate far-right box.
+      The two overlapping middle helmets may permissibly be represented by
+      either one or two boxes.
+    cell_48: >-
+      Quarantine the complete image because two small but identifiable worn
+      helmets are missing from the dataset GT.
+    cell_61: >-
+      Quarantine the complete image because the far-left flat box is not a
+      meaningful worn-helmeted-head target.
