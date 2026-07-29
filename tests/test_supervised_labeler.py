@@ -2832,8 +2832,13 @@ def test_v19_intervention_is_preregistered_before_pool_pixels() -> None:
     intervention = config["future_v19_intervention"]
     changes = intervention["model_facing_changes"]
     evidence = intervention["revealed_development_evidence"]
+    pool = json.loads(V19_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical_pool = dict(pool)
+    pool_sha = canonical_pool.pop("manifest_sha256")
 
-    assert config["status"] == "preregistered_before_pool_freeze"
+    assert config["status"] == (
+        "pool_frozen_before_pixel_review_or_training"
+    )
     assert intervention["status"] == (
         "preregistered_before_v19_pool_pixels_or_training"
     )
@@ -2851,8 +2856,24 @@ def test_v19_intervention_is_preregistered_before_pool_pixels() -> None:
     assert changes["min_audit_precision"] == 0.85
     assert changes["max_outside_fraction"] == 0.10
     assert changes["epochs"] == 6
+    assert canonical_mapping_sha256(canonical_pool) == pool_sha
+    assert pool["status"] == (
+        "v19_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool["excluded_group_count"] == 1296
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(pool["future_v19_training_exclusion_group_ids"]) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["v19_training_started"] is False
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert hashlib.sha256(V19_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        config["freeze_outcome"]["pool_file_sha256"]
+    )
     assert config["generation_gate"]["allowed"] is False
-    assert not V19_GT_POOL_PATH.exists()
     assert not V19_GT_EVIDENCE_PATH.exists()
 
 
