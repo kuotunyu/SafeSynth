@@ -80,6 +80,15 @@ from scripts.prepare_supervised_labeler_v18_gt_review import (
 from scripts.prepare_supervised_labeler_v18_gt_review import (
     POOL_PATH as V18_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v19_gt_review import (
+    CONFIG_PATH as V19_GT_CONFIG_PATH,
+)
+from scripts.prepare_supervised_labeler_v19_gt_review import (
+    EVIDENCE_PATH as V19_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v19_gt_review import (
+    POOL_PATH as V19_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -2816,6 +2825,35 @@ def test_v18_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v19_intervention_is_preregistered_before_pool_pixels() -> None:
+    config = yaml.safe_load(V19_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v19_intervention"]
+    changes = intervention["model_facing_changes"]
+    evidence = intervention["revealed_development_evidence"]
+
+    assert config["status"] == "preregistered_before_pool_freeze"
+    assert intervention["status"] == (
+        "preregistered_before_v19_pool_pixels_or_training"
+    )
+    assert evidence["numeric_audit_passed"] is True
+    assert evidence["accepted_occluded_miss_cells"] == [29]
+    assert evidence["accepted_occluded_miss_image_ids"] == [3981]
+    assert evidence["owner_false_positive_cells"] == [36]
+    assert evidence["owner_false_positive_image_ids"] == [4618]
+    assert evidence["cell_36_score"] == pytest.approx(0.0289306640625)
+    assert evidence["cell_36_score_threshold"] == 0.028
+    assert evidence["cell_36_passes_v18_geometry_filter"] is True
+    assert 4618 in changes["hard_negative_error_replay_image_ids"]
+    assert changes["hard_negative_error_replay_weight"] == 20.0
+    assert changes["min_calibration_precision"] == 0.90
+    assert changes["min_audit_precision"] == 0.85
+    assert changes["max_outside_fraction"] == 0.10
+    assert changes["epochs"] == 6
+    assert config["generation_gate"]["allowed"] is False
+    assert not V19_GT_POOL_PATH.exists()
+    assert not V19_GT_EVIDENCE_PATH.exists()
 
 
 def test_v18_gt_adjudication_quarantines_owner_reported_defects() -> None:
