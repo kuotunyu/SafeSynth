@@ -97,12 +97,17 @@ def load_supervised_labeler_config(
         or float(sampling["close_helmet_pair_weight"]) < 1
         or float(sampling.get("small_helmet_weight", 1.0)) < 1
         or float(sampling.get("large_helmet_weight", 1.0)) < 1
+        or float(sampling.get("near_image_edge_helmet_weight", 1.0)) < 1
+        or float(sampling.get("owner_miss_replay_weight", 1.0)) < 1
         or not 0
         <= float(sampling.get("small_helmet_relative_area_max", 0.0))
         <= 1
         or not 0
         <= float(sampling.get("large_helmet_relative_area_min", 1.0))
         <= 1
+        or not 0
+        <= float(sampling.get("near_image_edge_margin_fraction", 0.0))
+        <= 0.5
         or float(
             sampling["close_pair_center_distance_over_mean_sqrt_area_max"]
         )
@@ -158,9 +163,14 @@ def supervised_sampling_weights(
     small_helmet_relative_area_max: float = 0.0,
     large_helmet_weight: float = 1.0,
     large_helmet_relative_area_min: float = 1.0,
+    near_image_edge_helmet_weight: float = 1.0,
+    near_image_edge_margin_fraction: float = 0.0,
+    owner_miss_replay_image_ids: Sequence[int] = (),
+    owner_miss_replay_weight: float = 1.0,
 ) -> list[float]:
     """Weight registered hard examples using Train annotations only."""
 
+    replay_ids = {int(value) for value in owner_miss_replay_image_ids}
     weights = []
     for image_id in image_ids:
         boxes = [
@@ -224,6 +234,33 @@ def supervised_sampling_weights(
                 for box in boxes
             ):
                 weight = max(weight, float(large_helmet_weight))
+        if (
+            boxes
+            and float(near_image_edge_helmet_weight) > 1.0
+            and float(near_image_edge_margin_fraction) > 0.0
+        ):
+            if image_records is None:
+                raise ValueError(
+                    "Near-edge helmet weighting requires image records"
+                )
+            image = image_records[int(image_id)]
+            width = float(image["width"])
+            height = float(image["height"])
+            margin_x = width * float(near_image_edge_margin_fraction)
+            margin_y = height * float(near_image_edge_margin_fraction)
+            if any(
+                box[0] <= margin_x
+                or box[1] <= margin_y
+                or box[0] + box[2] >= width - margin_x
+                or box[1] + box[3] >= height - margin_y
+                for box in boxes
+            ):
+                weight = max(
+                    weight,
+                    float(near_image_edge_helmet_weight),
+                )
+        if int(image_id) in replay_ids:
+            weight = max(weight, float(owner_miss_replay_weight))
         weights.append(weight)
     return weights
 

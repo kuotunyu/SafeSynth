@@ -1,0 +1,227 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v14"
+status: "cpu_preflight_passed_gpu_smoke_pending"
+architecture: "rtdetr_v2_r101vd_helmet_only"
+split_seed: 20260729
+training_seed: 20260809
+split_manifest_sha256: "12eced89e8258a96bed028f9da5114269ceaad218fd86540a084daf07f84d57f"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r101vd"
+  revision: "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 307337786
+  allow_files:
+    config.json: 5342
+    model.safetensors: 307332000
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  calibration_source: "v11_revealed_calibration_and_audit_history"
+  independent_audit_manifest: >-
+    splits/supervised_labeler_v14_adjudicated_audit.json
+  include_owner_approved_v13_primary_groups_in_training: true
+  exclude_v13_sealed_reserve_groups_from_model_data: true
+  exclude_v12_primary_and_sealed_reserve_groups_from_model_data: true
+  exclude_v14_primary_and_sealed_reserve_groups_from_model_data: true
+  new_untouched_audit_images: 48
+  quarantined_gt_defect_image_ids:
+    - 1171
+    - 3060
+    - 4155
+    - 4364
+  validation_images_read: 0
+  test_images_read: 0
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 4.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 2.0
+  small_helmet_relative_area_max: 0.0075
+  large_helmet_weight: 6.0
+  large_helmet_relative_area_min: 0.15
+  near_image_edge_helmet_weight: 4.0
+  near_image_edge_margin_fraction: 0.05
+  owner_miss_replay_image_ids: [4507, 3593, 681]
+  owner_miss_replay_weight: 8.0
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Preregistered in configs/supervised_labeler_v14_gt_review.yaml before v14
+    pool pixels were read. Large and edge weights address the three diagnosed
+    v13 misses; exact replay uses only already revealed owner-approved v13 GT.
+
+optimization:
+  epochs: 12
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse_v11_v13_training_seed"
+
+postprocessing:
+  max_relative_area: 0.70
+  max_relative_height: 0.90
+  min_aspect_ratio: 0.20
+  max_aspect_ratio: 4.0
+  selection_basis: >-
+    Preregistered before v14 pool pixels. Limits cover the diagnosed v13 cell
+    03 candidate (relative area about 0.616, height about 0.853) with margin.
+
+calibration:
+  score_thresholds:
+    - 0.005
+    - 0.0075
+    - 0.010
+    - 0.0125
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.82
+  selection_basis: >-
+    Preserve the v13 grid and precision floor while adding preregistered low
+    thresholds needed to measure whether training lifts the 0.0057 v13 case.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_or_unworn_helmet_false_positive"
+    - "missed_worn_helmeted_head"
+    - "merged_multiple_helmeted_heads"
+    - "bad_localization"
+    - "other_visual_failure"
+
+independence_registration:
+  status: "frozen_before_v14_split_or_training"
+  gt_review_config: "configs/supervised_labeler_v14_gt_review.yaml"
+  gt_owner_review: "reports/supervised_labeler_v14_gt_owner_review.json"
+  gt_owner_review_sha256: "fb4b32e0d4d909b00a62e97950d9439fba6c268d4dd63336166d833d6bc578ef"
+  audit_manifest: "splits/supervised_labeler_v14_adjudicated_audit.json"
+  audit_manifest_sha256: "44552fa4f43bb6fb1ebffdd40079a1f8743d83d26a544587d2ee5fccbadba3cc"
+  v14_reserved_groups: 96
+  v12_pool_excluded_from_model_data: true
+  v13_sealed_reserve_excluded_from_model_data: true
+  v13_approved_primary_allowed_as_revealed_training_data: true
+  base_checkpoint_only: true
+  v14_training_started: false
+  audit_model_inference_run: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v14 training split, preflight, training, independent numeric audit, and
+    zero-problem owner model review are not complete.
+
+split_outcome:
+  status: "frozen_before_supervised_training"
+  split_path: "splits/supervised_labeler_v14_split.json"
+  split_file_sha256: "d77697fef5d9356de0fdab35264b44d45cad46fd5882c0df5cc9f57175acd757"
+  manifest_sha256: "12eced89e8258a96bed028f9da5114269ceaad218fd86540a084daf07f84d57f"
+  report_path: "reports/supervised_labeler_v14_split.md"
+  report_file_sha256: "91092be4e37db91f0687122ad6968a9a355a77776aee53bcf6e2bcd3182b352f"
+  training_images: 2609
+  training_groups: 2520
+  calibration_images: 621
+  calibration_groups: 621
+  untouched_audit_images: 48
+  v14_reserved_groups: 96
+  v13_approved_primary_groups_in_training: 64
+  v13_sealed_reserve_excluded_groups: 32
+  v12_development_excluded_groups: 96
+  group_overlap: 0
+  v14_training_started: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+cpu_preflight_outcome:
+  status: "cpu_preflight_passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v14_preflight.json"
+  report_file_sha256: "5101b87663905e3af64cb1e0dac112c790918ae97070b8d872d4cf3078657150"
+  markdown_path: "reports/supervised_labeler_v14_preflight.md"
+  markdown_file_sha256: "fdcf41519d70e4dc1b3f91b78a364deb5c81f756143b23bdc47890fe185e255d"
+  training_images_read: 2609
+  training_images_normalized: 2594
+  training_invalid_boxes: 0
+  calibration_images_read: 621
+  calibration_images_normalized: 617
+  calibration_invalid_boxes: 0
+  sampling_weight_counts:
+    "1.0": 360
+    "2.0": 619
+    "4.0": 1586
+    "6.0": 41
+    "8.0": 3
+  owner_miss_replay_weights:
+    "681": 8.0
+    "3593": 8.0
+    "4507": 8.0
+  v14_reserved_groups_in_model_data: 0
+  v13_sealed_reserve_groups_in_model_data: 0
+  v12_development_groups_in_model_data: 0
+  untouched_audit_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
+  whole_image_generation_run: false

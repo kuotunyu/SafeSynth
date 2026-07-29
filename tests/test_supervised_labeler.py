@@ -108,6 +108,13 @@ V13_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v13.yaml"
 V13_SPLIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v13_split.json"
 )
+V14_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v14.yaml"
+V14_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v14_split.json"
+)
+V14_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v14_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -1613,6 +1620,94 @@ def test_v14_gt_review_quarantines_only_cell_60_and_freezes_clean_audit() -> Non
     assert config["generation_gate"]["allowed"] is False
 
 
+def test_v14_model_split_replays_v13_primary_but_keeps_new_audit_independent() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    split = json.loads(V14_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+    training_groups = set(split["training_group_ids"])
+    calibration_groups = set(split["calibration_group_ids"])
+    v14_groups = set(split["v14_reserved_group_ids"])
+    v13_primary_groups = set(split["v13_approved_primary_group_ids"])
+    v13_reserve_groups = set(
+        split["v13_sealed_reserve_excluded_group_ids"]
+    )
+    v12_groups = set(split["v12_development_excluded_group_ids"])
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == config["split_manifest_sha256"]
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["training_images"] == 2609
+    assert split["training_groups"] == 2520
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert len(v14_groups) == 96
+    assert len(v13_primary_groups) == 64
+    assert len(v13_reserve_groups) == 32
+    assert len(v12_groups) == 96
+    assert v13_primary_groups <= training_groups
+    assert not training_groups & calibration_groups
+    assert not (training_groups | calibration_groups) & v14_groups
+    assert not (training_groups | calibration_groups) & v13_reserve_groups
+    assert not (training_groups | calibration_groups) & v12_groups
+    assert set(split["owner_miss_replay_image_ids"]) == {681, 3593, 4507}
+    assert set(split["owner_miss_replay_image_ids"]) <= set(
+        split["training_image_ids"]
+    )
+    assert split["v14_training_started"] is False
+    assert split["sealed_reserve_pixels_read"] == 0
+    assert split["validation_images_read"] == 0
+    assert split["test_images_read"] == 0
+    assert split["whole_image_generation_run"] is False
+    outcome = config["split_outcome"]
+    assert hashlib.sha256(V14_SPLIT_PATH.read_bytes()).hexdigest() == outcome[
+        "split_file_sha256"
+    ]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    report = json.loads(V14_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(
+        V14_PREFLIGHT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["training"]["images_read"] == 2609
+    assert report["training"]["normalized_images"] == 2594
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["normalized_images"] == 617
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["sampling_weight_counts"] == {
+        "1.0": 360,
+        "2.0": 619,
+        "4.0": 1586,
+        "6.0": 41,
+        "8.0": 3,
+    }
+    assert report["owner_miss_replay_weights"] == {
+        "681": 8.0,
+        "3593": 8.0,
+        "4507": 8.0,
+    }
+    assert report["v14_reserved_groups_in_model_data"] == 0
+    assert report["v13_sealed_reserve_groups_in_model_data"] == 0
+    assert report["v12_development_groups_in_model_data"] == 0
+    assert report["v13_approved_primary_groups_in_training"] == 64
+    assert report["untouched_audit_images"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
     config = load_supervised_labeler_config(V10_CONFIG_PATH)
     outcome = config["cpu_preflight_outcome"]
@@ -2724,6 +2819,41 @@ def test_v13_sampling_adds_large_helmet_images_without_stacking_weights() -> Non
     )
 
     assert weights == [4.0, 2.0, 3.0, 3.0]
+
+
+def test_v14_sampling_adds_edge_and_owner_miss_replay_without_stacking() -> None:
+    annotations = {
+        1: [],
+        2: [{"category_id": 1, "bbox": [40, 40, 5, 5]}],
+        3: [{"category_id": 1, "bbox": [20, 20, 40, 40]}],
+        4: [{"category_id": 1, "bbox": [0, 40, 10, 10]}],
+        5: [{"category_id": 1, "bbox": [40, 40, 10, 10]}],
+        6: [{"category_id": 1, "bbox": [0, 0, 40, 40]}],
+    }
+    image_records = {
+        image_id: {"width": 100, "height": 100}
+        for image_id in annotations
+    }
+
+    weights = supervised_sampling_weights(
+        image_ids=[1, 2, 3, 4, 5, 6],
+        annotations=annotations,
+        image_records=image_records,
+        helmet_category_id=1,
+        empty_image_weight=4.0,
+        close_helmet_pair_weight=2.0,
+        close_pair_ratio_max=1.0,
+        small_helmet_weight=2.0,
+        small_helmet_relative_area_max=0.0075,
+        large_helmet_weight=6.0,
+        large_helmet_relative_area_min=0.15,
+        near_image_edge_helmet_weight=4.0,
+        near_image_edge_margin_fraction=0.05,
+        owner_miss_replay_image_ids=[5],
+        owner_miss_replay_weight=8.0,
+    )
+
+    assert weights == [4.0, 2.0, 6.0, 4.0, 8.0, 6.0]
 
 
 def test_exact_audit_evidence_preserves_boxes_without_raster_parsing() -> None:

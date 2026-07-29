@@ -788,6 +788,19 @@ def _train(
             large_helmet_relative_area_min=float(
                 sampling.get("large_helmet_relative_area_min", 1.0)
             ),
+            near_image_edge_helmet_weight=float(
+                sampling.get("near_image_edge_helmet_weight", 1.0)
+            ),
+            near_image_edge_margin_fraction=float(
+                sampling.get("near_image_edge_margin_fraction", 0.0)
+            ),
+            owner_miss_replay_image_ids=tuple(
+                int(value)
+                for value in sampling.get("owner_miss_replay_image_ids", [])
+            ),
+            owner_miss_replay_weight=float(
+                sampling.get("owner_miss_replay_weight", 1.0)
+            ),
         )
         sampler = WeightedRandomSampler(
             weights=weights,
