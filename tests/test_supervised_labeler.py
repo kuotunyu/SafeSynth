@@ -41,6 +41,15 @@ from scripts.prepare_supervised_labeler_v14_gt_review import (
 from scripts.prepare_supervised_labeler_v14_gt_review import (
     POOL_PATH as V14_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v15_gt_review import (
+    CONFIG_PATH as V15_GT_CONFIG_PATH,
+)
+from scripts.prepare_supervised_labeler_v15_gt_review import (
+    EVIDENCE_PATH as V15_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v15_gt_review import (
+    POOL_PATH as V15_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -1925,6 +1934,84 @@ def test_figure_cleanup_keeps_current_evidence_and_removes_legacy_duplicates() -
     assert not list(figure_root.glob("supervised_labeler_v10_audit*.png"))
     assert not list(figure_root.glob("supervised_labeler_v11_audit*.png"))
     assert not list(figure_root.glob("*_failed.png"))
+
+
+def test_v15_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None:
+    config = yaml.safe_load(V15_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    pool = json.loads(V15_GT_POOL_PATH.read_text(encoding="utf-8"))
+    evidence = json.loads(V15_GT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v15_intervention"]
+    canonical_pool = dict(pool)
+    pool_sha = canonical_pool.pop("manifest_sha256")
+    canonical_evidence = dict(evidence)
+    evidence_sha = canonical_evidence.pop("evidence_sha256")
+
+    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert intervention["status"] == (
+        "preregistered_before_v15_pool_pixels_or_training"
+    )
+    assert intervention["initialization"] == "pinned_base_checkpoint_only"
+    assert intervention["model_facing_changes"] == {
+        "include_owner_approved_v14_audit_gt_as_revealed_training_development": True,
+        "positive_error_replay_image_ids": [361, 2534, 3605],
+        "positive_error_replay_weight": 12.0,
+        "hard_negative_error_replay_image_ids": [210, 361],
+        "hard_negative_error_replay_weight": 12.0,
+        "overlap_policy": "maximum_weight",
+        "epochs": 6,
+    }
+    assert config["gpu_schedule"][
+        "recommended_contiguous_gpu_window_minutes"
+    ] == 40
+    assert canonical_mapping_sha256(canonical_pool) == pool_sha
+    assert pool["status"] == (
+        "v15_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool["excluded_group_count"] == 912
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(pool["future_v15_training_exclusion_group_ids"]) == 96
+    assert len(
+        {
+            int(row["group_id"])
+            for row in [
+                *pool["primary_cases"],
+                *pool["sealed_reserve_cases"],
+            ]
+        }
+    ) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["v15_training_started"] is False
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+
+    assert canonical_mapping_sha256(canonical_evidence) == evidence_sha
+    assert evidence["status"] == (
+        "v15_gt_only_primary_review_rendered_before_training"
+    )
+    assert evidence["pool_manifest_sha256"] == pool_sha
+    assert evidence["primary_images_read"] == 64
+    assert evidence["primary_images_normalized"] == 64
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["v15_training_started"] is False
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+    assert hashlib.sha256(V15_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        config["freeze_outcome"]["pool_file_sha256"]
+    )
+    assert hashlib.sha256(V15_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        config["render_outcome"]["evidence_file_sha256"]
+    )
+    for page in evidence["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
