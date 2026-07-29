@@ -320,6 +320,9 @@ V19_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v19.yaml"
 V19_SPLIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v19_split.json"
 )
+V19_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v19_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3010,6 +3013,33 @@ def test_v19_split_replays_cell_36_failure_and_stays_independent() -> None:
     )
     assert config["split_manifest_sha256"] == embedded_sha
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v19_cpu_preflight_verifies_stronger_replay_and_precision() -> None:
+    config = load_supervised_labeler_config(V19_CONFIG_PATH)
+    report = json.loads(V19_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["training"]["images_read"] == 2390
+    assert report["calibration"]["images_read"] == 621
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["error_replay_weights"]["4618"] == 20.0
+    assert report["error_replay_weights"]["857"] == 16.0
+    assert report["error_replay_weights"]["551"] == 12.0
+    assert report["calibration_min_precision"] == 0.90
+    assert report["audit_min_precision"] == 0.85
+    assert report["v19_reserved_groups_in_model_data"] == 0
+    assert report["v18_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
 
 
 def test_v18_gt_adjudication_quarantines_owner_reported_defects() -> None:
