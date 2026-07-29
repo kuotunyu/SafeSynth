@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v14_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_adjudicated_audit_frozen_training_pending"
 source_split: "Train"
 split_seed: 20260729
 
@@ -183,3 +183,46 @@ render_outcome:
     - path: "reports/figures/supervised_labeler_v14_gt_review/page_04.png"
       sha256: "167d0d804228c872808357d248f1589445c82b14f3e5cd2b2917f364aa2184ae"
       cells: [49, 64]
+
+gt_owner_review_outcome:
+  status: "v14_gt_only_primary_adjudicated_one_quarantine"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  review_path: "reports/supervised_labeler_v14_gt_owner_review.json"
+  review_file_sha256: "2c2514375bdb0a6b0f0600cc8c4fbf8ac0ae39b152b093d10f3fbec47902dee8"
+  review_sha256: "fb4b32e0d4d909b00a62e97950d9439fba6c268d4dd63336166d833d6bc578ef"
+  reviewed_images: 64
+  pass_images: 63
+  problem_images: 1
+  quarantined_images: 1
+  quarantined_cell: 60
+  quarantined_image_id: 1171
+  model_inference_run: false
+  v14_training_started: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+adjudicated_audit_outcome:
+  status: "v14_adjudicated_audit_frozen_before_training"
+  manifest_path: "splits/supervised_labeler_v14_adjudicated_audit.json"
+  manifest_file_sha256: "ed396d850b206cf679fbb2854883261c19c7064db987be94bb5980c3557fb551"
+  manifest_sha256: "44552fa4f43bb6fb1ebffdd40079a1f8743d83d26a544587d2ee5fccbadba3cc"
+  selected_images: 48
+  selected_stratum_counts:
+    dataset_gt_empty: 8
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+  valid_primary_surplus_images: 15
+  quarantined_primary_images: 1
+  source_groups_reserved_from_training: 96
+  sealed_reserve_images: 32
+  sealed_reserve_pixels_read: 0
+  v14_training_started: false
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false

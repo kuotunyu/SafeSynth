@@ -63,6 +63,12 @@ from scripts.record_supervised_labeler_v13_gt_review import (
 from scripts.record_supervised_labeler_v13_model_review import (
     OUTPUT_PATH as V13_MODEL_HUMAN_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v14_gt_review import (
+    AUDIT_PATH as V14_ADJUDICATED_AUDIT_PATH,
+)
+from scripts.record_supervised_labeler_v14_gt_review import (
+    OWNER_REVIEW_PATH as V14_GT_OWNER_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -1542,6 +1548,69 @@ def test_v14_gt_pages_contain_only_green_gt_and_keep_reserve_sealed() -> None:
         V14_GT_EVIDENCE_PATH.read_bytes()
     ).hexdigest() == outcome["evidence_file_sha256"]
     assert outcome["evidence_sha256"] == embedded_sha
+
+
+def test_v14_gt_review_quarantines_only_cell_60_and_freezes_clean_audit() -> None:
+    config = yaml.safe_load(V14_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    review = json.loads(V14_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8"))
+    audit = json.loads(
+        V14_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_audit = dict(audit)
+    audit_sha = canonical_audit.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_audit) == audit_sha
+    assert review["status"] == (
+        "v14_gt_only_primary_adjudicated_one_quarantine"
+    )
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["reviewed_images"] == 64
+    assert review["pass_images"] == 63
+    assert review["problem_images"] == 1
+    assert review["quarantined_images"] == 1
+    assert review["categories"] == {
+        "dataset_gt_false_positive_cells": [60],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [],
+        "uncertain_cells": [],
+    }
+    problem = next(
+        row for row in review["decisions"] if int(row["cell"]) == 60
+    )
+    assert problem["image_id"] == 1171
+    assert problem["decision"] == "DATASET_GT_FALSE_POSITIVE"
+    assert audit["status"] == (
+        "v14_adjudicated_audit_frozen_before_training"
+    )
+    assert audit["selected_images"] == 48
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert audit["valid_primary_surplus_images"] == 15
+    assert audit["quarantined_primary_images"] == 1
+    assert audit["quarantined_primary_cases"][0]["primary_cell"] == 60
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert audit["v14_training_started"] is False
+    assert audit["model_inference_run"] is False
+    assert audit["validation_images_read"] == 0
+    assert audit["test_images_read"] == 0
+    assert audit["whole_image_generation_run"] is False
+    owner_outcome = config["gt_owner_review_outcome"]
+    audit_outcome = config["adjudicated_audit_outcome"]
+    assert hashlib.sha256(
+        V14_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == owner_outcome["review_file_sha256"]
+    assert hashlib.sha256(
+        V14_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == audit_outcome["manifest_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
