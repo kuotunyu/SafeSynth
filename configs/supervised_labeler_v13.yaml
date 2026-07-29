@@ -292,6 +292,30 @@ human_review_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+review_diagnosis_outcome:
+  status: "v13_owner_miss_diagnosis_complete"
+  report_path: "reports/supervised_labeler_v13_review_diagnosis.json"
+  report_file_sha256: "f0fbcba3fa5a188a3203209647f99414e16849e88b064c4caf4409429b77d628"
+  already_revealed_images_read: 3
+  cell_03:
+    image_id: 4507
+    best_raw_candidate_iou: 0.9461339922604669
+    best_raw_candidate_score: 0.1923828125
+    blockers: ["geometry_filter"]
+  cell_22:
+    image_id: 3593
+    best_raw_candidate_iou: 0.9430958166370554
+    best_raw_candidate_score: 0.0057373046875
+    blockers: ["score_threshold", "geometry_filter"]
+  cell_34:
+    image_id: 681
+    best_raw_candidate_iou: 0.789291477606818
+    best_raw_candidate_score: 0.048095703125
+    blockers: ["score_threshold"]
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-

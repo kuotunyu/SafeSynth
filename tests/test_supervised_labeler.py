@@ -110,6 +110,11 @@ V13_MODEL_REVIEW_MANIFEST_PATH = (
     / "reports"
     / "supervised_labeler_v13_model_review_manifest.json"
 )
+V13_REVIEW_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v13_review_diagnosis.json"
+)
 V12_GT_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "supervised_labeler_v12_gt_review.yaml"
 )
@@ -1382,6 +1387,48 @@ def test_v13_owner_model_review_records_exact_three_misses() -> None:
     assert hashlib.sha256(
         V13_MODEL_HUMAN_REVIEW_PATH.read_bytes()
     ).hexdigest() == outcome["evidence_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v13_review_diagnosis_freezes_geometry_and_score_blockers() -> None:
+    config = load_supervised_labeler_config(V13_CONFIG_PATH)
+    outcome = config["review_diagnosis_outcome"]
+    diagnosis = json.loads(
+        V13_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    cases = {int(row["cell"]): row for row in diagnosis["cases"]}
+
+    assert hashlib.sha256(
+        V13_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert diagnosis["status"] == "v13_owner_miss_diagnosis_complete"
+    assert diagnosis["scope"] == {
+        "already_revealed_audit_cells_only": [3, 22, 34],
+        "images_read": 3,
+        "test_images_read": 0,
+        "validation_images_read": 0,
+        "whole_image_generation_run": False,
+    }
+    assert diagnosis["cause_counts"] == {
+        "candidate_below_score_and_rejected_by_geometry": 1,
+        "candidate_below_score_threshold": 1,
+        "candidate_rejected_by_geometry_filter": 1,
+    }
+    assert cases[3]["misses"][0]["blocking_stages"] == ["geometry_filter"]
+    assert cases[22]["misses"][0]["blocking_stages"] == [
+        "score_threshold",
+        "geometry_filter",
+    ]
+    assert cases[34]["misses"][0]["blocking_stages"] == ["score_threshold"]
+    assert cases[3]["misses"][0]["best_raw_candidate"]["iou"] == pytest.approx(
+        0.9461339922604669
+    )
+    assert cases[22]["misses"][0]["best_raw_candidate"]["iou"] == pytest.approx(
+        0.9430958166370554
+    )
+    assert cases[34]["misses"][0]["best_raw_candidate"]["score"] == pytest.approx(
+        0.048095703125
+    )
     assert config["generation_gate"]["allowed"] is False
 
 

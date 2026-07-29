@@ -1,0 +1,160 @@
+{
+  "cases": [
+    {
+      "cell": 3,
+      "geometry_candidate_count_at_0_001": 154,
+      "image_id": 4507,
+      "image_size": [
+        416,
+        416
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              0.009843826293945312,
+              1.288400650024414,
+              300.6380310058594,
+              356.2887878417969
+            ],
+            "iou": 0.9461339922604669,
+            "passes_current_geometry": false,
+            "passes_current_score": true,
+            "score": 0.1923828125
+          },
+          "blocking_stages": [
+            "geometry_filter"
+          ],
+          "diagnosed_cause": "candidate_rejected_by_geometry_filter",
+          "truth_box": [
+            0.0,
+            0.0,
+            303.2235576923077,
+            372.0
+          ],
+          "truth_index": 0
+        }
+      ],
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 1,
+      "unmatched_truth_count_at_frozen_settings": 1
+    },
+    {
+      "cell": 22,
+      "geometry_candidate_count_at_0_001": 121,
+      "image_id": 3593,
+      "image_size": [
+        416,
+        416
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              0.9767580032348633,
+              -2.125758171081543,
+              243.740234375,
+              294.3206481933594
+            ],
+            "iou": 0.9430958166370554,
+            "passes_current_geometry": false,
+            "passes_current_score": false,
+            "score": 0.0057373046875
+          },
+          "blocking_stages": [
+            "score_threshold",
+            "geometry_filter"
+          ],
+          "diagnosed_cause": "candidate_below_score_and_rejected_by_geometry",
+          "truth_box": [
+            0.0,
+            0.0,
+            240.15144230769232,
+            284.8695652173913
+          ],
+          "truth_index": 0
+        }
+      ],
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 1,
+      "unmatched_truth_count_at_frozen_settings": 1
+    },
+    {
+      "cell": 34,
+      "geometry_candidate_count_at_0_001": 247,
+      "image_id": 681,
+      "image_size": [
+        415,
+        416
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              115.73233032226562,
+              313.11102294921875,
+              190.94204711914062,
+              387.4122619628906
+            ],
+            "iou": 0.789291477606818,
+            "passes_current_geometry": true,
+            "passes_current_score": false,
+            "score": 0.048095703125
+          },
+          "blocking_stages": [
+            "score_threshold"
+          ],
+          "diagnosed_cause": "candidate_below_score_threshold",
+          "truth_box": [
+            120.09646302250803,
+            311.2283653846154,
+            192.15434083601286,
+            399.28125
+          ],
+          "truth_index": 3
+        }
+      ],
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 4,
+      "unmatched_truth_count_at_frozen_settings": 1
+    }
+  ],
+  "cause_counts": {
+    "candidate_below_score_and_rejected_by_geometry": 1,
+    "candidate_below_score_threshold": 1,
+    "candidate_rejected_by_geometry_filter": 1
+  },
+  "frozen_inputs": {
+    "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v13_train20260809_split20260915\\best",
+    "checkpoint_sha256": "c6783be45f67638b96d9a075f6af8ac6f4c6b3628551edd0ef9b440f57f2ea65",
+    "config_path": "configs\\supervised_labeler_v13.yaml",
+    "config_sha256": "fd77bfbc0b8451637f045456b59fc92d37714cf8728407f9e166cf56d98292d9",
+    "geometry_filter": {
+      "max_aspect_ratio": 4.0,
+      "max_relative_area": 0.3,
+      "max_relative_height": 0.75,
+      "min_aspect_ratio": 0.2,
+      "selection_basis": "Preregistered before v13 pool pixels or training to retain the correctly localized large worn-helmet candidates diagnosed in v12."
+    },
+    "low_score_floor": 0.001,
+    "match_iou": 0.5,
+    "owner_review_path": "reports\\supervised_labeler_v13_model_human_review.json",
+    "owner_review_sha256": "3c6cdaab840fa547f617830e4088d9bf8a1394ae9ebf92a1411156de3f8bfbd0",
+    "score_threshold": 0.05,
+    "split_manifest_sha256": "556801da8cdefe3975a339cd3992bbe685bff5a176685aff5e7d09af3f609a95",
+    "split_path": "splits\\supervised_labeler_v13_split.json"
+  },
+  "schema_version": 1,
+  "scope": {
+    "already_revealed_audit_cells_only": [
+      3,
+      22,
+      34
+    ],
+    "images_read": 3,
+    "test_images_read": 0,
+    "validation_images_read": 0,
+    "whole_image_generation_run": false
+  },
+  "status": "v13_owner_miss_diagnosis_complete"
+}
