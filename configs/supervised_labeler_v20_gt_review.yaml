@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v20_gt_review"
-status: "pool_frozen_before_pixel_review_or_training"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260804
 
@@ -255,9 +255,42 @@ freeze_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+render_outcome:
+  status: "v20_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v20_gt_review.json"
+  evidence_file_sha256: >-
+    25d1c6ea99f5d5d86c5459dcbf31c918bb9a5fd3045b2c251edf4238f5a00a47
+  evidence_sha256: >-
+    b2384fccb3a29d860aef7c4a1d6f6d8f9b647ef39c84c61f19f19c0f95f9337d
+  primary_images_read: 64
+  primary_images_normalized: 64
+  sealed_reserve_pixels_read: 0
+  model_boxes_present: false
+  model_inference_run: false
+  v20_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - cells: [1, 16]
+      path: "reports/figures/supervised_labeler_v20_gt_review/page_01.png"
+      sha256: >-
+        feb0fc10a0dabf405820a41111edbe581b2edc86103ca97c2c5a317164a9b9a9
+    - cells: [17, 32]
+      path: "reports/figures/supervised_labeler_v20_gt_review/page_02.png"
+      sha256: >-
+        82360a3e9c572215388d16fcd60647567197ca9a428410db681cb12006f65906
+    - cells: [33, 48]
+      path: "reports/figures/supervised_labeler_v20_gt_review/page_03.png"
+      sha256: >-
+        1e2ef01fdaf42ba8c7991b0c2a92fc0cfa09173a19b8837f25ea0e7610099bd1
+    - cells: [49, 64]
+      path: "reports/figures/supervised_labeler_v20_gt_review/page_04.png"
+      sha256: >-
+        6a10bef026833f59aadd0c749ee109deaa57a2970b61a3fdef2f5caf32a6d911
+
 generation_gate:
   allowed: false
   reason: >-
     v20 intervention and independent GT pool are frozen before pixels or
-    training, but the green-box primary review is still required. No v20 model
-    work is allowed yet.
+    training. The green-box primary review is rendered and now requires
+    kuotunyu's adjudication. No v20 model work is allowed yet.
