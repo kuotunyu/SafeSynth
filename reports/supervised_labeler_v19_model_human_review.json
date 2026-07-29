@@ -1,0 +1,113 @@
+{
+  "accepted_exceptions": [],
+  "categories": {
+    "ambiguous_dataset_gt_quarantine_cells": [],
+    "model_false_positive_cells": [
+      22,
+      25
+    ],
+    "model_missed_helmeted_head_cells": [
+      10,
+      14,
+      23,
+      28,
+      48
+    ]
+  },
+  "checkpoint_sha256": "d8b61ad89ae7526bc486ad1eb0a7b63c6cce5bd319760e1292d347dc68ddbe0c",
+  "decision": "reject",
+  "experiment_id": "supervised_labeler_v19",
+  "generation_allowed": false,
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_evidence_file_sha256": "1855c7a8304b4067ff73c0d9b3d84551dbdb37355162106583bc179a89848982",
+  "model_evidence_path": "reports/supervised_labeler_v19_audit_evidence.json",
+  "model_review_manifest_file_sha256": "89860fd3e4aa6843a1efdaef98f386c21ea91680e9c639d4dabdbd866253d6de",
+  "model_review_manifest_path": "reports/supervised_labeler_v19_model_review_manifest.json",
+  "model_review_manifest_sha256": "664d222b28ad3b49ee5ca63aae2dddd54954ffe2d5dfd3e24aba8d7fea9e986f",
+  "numeric_audit_report_file_sha256": "68136e39419ddaf5d1fc88eacb9882fe0f45b3047583ce2508c4107c301dc165",
+  "numeric_audit_report_path": "reports/supervised_labeler_v19_training.json",
+  "numeric_audit_status": "passed_but_owner_visual_gate_failed",
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_01.png",
+      "sha256": "30be3928ef8bd3c9f47f4ba420dae6b450f6b81001b5707b4900eb9ed144d9a7"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_02.png",
+      "sha256": "df04ce9da4901d2bac8e52896935ff883df88db2a648cfc8c30b70e438c67d87"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v19_model_review/review_page_03.png",
+      "sha256": "2e3594eea78fcefc521c755d50dd3e8d3bb1914cbe1b1a1aab0fcb9bb4c2e124"
+    }
+  ],
+  "problem_cases": [
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 10,
+      "image_id": 3117
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 14,
+      "image_id": 4924
+    },
+    {
+      "category": "model_false_positive",
+      "cell": 22,
+      "image_id": 2910
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 23,
+      "image_id": 3651
+    },
+    {
+      "category": "model_false_positive",
+      "cell": 25,
+      "image_id": 1241
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 28,
+      "image_id": 118
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 48,
+      "image_id": 4452
+    }
+  ],
+  "problem_cells": [
+    10,
+    14,
+    22,
+    23,
+    25,
+    28,
+    48
+  ],
+  "problem_count": 7,
+  "review_note": "kuotunyu identified missed worn helmeted heads in cells 10, 14, 23, 28, and 48, plus magenta predictions on background, faces, logos, or unworn helmets in cells 22 and 25. All other reviewed cells were accepted. The required zero-problem visual gate therefore failed.",
+  "review_sha256": "53655c25aeb09916435f9ebb6a2a0a17367fcd709435799d9cb3e671856edcb6",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-30",
+  "schema_version": 1,
+  "score_threshold": 0.028,
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

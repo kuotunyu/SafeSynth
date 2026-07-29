@@ -1,0 +1,134 @@
+{
+  "diagnosis_model_inference_run": false,
+  "experiment_id": "supervised_labeler_v19",
+  "future_intervention_constraint": "Do not change the v19 threshold or geometry after audit. Replay the five miss image IDs as positives and the two false-positive image IDs as hard negatives only in a preregistered fresh model with a new independent audit.",
+  "match_iou": 0.5,
+  "report_sha256": "aafc264096aad9933b63bc622a760ef5362a8ae82a6841805afd17dd79deaf01",
+  "reported_cell_diagnoses": [
+    {
+      "cell": 10,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 3117,
+      "model_prediction_count": 1,
+      "owner_category": "model_missed_helmeted_head",
+      "prediction_scores": [
+        0.04541015625
+      ],
+      "rendering_bug": false,
+      "true_positives": 1,
+      "truth_box_count": 2
+    },
+    {
+      "cell": 14,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 4924,
+      "model_prediction_count": 2,
+      "owner_category": "model_missed_helmeted_head",
+      "prediction_scores": [
+        0.0361328125,
+        0.0302734375
+      ],
+      "rendering_bug": false,
+      "true_positives": 2,
+      "truth_box_count": 3
+    },
+    {
+      "cell": 22,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 2910,
+      "model_prediction_count": 1,
+      "owner_category": "model_false_positive",
+      "prediction_scores": [
+        0.048828125
+      ],
+      "rendering_bug": false,
+      "true_positives": 0,
+      "truth_box_count": 0
+    },
+    {
+      "cell": 23,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "image_id": 3651,
+      "model_prediction_count": 4,
+      "owner_category": "model_missed_helmeted_head",
+      "prediction_scores": [
+        0.03515625,
+        0.0341796875,
+        0.031982421875,
+        0.0311279296875
+      ],
+      "rendering_bug": false,
+      "true_positives": 4,
+      "truth_box_count": 6
+    },
+    {
+      "cell": 25,
+      "false_negatives": 0,
+      "false_positives": 4,
+      "image_id": 1241,
+      "model_prediction_count": 4,
+      "owner_category": "model_false_positive",
+      "prediction_scores": [
+        0.049560546875,
+        0.0439453125,
+        0.029296875,
+        0.0289306640625
+      ],
+      "rendering_bug": false,
+      "true_positives": 0,
+      "truth_box_count": 0
+    },
+    {
+      "cell": 28,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 118,
+      "model_prediction_count": 2,
+      "owner_category": "model_missed_helmeted_head",
+      "prediction_scores": [
+        0.103515625,
+        0.03955078125
+      ],
+      "rendering_bug": false,
+      "true_positives": 2,
+      "truth_box_count": 3
+    },
+    {
+      "cell": 48,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "image_id": 4452,
+      "model_prediction_count": 1,
+      "owner_category": "model_missed_helmeted_head",
+      "prediction_scores": [
+        0.036865234375
+      ],
+      "rendering_bug": false,
+      "true_positives": 1,
+      "truth_box_count": 3
+    }
+  ],
+  "reported_cells_aggregate": {
+    "false_negatives": 7,
+    "false_positives": 5,
+    "true_positives": 10
+  },
+  "root_cause_summary": {
+    "false_positives": "The two owner-reported empty-GT cells contain five model predictions, confirming semantic false positives rather than a rendering defect.",
+    "misses": "The five owner-reported cells contain seven unmatched ground-truth worn helmeted heads at the frozen threshold.",
+    "rendering_bug": false
+  },
+  "schema_version": 1,
+  "scope": "frozen_audit_evidence_only",
+  "score_threshold": 0.028,
+  "source_image_pixels_read": 0,
+  "source_owner_review_sha256": "53655c25aeb09916435f9ebb6a2a0a17367fcd709435799d9cb3e671856edcb6",
+  "status": "v19_owner_review_diagnosed_without_new_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

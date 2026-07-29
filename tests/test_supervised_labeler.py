@@ -159,6 +159,12 @@ from scripts.record_supervised_labeler_v19_gt_review import (
 from scripts.record_supervised_labeler_v19_gt_review import (
     OWNER_REVIEW_PATH as V19_GT_OWNER_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v19_model_review import (
+    DIAGNOSIS_PATH as V19_REVIEW_DIAGNOSIS_PATH,
+)
+from scripts.record_supervised_labeler_v19_model_review import (
+    OUTPUT_PATH as V19_MODEL_HUMAN_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -3156,6 +3162,64 @@ def test_v19_model_review_pages_are_frozen_without_new_inference() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v19_owner_rejects_five_miss_and_two_false_positive_cells() -> None:
+    config = load_supervised_labeler_config(V19_CONFIG_PATH)
+    review = json.loads(
+        V19_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V19_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_diagnosis = dict(diagnosis)
+    diagnosis_sha = canonical_diagnosis.pop("report_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_diagnosis) == diagnosis_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["problem_cells"] == [10, 14, 22, 23, 25, 28, 48]
+    assert review["categories"] == {
+        "ambiguous_dataset_gt_quarantine_cells": [],
+        "model_false_positive_cells": [22, 25],
+        "model_missed_helmeted_head_cells": [10, 14, 23, 28, 48],
+    }
+    assert [
+        (row["cell"], row["image_id"], row["category"])
+        for row in review["problem_cases"]
+    ] == [
+        (10, 3117, "model_missed_helmeted_head"),
+        (14, 4924, "model_missed_helmeted_head"),
+        (22, 2910, "model_false_positive"),
+        (23, 3651, "model_missed_helmeted_head"),
+        (25, 1241, "model_false_positive"),
+        (28, 118, "model_missed_helmeted_head"),
+        (48, 4452, "model_missed_helmeted_head"),
+    ]
+    assert review["accepted_exceptions"] == []
+    assert review["generation_allowed"] is False
+    assert diagnosis["status"] == (
+        "v19_owner_review_diagnosed_without_new_inference"
+    )
+    assert diagnosis["reported_cells_aggregate"] == {
+        "false_negatives": 7,
+        "false_positives": 5,
+        "true_positives": 10,
+    }
+    assert diagnosis["root_cause_summary"]["rendering_bug"] is False
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    outcome = config["owner_model_review_outcome"]
+    diagnosis_outcome = config["owner_review_diagnosis"]
+    assert hashlib.sha256(
+        V19_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["review_file_sha256"]
+    assert hashlib.sha256(
+        V19_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == diagnosis_outcome["report_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v18_gt_adjudication_quarantines_owner_reported_defects() -> None:

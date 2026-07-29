@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v19"
-status: "owner_model_review_pending"
+status: "owner_model_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260803
 training_seed: 20260809
@@ -360,7 +360,7 @@ numeric_audit_outcome:
 
 model_review_registration:
   status: "supervised_labeler_v19_model_review_pages_frozen"
-  owner_review_status: "pending_kuotunyu"
+  owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v19_model_review_manifest.json"
   manifest_file_sha256: >-
     89860fd3e4aa6843a1efdaef98f386c21ea91680e9c639d4dabdbd866253d6de
@@ -387,9 +387,43 @@ model_review_registration:
   test_images_read: 0
   whole_image_generation_run: false
 
+owner_model_review_outcome:
+  status: "rejected_by_kuotunyu"
+  review_path: "reports/supervised_labeler_v19_model_human_review.json"
+  review_file_sha256: >-
+    0ebbca5f0fa45f894020216a1b1cf4a63de3b02552d8de819c0ba07562aaab13
+  review_sha256: >-
+    53655c25aeb09916435f9ebb6a2a0a17367fcd709435799d9cb3e671856edcb6
+  problem_count: 7
+  model_false_positive_cells: [22, 25]
+  model_missed_helmeted_head_cells: [10, 14, 23, 28, 48]
+  ambiguous_dataset_gt_quarantine_cells: []
+  numeric_audit_passed: true
+  owner_visual_gate_passed: false
+  generation_allowed: false
+
+owner_review_diagnosis:
+  status: "complete_without_new_inference"
+  report_path: "reports/supervised_labeler_v19_review_diagnosis.json"
+  report_file_sha256: >-
+    5cef1f8dae5886fcf5ef28a31f177a342d9b5895b598f4fc689301db7fc23c18
+  report_sha256: >-
+    aafc264096aad9933b63bc622a760ef5362a8ae82a6841805afd17dd79deaf01
+  reported_cells_true_positives: 10
+  reported_cells_false_positives: 5
+  reported_cells_false_negatives: 7
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v19 GT adjudication, leakage-free split, CPU preflight, GPU smoke,
-    base-only training, and the one-shot independent numeric audit passed. A
-    frozen zero-problem owner model review is still required before generation.
+    base-only training, and the one-shot independent numeric audit passed, but
+    kuotunyu rejected the frozen visual review. Cells 10, 14, 23, 28, and 48
+    contain missed worn helmeted heads; cells 22 and 25 contain semantic false
+    positives. A preregistered fresh intervention and independent audit are
+    required.
