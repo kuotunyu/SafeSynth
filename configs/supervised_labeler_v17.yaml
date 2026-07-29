@@ -1,0 +1,265 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v17"
+status: "cpu_preflight_passed_gpu_smoke_pending"
+architecture: "rtdetr_v2_r101vd_helmet_only"
+split_seed: 20260801
+training_seed: 20260809
+split_manifest_sha256: "51daf490a065b669a0189ec6e9e33b096a49c4ede2a8d4c703e6dc6d6e573d5b"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r101vd"
+  revision: "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 307337786
+  allow_files:
+    config.json: 5342
+    model.safetensors: 307332000
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  calibration_source: "v11_revealed_calibration_and_audit_history"
+  independent_audit_manifest: >-
+    splits/supervised_labeler_v17_adjudicated_audit.json
+  include_owner_approved_v16_audit_groups_in_training: true
+  exclude_v12_primary_and_sealed_reserve_groups_from_model_data: true
+  exclude_v13_sealed_reserve_groups_from_model_data: true
+  exclude_v14_sealed_reserve_groups_from_model_data: true
+  exclude_v15_sealed_reserve_groups_from_model_data: true
+  exclude_nonselected_v16_pool_groups_from_model_data: true
+  exclude_v17_primary_and_sealed_reserve_groups_from_model_data: true
+  new_untouched_audit_images: 48
+  quarantined_gt_defect_or_ambiguous_image_ids:
+    - 1171
+    - 3060
+    - 4155
+    - 4364
+    - 3272
+    - 837
+    - 2686
+    - 243
+    - 787
+    - 2117
+    - 1767
+    - 2225
+  validation_images_read: 0
+  test_images_read: 0
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 6.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 2.0
+  small_helmet_relative_area_max: 0.0075
+  large_helmet_weight: 6.0
+  large_helmet_relative_area_min: 0.15
+  near_image_edge_helmet_weight: 4.0
+  near_image_edge_margin_fraction: 0.05
+  positive_error_replay_image_ids:
+    - 361
+    - 551
+    - 688
+    - 774
+    - 1661
+    - 2171
+    - 2534
+    - 3313
+    - 3475
+    - 3605
+    - 3734
+    - 4051
+    - 4151
+    - 4363
+    - 4437
+  positive_error_replay_weight: 12.0
+  hard_negative_error_replay_image_ids:
+    - 210
+    - 361
+    - 774
+    - 1547
+    - 1635
+    - 1753
+    - 1873
+    - 2732
+    - 2829
+    - 2904
+    - 3428
+    - 3934
+    - 4026
+    - 4086
+    - 4100
+    - 4151
+    - 4565
+  hard_negative_error_replay_weight: 12.0
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Preregistered in configs/supervised_labeler_v17_gt_review.yaml before any
+    v17 pool pixels or training were opened. Exact revealed v16 false-positive
+    and miss images are replayed at maximum weight.
+
+optimization:
+  epochs: 6
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse_v11_v16_training_seed"
+
+postprocessing:
+  max_relative_area: 0.70
+  max_relative_height: 0.90
+  min_aspect_ratio: 0.20
+  max_aspect_ratio: 4.0
+  selection_basis: "Held constant from v16."
+
+calibration:
+  score_thresholds:
+    - 0.005
+    - 0.0075
+    - 0.010
+    - 0.0125
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.86
+  selection_basis: >-
+    Raised from v16's 0.82 to 0.86 before fresh v17 pixels or training because
+    v16 failed only audit precision.
+
+audit_gate:
+  min_precision: 0.80
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_or_unworn_helmet_false_positive"
+    - "missed_worn_helmeted_head"
+    - "merged_multiple_helmeted_heads"
+    - "bad_localization"
+    - "other_visual_failure"
+
+independence_registration:
+  status: "frozen_before_v17_split_or_training"
+  gt_review_config: "configs/supervised_labeler_v17_gt_review.yaml"
+  gt_owner_review: "reports/supervised_labeler_v17_gt_owner_review.json"
+  gt_owner_review_file_sha256: "bd5472b103f3948e8f4c269aae11a12d4eb8f43c1889d86c7131607afd16538c"
+  gt_owner_review_sha256: "8b1e40af08233afd12e49bcf899fdb467806e06851310e25b0e105f7c158af10"
+  audit_manifest: "splits/supervised_labeler_v17_adjudicated_audit.json"
+  audit_manifest_file_sha256: "87c04f9871322219a1e98732e6cd359ee71fc24450a266fcc0ab0a01e232c863"
+  audit_manifest_sha256: "e22f8257d36801dc57e7a63b0f5ad8fd9f6c62e03cee455f2fd5d4bb27b8da64"
+  v17_reserved_groups: 96
+  v16_owner_approved_audit_groups_allowed_as_revealed_training_data: true
+  prior_sealed_development_groups_excluded: true
+  base_checkpoint_only: true
+  v17_training_started: false
+  audit_model_inference_run: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+
+split_outcome:
+  status: "frozen_before_supervised_training"
+  path: "splits/supervised_labeler_v17_split.json"
+  file_sha256: "7d8e7ec6a2ced9feedd6dc586d08f2b41bfb8d541a76fbc3ed90bbfa1335f3d7"
+  manifest_sha256: "51daf490a065b669a0189ec6e9e33b096a49c4ede2a8d4c703e6dc6d6e573d5b"
+  report_path: "reports/supervised_labeler_v17_split.md"
+  report_file_sha256: "a793eaf5507508437c12debe00eed9af0cef698e96f4a7f9d80645573a549040"
+  training_images: 2485
+  training_groups: 2402
+  training_helmet_annotations: 9243
+  calibration_images: 621
+  independent_audit_images: 48
+  v17_reserved_groups_in_model_data: 0
+  v17_prior_training_groups_removed: 96
+  v16_revealed_audit_groups_in_training: 48
+  v16_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  v17_training_started: false
+
+cpu_preflight_outcome:
+  status: "passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v17_preflight.json"
+  report_file_sha256: "7e244977c715762f22e94ce7330f758a7e93b1cf704d7325ff61337f86bc47eb"
+  markdown_path: "reports/supervised_labeler_v17_preflight.md"
+  markdown_file_sha256: "69f8e00a653e93ee75227d0fba99c056f9e4a2cb8fd88911836f35d50f9bbc95"
+  training_images_read: 2485
+  training_images_normalized: 2470
+  training_source_helmet_annotations: 9243
+  training_transformed_helmet_annotations: 6373
+  calibration_images_read: 621
+  calibration_images_normalized: 617
+  calibration_source_helmet_annotations: 2530
+  calibration_transformed_helmet_annotations: 1683
+  invalid_transformed_boxes: 0
+  v17_reserved_groups_in_model_data: 0
+  v16_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  v16_revealed_audit_groups_in_training: 48
+  independent_audit_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
+  whole_image_generation_run: false
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v17 GT adjudication passed. Split freeze, CPU preflight, GPU smoke,
+    base-only training, one-shot independent numeric audit, and a separate
+    zero-problem owner model review remain required.
