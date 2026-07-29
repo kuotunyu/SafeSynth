@@ -1,0 +1,129 @@
+{
+  "calibration": {
+    "detected_side_counts": {
+      "bottom": 561,
+      "left": 62,
+      "right": 59,
+      "top": 559
+    },
+    "images_becoming_empty": 7,
+    "images_read": 621,
+    "invalid_boxes": 0,
+    "normalized_images": 617,
+    "removed_helmet_annotations": 847,
+    "source_helmet_annotations": 2530,
+    "transformed_helmet_annotations": 1683
+  },
+  "config_path": "configs/supervised_labeler_v18.yaml",
+  "error_replay_weights": {
+    "1547": 16.0,
+    "1635": 16.0,
+    "1661": 12.0,
+    "1753": 16.0,
+    "1873": 16.0,
+    "210": 16.0,
+    "2171": 12.0,
+    "2262": 16.0,
+    "2534": 12.0,
+    "2580": 16.0,
+    "2732": 16.0,
+    "2829": 16.0,
+    "2904": 16.0,
+    "2941": 16.0,
+    "3313": 12.0,
+    "3428": 16.0,
+    "3475": 12.0,
+    "3605": 12.0,
+    "361": 16.0,
+    "3734": 12.0,
+    "3934": 16.0,
+    "4026": 16.0,
+    "4051": 12.0,
+    "4086": 16.0,
+    "4100": 16.0,
+    "4151": 16.0,
+    "4187": 16.0,
+    "4363": 12.0,
+    "4437": 12.0,
+    "4565": 16.0,
+    "551": 12.0,
+    "688": 12.0,
+    "774": 16.0,
+    "857": 16.0
+  },
+  "experiment_id": "supervised_labeler_v18",
+  "gpu_work_run": false,
+  "input_normalization": {
+    "guard": {
+      "action": "normalize_cover_crop",
+      "max_pad_fraction": 0.31,
+      "max_pair_mae": 3.0,
+      "min_pad_px": 8,
+      "min_pair_correlation": 0.97,
+      "min_texture_std": 5.0,
+      "orthogonal_sample_size": 64
+    },
+    "implementation": "src.synthetic.compose.normalize_reflected_padding",
+    "method": "reflected_padding_normalize_cover_crop",
+    "output_shape": "source_native",
+    "transform_helmet_annotations": true
+  },
+  "model": {
+    "download_bytes": 307337786,
+    "files_rehashed": 3,
+    "repo_id": "PekingU/rtdetr_v2_r101vd",
+    "revision": "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  },
+  "overlap_policy": "maximum_weight",
+  "overlapping_replay_image_ids": [
+    361,
+    774,
+    4151
+  ],
+  "postprocessing": {
+    "max_aspect_ratio": 4.0,
+    "max_outside_fraction": 0.1,
+    "max_relative_area": 0.7,
+    "max_relative_height": 0.9,
+    "min_aspect_ratio": 0.2,
+    "selection_basis": "Size and aspect limits are held constant from v17. The outside-area rule was preregistered for v18 after frozen v17 cell 31 exposed four materially out-of-bounds background predictions."
+  },
+  "prior_sealed_groups_in_model_data": 0,
+  "sampling_weight_counts": {
+    "1.0": 343,
+    "12.0": 12,
+    "16.0": 22,
+    "2.0": 587,
+    "4.0": 1259,
+    "6.0": 216
+  },
+  "schema_version": 1,
+  "sealed_reserve_pixels_read": 0,
+  "split_manifest_sha256": "530f1ab435118e2a6d052dfb9b430402301cfe73f5307cb0a8bcb67562eea398",
+  "split_path": "splits/supervised_labeler_v18_split.json",
+  "status": "cpu_preflight_passed_gpu_smoke_waiting",
+  "test_images_read": 0,
+  "training": {
+    "detected_side_counts": {
+      "bottom": 2144,
+      "left": 305,
+      "right": 307,
+      "top": 2136
+    },
+    "images_becoming_empty": 15,
+    "images_read": 2439,
+    "invalid_boxes": 0,
+    "normalized_images": 2425,
+    "removed_helmet_annotations": 2804,
+    "source_helmet_annotations": 9079,
+    "transformed_helmet_annotations": 6275
+  },
+  "training_calibration_group_overlap": 0,
+  "untouched_audit_images": 48,
+  "untouched_audit_pixels_read": 0,
+  "v17_nonselected_groups_in_model_data": 0,
+  "v17_revealed_audit_groups_in_training": 48,
+  "v18_reserved_groups_in_model_data": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

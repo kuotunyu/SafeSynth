@@ -274,6 +274,13 @@ V17_REVIEW_DIAGNOSIS_PATH = (
     / "reports"
     / "supervised_labeler_v17_review_diagnosis.json"
 )
+V18_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v18.yaml"
+V18_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v18_split.json"
+)
+V18_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v18_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3044,6 +3051,83 @@ def test_v17_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> No
     assert report["v16_nonselected_groups_in_model_data"] == 0
     assert report["prior_sealed_groups_in_model_data"] == 0
     assert report["v16_revealed_audit_groups_in_training"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+
+
+def test_v18_split_replays_v17_errors_and_keeps_audit_independent() -> None:
+    config = load_supervised_labeler_config(V18_CONFIG_PATH)
+    split = json.loads(V18_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["training_images"] == 2439
+    assert split["training_groups"] == 2354
+    assert split["training_helmet_annotations"] == 9079
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert len(split["v18_reserved_group_ids"]) == 96
+    assert len(split["v18_prior_training_group_ids_removed"]) == 96
+    assert len(split["v17_revealed_audit_group_ids"]) == 48
+    assert len(split["v17_nonselected_excluded_group_ids"]) == 48
+    assert set(split["v17_revealed_audit_group_ids"]) <= set(
+        split["training_group_ids"]
+    )
+    assert split["owner_miss_replay_image_ids"] == [857, 4187]
+    assert {2262, 2580, 2941} <= set(
+        split["hard_negative_error_replay_image_ids"]
+    )
+    model_groups = set(split["training_group_ids"]) | set(
+        split["calibration_group_ids"]
+    )
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["calibration_group_ids"]
+    )
+    assert model_groups.isdisjoint(split["v18_reserved_group_ids"])
+    assert model_groups.isdisjoint(
+        split["v17_nonselected_excluded_group_ids"]
+    )
+    outcome = config["split_outcome"]
+    assert embedded_sha == outcome["manifest_sha256"]
+    assert hashlib.sha256(V18_SPLIT_PATH.read_bytes()).hexdigest() == outcome[
+        "file_sha256"
+    ]
+
+
+def test_v18_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> None:
+    config = load_supervised_labeler_config(V18_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    report = json.loads(V18_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V18_PREFLIGHT_PATH.read_bytes()).hexdigest() == (
+        outcome["report_file_sha256"]
+    )
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["training"]["images_read"] == 2439
+    assert report["calibration"]["images_read"] == 621
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert len(report["error_replay_weights"]) == 34
+    assert set(report["error_replay_weights"].values()) == {12.0, 16.0}
+    assert report["error_replay_weights"]["551"] == 12.0
+    assert report["error_replay_weights"]["857"] == 16.0
+    assert report["error_replay_weights"]["4187"] == 16.0
+    assert report["error_replay_weights"]["2262"] == 16.0
+    assert report["error_replay_weights"]["2580"] == 16.0
+    assert report["error_replay_weights"]["2941"] == 16.0
+    assert report["overlapping_replay_image_ids"] == [361, 774, 4151]
+    assert report["overlap_policy"] == "maximum_weight"
+    assert report["postprocessing"]["max_outside_fraction"] == 0.10
+    assert report["v18_reserved_groups_in_model_data"] == 0
+    assert report["v17_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["v17_revealed_audit_groups_in_training"] == 48
     assert report["untouched_audit_pixels_read"] == 0
     assert report["sealed_reserve_pixels_read"] == 0
     assert report["validation_images_read"] == 0

@@ -1,10 +1,11 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v18"
-status: "preregistered_before_v18_split_or_training"
+status: "cpu_preflight_passed_gpu_smoke_waiting"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260802
 training_seed: 20260809
-split_manifest_sha256: "pending_split_freeze"
+split_manifest_sha256: >-
+  530f1ab435118e2a6d052dfb9b430402301cfe73f5307cb0a8bcb67562eea398
 
 model:
   repo_id: "PekingU/rtdetr_v2_r101vd"
@@ -227,6 +228,68 @@ independence_registration:
   sealed_reserve_pixels_read: 0
   validation_images_read: 0
   test_images_read: 0
+
+split_outcome:
+  status: "frozen_before_supervised_training"
+  path: "splits/supervised_labeler_v18_split.json"
+  file_sha256: >-
+    c9558a7738f93e8fc37c113e9fcd8d9f74a857eb9109cdfe8c20730e4edcb62e
+  manifest_sha256: >-
+    530f1ab435118e2a6d052dfb9b430402301cfe73f5307cb0a8bcb67562eea398
+  report_path: "reports/supervised_labeler_v18_split.md"
+  report_file_sha256: >-
+    3119aa1bda20463d16b116b4dd57d890a9b8449020bd3bb5b0266fcb5af8c434
+  training_images: 2439
+  training_groups: 2354
+  training_helmet_annotations: 9079
+  calibration_images: 621
+  independent_audit_images: 48
+  v18_reserved_groups_in_model_data: 0
+  v18_prior_training_groups_removed: 96
+  v17_revealed_audit_groups_in_training: 48
+  v17_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  owner_miss_replay_images: 2
+  positive_error_replay_images: 15
+  hard_negative_error_replay_images: 20
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  v18_training_started: false
+
+cpu_preflight_outcome:
+  status: "passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v18_preflight.json"
+  report_file_sha256: >-
+    d30a54896acf655e03b157aeac50958fa775ff7048ee1cdbdac644ea1a9785ce
+  markdown_path: "reports/supervised_labeler_v18_preflight.md"
+  markdown_file_sha256: >-
+    b0ee5e91ae9779b998df60e4a62e37e0f539856426f9591fe471dcb76edf4e48
+  training_images_read: 2439
+  training_images_normalized: 2425
+  training_invalid_boxes: 0
+  calibration_images_read: 621
+  calibration_images_normalized: 617
+  calibration_invalid_boxes: 0
+  sampling_weight_counts:
+    "1.0": 343
+    "2.0": 587
+    "4.0": 1259
+    "6.0": 216
+    "12.0": 12
+    "16.0": 22
+  replay_weights_verified: true
+  max_outside_fraction: 0.10
+  model_files_rehashed: 3
+  v18_reserved_groups_in_model_data: 0
+  v17_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  v17_revealed_audit_groups_in_training: 48
+  untouched_audit_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
 
 generation_gate:
   allowed: false
