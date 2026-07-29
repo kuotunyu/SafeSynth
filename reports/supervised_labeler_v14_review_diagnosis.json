@@ -1,0 +1,209 @@
+{
+  "cases": [
+    {
+      "cell": 7,
+      "false_positive_count_at_frozen_settings": 1,
+      "false_positives": [
+        {
+          "box": [
+            363.57958984375,
+            372.9479064941406,
+            415.70159912109375,
+            415.7710266113281
+          ],
+          "minimum_exclusive_threshold": 0.051025391625,
+          "score": 0.051025390625
+        }
+      ],
+      "geometry_candidate_count_at_0_001": 250,
+      "image_id": 361,
+      "image_size": [
+        416,
+        415
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              189.14321899414062,
+              133.91854858398438,
+              220.92799377441406,
+              167.69195556640625
+            ],
+            "iou": 0.635393277079321,
+            "passes_current_geometry": true,
+            "passes_current_score": false,
+            "score": 0.03466796875
+          },
+          "blocking_stages": [
+            "score_threshold"
+          ],
+          "diagnosed_cause": "candidate_below_score_threshold",
+          "truth_box": [
+            190.52884615384613,
+            137.83393501805054,
+            214.49038461538458,
+            166.29963898916967
+          ],
+          "truth_index": 0
+        }
+      ],
+      "owner_category": "model_missed_helmeted_head",
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 2,
+      "unmatched_truth_count_at_frozen_settings": 1
+    },
+    {
+      "cell": 10,
+      "false_positive_count_at_frozen_settings": 1,
+      "false_positives": [
+        {
+          "box": [
+            1.4947552680969238,
+            97.42530059814453,
+            40.08200454711914,
+            145.9949188232422
+          ],
+          "minimum_exclusive_threshold": 0.0517578135,
+          "score": 0.0517578125
+        }
+      ],
+      "geometry_candidate_count_at_0_001": 262,
+      "image_id": 210,
+      "image_size": [
+        416,
+        416
+      ],
+      "misses": [],
+      "owner_category": "model_false_positive",
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 0,
+      "unmatched_truth_count_at_frozen_settings": 0
+    },
+    {
+      "cell": 40,
+      "false_positive_count_at_frozen_settings": 0,
+      "false_positives": [],
+      "geometry_candidate_count_at_0_001": 217,
+      "image_id": 2534,
+      "image_size": [
+        416,
+        416
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              128.8884735107422,
+              164.45362854003906,
+              155.5831756591797,
+              191.13270568847656
+            ],
+            "iou": 0.7298888278663952,
+            "passes_current_geometry": true,
+            "passes_current_score": false,
+            "score": 0.008056640625
+          },
+          "blocking_stages": [
+            "score_threshold"
+          ],
+          "diagnosed_cause": "candidate_below_score_threshold",
+          "truth_box": [
+            130.20192307692307,
+            163.71612903225807,
+            151.66346153846152,
+            189.21290322580646
+          ],
+          "truth_index": 2
+        }
+      ],
+      "owner_category": "model_missed_helmeted_head",
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 4,
+      "unmatched_truth_count_at_frozen_settings": 1
+    },
+    {
+      "cell": 43,
+      "false_positive_count_at_frozen_settings": 0,
+      "false_positives": [],
+      "geometry_candidate_count_at_0_001": 261,
+      "image_id": 3605,
+      "image_size": [
+        416,
+        415
+      ],
+      "misses": [
+        {
+          "best_raw_candidate": {
+            "box": [
+              382.93927001953125,
+              49.845726013183594,
+              416.1209411621094,
+              181.32057189941406
+            ],
+            "iou": 0.7260750406013238,
+            "passes_current_geometry": true,
+            "passes_current_score": false,
+            "score": 0.0140380859375
+          },
+          "blocking_stages": [
+            "score_threshold"
+          ],
+          "diagnosed_cause": "candidate_below_score_threshold",
+          "truth_box": [
+            376.23076923076917,
+            64.42238267148014,
+            416.0,
+            176.7870036101083
+          ],
+          "truth_index": 0
+        }
+      ],
+      "owner_category": "model_missed_helmeted_head",
+      "raw_candidate_count_at_0_001": 300,
+      "truth_box_count": 2,
+      "unmatched_truth_count_at_frozen_settings": 1
+    }
+  ],
+  "cause_counts": {
+    "candidate_below_score_threshold": 3,
+    "unmatched_prediction_above_threshold": 2
+  },
+  "frozen_inputs": {
+    "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v14_train20260809_split20260729\\best\\model.safetensors",
+    "checkpoint_sha256": "03de04a6981c9893d0f38e8300fec9bfc774a789317a884bdc8176418994735c",
+    "config_path": "configs\\supervised_labeler_v14.yaml",
+    "config_sha256": "af0788d6374d7e03248373337adc36b8bf2190502c815991d1e52d1b647b5e82",
+    "low_score_floor": 0.001,
+    "match_iou": 0.5,
+    "postprocessing": {
+      "max_aspect_ratio": 4.0,
+      "max_relative_area": 0.7,
+      "max_relative_height": 0.9,
+      "min_aspect_ratio": 0.2,
+      "selection_basis": "Preregistered before v14 pool pixels. Limits cover the diagnosed v13 cell 03 candidate (relative area about 0.616, height about 0.853) with margin."
+    },
+    "review_path": "reports\\supervised_labeler_v14_model_human_review.json",
+    "review_sha256": "cfa03fa43d776c78693f151bca87e175adee8f30de4f4f8594b15d2acd839c4d",
+    "score_threshold": 0.05,
+    "split_path": "splits\\supervised_labeler_v14_split.json",
+    "split_sha256": "d77697fef5d9356de0fdab35264b44d45cad46fd5882c0df5cc9f57175acd757",
+    "training_path": "reports\\supervised_labeler_v14_training.json",
+    "training_sha256": "5cfe685c305f8bbd97577ea759e0ea3be81013c81057403f3c5ed9226ff82d7a"
+  },
+  "generation_allowed": false,
+  "schema_version": 1,
+  "scope": {
+    "already_revealed_audit_cells_only": [
+      7,
+      10,
+      40,
+      43
+    ],
+    "images_read": 4,
+    "test_images_read": 0,
+    "validation_images_read": 0,
+    "whole_image_generation_run": false
+  },
+  "status": "v14_owner_failure_diagnosis_complete"
+}

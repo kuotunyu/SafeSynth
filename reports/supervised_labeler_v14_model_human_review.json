@@ -1,0 +1,90 @@
+{
+  "categories": {
+    "model_false_positive_cells": [
+      10
+    ],
+    "model_missed_helmeted_head_cells": [
+      7,
+      40,
+      43
+    ]
+  },
+  "checkpoint_sha256": "03de04a6981c9893d0f38e8300fec9bfc774a789317a884bdc8176418994735c",
+  "decision": "reject",
+  "experiment_id": "supervised_labeler_v14",
+  "generation_allowed": false,
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_evidence_file_sha256": "bbbbc84c36a04424bb2c46f6eca967a61b161b016a0680360538ba918b16edda",
+  "model_evidence_path": "reports/supervised_labeler_v14_audit_evidence.json",
+  "model_review_manifest_file_sha256": "1510387b270d7c65f79cccbc8ed149544844e0e0dfaf628b88419e99427d8e8f",
+  "model_review_manifest_path": "reports/supervised_labeler_v14_model_review_manifest.json",
+  "model_review_manifest_sha256": "d02bb64d2e2395fe26e1cdc86bcd5c58a3cb9afcc5dc21c2a7073212428ff268",
+  "numeric_audit_report_file_sha256": "5cfe685c305f8bbd97577ea759e0ea3be81013c81057403f3c5ed9226ff82d7a",
+  "numeric_audit_report_path": "reports/supervised_labeler_v14_training.json",
+  "numeric_audit_status": "supervised_labeler_audit_passed",
+  "pages": [
+    {
+      "cells": [
+        1,
+        16
+      ],
+      "path": "reports/figures/supervised_labeler_v14_model_review_page_01.png",
+      "sha256": "f18450ae946e3239d307bb8001d38cbe667caab9aa826494bf514fd8266d85c2"
+    },
+    {
+      "cells": [
+        17,
+        32
+      ],
+      "path": "reports/figures/supervised_labeler_v14_model_review_page_02.png",
+      "sha256": "86adc932eaa46d9c9cafffeb812d4ee120078c29220e91607a5168b68a4325d4"
+    },
+    {
+      "cells": [
+        33,
+        48
+      ],
+      "path": "reports/figures/supervised_labeler_v14_model_review_page_03.png",
+      "sha256": "a5141622b84af1c8151380f383d7a7bee56dcd14f133ea20321ddcacf73bb5a0"
+    }
+  ],
+  "problem_cases": [
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 7,
+      "image_id": 361
+    },
+    {
+      "category": "model_false_positive",
+      "cell": 10,
+      "image_id": 210
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 40,
+      "image_id": 2534
+    },
+    {
+      "category": "model_missed_helmeted_head",
+      "cell": 43,
+      "image_id": 3605
+    }
+  ],
+  "problem_cells": [
+    7,
+    10,
+    40,
+    43
+  ],
+  "problem_count": 4,
+  "review_note": "Most v14 boxes were good. Cell 10 has a model box on a face without a worn hard hat. Real worn-helmeted heads were missed in cells 07, 40, and 43.",
+  "review_sha256": "bbcfd904c5d15f252aaeef9efb5b3c9b20e36e9116dea9c1fb5b3ca921bb9176",
+  "reviewed_by": "kuotunyu",
+  "reviewed_on": "2026-07-29",
+  "schema_version": 1,
+  "score_threshold": 0.05,
+  "status": "rejected_by_kuotunyu",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

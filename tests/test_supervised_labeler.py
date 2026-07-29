@@ -69,6 +69,9 @@ from scripts.record_supervised_labeler_v14_gt_review import (
 from scripts.record_supervised_labeler_v14_gt_review import (
     OWNER_REVIEW_PATH as V14_GT_OWNER_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v14_model_review import (
+    OUTPUT_PATH as V14_MODEL_HUMAN_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -128,6 +131,11 @@ V14_MODEL_REVIEW_MANIFEST_PATH = (
     PROJECT_ROOT
     / "reports"
     / "supervised_labeler_v14_model_review_manifest.json"
+)
+V14_REVIEW_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v14_review_diagnosis.json"
 )
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
@@ -1756,7 +1764,7 @@ def test_v14_independent_numeric_audit_passes_all_frozen_gates() -> None:
     outcome = config["numeric_audit_outcome"]
     checkpoint = Path(report["checkpoint_path"]) / "model.safetensors"
 
-    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert config["status"] == "human_review_rejected"
     assert report["status"] == "supervised_labeler_audit_passed"
     assert outcome["status"] == report["status"]
     assert report["split_manifest_sha256"] == (
@@ -1829,9 +1837,94 @@ def test_v14_model_review_pages_pin_exact_audit_evidence() -> None:
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
-    assert registration["owner_review_status"] == "pending_kuotunyu"
+    assert registration["owner_review_status"] == "rejected_by_kuotunyu"
     assert registration["approve_only_if_problem_count"] == 0
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_owner_rejection_and_failure_diagnosis_are_exact() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    review = json.loads(
+        V14_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V14_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    review_outcome = config["human_review_outcome"]
+    diagnosis_outcome = config["review_diagnosis_outcome"]
+    canonical_review = dict(review)
+    embedded_review_sha = canonical_review.pop("review_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == embedded_review_sha
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["problem_cells"] == [7, 10, 40, 43]
+    assert review["categories"] == {
+        "model_false_positive_cells": [10],
+        "model_missed_helmeted_head_cells": [7, 40, 43],
+    }
+    assert [row["image_id"] for row in review["problem_cases"]] == [
+        361,
+        210,
+        2534,
+        3605,
+    ]
+    assert hashlib.sha256(
+        V14_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == review_outcome["review_file_sha256"]
+    assert review_outcome["review_sha256"] == embedded_review_sha
+
+    assert diagnosis["status"] == "v14_owner_failure_diagnosis_complete"
+    assert diagnosis["scope"]["already_revealed_audit_cells_only"] == [
+        7,
+        10,
+        40,
+        43,
+    ]
+    assert diagnosis["scope"]["images_read"] == 4
+    assert diagnosis["cause_counts"] == {
+        "candidate_below_score_threshold": 3,
+        "unmatched_prediction_above_threshold": 2,
+    }
+    assert hashlib.sha256(
+        V14_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == diagnosis_outcome["report_file_sha256"]
+    cases = {int(row["cell"]): row for row in diagnosis["cases"]}
+    assert cases[7]["misses"][0]["best_raw_candidate"]["score"] == (
+        pytest.approx(0.03466796875)
+    )
+    assert cases[40]["misses"][0]["best_raw_candidate"]["score"] == (
+        pytest.approx(0.008056640625)
+    )
+    assert cases[43]["misses"][0]["best_raw_candidate"]["score"] == (
+        pytest.approx(0.0140380859375)
+    )
+    assert cases[10]["false_positives"][0]["score"] == pytest.approx(
+        0.0517578125
+    )
+    assert diagnosis["scope"]["validation_images_read"] == 0
+    assert diagnosis["scope"]["test_images_read"] == 0
+    assert diagnosis["scope"]["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_figure_cleanup_keeps_current_evidence_and_removes_legacy_duplicates() -> None:
+    figure_root = PROJECT_ROOT / "reports" / "figures"
+    for name in (
+        "supervised_labeler_v14_audit.png",
+        "supervised_labeler_v14_model_review_page_01.png",
+        "supervised_labeler_v14_model_review_page_02.png",
+        "supervised_labeler_v14_model_review_page_03.png",
+        "supervised_labeler_v13_audit.png",
+        "supervised_labeler_v6_audit.png",
+    ):
+        assert (figure_root / name).is_file()
+    assert not list(figure_root.glob("supervised_labeler_v7_audit*.png"))
+    assert not list(figure_root.glob("supervised_labeler_v8_audit*.png"))
+    assert not list(figure_root.glob("supervised_labeler_v9_audit*.png"))
+    assert not list(figure_root.glob("supervised_labeler_v10_audit*.png"))
+    assert not list(figure_root.glob("supervised_labeler_v11_audit*.png"))
+    assert not list(figure_root.glob("*_failed.png"))
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

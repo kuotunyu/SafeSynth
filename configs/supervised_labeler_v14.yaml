@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v14"
-status: "numeric_audit_passed_human_review_pending"
+status: "human_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260729
 training_seed: 20260809
@@ -168,8 +168,9 @@ independence_registration:
 generation_gate:
   allowed: false
   reason: >-
-    v14 training and the independent numeric audit passed, but the required
-    zero-problem owner review of the frozen 48-image model pages is pending.
+    v14 passed its independent numeric audit but kuotunyu rejected the frozen
+    model review: misses in cells 07, 40, and 43 plus a false positive in
+    cell 10. A new independent iteration is required.
 
 split_outcome:
   status: "frozen_before_supervised_training"
@@ -278,7 +279,7 @@ numeric_audit_outcome:
 
 model_review_registration:
   status: "supervised_labeler_v14_model_review_pages_frozen"
-  owner_review_status: "pending_kuotunyu"
+  owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v14_model_review_manifest.json"
   manifest_file_sha256: "1510387b270d7c65f79cccbc8ed149544844e0e0dfaf628b88419e99427d8e8f"
   manifest_sha256: "d02bb64d2e2395fe26e1cdc86bcd5c58a3cb9afcc5dc21c2a7073212428ff268"
@@ -297,6 +298,53 @@ model_review_registration:
   render_model_inference_run: false
   source_model_inference_images: 48
   sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+human_review_outcome:
+  status: "rejected_by_kuotunyu"
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  decision: "reject"
+  problem_count: 4
+  problem_cells: [7, 10, 40, 43]
+  categories:
+    model_false_positive_cells: [10]
+    model_missed_helmeted_head_cells: [7, 40, 43]
+  review_path: "reports/supervised_labeler_v14_model_human_review.json"
+  review_file_sha256: "cfa03fa43d776c78693f151bca87e175adee8f30de4f4f8594b15d2acd839c4d"
+  review_sha256: "bbcfd904c5d15f252aaeef9efb5b3c9b20e36e9116dea9c1fb5b3ca921bb9176"
+  checkpoint_sha256: "03de04a6981c9893d0f38e8300fec9bfc774a789317a884bdc8176418994735c"
+  score_threshold: 0.05
+  generation_allowed: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+review_diagnosis_outcome:
+  status: "v14_owner_failure_diagnosis_complete"
+  report_path: "reports/supervised_labeler_v14_review_diagnosis.json"
+  report_file_sha256: "246a303037294ab5931489c8780b52f69b385892aa97e27e629383b58b456702"
+  diagnosed_cells: [7, 10, 40, 43]
+  images_read: 4
+  causes:
+    candidate_below_score_threshold: 3
+    unmatched_prediction_above_threshold: 2
+  missed_candidate_scores:
+    "7": 0.03466796875
+    "40": 0.008056640625
+    "43": 0.0140380859375
+  false_positive_scores:
+    "7": 0.051025390625
+    "10": 0.0517578125
+  diagnosis: >-
+    All three owner-reported misses have correctly localized raw candidates
+    that pass geometry but fall below the frozen 0.05 score threshold. The
+    false positive in cell 10 and an additional background false positive in
+    cell 07 sit just above 0.05. Lowering the threshold alone is therefore not
+    a safe intervention; the next version must improve confidence separation.
+  generation_allowed: false
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
