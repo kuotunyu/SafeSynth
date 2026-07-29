@@ -118,6 +118,17 @@ V14_PREFLIGHT_PATH = (
 V14_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v14_smoke.json"
 )
+V14_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v14_training.json"
+)
+V14_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v14_audit_evidence.json"
+)
+V14_MODEL_REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v14_model_review_manifest.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -1465,6 +1476,7 @@ def test_v14_intervention_is_preregistered_before_new_pool_pixels() -> None:
         "preregistered_before_pool_freeze",
         "pool_frozen_before_pixel_review_or_training",
         "gt_only_primary_review_pending_owner",
+        "gt_only_adjudicated_audit_frozen_training_pending",
     }
     assert config["protocol"]["label_semantics"] == (
         "class_direct_helmeted_head_region"
@@ -1730,6 +1742,95 @@ def test_v14_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert config["optimization"]["initialization"] == (
         "pinned_base_checkpoint_only"
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_independent_numeric_audit_passes_all_frozen_gates() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    report = json.loads(
+        V14_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V14_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    outcome = config["numeric_audit_outcome"]
+    checkpoint = Path(report["checkpoint_path"]) / "model.safetensors"
+
+    assert config["status"] == "numeric_audit_passed_human_review_pending"
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert outcome["status"] == report["status"]
+    assert report["split_manifest_sha256"] == (
+        config["split_manifest_sha256"]
+    )
+    assert hashlib.sha256(
+        V14_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert report["best_calibration"]["epoch"] == 2
+    assert report["best_calibration"]["threshold"] == 0.05
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["audit_metrics"] == {
+        "f1": 0.9152542372881356,
+        "false_negatives": 7,
+        "false_positives": 8,
+        "median_matched_iou": 0.843415371431786,
+        "precision": 0.9101123595505618,
+        "recall": 0.9204545454545454,
+        "true_positives": 81,
+    }
+    assert report["untouched_audit_images_read"] == 48
+    assert len(evidence["cases"]) == 48
+    assert hashlib.sha256(
+        V14_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == report["audit_evidence_sha256"]
+    assert checkpoint.is_file()
+    assert hashlib.sha256(checkpoint.read_bytes()).hexdigest() == (
+        report["checkpoint_sha256"]
+    )
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert outcome["sealed_reserve_pixels_read"] == 0
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_model_review_pages_pin_exact_audit_evidence() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    manifest = json.loads(
+        V14_MODEL_REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(manifest)
+    embedded_sha = canonical.pop("manifest_sha256")
+    registration = config["model_review_registration"]
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert manifest["status"] == (
+        "supervised_labeler_v14_model_review_pages_frozen"
+    )
+    assert registration["manifest_sha256"] == embedded_sha
+    assert hashlib.sha256(
+        V14_MODEL_REVIEW_MANIFEST_PATH.read_bytes()
+    ).hexdigest() == registration["manifest_file_sha256"]
+    assert manifest["source_audit_evidence_sha256"] == hashlib.sha256(
+        V14_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest()
+    assert manifest["reviewed_images"] == 48
+    assert manifest["score_threshold"] == 0.05
+    assert manifest["numeric_checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert manifest["render_model_inference_run"] is False
+    assert manifest["source_model_inference_images"] == 48
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+    assert registration["owner_review_status"] == "pending_kuotunyu"
+    assert registration["approve_only_if_problem_count"] == 0
     assert config["generation_gate"]["allowed"] is False
 
 
