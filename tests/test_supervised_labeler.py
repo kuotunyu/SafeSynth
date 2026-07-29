@@ -62,6 +62,15 @@ from scripts.prepare_supervised_labeler_v16_gt_review import (
 from scripts.prepare_supervised_labeler_v16_gt_review import (
     POOL_PATH as V16_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v17_gt_review import (
+    CONFIG_PATH as V17_GT_CONFIG_PATH,
+)
+from scripts.prepare_supervised_labeler_v17_gt_review import (
+    EVIDENCE_PATH as V17_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v17_gt_review import (
+    POOL_PATH as V17_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -2566,6 +2575,101 @@ def test_v16_gt_adjudication_quarantines_only_tiny_edge_fragment() -> None:
     ).hexdigest() == config["owner_adjudication_outcome"][
         "adjudicated_audit_file_sha256"
     ]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v17_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None:
+    config = yaml.safe_load(V17_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    pool = json.loads(V17_GT_POOL_PATH.read_text(encoding="utf-8"))
+    evidence = json.loads(V17_GT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v17_intervention"]
+    canonical_pool = dict(pool)
+    pool_sha = canonical_pool.pop("manifest_sha256")
+    canonical_evidence = dict(evidence)
+    evidence_sha = canonical_evidence.pop("evidence_sha256")
+
+    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert intervention["status"] == (
+        "preregistered_before_v17_pool_pixels_or_training"
+    )
+    changes = intervention["model_facing_changes"]
+    assert changes["empty_image_weight"] == 6.0
+    assert changes["min_calibration_precision"] == 0.86
+    assert changes["positive_error_replay_weight"] == 12.0
+    assert changes["hard_negative_error_replay_weight"] == 12.0
+    assert changes["overlap_policy"] == "maximum_weight"
+    assert set(changes["positive_error_replay_image_ids"]) == {
+        361,
+        551,
+        688,
+        774,
+        1661,
+        2171,
+        2534,
+        3313,
+        3475,
+        3605,
+        3734,
+        4051,
+        4151,
+        4363,
+        4437,
+    }
+    assert set(changes["hard_negative_error_replay_image_ids"]) == {
+        210,
+        361,
+        774,
+        1547,
+        1635,
+        1753,
+        1873,
+        2732,
+        2829,
+        2904,
+        3428,
+        3934,
+        4026,
+        4086,
+        4100,
+        4151,
+        4565,
+    }
+    assert canonical_mapping_sha256(canonical_pool) == pool_sha
+    assert pool["status"] == (
+        "v17_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool["excluded_group_count"] == 1104
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(pool["future_v17_training_exclusion_group_ids"]) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["v17_training_started"] is False
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+
+    assert canonical_mapping_sha256(canonical_evidence) == evidence_sha
+    assert evidence["status"] == (
+        "v17_gt_only_primary_review_rendered_before_training"
+    )
+    assert evidence["pool_manifest_sha256"] == pool_sha
+    assert evidence["primary_images_read"] == 64
+    assert evidence["primary_images_normalized"] == 64
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["v17_training_started"] is False
+    assert hashlib.sha256(V17_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        config["freeze_outcome"]["pool_file_sha256"]
+    )
+    assert hashlib.sha256(V17_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        config["render_outcome"]["evidence_file_sha256"]
+    )
+    for page in evidence["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
     assert config["generation_gate"]["allowed"] is False
 
 
