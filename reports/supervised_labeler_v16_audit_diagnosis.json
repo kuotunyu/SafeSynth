@@ -1,0 +1,329 @@
+{
+  "audit_evidence_file_sha256": "9fd5e284f7577b824eecf3f151d9555e7c675bd878e28e3606b9a78abf66d0e7",
+  "audit_evidence_path": "reports/supervised_labeler_v16_audit_evidence.json",
+  "audit_metrics": {
+    "f1": 0.7777777777777777,
+    "false_negatives": 16,
+    "false_positives": 32,
+    "median_matched_iou": 0.8485283773672861,
+    "precision": 0.7241379310344828,
+    "recall": 0.84,
+    "true_positives": 84
+  },
+  "checkpoint_sha256": "15f968b856546ad85e0b9ca9440e354eb2d0a946e2b02fed0edefa23b2303878",
+  "diagnostic_thresholds": [
+    {
+      "f1": 0.7777777777777777,
+      "false_negatives": 16,
+      "false_positives": 32,
+      "median_matched_iou": 0.8485283773672861,
+      "precision": 0.7241379310344828,
+      "recall": 0.84,
+      "threshold": 0.03,
+      "true_positives": 84
+    },
+    {
+      "f1": 0.8102564102564104,
+      "false_negatives": 21,
+      "false_positives": 16,
+      "median_matched_iou": 0.849715112871743,
+      "precision": 0.8315789473684211,
+      "recall": 0.79,
+      "threshold": 0.035,
+      "true_positives": 79
+    },
+    {
+      "f1": 0.7912087912087912,
+      "false_negatives": 28,
+      "false_positives": 10,
+      "median_matched_iou": 0.8485283773672861,
+      "precision": 0.8780487804878049,
+      "recall": 0.72,
+      "threshold": 0.04,
+      "true_positives": 72
+    },
+    {
+      "f1": 0.6535947712418301,
+      "false_negatives": 50,
+      "false_positives": 3,
+      "median_matched_iou": 0.8439022055255332,
+      "precision": 0.9433962264150944,
+      "recall": 0.5,
+      "threshold": 0.05,
+      "true_positives": 50
+    }
+  ],
+  "error_case_summary": {
+    "cells_with_false_negatives": 12,
+    "cells_with_false_positives": 14,
+    "false_positives_on_empty_gt": 19,
+    "false_positives_on_positive_gt": 13
+  },
+  "experiment_id": "supervised_labeler_v16",
+  "failed_checks": [
+    "audit_precision"
+  ],
+  "false_positive_cases": [
+    {
+      "cell": 42,
+      "false_negatives": 0,
+      "false_positives": 6,
+      "image_id": 3934,
+      "scores": [
+        0.046142578125,
+        0.0439453125,
+        0.04345703125,
+        0.032470703125,
+        0.03173828125,
+        0.0311279296875
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 1,
+      "false_negatives": 0,
+      "false_positives": 4,
+      "image_id": 4565,
+      "scores": [
+        0.06005859375,
+        0.0419921875,
+        0.0341796875,
+        0.03369140625
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 2,
+      "false_negatives": 2,
+      "false_positives": 4,
+      "image_id": 774,
+      "scores": [
+        0.049560546875,
+        0.037353515625,
+        0.0306396484375,
+        0.0302734375
+      ],
+      "truth_boxes": 5
+    },
+    {
+      "cell": 6,
+      "false_negatives": 0,
+      "false_positives": 3,
+      "image_id": 2732,
+      "scores": [
+        0.0311279296875,
+        0.0311279296875,
+        0.0306396484375
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 34,
+      "false_negatives": 0,
+      "false_positives": 3,
+      "image_id": 3428,
+      "scores": [
+        0.03466796875,
+        0.033203125,
+        0.0311279296875
+      ],
+      "truth_boxes": 1
+    },
+    {
+      "cell": 4,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "image_id": 1753,
+      "scores": [
+        0.03857421875,
+        0.0361328125
+      ],
+      "truth_boxes": 2
+    },
+    {
+      "cell": 18,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "image_id": 1635,
+      "scores": [
+        0.051025390625,
+        0.037353515625
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 44,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "image_id": 2904,
+      "scores": [
+        0.040771484375,
+        0.03564453125
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 3,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 1873,
+      "scores": [
+        0.03955078125
+      ],
+      "truth_boxes": 0
+    },
+    {
+      "cell": 5,
+      "false_negatives": 1,
+      "false_positives": 1,
+      "image_id": 4151,
+      "scores": [
+        0.0306396484375
+      ],
+      "truth_boxes": 5
+    },
+    {
+      "cell": 29,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 2829,
+      "scores": [
+        0.0419921875
+      ],
+      "truth_boxes": 1
+    },
+    {
+      "cell": 35,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 4026,
+      "scores": [
+        0.03173828125
+      ],
+      "truth_boxes": 2
+    },
+    {
+      "cell": 36,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 4086,
+      "scores": [
+        0.0306396484375
+      ],
+      "truth_boxes": 1
+    },
+    {
+      "cell": 48,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 1547,
+      "scores": [
+        0.05029296875
+      ],
+      "truth_boxes": 0
+    }
+  ],
+  "frozen_score_threshold": 0.03,
+  "generation_allowed": false,
+  "miss_cases": [
+    {
+      "cell": 2,
+      "false_negatives": 2,
+      "false_positives": 4,
+      "image_id": 774,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 12,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "image_id": 3734,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 23,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "image_id": 688,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 30,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "image_id": 4437,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 5,
+      "false_negatives": 1,
+      "false_positives": 1,
+      "image_id": 4151,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 8,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 3475,
+      "truth_boxes": 4
+    },
+    {
+      "cell": 13,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 551,
+      "truth_boxes": 2
+    },
+    {
+      "cell": 16,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 4363,
+      "truth_boxes": 4
+    },
+    {
+      "cell": 19,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 3313,
+      "truth_boxes": 3
+    },
+    {
+      "cell": 26,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 4051,
+      "truth_boxes": 2
+    },
+    {
+      "cell": 38,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 1661,
+      "truth_boxes": 5
+    },
+    {
+      "cell": 40,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 2171,
+      "truth_boxes": 5
+    }
+  ],
+  "report_sha256": "00ba8e2a6339c9a90371b9b83e11caf7bac2d5594b27509dc3fec00fcf506427",
+  "schema_version": 1,
+  "scope": {
+    "audit_evidence_rows_read": 48,
+    "model_inference_run": false,
+    "source_image_pixels_read": 0,
+    "test_images_read": 0,
+    "validation_images_read": 0,
+    "whole_image_generation_run": false
+  },
+  "split_manifest_sha256": "8ff4de5dbf981a701548ecd3924b16aa594977fa7005ab610c0e3a4c638f7f3d",
+  "status": "v16_failed_audit_diagnosed_without_new_inference",
+  "threshold_policy": "Diagnostic only. The one-shot audit cannot select a new threshold after outcomes are visible.",
+  "training_report_file_sha256": "ee006f833f5ca5d09c7aa3f068f53b689779d4cca7ab1203afc16f22358ba37c",
+  "training_report_path": "reports/supervised_labeler_v16_training.json"
+}

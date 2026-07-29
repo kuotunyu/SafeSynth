@@ -204,6 +204,15 @@ V16_PREFLIGHT_PATH = (
 V16_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v16_smoke.json"
 )
+V16_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v16_training.json"
+)
+V16_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v16_audit_evidence.json"
+)
+V16_AUDIT_DIAGNOSIS_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v16_audit_diagnosis.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -2668,6 +2677,77 @@ def test_v16_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert outcome["initialization"] == "pinned_base_checkpoint_only"
     assert outcome["v16_training_started"] is False
     assert outcome["sealed_reserve_pixels_read"] == 0
+
+
+def test_v16_one_shot_audit_fails_precision_and_diagnosis_is_read_only() -> None:
+    config = load_supervised_labeler_config(V16_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    training = json.loads(
+        V16_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V16_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    diagnosis = json.loads(
+        V16_AUDIT_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical_diagnosis = dict(diagnosis)
+    diagnosis_sha = canonical_diagnosis.pop("report_sha256")
+
+    assert training["status"] == "supervised_labeler_audit_failed"
+    assert training["best_calibration"]["epoch"] == 2
+    assert training["best_calibration"]["threshold"] == pytest.approx(0.03)
+    assert training["audit_metrics"] == {
+        "f1": pytest.approx(0.7777777777777777),
+        "false_negatives": 16,
+        "false_positives": 32,
+        "median_matched_iou": pytest.approx(0.8485283773672861),
+        "precision": pytest.approx(0.7241379310344828),
+        "recall": pytest.approx(0.84),
+        "true_positives": 84,
+    }
+    assert training["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": False,
+        "audit_recall": True,
+    }
+    assert hashlib.sha256(
+        V16_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert hashlib.sha256(
+        V16_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["audit_evidence_file_sha256"]
+    assert len(evidence["cases"]) == 48
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+
+    assert canonical_mapping_sha256(canonical_diagnosis) == diagnosis_sha
+    assert diagnosis["status"] == (
+        "v16_failed_audit_diagnosed_without_new_inference"
+    )
+    assert diagnosis["failed_checks"] == ["audit_precision"]
+    assert diagnosis["error_case_summary"] == {
+        "cells_with_false_negatives": 12,
+        "cells_with_false_positives": 14,
+        "false_positives_on_empty_gt": 19,
+        "false_positives_on_positive_gt": 13,
+    }
+    threshold_rows = {
+        float(row["threshold"]): row
+        for row in diagnosis["diagnostic_thresholds"]
+    }
+    assert threshold_rows[0.035]["precision"] == pytest.approx(
+        0.8315789473684211
+    )
+    assert threshold_rows[0.035]["recall"] == pytest.approx(0.79)
+    assert diagnosis["scope"]["model_inference_run"] is False
+    assert diagnosis["scope"]["source_image_pixels_read"] == 0
+    assert diagnosis["scope"]["validation_images_read"] == 0
+    assert diagnosis["scope"]["test_images_read"] == 0
+    assert config["audit_diagnosis"][
+        "threshold_selection_from_audit_prohibited"
+    ] is True
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

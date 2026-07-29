@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v16"
-status: "gpu_smoke_passed_formal_training_pending"
+status: "numeric_audit_failed_precision_v17_preregistration_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260731
 training_seed: 20260809
@@ -171,8 +171,8 @@ independence_registration:
   v14_approved_primary_allowed_as_revealed_training_data: true
   v15_approved_unambiguous_primary_allowed_as_revealed_training_data: true
   base_checkpoint_only: true
-  v16_training_started: false
-  audit_model_inference_run: false
+  v16_training_started: true
+  audit_model_inference_run: true
   sealed_reserve_pixels_read: 0
   validation_images_read: 0
   test_images_read: 0
@@ -234,10 +234,66 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_failed"
+  report_path: "reports/supervised_labeler_v16_training.json"
+  report_file_sha256: "ee006f833f5ca5d09c7aa3f068f53b689779d4cca7ab1203afc16f22358ba37c"
+  markdown_path: "reports/supervised_labeler_v16_training.md"
+  markdown_file_sha256: "b9d61ddf303d7fac16b877c7fac825ee0c8c47e58fdf98f215f29d1c9a299344"
+  split_manifest_sha256: "8ff4de5dbf981a701548ecd3924b16aa594977fa7005ab610c0e3a4c638f7f3d"
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v16_train20260809_split20260731\best
+  checkpoint_sha256: "15f968b856546ad85e0b9ca9440e354eb2d0a946e2b02fed0edefa23b2303878"
+  checkpoint_epoch: 2
+  score_threshold: 0.030
+  elapsed_minutes: 20.127126868565878
+  audit_images: 48
+  true_positives: 84
+  false_positives: 32
+  false_negatives: 16
+  precision: 0.7241379310344828
+  recall: 0.84
+  f1: 0.7777777777777777
+  median_matched_iou: 0.8485283773672861
+  checks:
+    audit_precision: false
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v16_audit_evidence.json"
+  audit_evidence_file_sha256: "9fd5e284f7577b824eecf3f151d9555e7c675bd878e28e3606b9a78abf66d0e7"
+  combined_figure_path: "reports/figures/supervised_labeler_v16_audit.png"
+  combined_figure_file_sha256: "42af2ff79fe620ff6f5036fd82fb6d5de9b4caa19def731603b7c21781500c48"
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
+audit_diagnosis:
+  status: "complete_without_new_inference"
+  report_path: "reports/supervised_labeler_v16_audit_diagnosis.json"
+  report_file_sha256: "4b4e2c84c0966bfc90c1a68927a4b97e479695b6607ed2053d002686411c491e"
+  report_sha256: "00ba8e2a6339c9a90371b9b83e11caf7bac2d5594b27509dc3fec00fcf506427"
+  failed_check: "audit_precision"
+  cells_with_false_positives: 14
+  cells_with_false_negatives: 12
+  false_positives_on_empty_gt: 19
+  false_positives_on_positive_gt: 13
+  diagnostic_only_threshold_0035:
+    precision: 0.8315789473684211
+    recall: 0.79
+    f1: 0.8102564102564104
+  threshold_selection_from_audit_prohibited: true
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v16 GT adjudication passed with one ambiguous edge image quarantined.
-    Leakage-free split freeze, CPU preflight, GPU smoke, base-only training,
-    independent numeric audit, and a separate zero-problem owner model review
-    are still required.
+    v16 GT adjudication, split freeze, CPU preflight, GPU smoke, and base-only
+    training completed. The one-shot independent audit failed precision:
+    0.724 is below the preregistered 0.80 gate. Recall and median IoU passed.
+    Selecting threshold 0.035 after seeing audit outcomes is prohibited. A
+    preregistered v17 intervention and a fresh independent audit are required.
