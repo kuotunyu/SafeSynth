@@ -2875,6 +2875,26 @@ def test_v17_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> No
     assert report["gpu_work_run"] is False
 
 
+def test_v17_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V17_CONFIG_PATH)
+    outcome = config["gpu_smoke_outcome"]
+    report = json.loads(V17_SMOKE_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V17_SMOKE_PATH.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["helmet_boxes"] > 0
+    assert report["loss"] > 0
+    assert 0 < report["peak_vram_gib"] < 24
+    assert outcome["initialization"] == "pinned_base_checkpoint_only"
+    assert outcome["v17_training_started"] is False
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+
+
 def test_v16_split_replays_v15_error_and_keeps_audit_independent() -> None:
     config = load_supervised_labeler_config(V16_CONFIG_PATH)
     split = json.loads(V16_SPLIT_PATH.read_text(encoding="utf-8"))
