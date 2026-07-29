@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v18_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_four_images_quarantined"
 source_split: "Train"
 split_seed: 20260802
 
@@ -268,9 +268,37 @@ render_outcome:
       sha256: >-
         2e4864e499744d2510ec844e5221b3d1c086c7dcee6f3e76d49970e11ebf50f4
 
+owner_adjudication_outcome:
+  status: "v18_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v18_gt_owner_review.json"
+  owner_review_file_sha256: >-
+    09ebc97e9b64eb2234ae11e783c028fcdde906bffabf33f2a3d58caa236b724c
+  owner_review_sha256: >-
+    22680442d74c0f569be1d906d8a7ed5ee2ed03e8f888673844e030c4621ee644
+  adjudicated_audit_path: "splits/supervised_labeler_v18_adjudicated_audit.json"
+  adjudicated_audit_file_sha256: >-
+    6a50a0fdd39e18a5809e527d04d6813f12048b07f0a9eb86774932095fe4af8c
+  adjudicated_audit_sha256: >-
+    3cc45a4b24928ad17ca6f2d34f9fbe0e3b5a8e2295f4faec45cfee8e93dd2b71
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-29"
+  reviewed_images: 64
+  passed_images: 60
+  quarantined_cells: [4, 12, 24, 35]
+  quarantined_image_ids: [3859, 3903, 4378, 3923]
+  quarantined_group_ids: [3743, 3782, 4225, 3801]
+  adjudicated_audit_images: 48
+  valid_primary_surplus_images: 12
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  v18_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v18 intervention is frozen, but a fresh independent GT-only pool, owner GT
-    adjudication, split freeze, CPU preflight, GPU smoke, base-only training,
-    numeric audit, and zero-problem owner model review are still required.
+    Fresh v18 GT adjudication passed with images 04, 12, 24, and 35
+    quarantined and a clean 48-image audit frozen. Split freeze, CPU preflight,
+    GPU smoke, base-only training, independent numeric audit, and a separate
+    zero-problem owner model review are still required.
