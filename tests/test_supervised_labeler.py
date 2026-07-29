@@ -115,6 +115,9 @@ V14_SPLIT_PATH = (
 V14_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v14_preflight.json"
 )
+V14_SMOKE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v14_smoke.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -1705,6 +1708,28 @@ def test_v14_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> No
     assert report["test_images_read"] == 0
     assert report["gpu_work_run"] is False
     assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v14_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V14_CONFIG_PATH)
+    outcome = config["gpu_smoke_outcome"]
+    report = json.loads(V14_SMOKE_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V14_SMOKE_PATH.read_bytes()).hexdigest() == outcome[
+        "report_file_sha256"
+    ]
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["helmet_boxes"] == 32
+    assert report["loss"] == pytest.approx(287.3628234863281)
+    assert report["peak_vram_gib"] == pytest.approx(9.315727710723877)
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert config["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
     assert config["generation_gate"]["allowed"] is False
 
 
