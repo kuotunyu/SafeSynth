@@ -102,6 +102,12 @@ from scripts.record_supervised_labeler_v15_gt_review import (
 from scripts.record_supervised_labeler_v15_model_review import (
     OUTPUT_PATH as V15_MODEL_HUMAN_REVIEW_PATH,
 )
+from scripts.record_supervised_labeler_v16_gt_review import (
+    AUDIT_PATH as V16_ADJUDICATED_AUDIT_PATH,
+)
+from scripts.record_supervised_labeler_v16_gt_review import (
+    OWNER_REVIEW_PATH as V16_GT_OWNER_REVIEW_PATH,
+)
 from scripts.render_supervised_labeler_review import split_review_sheet
 from scripts.render_supervised_labeler_review_separated import (
     _draw_model_boxes,
@@ -2399,7 +2405,9 @@ def test_v16_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
     canonical_evidence = dict(evidence)
     evidence_sha = canonical_evidence.pop("evidence_sha256")
 
-    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert config["status"] == (
+        "gt_only_primary_adjudicated_one_image_quarantined"
+    )
     assert intervention["status"] == (
         "preregistered_before_v16_pool_pixels_or_training"
     )
@@ -2465,6 +2473,80 @@ def test_v16_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v16_gt_adjudication_quarantines_only_tiny_edge_fragment() -> None:
+    config = yaml.safe_load(V16_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    review = json.loads(
+        V16_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    audit = json.loads(
+        V16_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_audit = dict(audit)
+    audit_sha = canonical_audit.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert canonical_mapping_sha256(canonical_audit) == audit_sha
+    assert review["status"] == (
+        "v16_gt_only_primary_adjudicated_one_quarantine"
+    )
+    assert review["categories"] == {
+        "ambiguous_cells": [1],
+        "dataset_gt_false_positive_cells": [],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [],
+        "uncertain_cells": [],
+    }
+    problem = review["decisions"][0]
+    assert (
+        int(problem["cell"]),
+        int(problem["image_id"]),
+        int(problem["group_id"]),
+        problem["decision"],
+    ) == (1, 2117, 808, "AMBIGUOUS")
+    assert review["pass_images"] == 63
+    assert review["sealed_reserve_pixels_read"] == 0
+    assert review["v16_training_started"] is False
+
+    assert audit["status"] == (
+        "v16_adjudicated_audit_frozen_before_training"
+    )
+    assert audit["selected_images"] == 48
+    assert audit["valid_primary_surplus_images"] == 15
+    assert audit["quarantined_primary_images"] == 1
+    assert audit["sealed_reserve_images"] == 32
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert [
+        (
+            int(row["primary_cell"]),
+            int(row["image_id"]),
+            int(row["group_id"]),
+            row["decision"],
+        )
+        for row in audit["quarantined_primary_cases"]
+    ] == [(1, 2117, 808, "AMBIGUOUS")]
+    assert len(audit["source_group_ids_reserved_from_training"]) == 96
+    assert hashlib.sha256(
+        V16_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == config["owner_adjudication_outcome"][
+        "owner_review_file_sha256"
+    ]
+    assert hashlib.sha256(
+        V16_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == config["owner_adjudication_outcome"][
+        "adjudicated_audit_file_sha256"
+    ]
     assert config["generation_gate"]["allowed"] is False
 
 

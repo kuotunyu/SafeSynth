@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v16_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_one_image_quarantined"
 source_split: "Train"
 split_seed: 20260731
 
@@ -190,9 +190,35 @@ render_outcome:
       path: "reports/figures/supervised_labeler_v16_gt_review/page_04.png"
       sha256: "aa13802d99b20b441ca9bd1dfd492d9040136779658f7bb140aae094a350b154"
 
+owner_adjudication_outcome:
+  status: "approved_with_one_complete_image_quarantine"
+  owner_review_path: "reports/supervised_labeler_v16_gt_owner_review.json"
+  owner_review_file_sha256: "800c2651b7dd7dc2130bfa2bdb03c6ebdd515a8c94c5614affaceb5849649a98"
+  owner_review_sha256: "0384b578c76963e63b068e33335705b482f0c551bd71395026c2b692e9312d5c"
+  adjudicated_audit_path: "splits/supervised_labeler_v16_adjudicated_audit.json"
+  adjudicated_audit_file_sha256: "ac083f40cba2137dfbb9d84bbfabe45bcf0cb8af49b5297e38e0326e71077a4a"
+  adjudicated_audit_sha256: "c35e51af638449d459c621168a4f4f2d53924d8b527f61716610b03508b49fb0"
+  passed_primary_images: 63
+  quarantined_primary_cells: [1]
+  quarantined_image_ids: [2117]
+  quarantined_group_ids: [808]
+  selected_independent_audit_images: 48
+  valid_primary_surplus_images: 15
+  sealed_reserve_images_opened: 0
+  sealed_reserve_pixels_read: 0
+  v16_training_started: false
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  note: >-
+    Complete image 01 is quarantined because its far-left edge annotation
+    covers only a very narrow, incomplete fragment that does not require a
+    meaningful worn-helmeted-head box. All other 63 primary cells passed.
+
 generation_gate:
   allowed: false
   reason: >-
-    v16 is preregistered only. Fresh GT adjudication, split freeze, CPU
-    preflight, GPU smoke, base-only training, independent numeric audit, and a
-    separate zero-problem owner model review are all required.
+    Fresh GT adjudication passed with cell 01 quarantined. The split is frozen
+    and no sealed-reserve pixels were opened. CPU preflight, GPU smoke,
+    base-only training, independent numeric audit, and a separate zero-problem
+    owner model review are still required.
