@@ -284,6 +284,12 @@ V18_PREFLIGHT_PATH = (
 V18_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v18_smoke.json"
 )
+V18_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v18_training.json"
+)
+V18_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v18_audit_evidence.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3156,6 +3162,50 @@ def test_v18_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert report["untouched_audit_images_read"] == 0
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
+
+
+def test_v18_numeric_audit_passes_frozen_gates_once() -> None:
+    config = load_supervised_labeler_config(V18_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report = json.loads(
+        V18_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V18_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V18_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert hashlib.sha256(
+        V18_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["audit_evidence_file_sha256"]
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["best_calibration"]["epoch"] == 5
+    assert report["best_calibration"]["threshold"] == 0.028
+    assert report["best_calibration"]["precision"] >= 0.86
+    assert report["audit_metrics"] == {
+        "f1": 0.926829268292683,
+        "false_negatives": 8,
+        "false_positives": 13,
+        "median_matched_iou": 0.8397849157216036,
+        "precision": 0.910958904109589,
+        "recall": 0.9432624113475178,
+        "true_positives": 133,
+    }
+    assert all(report["checks"].values())
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert evidence["status"] == "frozen_one_shot_audit_review_evidence"
+    assert len(evidence["cases"]) == 48
+    assert evidence["score_threshold"] == 0.028
+    assert report["postprocessing"]["max_outside_fraction"] == 0.10
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
 
 
 def test_v17_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:

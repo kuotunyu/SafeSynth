@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v18"
-status: "gpu_smoke_passed_formal_training_ready"
+status: "numeric_audit_passed_owner_model_review_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260802
 training_seed: 20260809
@@ -308,9 +308,52 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v18_training.json"
+  report_file_sha256: >-
+    f135d42e8c23780164c81e60996f0c61f54fde48de23ab5d99cf4bb0f67e78fa
+  markdown_path: "reports/supervised_labeler_v18_training.md"
+  markdown_file_sha256: >-
+    2f30e5ed71a2e6dcc7c44b92bcd2801a5dbff49849798165464459879eacf1f8
+  split_manifest_sha256: >-
+    530f1ab435118e2a6d052dfb9b430402301cfe73f5307cb0a8bcb67562eea398
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v18_train20260809_split20260802\best
+  checkpoint_sha256: >-
+    20629e557613d0c766a68c1a8351cd5b92714095c6e0c9e1ce1d5f53fe6de57e
+  checkpoint_epoch: 5
+  score_threshold: 0.028
+  elapsed_minutes: 21.548326476415
+  audit_images: 48
+  true_positives: 133
+  false_positives: 13
+  false_negatives: 8
+  precision: 0.910958904109589
+  recall: 0.9432624113475178
+  f1: 0.926829268292683
+  median_matched_iou: 0.8397849157216036
+  checks:
+    audit_precision: true
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v18_audit_evidence.json"
+  audit_evidence_file_sha256: >-
+    c11db84fea8a18784b1fd87428536f661b2f275ff6cb665cfe50b5f7b053a9a1
+  audit_evidence_sha256: >-
+    c11db84fea8a18784b1fd87428536f661b2f275ff6cb665cfe50b5f7b053a9a1
+  combined_figure_path: "reports/figures/supervised_labeler_v18_audit.png"
+  combined_figure_file_sha256: >-
+    633e2f9dcff4db29bdf63efb3db8aa34d3122df7fd75aa0db4369d9c4f90a903
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    The v18 intervention and independent audit are frozen. Split freeze, CPU
-    preflight, GPU smoke, base-only training, numeric audit, and a separate
-    zero-problem owner model review are still required.
+    v18 GT adjudication, split freeze, CPU preflight, GPU smoke, base-only
+    training, and the one-shot independent numeric audit passed. A separate
+    zero-problem owner visual review of the frozen 48-image model evidence is
+    still required before generation may open.
