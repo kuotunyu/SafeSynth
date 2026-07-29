@@ -20,7 +20,7 @@ protocol:
   uncertain_policy: "quarantine_complete_image"
 
 independence_boundary:
-  prior_revealed_split_versions: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+  prior_revealed_split_versions: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13]
   exclude_pool_paths:
     - "splits/supervised_labeler_v12_gt_pool.json"
     - "splits/supervised_labeler_v13_gt_pool.json"
