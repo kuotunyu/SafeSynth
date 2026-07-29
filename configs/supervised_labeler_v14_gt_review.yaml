@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v14_gt_review"
-status: "pool_frozen_before_pixel_review_or_training"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260729
 
@@ -155,3 +155,31 @@ freeze_outcome:
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
+
+render_outcome:
+  status: "v14_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v14_gt_review.json"
+  evidence_file_sha256: "d31979d0d3cf8fdf95a815bc557c1441a209c2a2b441ec60f01b6c5018402b61"
+  evidence_sha256: "393422a29e4bd7ae440be00d6874233aed2266fa188fdba874f72b5d611cc731"
+  primary_images_read: 64
+  primary_images_normalized: 62
+  sealed_reserve_pixels_read: 0
+  model_boxes_present: false
+  model_inference_run: false
+  v14_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+  pages:
+    - path: "reports/figures/supervised_labeler_v14_gt_review/page_01.png"
+      sha256: "d1eae98a6122734d076dc7ab18ea632b10bd372dc89dbb524037a708e70f5508"
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v14_gt_review/page_02.png"
+      sha256: "8a6ef591872665d2a87ee6b4c23b9cfbc9fabaecb21f262310bc0098ecf72f66"
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v14_gt_review/page_03.png"
+      sha256: "498c86baf302fbd4e988796e0388f2ebd16aa9eb71823a0f975f947f68aab438"
+      cells: [33, 48]
+    - path: "reports/figures/supervised_labeler_v14_gt_review/page_04.png"
+      sha256: "167d0d804228c872808357d248f1589445c82b14f3e5cd2b2917f364aa2184ae"
+      cells: [49, 64]

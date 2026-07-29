@@ -36,6 +36,9 @@ from scripts.prepare_supervised_labeler_v14_gt_review import (
     CONFIG_PATH as V14_GT_CONFIG_PATH,
 )
 from scripts.prepare_supervised_labeler_v14_gt_review import (
+    EVIDENCE_PATH as V14_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v14_gt_review import (
     POOL_PATH as V14_GT_POOL_PATH,
 )
 from scripts.record_supervised_labeler_v6_review import (
@@ -1507,6 +1510,38 @@ def test_v14_gt_pool_is_frozen_before_pixels_or_training() -> None:
         "pool_file_sha256"
     ]
     assert outcome["pool_manifest_sha256"] == embedded_sha
+
+
+def test_v14_gt_pages_contain_only_green_gt_and_keep_reserve_sealed() -> None:
+    config = yaml.safe_load(V14_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    evidence = json.loads(V14_GT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert evidence["status"] == (
+        "v14_gt_only_primary_review_rendered_before_training"
+    )
+    assert evidence["review_stage"] == "gt_only"
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["v14_training_started"] is False
+    assert evidence["primary_images_read"] == 64
+    assert len(evidence["cases"]) == 64
+    assert evidence["sealed_reserve_images"] == 32
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert evidence["whole_image_generation_run"] is False
+    assert len(evidence["pages"]) == 4
+    for page in evidence["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+    outcome = config["render_outcome"]
+    assert hashlib.sha256(
+        V14_GT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["evidence_file_sha256"]
+    assert outcome["evidence_sha256"] == embedded_sha
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
