@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v19"
-status: "gpu_smoke_passed_training_ready"
+status: "numeric_audit_passed_model_review_render_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260803
 training_seed: 20260809
@@ -316,9 +316,51 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_passed"
+  report_path: "reports/supervised_labeler_v19_training.json"
+  report_file_sha256: >-
+    68136e39419ddaf5d1fc88eacb9882fe0f45b3047583ce2508c4107c301dc165
+  markdown_path: "reports/supervised_labeler_v19_training.md"
+  markdown_file_sha256: >-
+    3d340e1c1f65981acb6c52197224770f64b947efc268ee5db4be8f62fb329fc4
+  split_manifest_sha256: >-
+    1cebdf094dfa5df1ce94305cc325c0eb1cd49071413bed09ce3235340099b264
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v19_train20260809_split20260803\best
+  checkpoint_sha256: >-
+    d8b61ad89ae7526bc486ad1eb0a7b63c6cce5bd319760e1292d347dc68ddbe0c
+  checkpoint_epoch: 4
+  score_threshold: 0.028
+  elapsed_minutes: 25.130933340390524
+  audit_images: 48
+  true_positives: 110
+  false_positives: 12
+  false_negatives: 14
+  precision: 0.9016393442622951
+  recall: 0.8870967741935484
+  f1: 0.8943089430894309
+  median_matched_iou: 0.8525134071565326
+  checks:
+    audit_precision: true
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v19_audit_evidence.json"
+  audit_evidence_file_sha256: >-
+    1855c7a8304b4067ff73c0d9b3d84551dbdb37355162106583bc179a89848982
+  audit_evidence_sha256: >-
+    1855c7a8304b4067ff73c0d9b3d84551dbdb37355162106583bc179a89848982
+  combined_figure_path: "reports/figures/supervised_labeler_v19_audit.png"
+  combined_figure_file_sha256: >-
+    44d7334b06413754f4ffc736fbbe946aef2d484f878899d2a8cda9bbb28cf12d
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v19 GT adjudication, leakage-free split, and CPU preflight passed. GPU
-    smoke also passed. Base-only training, one-shot independent numeric audit,
-    and a zero-problem owner model review are still required.
+    v19 GT adjudication, leakage-free split, CPU preflight, GPU smoke,
+    base-only training, and the one-shot independent numeric audit passed. A
+    frozen zero-problem owner model review is still required before generation.
