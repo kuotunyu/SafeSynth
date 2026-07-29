@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v19_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_one_image_quarantined"
 source_split: "Train"
 split_seed: 20260803
 
@@ -279,11 +279,37 @@ render_outcome:
       sha256: >-
         a2366a171203623b52114015d38546986e240b296d345a2fc6a474df53985434
 
+owner_adjudication_outcome:
+  status: "v19_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v19_gt_owner_review.json"
+  owner_review_file_sha256: >-
+    ec90316e687d40b231bd785e337d5f29f6c718fb82f89771fa029fd1aea3a938
+  owner_review_sha256: >-
+    e919dcb2a1747e9c9ce11b6f9fd67ed162ebd6845a9dbfe6f11eeef2b6bac7cf
+  adjudicated_audit_path: "splits/supervised_labeler_v19_adjudicated_audit.json"
+  adjudicated_audit_file_sha256: >-
+    9eb1a81f99bd8940d8316a32c9d89840fe2a885c8ddb1227505a6d8e63c31a41
+  adjudicated_audit_sha256: >-
+    f553370ced3303a64523da6729a33fb5cfb73382c274069f3945bdd395465b26
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-30"
+  reviewed_images: 64
+  passed_images: 63
+  quarantined_cells: [36]
+  quarantined_image_ids: [4901]
+  quarantined_group_ids: [4712]
+  adjudicated_audit_images: 48
+  valid_primary_surplus_images: 15
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  v19_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    The v19 intervention and fresh GT-only pool are frozen before any pool
-    pixels or v19 training were opened. The 64 primary GT-only cases are now
-    rendered with no model boxes and await owner adjudication. Split freeze,
+    Fresh v19 GT adjudication passed with image 36 quarantined as a tiny
+    ambiguous edge fragment and a clean 48-image audit frozen. Split freeze,
     CPU preflight, GPU smoke, base-only training, independent numeric audit,
-    and a separate zero-problem owner model review are all still required.
+    and a separate zero-problem owner model review are still required.
