@@ -159,6 +159,9 @@ V15_SPLIT_PATH = (
 V15_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v15_preflight.json"
 )
+V15_SMOKE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v15_smoke.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -2175,6 +2178,28 @@ def test_v15_cpu_preflight_verifies_replay_and_keeps_audit_pixels_sealed() -> No
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
     assert report["gpu_work_run"] is False
+
+
+def test_v15_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    outcome = config["gpu_smoke_outcome"]
+    report = json.loads(V15_SMOKE_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V15_SMOKE_PATH.read_bytes()).hexdigest() == outcome[
+        "report_sha256"
+    ]
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["helmet_boxes"] == 32
+    assert report["loss"] == pytest.approx(287.3628234863281)
+    assert report["peak_vram_gib"] == pytest.approx(9.315727710723877)
+    assert outcome["initialization"] == "pinned_base_checkpoint_only"
+    assert outcome["v15_training_started"] is False
+    assert report["untouched_audit_images_read"] == 0
+    assert outcome["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert outcome["whole_image_generation_run"] is False
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:

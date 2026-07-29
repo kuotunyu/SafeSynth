@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v15"
-status: "cpu_preflight_passed_gpu_smoke_waiting"
+status: "gpu_smoke_passed_formal_training_ready"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260730
 training_seed: 20260809
@@ -203,9 +203,25 @@ cpu_preflight_outcome:
   gpu_work_run: false
   whole_image_generation_run: false
 
+gpu_smoke_outcome:
+  status: "smoke_passed"
+  report_path: "reports/supervised_labeler_v15_smoke.json"
+  report_sha256: "35598983aba1d51657b6c2b75532187a2354c9c8b4180570b5303fc81174a361"
+  batch_size: 8
+  helmet_boxes: 32
+  loss: 287.3628234863281
+  peak_vram_gib: 9.315727710723877
+  initialization: "pinned_base_checkpoint_only"
+  v15_training_started: false
+  untouched_audit_images_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v15 GT adjudication passed with three quarantines. Split freeze, CPU
-    preflight, GPU smoke, base-only training, independent numeric audit, and
-    zero-problem owner model review remain incomplete.
+    preflight, and GPU smoke passed. Base-only training, independent numeric
+    audit, and zero-problem owner model review remain incomplete.
