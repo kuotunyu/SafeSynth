@@ -290,6 +290,11 @@ V18_TRAINING_REPORT_PATH = (
 V18_AUDIT_EVIDENCE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v18_audit_evidence.json"
 )
+V18_MODEL_REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v18_model_review_manifest.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3206,6 +3211,44 @@ def test_v18_numeric_audit_passes_frozen_gates_once() -> None:
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
     assert report["whole_image_generation_run"] is False
+
+
+def test_v18_model_review_pages_are_frozen_without_new_inference() -> None:
+    config = load_supervised_labeler_config(V18_CONFIG_PATH)
+    registration = config["model_review_registration"]
+    manifest = json.loads(
+        V18_MODEL_REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(manifest)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert hashlib.sha256(
+        V18_MODEL_REVIEW_MANIFEST_PATH.read_bytes()
+    ).hexdigest() == registration["manifest_file_sha256"]
+    assert manifest["status"] == (
+        "supervised_labeler_v18_model_review_pages_frozen"
+    )
+    assert manifest["numeric_checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert manifest["reviewed_images"] == 48
+    assert manifest["panel_order"] == [
+        "dataset_gt_green",
+        "model_magenta",
+        "overlay",
+    ]
+    assert manifest["render_model_inference_run"] is False
+    assert manifest["source_model_inference_images"] == 48
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+    for page in manifest["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
 
 
 def test_v17_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
