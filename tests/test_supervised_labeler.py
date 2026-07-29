@@ -162,6 +162,17 @@ V15_PREFLIGHT_PATH = (
 V15_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v15_smoke.json"
 )
+V15_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v15_training.json"
+)
+V15_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v15_audit_evidence.json"
+)
+V15_MODEL_REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v15_model_review_manifest.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -2200,6 +2211,98 @@ def test_v15_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
     assert outcome["whole_image_generation_run"] is False
+
+
+def test_v15_numeric_audit_passes_frozen_gates_once() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report = json.loads(
+        V15_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V15_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V15_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_sha256"]
+    assert hashlib.sha256(
+        V15_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["audit_evidence_sha256"]
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["best_calibration"] == {
+        "epoch": 3,
+        "f1": pytest.approx(0.8957831325301205),
+        "false_negatives": 196,
+        "false_positives": 150,
+        "median_matched_iou": pytest.approx(0.8442811318646968),
+        "precision": pytest.approx(0.9083689676237019),
+        "recall": pytest.approx(0.8835412953060012),
+        "threshold": 0.035,
+        "true_positives": 1487,
+    }
+    assert report["audit_metrics"] == {
+        "f1": pytest.approx(0.897196261682243),
+        "false_negatives": 8,
+        "false_positives": 14,
+        "median_matched_iou": pytest.approx(0.8465128532580946),
+        "precision": pytest.approx(0.8727272727272727),
+        "recall": pytest.approx(0.9230769230769231),
+        "true_positives": 96,
+    }
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert len(evidence["cases"]) == 48
+    assert evidence["score_threshold"] == 0.035
+    assert evidence["split_manifest_sha256"] == (
+        config["split_manifest_sha256"]
+    )
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert outcome["sealed_reserve_pixels_read"] == 0
+
+
+def test_v15_model_review_pages_are_frozen_without_new_inference() -> None:
+    config = load_supervised_labeler_config(V15_CONFIG_PATH)
+    registration = config["model_review_registration"]
+    manifest = json.loads(
+        V15_MODEL_REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(manifest)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert hashlib.sha256(
+        V15_MODEL_REVIEW_MANIFEST_PATH.read_bytes()
+    ).hexdigest() == registration["manifest_file_sha256"]
+    assert manifest["status"] == (
+        "supervised_labeler_v15_model_review_pages_frozen"
+    )
+    assert manifest["numeric_checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert manifest["reviewed_images"] == 48
+    assert manifest["panel_order"] == [
+        "dataset_gt_green",
+        "model_magenta",
+        "overlay",
+    ]
+    assert manifest["render_model_inference_run"] is False
+    assert manifest["source_model_inference_images"] == 48
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
+    for page in manifest["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
 
 
 def test_v10_cpu_normalization_preflight_keeps_new_audit_sealed() -> None:
