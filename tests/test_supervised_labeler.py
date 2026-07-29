@@ -89,6 +89,9 @@ from scripts.prepare_supervised_labeler_v19_gt_review import (
 from scripts.prepare_supervised_labeler_v19_gt_review import (
     POOL_PATH as V19_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v20_gt_review import (
+    CONFIG_PATH as V20_GT_CONFIG_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -2929,6 +2932,54 @@ def test_v19_intervention_is_preregistered_before_pool_pixels() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v20_intervention_is_preregistered_before_pool_pixels() -> None:
+    config = yaml.safe_load(V20_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v20_intervention"]
+    changes = intervention["model_facing_changes"]
+    evidence = intervention["revealed_development_evidence"]
+
+    assert config["status"] == "preregistered_before_pool_freeze"
+    assert intervention["status"] == (
+        "preregistered_before_v20_pool_pixels_or_training"
+    )
+    assert evidence["numeric_audit_passed"] is True
+    assert evidence["owner_missed_cells"] == [10, 14, 23, 28, 48]
+    assert evidence["owner_missed_image_ids"] == [
+        3117,
+        4924,
+        3651,
+        118,
+        4452,
+    ]
+    assert evidence["owner_false_positive_cells"] == [22, 25]
+    assert evidence["owner_false_positive_image_ids"] == [2910, 1241]
+    assert evidence["reported_cells_false_negatives"] == 7
+    assert evidence["reported_cells_false_positives"] == 5
+    assert set(evidence["owner_missed_image_ids"]).issubset(
+        changes["owner_miss_replay_image_ids"]
+    )
+    assert set(evidence["owner_false_positive_image_ids"]).issubset(
+        changes["hard_negative_error_replay_image_ids"]
+    )
+    assert changes["owner_miss_replay_weight"] == 24.0
+    assert changes["hard_negative_error_replay_weight"] == 24.0
+    assert changes["min_calibration_precision"] == 0.90
+    assert changes["min_audit_precision"] == 0.85
+    assert changes["epochs"] == 6
+    assert hashlib.sha256(
+        (PROJECT_ROOT / evidence["training_report"]).read_bytes()
+    ).hexdigest() == evidence["training_report_file_sha256"]
+    assert hashlib.sha256(
+        (PROJECT_ROOT / evidence["owner_review"]).read_bytes()
+    ).hexdigest() == evidence["owner_review_file_sha256"]
+    assert hashlib.sha256(
+        (PROJECT_ROOT / evidence["diagnosis"]).read_bytes()
+    ).hexdigest() == evidence["diagnosis_file_sha256"]
+    assert config["independence_boundary"]["validation_images_read"] == 0
+    assert config["independence_boundary"]["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
 
 
