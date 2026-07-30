@@ -440,6 +440,17 @@ V22_PREFLIGHT_PATH = (
 V22_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v22_smoke.json"
 )
+V22_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v22_training.json"
+)
+V22_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v22_audit_evidence.json"
+)
+V22_MODEL_REVIEW_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v22_model_review_manifest.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3568,7 +3579,9 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     ]
     registration = config["independence_registration"]
 
-    assert config["status"] == "gpu_smoke_passed_formal_training_ready"
+    assert config["status"] == (
+        "numeric_audit_passed_owner_model_review_pending"
+    )
     assert config["split_manifest_sha256"] == (
         "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c"
     )
@@ -3726,6 +3739,91 @@ def test_v22_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert config["optimization"]["initialization"] == (
         "pinned_base_checkpoint_only"
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_numeric_audit_pass_is_frozen_but_generation_stays_closed() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report = json.loads(
+        V22_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence_sha = hashlib.sha256(
+        V22_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest()
+
+    assert hashlib.sha256(
+        V22_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["best_calibration"]["epoch"] == 4
+    assert report["best_calibration"]["threshold"] == pytest.approx(0.035)
+    assert report["audit_metrics"] == {
+        "f1": pytest.approx(0.9264069264069265),
+        "false_negatives": 7,
+        "false_positives": 10,
+        "median_matched_iou": pytest.approx(0.8462860511112155),
+        "precision": pytest.approx(0.9145299145299145),
+        "recall": pytest.approx(0.9385964912280702),
+        "true_positives": 107,
+    }
+    assert evidence_sha == report["audit_evidence_sha256"]
+    assert evidence_sha == outcome["audit_evidence_file_sha256"]
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_owner_review_pages_are_frozen_without_new_inference() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    registration = config["model_review_registration"]
+    manifest = json.loads(
+        V22_MODEL_REVIEW_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(manifest)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert hashlib.sha256(
+        V22_MODEL_REVIEW_MANIFEST_PATH.read_bytes()
+    ).hexdigest() == registration["manifest_file_sha256"]
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == registration["manifest_sha256"]
+    assert manifest["status"] == (
+        "supervised_labeler_v22_model_review_pages_frozen"
+    )
+    assert registration["owner_review_status"] == "pending_kuotunyu"
+    assert manifest["reviewed_images"] == 48
+    assert manifest["checkpoint_epoch"] == 4
+    assert manifest["score_threshold"] == pytest.approx(0.035)
+    assert manifest["panel_order"] == [
+        "dataset_gt_green",
+        "model_magenta",
+        "overlay",
+    ]
+    assert len(manifest["pages"]) == 3
+    for page, registered in zip(
+        manifest["pages"],
+        registration["pages"],
+        strict=True,
+    ):
+        page_path = PROJECT_ROOT / page["path"]
+        assert page == registered
+        assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
+            page["sha256"]
+        )
+    assert manifest["render_model_inference_run"] is False
+    assert manifest["source_model_inference_images"] == 48
+    assert manifest["validation_images_read"] == 0
+    assert manifest["test_images_read"] == 0
+    assert manifest["whole_image_generation_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
