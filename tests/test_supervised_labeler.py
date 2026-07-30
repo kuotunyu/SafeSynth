@@ -486,6 +486,12 @@ V23_PREFLIGHT_PATH = (
 V23_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v23_smoke.json"
 )
+V23_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v23_training.json"
+)
+V23_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v23_audit_evidence.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -4134,7 +4140,7 @@ def test_v23_model_intervention_is_frozen_before_split_or_training() -> None:
     v22_sampling = v22["sampling"]
     v23_sampling = v23["sampling"]
 
-    assert v23["status"] == "gpu_smoke_passed_formal_training_pending"
+    assert v23["status"] == "numeric_audit_passed_owner_model_review_pending"
     assert v23["split_manifest_sha256"] == (
         "0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4"
     )
@@ -4300,6 +4306,62 @@ def test_v23_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert report["untouched_audit_images_read"] == 0
     assert report["validation_images_read"] == 0
     assert report["test_images_read"] == 0
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_numeric_audit_passes_all_preregistered_gates() -> None:
+    config = load_supervised_labeler_config(V23_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report = json.loads(
+        V23_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V23_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V23_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert hashlib.sha256(
+        V23_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["audit_evidence_file_sha256"]
+    assert report["status"] == "supervised_labeler_audit_passed"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["best_calibration"] == {
+        "epoch": 3,
+        "f1": 0.8793316831683168,
+        "false_negatives": 262,
+        "false_positives": 128,
+        "median_matched_iou": 0.837200114590069,
+        "precision": 0.9173660426081343,
+        "recall": 0.8443256090314913,
+        "threshold": 0.035,
+        "true_positives": 1421,
+    }
+    assert report["audit_metrics"] == {
+        "f1": 0.8504672897196263,
+        "false_negatives": 19,
+        "false_positives": 13,
+        "median_matched_iou": 0.8303336656591646,
+        "precision": 0.875,
+        "recall": 0.8272727272727273,
+        "true_positives": 91,
+    }
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": True,
+    }
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert evidence["status"] == "frozen_one_shot_audit_review_evidence"
+    assert len(evidence["cases"]) == 48
+    assert evidence["score_threshold"] == 0.035
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 

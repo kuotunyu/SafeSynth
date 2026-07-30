@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: supervised_labeler_v23
-status: gpu_smoke_passed_formal_training_pending
+status: numeric_audit_passed_owner_model_review_pending
 architecture: rtdetr_v2_r101vd_helmet_only
 split_seed: 20260807
 training_seed: 20260809
@@ -339,8 +339,41 @@ gpu_smoke_outcome:
   untouched_audit_images_read: 0
   validation_images_read: 0
   test_images_read: 0
+numeric_audit_outcome:
+  status: supervised_labeler_audit_passed
+  report_path: reports/supervised_labeler_v23_training.json
+  report_file_sha256: f1dd8e72498e190a504f6ac5bae853574f73b426f5e4e33908a3a07cdc067eec
+  markdown_path: reports/supervised_labeler_v23_training.md
+  markdown_file_sha256: 0c5c31c8ea19a2e69f8b9c3d0944640be3296665bafd5976879db6fc85b74266
+  split_manifest_sha256: 0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4
+  checkpoint_path: D:\sdg-data\02-safesynth\runs\supervised_labeler_v23_train20260809_split20260807\best
+  checkpoint_sha256: c01173bd843531c82b5fddee71efc659c2735de9f839ac383e43837c3e6051c6
+  checkpoint_epoch: 3
+  score_threshold: 0.035
+  elapsed_minutes: 35.5293469508489
+  audit_images: 48
+  true_positives: 91
+  false_positives: 13
+  false_negatives: 19
+  precision: 0.875
+  recall: 0.8272727272727273
+  f1: 0.8504672897196263
+  median_matched_iou: 0.8303336656591646
+  checks:
+    audit_precision: true
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: reports/supervised_labeler_v23_audit_evidence.json
+  audit_evidence_file_sha256: ab5d6c4c291f237fc1ffedbcfd71e7ce182f93aa5a021c61f1a3f6582f2afbf8
+  audit_evidence_sha256: ab5d6c4c291f237fc1ffedbcfd71e7ce182f93aa5a021c61f1a3f6582f2afbf8
+  combined_figure_path: reports/figures/supervised_labeler_v23_audit.png
+  combined_figure_file_sha256: 2a4c8842592f3a591b1434916021744f0d87ce14024152180723c67c22a8a1a2
+  untouched_audit_images_read: 48
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
 generation_gate:
   allowed: false
-  reason: The v23 five-image replay intervention and independent audit are frozen. A leakage-free
-    split, CPU preflight, GPU smoke, base-only formal training, numeric audit, and owner model
-    review are still required.
+  reason: The v23 numeric audit passed all preregistered gates. Owner review of the frozen
+    48-image model pages is still required, and approval requires zero reported problems.
