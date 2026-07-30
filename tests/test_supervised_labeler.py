@@ -437,6 +437,9 @@ V22_SPLIT_PATH = (
 V22_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v22_preflight.json"
 )
+V22_SMOKE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v22_smoke.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3565,7 +3568,7 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     ]
     registration = config["independence_registration"]
 
-    assert config["status"] == "gpu_smoke_ready"
+    assert config["status"] == "gpu_smoke_passed_formal_training_ready"
     assert config["split_manifest_sha256"] == (
         "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c"
     )
@@ -3701,6 +3704,28 @@ def test_v22_cpu_preflight_verifies_replay_and_keeps_audit_sealed() -> None:
     assert report["test_images_read"] == 0
     assert report["gpu_work_run"] is False
     assert report["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    registration = config["gpu_smoke_outcome"]
+    report = json.loads(V22_SMOKE_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V22_SMOKE_PATH.read_bytes()).hexdigest() == (
+        registration["report_file_sha256"]
+    )
+    assert report["status"] == "smoke_passed"
+    assert report["batch_size"] == 8
+    assert report["helmet_boxes"] == 28
+    assert report["loss"] == pytest.approx(331.95489501953125)
+    assert report["peak_vram_gib"] < 12.0
+    assert report["untouched_audit_images_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert config["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
     assert config["generation_gate"]["allowed"] is False
 
 

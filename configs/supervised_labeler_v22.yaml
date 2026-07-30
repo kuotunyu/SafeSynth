@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22"
-status: "gpu_smoke_ready"
+status: "gpu_smoke_passed_formal_training_ready"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260806
 training_seed: 20260809
@@ -345,8 +345,23 @@ cpu_preflight_outcome:
   gpu_work_run: false
   whole_image_generation_run: false
 
+gpu_smoke_outcome:
+  status: "smoke_passed"
+  report_path: "reports/supervised_labeler_v22_smoke.json"
+  report_file_sha256: >-
+    db330186bd755c39fb497deaa00d02c0a4cb746445caf1f950d3096e5bf48c75
+  batch_size: 8
+  helmet_boxes: 28
+  loss: 331.95489501953125
+  peak_vram_gib: 9.315727233886719
+  untouched_audit_images_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v22 model intervention, split, and CPU preflight passed. GPU smoke,
-    base-only training, and the independent audit are still required.
+    v22 model intervention, split, CPU preflight, and GPU smoke passed.
+    Base-only formal training and the independent audit are still required.
