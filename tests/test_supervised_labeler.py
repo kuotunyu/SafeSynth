@@ -3206,7 +3206,7 @@ def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
     changes = intervention["model_facing_changes"]
     evidence = intervention["revealed_development_evidence"]
 
-    assert config["status"] == "gt_only_pool_frozen_before_pixel_review"
+    assert config["status"] == "gt_only_primary_review_pending_owner"
     assert intervention["status"] == (
         "preregistered_before_v22_pool_pixels_or_training"
     )
@@ -3273,7 +3273,29 @@ def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
     assert hashlib.sha256(V22_GT_POOL_PATH.read_bytes()).hexdigest() == (
         config["freeze_outcome"]["pool_file_sha256"]
     )
-    assert not V22_GT_EVIDENCE_PATH.exists()
+    rendered = json.loads(V22_GT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    canonical_rendered = dict(rendered)
+    rendered_sha = canonical_rendered.pop("evidence_sha256")
+    assert canonical_mapping_sha256(canonical_rendered) == rendered_sha
+    assert rendered["status"] == (
+        "v22_gt_only_primary_review_rendered_before_training"
+    )
+    assert rendered["pool_manifest_sha256"] == pool_sha
+    assert rendered["primary_images_read"] == 64
+    assert rendered["primary_images_normalized"] == 63
+    assert rendered["sealed_reserve_pixels_read"] == 0
+    assert rendered["model_boxes_present"] is False
+    assert rendered["model_inference_run"] is False
+    assert rendered["v22_training_started"] is False
+    assert rendered["validation_images_read"] == 0
+    assert rendered["test_images_read"] == 0
+    assert hashlib.sha256(V22_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        config["render_outcome"]["evidence_file_sha256"]
+    )
+    for page in rendered["pages"]:
+        path = PROJECT_ROOT / page["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
     assert config["independence_boundary"]["validation_images_read"] == 0
     assert config["independence_boundary"]["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False

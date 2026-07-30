@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22_gt_review"
-status: "gt_only_pool_frozen_before_pixel_review"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260806
 
@@ -319,6 +319,33 @@ freeze_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+render_outcome:
+  status: "v22_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v22_gt_review.json"
+  evidence_file_sha256: >-
+    9a30c402a0820ca6ac101477c26bacd61f4e2074e6f4072275dc0b56c532cf72
+  evidence_sha256: >-
+    bb8f93862d0e0349824b72b92aeed1e8a524137c0fc125c78c5949bf7781346a
+  primary_images_read: 64
+  primary_images_normalized: 63
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v22_gt_review/page_01.png"
+      sha256: >-
+        3b66e9eaf783dbe1cea45122db26eba9c17f28d1f5f16792b50c9f74837f5d87
+    - path: "reports/figures/supervised_labeler_v22_gt_review/page_02.png"
+      sha256: >-
+        c139623c8400a0487d0859a6bfa7ee3319e35f94bb70501cb6096a2cb81ce04a
+    - path: "reports/figures/supervised_labeler_v22_gt_review/page_03.png"
+      sha256: >-
+        9145aa8c739874e212b0031cd780efa492dae2a0e2027dd9ab61b4fc7e8ffba3
+    - path: "reports/figures/supervised_labeler_v22_gt_review/page_04.png"
+      sha256: >-
+        4c767f43222046eb15ebab98ba549996c15fd1a18518b60beb9ad9709026e448
+
 gpu_schedule:
   smoke_estimate_minutes: [1, 3]
   formal_training_and_calibration_estimate_minutes: [28, 42]
@@ -328,6 +355,6 @@ gpu_schedule:
 generation_gate:
   allowed: false
   reason: >-
-    v22 intervention and the independent GT-only pool are frozen, but primary
-    pixels have not yet been rendered or reviewed. No v22 model work is
-    allowed yet.
+    v22 intervention and independent GT-only pool are frozen. The 64 primary
+    green-box cases are rendered and now require owner adjudication. No v22
+    model work is allowed until that review is recorded.
