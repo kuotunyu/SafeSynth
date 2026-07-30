@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: supervised_labeler_v23
-status: split_frozen_cpu_preflight_pending
+status: cpu_preflight_passed_gpu_smoke_waiting
 architecture: rtdetr_v2_r101vd_helmet_only
 split_seed: 20260807
 training_seed: 20260809
@@ -300,6 +300,31 @@ split_outcome:
   sealed_reserve_pixels_read: 0
   validation_images_read: 0
   test_images_read: 0
+  whole_image_generation_run: false
+cpu_preflight_outcome:
+  status: cpu_preflight_passed_gpu_smoke_waiting
+  report_path: reports/supervised_labeler_v23_preflight.json
+  report_file_sha256: c48559c3d0c2152362ca38e5b4b934d644d3356aad8739efc453b07d502d567b
+  markdown_path: reports/supervised_labeler_v23_preflight.md
+  markdown_file_sha256: 5b301eb9d740543e306b067f484fe99d287c6a389d23f876472bfe6a5f2724ab
+  training_images_read: 2193
+  training_images_normalized: 2179
+  training_invalid_boxes: 0
+  calibration_images_read: 621
+  calibration_images_normalized: 617
+  calibration_invalid_boxes: 0
+  replay_weights_verified: true
+  v22_miss_replay_weight: 40.0
+  v22_false_positive_replay_weight: 28.0
+  v23_reserved_groups_in_model_data: 0
+  v22_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  v22_revealed_audit_groups_in_training: 48
+  untouched_audit_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
   whole_image_generation_run: false
 generation_gate:
   allowed: false

@@ -480,6 +480,9 @@ V23_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v23.yaml"
 V23_SPLIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v23_split.json"
 )
+V23_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v23_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -4128,7 +4131,7 @@ def test_v23_model_intervention_is_frozen_before_split_or_training() -> None:
     v22_sampling = v22["sampling"]
     v23_sampling = v23["sampling"]
 
-    assert v23["status"] == "split_frozen_cpu_preflight_pending"
+    assert v23["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
     assert v23["split_manifest_sha256"] == (
         "0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4"
     )
@@ -4232,6 +4235,47 @@ def test_v23_split_replays_v22_errors_and_stays_independent() -> None:
     assert hashlib.sha256(V23_SPLIT_PATH.read_bytes()).hexdigest() == (
         config["split_outcome"]["split_file_sha256"]
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_cpu_preflight_verifies_replay_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V23_CONFIG_PATH)
+    registration = config["cpu_preflight_outcome"]
+    report = json.loads(V23_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(
+        V23_PREFLIGHT_PATH.read_bytes()
+    ).hexdigest() == registration["report_file_sha256"]
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["training"]["images_read"] == 2193
+    assert report["training"]["normalized_images"] == 2179
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["normalized_images"] == 617
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert set(report["error_replay_weights"].values()) <= {
+        12.0,
+        28.0,
+        40.0,
+    }
+    assert report["error_replay_weights"]["487"] == 40.0
+    assert report["error_replay_weights"]["93"] == 40.0
+    for image_id in (2969, 972, 3405):
+        assert report["error_replay_weights"][str(image_id)] == 28.0
+    assert report["calibration_min_precision"] == 0.90
+    assert report["audit_min_precision"] == 0.85
+    assert report["v23_reserved_groups_in_model_data"] == 0
+    assert report["v22_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["v22_revealed_audit_groups_in_training"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
