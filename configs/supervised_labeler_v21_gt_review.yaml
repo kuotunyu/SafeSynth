@@ -1,0 +1,290 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v21_gt_review"
+status: "preregistered_before_pool_freeze"
+source_split: "Train"
+split_seed: 20260805
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One green box per visible person wearing a safety hard hat. The box includes
+    the hard hat plus the wearer's head or visible part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare head,
+    or other helmet-like object receives no green box.
+  border_policy: >-
+    A partly visible helmeted head touching an image edge is positive only when
+    enough of the hard hat and wearer remain identifiable for a meaningful box.
+    Ambiguous edge fragments are not forced into the audit.
+  uncertain_policy: "quarantine_complete_image"
+
+independence_boundary:
+  prior_revealed_split_versions:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+  exclude_pool_paths:
+    - "splits/supervised_labeler_v12_gt_pool.json"
+    - "splits/supervised_labeler_v13_gt_pool.json"
+    - "splits/supervised_labeler_v14_gt_pool.json"
+    - "splits/supervised_labeler_v15_gt_pool.json"
+    - "splits/supervised_labeler_v16_gt_pool.json"
+    - "splits/supervised_labeler_v17_gt_pool.json"
+    - "splits/supervised_labeler_v18_gt_pool.json"
+    - "splits/supervised_labeler_v19_gt_pool.json"
+    - "splits/supervised_labeler_v20_gt_pool.json"
+  exclude_every_prior_primary_and_reserve_group: true
+  required_future_model_initialization: "pinned_base_checkpoint_only"
+  required_future_training_exclusion: >-
+    Every v21 primary and sealed-reserve source group must be excluded from
+    both v21 training and calibration before the pinned base checkpoint opens.
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 12
+    positive_area_q2: 12
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 16
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order.
+    Quarantine any DATASET_GT_DEFECT, AMBIGUOUS, or UNCERTAIN image. Use valid
+    primary surplus before opening a same-stratum sealed reserve.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stage:
+  name: "gt_only"
+  reviewer: "kuotunyu"
+  model_boxes_allowed: false
+  instruction: >-
+    Review green dataset boxes only. Report a cell if a worn helmeted head is
+    missing, a green box covers a non-worn object/background, multiple wearers
+    are merged into one box, localization is unusable, or either boxing choice
+    would be equally defensible.
+  categories:
+    - "PASS"
+    - "DATASET_GT_FALSE_POSITIVE"
+    - "DATASET_GT_MISS"
+    - "DATASET_GT_LOCALIZATION"
+    - "AMBIGUOUS"
+    - "UNCERTAIN"
+
+future_v21_intervention:
+  status: "preregistered_before_v21_pool_pixels_or_training"
+  initialization: "pinned_base_checkpoint_only"
+  revealed_development_evidence:
+    training_report: "reports/supervised_labeler_v20_training.json"
+    training_report_file_sha256: >-
+      415012415df1000c326d3551d60855cb87dd70543315f3b58b004f17052c4b62
+    audit_evidence: "reports/supervised_labeler_v20_audit_evidence.json"
+    audit_evidence_file_sha256: >-
+      222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a
+    diagnosis: >-
+      reports/supervised_labeler_v20_numeric_failure_diagnosis.json
+    diagnosis_file_sha256: >-
+      a8ffe3060370127dba1ab8ac23e410607952758fa974d9c76bcab89c989dd416
+    diagnosis_sha256: >-
+      1c611b00d5d66a61beca9f516987b13ec5e8ff38c16e179094fcc1b4d558598c
+    failed_gate: "numeric_audit_precision"
+    numeric_audit_passed: false
+    score_threshold: 0.021
+    audit_precision: 0.7583333333333333
+    audit_recall: 0.9285714285714286
+    audit_f1: 0.834862385321101
+    audit_median_matched_iou: 0.8285103903550002
+    true_positives: 91
+    false_positives: 29
+    false_negatives: 7
+    false_positive_type_counts:
+      empty_gt_false_positive: 9
+      localization_false_positive: 3
+      semantic_false_positive: 17
+    false_positive_cells: [34, 13, 9, 22, 39, 18, 8, 11, 20, 29, 46]
+    false_positive_image_ids:
+      - 1332
+      - 1699
+      - 1789
+      - 1841
+      - 2308
+      - 3089
+      - 3507
+      - 3833
+      - 4031
+      - 4352
+      - 4622
+    false_negative_cells: [41, 2, 11, 21, 23, 36]
+    false_negative_image_ids:
+      - 462
+      - 1666
+      - 2892
+      - 3926
+      - 4352
+      - 4582
+  model_facing_changes:
+    include_v20_audit_gt_as_revealed_training_development: true
+    empty_image_weight: 12.0
+    owner_miss_replay_image_ids:
+      - 118
+      - 462
+      - 857
+      - 1666
+      - 2892
+      - 3117
+      - 3651
+      - 3926
+      - 4187
+      - 4352
+      - 4452
+      - 4582
+      - 4924
+    owner_miss_replay_weight: 32.0
+    positive_error_replay_image_ids:
+      - 361
+      - 551
+      - 688
+      - 774
+      - 1661
+      - 2171
+      - 2534
+      - 3313
+      - 3475
+      - 3605
+      - 3734
+      - 4051
+      - 4151
+      - 4363
+      - 4437
+    positive_error_replay_weight: 12.0
+    hard_negative_error_replay_image_ids:
+      - 210
+      - 361
+      - 774
+      - 1241
+      - 1332
+      - 1547
+      - 1635
+      - 1699
+      - 1753
+      - 1789
+      - 1841
+      - 1873
+      - 2262
+      - 2308
+      - 2580
+      - 2732
+      - 2829
+      - 2904
+      - 2910
+      - 2941
+      - 3089
+      - 3428
+      - 3507
+      - 3833
+      - 3934
+      - 4026
+      - 4031
+      - 4086
+      - 4100
+      - 4151
+      - 4352
+      - 4565
+      - 4618
+      - 4622
+    hard_negative_error_replay_weight: 36.0
+    max_outside_fraction: 0.10
+    overlap_policy: "maximum_weight"
+    min_calibration_precision: 0.90
+    min_audit_precision: 0.85
+    epochs: 8
+  intervention_basis: >-
+    v20 failed its preregistered numeric precision gate with 29 false
+    positives. Frozen evidence shows 17 semantic false positives, nine
+    empty-GT false positives, three localization errors, and seven misses.
+    False positives are concentrated in cells 34 and 13 and in three empty-GT
+    cells. v21 therefore reveals the v20 audit GT for development, doubles the
+    empty-image weight, replays every v20 false-positive image at weight 36,
+    and replays every v20 miss image at weight 32. Training receives two
+    additional epochs. The threshold grid, geometry, architecture, and gates
+    remain fixed; only a fresh independent audit may decide acceptance.
+  held_constant:
+    architecture: "rtdetr_v2_r101vd_helmet_only"
+    training_seed: 20260809
+    positive_error_replay_weight: 12.0
+    close_helmet_pair_weight: 2.0
+    small_helmet_weight: 2.0
+    large_helmet_weight: 6.0
+    near_image_edge_helmet_weight: 4.0
+    max_relative_area: 0.70
+    max_relative_height: 0.90
+    min_aspect_ratio: 0.20
+    max_aspect_ratio: 4.0
+    max_outside_fraction: 0.10
+    match_iou: 0.50
+    calibration_min_precision: 0.90
+    audit_min_precision: 0.85
+    audit_min_recall: 0.70
+    audit_min_median_matched_iou: 0.60
+    calibration_threshold_grid: "v20"
+
+gpu_schedule:
+  smoke_estimate_minutes: [1, 3]
+  formal_training_and_calibration_estimate_minutes: [28, 42]
+  final_independent_audit_estimate_minutes: [1, 3]
+  recommended_contiguous_gpu_window_minutes: 50
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v21 intervention is preregistered, but the independent GT pool has not yet
+    been frozen or reviewed. No v21 model work is allowed yet.
