@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: supervised_labeler_v23
-status: cpu_preflight_passed_gpu_smoke_waiting
+status: gpu_smoke_passed_formal_training_pending
 architecture: rtdetr_v2_r101vd_helmet_only
 split_seed: 20260807
 training_seed: 20260809
@@ -326,6 +326,19 @@ cpu_preflight_outcome:
   test_images_read: 0
   gpu_work_run: false
   whole_image_generation_run: false
+gpu_smoke_outcome:
+  status: smoke_passed
+  report_path: reports/supervised_labeler_v23_smoke.json
+  report_file_sha256: db330186bd755c39fb497deaa00d02c0a4cb746445caf1f950d3096e5bf48c75
+  batch_size: 8
+  helmet_boxes: 28
+  loss: 331.95489501953125
+  peak_vram_gib: 9.315727233886719
+  initialization: pinned_base_checkpoint_only
+  v23_training_started: false
+  untouched_audit_images_read: 0
+  validation_images_read: 0
+  test_images_read: 0
 generation_gate:
   allowed: false
   reason: The v23 five-image replay intervention and independent audit are frozen. A leakage-free
