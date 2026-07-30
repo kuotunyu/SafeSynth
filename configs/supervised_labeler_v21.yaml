@@ -1,10 +1,11 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v21"
-status: "preregistered_split_pending"
+status: "split_frozen_cpu_preflight_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260805
 training_seed: 20260809
-split_manifest_sha256: "pending_split_freeze"
+split_manifest_sha256: >-
+  252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70
 
 model:
   repo_id: "PekingU/rtdetr_v2_r101vd"
@@ -264,9 +265,36 @@ independence_registration:
   validation_images_read: 0
   test_images_read: 0
 
+split_outcome:
+  status: "frozen_before_supervised_training"
+  split_path: "splits/supervised_labeler_v21_split.json"
+  split_file_sha256: >-
+    c0a11a4fd85331659373fbf6437e13e1f3383a56a46fdd075c7be08c24b854ac
+  split_manifest_sha256: >-
+    252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70
+  report_path: "reports/supervised_labeler_v21_split.md"
+  report_file_sha256: >-
+    b94ad45dc67d257d6227298b02c133e1790fc3cd8a0d50dc8244582666be1ec3
+  training_images: 2288
+  training_groups: 2210
+  training_helmet_annotations: 8685
+  calibration_images: 621
+  untouched_audit_images: 48
+  v21_reserved_groups: 96
+  v21_prior_training_groups_removed: 96
+  v20_revealed_audit_groups: 48
+  v20_nonselected_excluded_groups: 48
+  owner_miss_replay_images: 13
+  positive_error_replay_images: 15
+  hard_negative_error_replay_images: 34
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v21 GT adjudication and replay intervention are frozen. Leakage-free split,
-    CPU preflight, GPU smoke, base-only training, one-shot numeric audit, and a
-    zero-problem owner model review are still required.
+    v21 GT adjudication, replay intervention, and leakage-free split are
+    frozen. CPU preflight, GPU smoke, base-only training, one-shot numeric
+    audit, and a zero-problem owner model review are still required.

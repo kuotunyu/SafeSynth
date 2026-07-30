@@ -395,6 +395,9 @@ V20_NUMERIC_DIAGNOSIS_PATH = (
     / "supervised_labeler_v20_numeric_failure_diagnosis.json"
 )
 V21_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v21.yaml"
+V21_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v21_split.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3302,8 +3305,10 @@ def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
     sampling = config["sampling"]
     registration = config["independence_registration"]
 
-    assert config["status"] == "preregistered_split_pending"
-    assert config["split_manifest_sha256"] == "pending_split_freeze"
+    assert config["status"] == "split_frozen_cpu_preflight_pending"
+    assert config["split_manifest_sha256"] == (
+        "252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70"
+    )
     assert config["optimization"]["initialization"] == (
         "pinned_base_checkpoint_only"
     )
@@ -3343,6 +3348,67 @@ def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
     assert hashlib.sha256(
         V21_ADJUDICATED_AUDIT_PATH.read_bytes()
     ).hexdigest() == registration["audit_manifest_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v21_split_replays_v20_errors_and_stays_independent() -> None:
+    config = load_supervised_labeler_config(V21_CONFIG_PATH)
+    split = json.loads(V21_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == config["split_manifest_sha256"]
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["experiment_id"] == "supervised_labeler_v21"
+    assert split["training_images"] == 2288
+    assert split["training_groups"] == 2210
+    assert split["training_helmet_annotations"] == 8685
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert split["v21_reserved_groups"] == 96
+    assert split["v21_prior_training_groups_removed"] == 96
+    assert split["v20_revealed_audit_groups"] == 48
+    assert split["v20_nonselected_excluded_groups"] == 48
+    assert len(split["owner_miss_replay_image_ids"]) == 13
+    assert len(split["positive_error_replay_image_ids"]) == 15
+    assert len(split["hard_negative_error_replay_image_ids"]) == 34
+    assert {462, 1666, 2892, 3926, 4352, 4582}.issubset(
+        split["owner_miss_replay_image_ids"]
+    )
+    assert {
+        1332,
+        1699,
+        1789,
+        1841,
+        2308,
+        3089,
+        3507,
+        3833,
+        4031,
+        4352,
+        4622,
+    }.issubset(split["hard_negative_error_replay_image_ids"])
+    train_groups = set(split["training_group_ids"])
+    calibration_groups = set(split["calibration_group_ids"])
+    audit_groups = set(split["untouched_audit_group_ids"])
+    reserved_groups = set(split["v21_reserved_group_ids"])
+    assert not train_groups & calibration_groups
+    assert not train_groups & reserved_groups
+    assert not calibration_groups & reserved_groups
+    assert audit_groups <= reserved_groups
+    assert not set(split["v20_nonselected_excluded_group_ids"]) & (
+        train_groups | calibration_groups
+    )
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["v21_training_started"] is False
+    assert split["sealed_reserve_pixels_read"] == 0
+    assert split["validation_images_read"] == 0
+    assert split["test_images_read"] == 0
+    assert split["whole_image_generation_run"] is False
+    assert hashlib.sha256(V21_SPLIT_PATH.read_bytes()).hexdigest() == (
+        config["split_outcome"]["split_file_sha256"]
+    )
     assert config["generation_gate"]["allowed"] is False
 
 
