@@ -1,10 +1,11 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v20"
-status: "preregistered_split_pending"
+status: "split_frozen_cpu_preflight_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260804
 training_seed: 20260809
-split_manifest_sha256: "pending_split_freeze"
+split_manifest_sha256: >-
+  ea0d5ed78e1edacd43ecf991ca446cf0ab9db3ea87f1da12f35ed0a0ce15b37d
 
 model:
   repo_id: "PekingU/rtdetr_v2_r101vd"
@@ -243,9 +244,37 @@ independence_registration:
   validation_images_read: 0
   test_images_read: 0
 
+split_outcome:
+  status: "frozen_before_supervised_training"
+  path: "splits/supervised_labeler_v20_split.json"
+  file_sha256: >-
+    9931224a71f43a09afe6024a0123a04c0494402a27183d250ac8581fd9e00853
+  manifest_sha256: >-
+    ea0d5ed78e1edacd43ecf991ca446cf0ab9db3ea87f1da12f35ed0a0ce15b37d
+  report_path: "reports/supervised_labeler_v20_split.md"
+  report_file_sha256: >-
+    678c2612d946fd7688258add88a92170582a02ee6f06c280897b81285bfde012
+  training_images: 2342
+  training_groups: 2258
+  training_helmet_annotations: 8851
+  calibration_images: 621
+  independent_audit_images: 48
+  v20_reserved_groups_in_model_data: 0
+  v20_prior_training_groups_removed: 96
+  v19_revealed_audit_groups_in_training: 48
+  v19_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  owner_miss_replay_images: 7
+  positive_error_replay_images: 15
+  hard_negative_error_replay_images: 23
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  v20_training_started: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v20 GT adjudication and replay intervention are frozen. Leakage-free split,
-    CPU preflight, GPU smoke, base-only training, one-shot numeric audit, and a
-    zero-problem owner model review are still required.
+    v20 GT adjudication, replay intervention, and leakage-free split are
+    frozen. CPU preflight, GPU smoke, base-only training, one-shot numeric
+    audit, and a zero-problem owner model review are still required.

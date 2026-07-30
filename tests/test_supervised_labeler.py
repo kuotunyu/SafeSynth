@@ -358,6 +358,10 @@ V19_MODEL_REVIEW_MANIFEST_PATH = (
     / "reports"
     / "supervised_labeler_v19_model_review_manifest.json"
 )
+V20_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v20.yaml"
+V20_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v20_split.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3106,6 +3110,48 @@ def test_v20_gt_adjudication_quarantines_cells_16_and_53() -> None:
     ).hexdigest() == config["owner_adjudication_outcome"][
         "adjudicated_audit_file_sha256"
     ]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v20_split_replays_v19_errors_and_stays_independent() -> None:
+    config = load_supervised_labeler_config(V20_CONFIG_PATH)
+    split = json.loads(V20_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["training_images"] == 2342
+    assert split["training_groups"] == 2258
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert len(split["v20_reserved_group_ids"]) == 96
+    assert split["v20_prior_training_groups_removed"] == 96
+    assert split["v19_revealed_audit_groups"] == 48
+    assert split["v19_nonselected_excluded_groups"] == 48
+    assert {118, 3117, 3651, 4452, 4924}.issubset(
+        split["owner_miss_replay_image_ids"]
+    )
+    assert {1241, 2910}.issubset(
+        split["hard_negative_error_replay_image_ids"]
+    )
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["calibration_group_ids"]
+    )
+    assert set(split["training_group_ids"]).isdisjoint(
+        split["v20_reserved_group_ids"]
+    )
+    assert set(split["calibration_group_ids"]).isdisjoint(
+        split["v20_reserved_group_ids"]
+    )
+    assert set(split["v19_revealed_audit_group_ids"]).issubset(
+        split["training_group_ids"]
+    )
+    assert config["split_manifest_sha256"] == embedded_sha
+    assert hashlib.sha256(V20_SPLIT_PATH.read_bytes()).hexdigest() == config[
+        "split_outcome"
+    ]["file_sha256"]
     assert config["generation_gate"]["allowed"] is False
 
 
