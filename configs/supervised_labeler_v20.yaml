@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v20"
-status: "gpu_smoke_passed_training_ready"
+status: "numeric_audit_failed_precision"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260804
 training_seed: 20260809
@@ -327,9 +327,55 @@ gpu_smoke_outcome:
   test_images_read: 0
   whole_image_generation_run: false
 
+numeric_audit_outcome:
+  status: "supervised_labeler_audit_failed"
+  report_path: "reports/supervised_labeler_v20_training.json"
+  report_file_sha256: >-
+    415012415df1000c326d3551d60855cb87dd70543315f3b58b004f17052c4b62
+  markdown_path: "reports/supervised_labeler_v20_training.md"
+  markdown_file_sha256: >-
+    a6d477335ca52a546e861d93efe925c5b29a8c6f5a3c2acb90b2ce47df8c8198
+  split_manifest_sha256: >-
+    ea0d5ed78e1edacd43ecf991ca446cf0ab9db3ea87f1da12f35ed0a0ce15b37d
+  checkpoint_path: >-
+    D:\sdg-data\02-safesynth\runs\supervised_labeler_v20_train20260809_split20260804\best
+  checkpoint_sha256: >-
+    c8e6f743505e9bdc06f21f805396b0a8d636aad798578ce453a766e2a155a5dc
+  checkpoint_epoch: 6
+  score_threshold: 0.021
+  elapsed_minutes: 26.5866526166598
+  audit_images: 48
+  true_positives: 91
+  false_positives: 29
+  false_negatives: 7
+  precision: 0.7583333333333333
+  recall: 0.9285714285714286
+  f1: 0.834862385321101
+  median_matched_iou: 0.8285103903550002
+  checks:
+    audit_precision: false
+    audit_recall: true
+    audit_median_matched_iou: true
+  audit_evidence_path: "reports/supervised_labeler_v20_audit_evidence.json"
+  audit_evidence_file_sha256: >-
+    222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a
+  audit_evidence_sha256: >-
+    222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a
+  combined_figure_path: "reports/figures/supervised_labeler_v20_audit.png"
+  combined_figure_file_sha256: >-
+    36a3487731f5adf03e09f3a6679e8d6ca1e4115a6a5a6d50d63e1f1b1cb40613
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+  model_review_rendered: false
+  owner_model_review_requested: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v20 GT adjudication, replay intervention, and leakage-free split are
-    frozen; CPU preflight and GPU smoke passed. Base-only training, one-shot
-    numeric audit, and a zero-problem owner model review are still required.
+    v20 GT adjudication, split, preflight, smoke, and base-only training
+    completed, but the one-shot independent audit failed its preregistered
+    precision gate: 0.7583 < 0.85. No owner model review or generation is
+    allowed. A fresh preregistered intervention and independent audit are
+    required.
