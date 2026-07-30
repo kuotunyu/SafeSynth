@@ -3565,7 +3565,7 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     ]
     registration = config["independence_registration"]
 
-    assert config["status"] == "split_frozen_cpu_preflight_pending"
+    assert config["status"] == "gpu_smoke_ready"
     assert config["split_manifest_sha256"] == (
         "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c"
     )
@@ -3602,7 +3602,6 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     assert hashlib.sha256(
         V22_ADJUDICATED_AUDIT_PATH.read_bytes()
     ).hexdigest() == registration["audit_manifest_file_sha256"]
-    assert not V22_PREFLIGHT_PATH.exists()
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -3653,6 +3652,55 @@ def test_v22_split_replays_v21_errors_and_stays_independent() -> None:
     assert hashlib.sha256(V22_SPLIT_PATH.read_bytes()).hexdigest() == (
         config["split_outcome"]["split_file_sha256"]
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_cpu_preflight_verifies_replay_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    registration = config["cpu_preflight_outcome"]
+    report = json.loads(V22_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(
+        V22_PREFLIGHT_PATH.read_bytes()
+    ).hexdigest() == registration["report_file_sha256"]
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["training"]["images_read"] == 2242
+    assert report["training"]["normalized_images"] == 2228
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["normalized_images"] == 617
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert set(report["error_replay_weights"].values()) <= {
+        12.0,
+        28.0,
+        40.0,
+    }
+    assert all(
+        report["error_replay_weights"][str(image_id)] == 40.0
+        for image_id in config["sampling"]["owner_miss_replay_image_ids"]
+    )
+    owner_ids = set(config["sampling"]["owner_miss_replay_image_ids"])
+    assert all(
+        report["error_replay_weights"][str(image_id)] == 28.0
+        for image_id in (
+            set(config["sampling"]["hard_negative_error_replay_image_ids"])
+            - owner_ids
+        )
+    )
+    assert report["training_calibration_group_overlap"] == 0
+    assert report["v22_reserved_groups_in_model_data"] == 0
+    assert report["v21_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["v21_revealed_audit_groups_in_training"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
