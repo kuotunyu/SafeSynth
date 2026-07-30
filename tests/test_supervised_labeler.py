@@ -404,6 +404,12 @@ V21_PREFLIGHT_PATH = (
 V21_SMOKE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v21_smoke.json"
 )
+V21_TRAINING_REPORT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v21_training.json"
+)
+V21_AUDIT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v21_audit_evidence.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3311,7 +3317,7 @@ def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
     sampling = config["sampling"]
     registration = config["independence_registration"]
 
-    assert config["status"] == "gpu_smoke_passed_training_ready"
+    assert config["status"] == "numeric_audit_failed_recall"
     assert config["split_manifest_sha256"] == (
         "252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70"
     )
@@ -3473,6 +3479,56 @@ def test_v21_gpu_smoke_uses_base_only_and_keeps_audit_sealed() -> None:
     assert config["optimization"]["initialization"] == (
         "pinned_base_checkpoint_only"
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v21_numeric_audit_fails_recall_and_blocks_model_review() -> None:
+    config = load_supervised_labeler_config(V21_CONFIG_PATH)
+    outcome = config["numeric_audit_outcome"]
+    report = json.loads(
+        V21_TRAINING_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    evidence = json.loads(
+        V21_AUDIT_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V21_TRAINING_REPORT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert hashlib.sha256(
+        V21_AUDIT_EVIDENCE_PATH.read_bytes()
+    ).hexdigest() == outcome["audit_evidence_file_sha256"]
+    assert report["status"] == "supervised_labeler_audit_failed"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["best_calibration"]["epoch"] == 6
+    assert report["best_calibration"]["threshold"] == 0.04
+    assert report["best_calibration"]["precision"] >= 0.90
+    assert report["audit_metrics"] == {
+        "f1": 0.7567567567567568,
+        "false_negatives": 34,
+        "false_positives": 11,
+        "median_matched_iou": 0.8350628996469471,
+        "precision": 0.8641975308641975,
+        "recall": 0.6730769230769231,
+        "true_positives": 70,
+    }
+    assert report["checks"] == {
+        "audit_median_matched_iou": True,
+        "audit_precision": True,
+        "audit_recall": False,
+    }
+    assert report["checkpoint_sha256"] == outcome["checkpoint_sha256"]
+    assert evidence["status"] == "frozen_one_shot_audit_review_evidence"
+    assert len(evidence["cases"]) == 48
+    assert evidence["score_threshold"] == 0.04
+    assert report["untouched_audit_images_read"] == 48
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["whole_image_generation_run"] is False
+    assert outcome["model_review_rendered"] is False
+    assert outcome["owner_model_review_requested"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
