@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v21_gt_review"
-status: "preregistered_before_pool_freeze"
+status: "pool_frozen_before_pixel_review_or_training"
 source_split: "Train"
 split_seed: 20260805
 
@@ -283,8 +283,26 @@ gpu_schedule:
   final_independent_audit_estimate_minutes: [1, 3]
   recommended_contiguous_gpu_window_minutes: 50
 
+freeze_outcome:
+  status: "v21_gt_only_pool_frozen_before_pixel_review_or_training"
+  pool_path: "splits/supervised_labeler_v21_gt_pool.json"
+  pool_file_sha256: >-
+    ee968aa5a67928872808dae503e544ab48a0995045792e9f676208c017287427
+  manifest_sha256: >-
+    53b983b1bc49c8a825874068301cfe736b8b9b437e1589b6ad9d0631c435b6e9
+  excluded_group_count: 1488
+  primary_images: 64
+  sealed_reserve_images: 32
+  future_v21_training_exclusion_groups: 96
+  primary_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v21 intervention is preregistered, but the independent GT pool has not yet
-    been frozen or reviewed. No v21 model work is allowed yet.
+    v21 intervention and independent GT pool are frozen, but the 64 primary
+    GT-only cases have not been rendered or reviewed. No v21 model work is
+    allowed yet.
