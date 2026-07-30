@@ -3565,8 +3565,10 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     ]
     registration = config["independence_registration"]
 
-    assert config["status"] == "preregistered_before_split_freeze"
-    assert config["split_manifest_sha256"] == "pending_split_freeze"
+    assert config["status"] == "split_frozen_cpu_preflight_pending"
+    assert config["split_manifest_sha256"] == (
+        "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c"
+    )
     assert config["optimization"]["initialization"] == (
         "pinned_base_checkpoint_only"
     )
@@ -3600,8 +3602,57 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     assert hashlib.sha256(
         V22_ADJUDICATED_AUDIT_PATH.read_bytes()
     ).hexdigest() == registration["audit_manifest_file_sha256"]
-    assert not V22_SPLIT_PATH.exists()
     assert not V22_PREFLIGHT_PATH.exists()
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_split_replays_v21_errors_and_stays_independent() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    split = json.loads(V22_SPLIT_PATH.read_text(encoding="utf-8"))
+    canonical = dict(split)
+    embedded_sha = canonical.pop("manifest_sha256")
+
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == config["split_manifest_sha256"]
+    assert split["status"] == "frozen_before_supervised_training"
+    assert split["experiment_id"] == "supervised_labeler_v22"
+    assert split["initialization"] == "pinned_base_checkpoint_only"
+    assert split["training_images"] == 2242
+    assert split["training_groups"] == 2162
+    assert split["calibration_images"] == 621
+    assert split["untouched_audit_images"] == 48
+    assert split["v22_reserved_groups"] == 96
+    assert split["v22_prior_training_groups_removed"] == 96
+    assert split["v21_revealed_audit_groups"] == 48
+    assert split["v21_nonselected_excluded_groups"] == 48
+    assert len(split["owner_miss_replay_image_ids"]) == 26
+    assert len(split["positive_error_replay_image_ids"]) == 15
+    assert len(split["hard_negative_error_replay_image_ids"]) == 42
+    assert set(split["owner_miss_replay_image_ids"]) <= set(
+        split["training_image_ids"]
+    )
+    assert set(split["hard_negative_error_replay_image_ids"]) <= set(
+        split["training_image_ids"]
+    )
+    training_groups = set(split["training_group_ids"])
+    calibration_groups = set(split["calibration_group_ids"])
+    reserved_groups = set(split["v22_reserved_group_ids"])
+    nonselected_groups = set(
+        split["v21_nonselected_excluded_group_ids"]
+    )
+    revealed_groups = set(split["v21_revealed_audit_group_ids"])
+    assert not training_groups & calibration_groups
+    assert not (training_groups | calibration_groups) & reserved_groups
+    assert not (training_groups | calibration_groups) & nonselected_groups
+    assert revealed_groups <= training_groups
+    assert split["v22_training_started"] is False
+    assert split["sealed_reserve_pixels_read"] == 0
+    assert split["validation_images_read"] == 0
+    assert split["test_images_read"] == 0
+    assert split["whole_image_generation_run"] is False
+    assert hashlib.sha256(V22_SPLIT_PATH.read_bytes()).hexdigest() == (
+        config["split_outcome"]["split_file_sha256"]
+    )
     assert config["generation_gate"]["allowed"] is False
 
 

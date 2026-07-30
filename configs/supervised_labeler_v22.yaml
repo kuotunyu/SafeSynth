@@ -1,10 +1,11 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22"
-status: "preregistered_before_split_freeze"
+status: "split_frozen_cpu_preflight_pending"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260806
 training_seed: 20260809
-split_manifest_sha256: "pending_split_freeze"
+split_manifest_sha256: >-
+  f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c
 
 model:
   repo_id: "PekingU/rtdetr_v2_r101vd"
@@ -289,8 +290,36 @@ independence_registration:
   validation_images_read: 0
   test_images_read: 0
 
+split_outcome:
+  status: "frozen_before_supervised_training"
+  split_path: "splits/supervised_labeler_v22_split.json"
+  split_file_sha256: >-
+    191c4708a56e084ed5a4463fe7dff877d9d6ca48b8475cc3dc5a8a342e8d5fcf
+  split_manifest_sha256: >-
+    f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c
+  report_path: "reports/supervised_labeler_v22_split.md"
+  report_file_sha256: >-
+    56cdc89147be00dacf6d3e46a5280eb1c1a355c880abfb46a96a6071f6b3745e
+  training_images: 2242
+  training_groups: 2162
+  training_helmet_annotations: 8491
+  calibration_images: 621
+  untouched_audit_images: 48
+  v22_reserved_groups: 96
+  v22_prior_training_groups_removed: 96
+  v21_revealed_audit_groups: 48
+  v21_nonselected_excluded_groups: 48
+  owner_miss_replay_images: 26
+  positive_error_replay_images: 15
+  hard_negative_error_replay_images: 42
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
-    v22 model intervention is registered, but split freeze, CPU preflight, GPU
-    smoke, base-only training, and the independent audit are still required.
+    v22 model intervention and leakage-free split are frozen. CPU preflight,
+    GPU smoke, base-only training, and the independent audit are still
+    required.
