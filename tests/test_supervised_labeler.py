@@ -476,6 +476,7 @@ V23_GT_OWNER_REVIEW_PATH = (
 V23_ADJUDICATED_AUDIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v23_adjudicated_audit.json"
 )
+V23_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v23.yaml"
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -4115,6 +4116,63 @@ def test_v23_gt_adjudication_quarantines_cells_5_18_and_52() -> None:
     assert audit["validation_images_read"] == 0
     assert audit["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_model_intervention_is_frozen_before_split_or_training() -> None:
+    v22 = load_supervised_labeler_config(V22_CONFIG_PATH)
+    v23 = load_supervised_labeler_config(V23_CONFIG_PATH)
+    registration = v23["independence_registration"]
+    v22_sampling = v22["sampling"]
+    v23_sampling = v23["sampling"]
+
+    assert v23["status"] == "model_intervention_preregistered_split_pending"
+    assert v23["split_manifest_sha256"] == "pending_split_freeze"
+    assert v23["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
+    assert v23["optimization"] == v22["optimization"]
+    assert v23["postprocessing"] == v22["postprocessing"]
+    assert v23["calibration"] == v22["calibration"]
+    assert v23["audit_gate"] == v22["audit_gate"]
+    assert set(v23_sampling["owner_miss_replay_image_ids"]) == (
+        set(v22_sampling["owner_miss_replay_image_ids"]) | {487, 93}
+    )
+    assert set(v23_sampling["hard_negative_error_replay_image_ids"]) == (
+        set(v22_sampling["hard_negative_error_replay_image_ids"])
+        | {2969, 972, 3405}
+    )
+    for key in (
+        "empty_image_weight",
+        "small_helmet_weight",
+        "owner_miss_replay_weight",
+        "positive_error_replay_weight",
+        "hard_negative_error_replay_weight",
+        "close_helmet_pair_weight",
+        "large_helmet_weight",
+        "near_image_edge_helmet_weight",
+        "overlap_policy",
+    ):
+        assert v23_sampling[key] == v22_sampling[key]
+    assert {4052, 233, 2302}.issubset(
+        v23["data"]["quarantined_gt_defect_or_ambiguous_image_ids"]
+    )
+    assert v23["data"]["independent_audit_manifest"] == (
+        "splits/supervised_labeler_v23_adjudicated_audit.json"
+    )
+    assert registration["status"] == "frozen_before_v23_split_or_training"
+    assert registration["base_checkpoint_only"] is True
+    assert registration["v23_training_started"] is False
+    assert registration["audit_model_inference_run"] is False
+    assert hashlib.sha256(
+        V23_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == registration["gt_owner_review_file_sha256"]
+    assert hashlib.sha256(
+        V23_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == registration["audit_manifest_file_sha256"]
+    assert registration["sealed_reserve_pixels_read"] == 0
+    assert registration["validation_images_read"] == 0
+    assert registration["test_images_read"] == 0
+    assert v23["generation_gate"]["allowed"] is False
 
 
 def test_v21_split_replays_v20_errors_and_stays_independent() -> None:
