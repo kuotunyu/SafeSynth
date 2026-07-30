@@ -1,0 +1,258 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v23_gt_review"
+status: "gt_only_primary_review_pending_owner"
+source_split: "Train"
+split_seed: 20260807
+
+protocol:
+  path: "docs/human_review_protocol.md"
+  label_semantics: "class_direct_helmeted_head_region"
+  positive: >-
+    One green box per visible person wearing a safety hard hat. The box
+    includes the hard hat plus the wearer's head or visible part of the face.
+  negative: >-
+    An unworn or isolated hard hat, logo, background, ordinary face, bare
+    head, or other helmet-like object receives no green box.
+  border_policy: >-
+    A partly visible helmeted head touching an image edge is positive only
+    when enough of the hard hat and wearer remain identifiable for a
+    meaningful box. Ambiguous edge fragments are not forced into the audit.
+  uncertain_policy: "quarantine_complete_image"
+
+independence_boundary:
+  prior_revealed_split_versions:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    - 21
+    - 22
+  exclude_pool_paths:
+    - "splits/supervised_labeler_v12_gt_pool.json"
+    - "splits/supervised_labeler_v13_gt_pool.json"
+    - "splits/supervised_labeler_v14_gt_pool.json"
+    - "splits/supervised_labeler_v15_gt_pool.json"
+    - "splits/supervised_labeler_v16_gt_pool.json"
+    - "splits/supervised_labeler_v17_gt_pool.json"
+    - "splits/supervised_labeler_v18_gt_pool.json"
+    - "splits/supervised_labeler_v19_gt_pool.json"
+    - "splits/supervised_labeler_v20_gt_pool.json"
+    - "splits/supervised_labeler_v21_gt_pool.json"
+    - "splits/supervised_labeler_v22_gt_pool.json"
+  exclude_every_prior_primary_and_reserve_group: true
+  required_future_model_initialization: "pinned_base_checkpoint_only"
+  required_future_training_exclusion: >-
+    Every v23 primary and sealed-reserve source group must be excluded from
+    both v23 training and calibration before the pinned base checkpoint opens.
+  validation_images_read: 0
+  test_images_read: 0
+
+candidate_pool:
+  primary_images: 64
+  sealed_reserve_images: 32
+  primary_quotas:
+    positive_area_q1: 13
+    positive_area_q2: 13
+    positive_area_q3: 12
+    positive_area_q4: 12
+    dataset_gt_empty: 14
+  sealed_reserve_quotas:
+    positive_area_q1: 6
+    positive_area_q2: 6
+    positive_area_q3: 6
+    positive_area_q4: 6
+    dataset_gt_empty: 8
+  representative_policy: "one_deterministically_ranked_image_per_source_group"
+  positive_stratification: "quartiles_of_median_relative_helmet_gt_area"
+  empty_group_policy: "every_Train_image_in_group_has_zero_helmet_gt"
+  fresh_empty_capacity_adjustment: >-
+    Metadata-only pre-freeze counting found 22 never-revealed empty-GT source
+    groups after all v12-v22 exclusions. All 22 are reserved as 14 primary
+    plus 8 sealed reserve cases. The two displaced primary slots are assigned
+    to positive_area_q1 and positive_area_q2 before any v23 pixels are opened.
+
+final_audit_target:
+  images: 48
+  quotas:
+    positive_area_q1: 10
+    positive_area_q2: 10
+    positive_area_q3: 10
+    positive_area_q4: 10
+    dataset_gt_empty: 8
+  selection_policy: >-
+    Accept the first valid GT-only cases in each frozen stratum order.
+    Quarantine any DATASET_GT_DEFECT, AMBIGUOUS, or UNCERTAIN image. Use valid
+    primary surplus before opening a same-stratum sealed reserve.
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+review_stage:
+  name: "gt_only"
+  reviewer: "kuotunyu"
+  model_boxes_allowed: false
+  instruction: >-
+    Review green dataset boxes only. Report a cell if a worn helmeted head is
+    missing, a green box covers a non-worn object or background, multiple
+    wearers are merged into one box, localization is unusable, or either
+    boxing choice would be equally defensible.
+  categories:
+    - "PASS"
+    - "DATASET_GT_FALSE_POSITIVE"
+    - "DATASET_GT_MISS"
+    - "DATASET_GT_LOCALIZATION"
+    - "AMBIGUOUS"
+    - "UNCERTAIN"
+
+future_v23_intervention:
+  status: "preregistered_before_v23_pool_pixels_or_training"
+  initialization: "pinned_base_checkpoint_only"
+  revealed_development_evidence:
+    training_report: "reports/supervised_labeler_v22_training.json"
+    training_report_file_sha256: >-
+      daf6ca094a152e2246750081f4e775e50e5a77282e0c61526838217882ff7779
+    audit_evidence: "reports/supervised_labeler_v22_audit_evidence.json"
+    audit_evidence_file_sha256: >-
+      63bf91ce5621e262391dfac4a5ffc44238234e55668d72a1e3be71ccd1fa0721
+    owner_review: "reports/supervised_labeler_v22_model_human_review.json"
+    owner_review_file_sha256: >-
+      2453d3f8fe898904eda4b700daf2431fa08a12155cc1f000cd811f8d5951d499
+    owner_review_sha256: >-
+      d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee
+    diagnosis: "reports/supervised_labeler_v22_review_diagnosis.json"
+    diagnosis_file_sha256: >-
+      d9e64990569a0cec11f74954d9f299401b369a93ca0e3966d5fe3fb56da0c74f
+    diagnosis_sha256: >-
+      68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e
+    numeric_audit_passed: true
+    owner_visual_gate_passed: false
+    score_threshold: 0.035
+    audit_precision: 0.9145299145299145
+    audit_recall: 0.9385964912280702
+    audit_f1: 0.9264069264069265
+    audit_median_matched_iou: 0.8462860511112155
+    owner_false_positive_cells: [4, 28, 32]
+    owner_false_positive_image_ids: [2969, 972, 3405]
+    owner_missed_cells: [6, 34]
+    owner_missed_image_ids: [487, 93]
+    unworn_helmet_without_head_false_positive_cells: [32]
+  model_facing_changes:
+    include_v22_audit_gt_as_revealed_training_development: true
+    inherit_v22_sampling_and_replay_configuration: true
+    add_owner_miss_replay_image_ids: [487, 93]
+    owner_miss_replay_weight: 40.0
+    add_hard_negative_error_replay_image_ids: [2969, 972, 3405]
+    hard_negative_error_replay_weight: 28.0
+    overlap_policy: "maximum_weight"
+    min_calibration_precision: 0.90
+    min_audit_precision: 0.85
+    epochs: 8
+  intervention_basis: >-
+    v22 passed every preregistered numeric gate but failed the zero-problem
+    owner visual gate. The intervention adds only the two exact missed
+    positive images and three exact semantic false-positive images to the
+    corresponding replay sets. All global weights, thresholds, geometry,
+    architecture, and gates remain fixed so a fresh independent audit can
+    attribute any change to these five revealed examples.
+  held_constant:
+    architecture: "rtdetr_v2_r101vd_helmet_only"
+    training_seed: 20260809
+    empty_image_weight: 9.0
+    small_helmet_weight: 4.0
+    owner_miss_replay_weight: 40.0
+    positive_error_replay_weight: 12.0
+    hard_negative_error_replay_weight: 28.0
+    close_helmet_pair_weight: 2.0
+    large_helmet_weight: 6.0
+    near_image_edge_helmet_weight: 4.0
+    max_relative_area: 0.70
+    max_relative_height: 0.90
+    min_aspect_ratio: 0.20
+    max_aspect_ratio: 4.0
+    max_outside_fraction: 0.10
+    match_iou: 0.50
+    calibration_min_precision: 0.90
+    audit_min_precision: 0.85
+    audit_min_recall: 0.70
+    audit_min_median_matched_iou: 0.60
+    calibration_threshold_grid: "v22"
+
+freeze_outcome:
+  status: "v23_gt_only_pool_frozen_before_pixel_review_or_training"
+  pool_path: "splits/supervised_labeler_v23_gt_pool.json"
+  pool_file_sha256: >-
+    7da318794557c452f2ce40e63e893589c6591874276050acea34624699d80794
+  manifest_sha256: >-
+    2c53ed6d72b0f7f25e1e5fec730e2c7370561409e842fd4240c43e5056363b9d
+  excluded_group_count: 1680
+  primary_images: 64
+  sealed_reserve_images: 32
+  future_v23_training_exclusion_groups: 96
+  primary_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
+render_outcome:
+  status: "v23_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v23_gt_review.json"
+  evidence_file_sha256: >-
+    94ac7a9acee5f67e196d9d528042d8bfb4b268390d5bbd7fd41630902b868b18
+  evidence_sha256: >-
+    42843dc7ac2fe4b9936a1fd74b8d8b87ca926ab0d58fa1a8dca32591910c3431
+  primary_images_read: 64
+  primary_images_normalized: 64
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - path: "reports/figures/supervised_labeler_v23_gt_review/page_01.png"
+      sha256: >-
+        d69d47708cf3c97a2587d05c03ecb96f272681fe268983079bb24fe29a61ddc0
+      cells: [1, 16]
+    - path: "reports/figures/supervised_labeler_v23_gt_review/page_02.png"
+      sha256: >-
+        18bbf7e7f796fd25cc75ec0652df1da803040bf5a99a3f1e1a31f3adb1e03093
+      cells: [17, 32]
+    - path: "reports/figures/supervised_labeler_v23_gt_review/page_03.png"
+      sha256: >-
+        cc0786f45e90b642cb919e175c92e70336a6d1bffd0ae263ef3225fe711483bd
+      cells: [33, 48]
+    - path: "reports/figures/supervised_labeler_v23_gt_review/page_04.png"
+      sha256: >-
+        af8f3f11debd567086893641c58296479dbe9564b74865fe226cb8b19cd52650
+      cells: [49, 64]
+
+generation_gate:
+  allowed: false
+  reason: >-
+    The v23 intervention and independent GT-only pool are frozen, but the 64
+    rendered primary GT cases are awaiting kuotunyu's green-box review. No
+    v23 model training, inference, or whole-image generation is allowed.

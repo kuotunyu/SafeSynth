@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import pytest
@@ -460,6 +460,15 @@ V22_REVIEW_DIAGNOSIS_PATH = (
     PROJECT_ROOT
     / "reports"
     / "supervised_labeler_v22_review_diagnosis.json"
+)
+V23_GT_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "supervised_labeler_v23_gt_review.yaml"
+)
+V23_GT_POOL_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v23_gt_pool.json"
+)
+V23_GT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v23_gt_review.json"
 )
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
@@ -3904,6 +3913,138 @@ def test_v22_owner_rejection_diagnosis_uses_no_new_inference() -> None:
     assert diagnosis["validation_images_read"] == 0
     assert diagnosis["test_images_read"] == 0
     assert diagnosis["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_intervention_is_preregistered_from_v22_owner_errors() -> None:
+    config = yaml.safe_load(V23_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v23_intervention"]
+    evidence = intervention["revealed_development_evidence"]
+    changes = intervention["model_facing_changes"]
+    held = intervention["held_constant"]
+
+    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert intervention["status"] == (
+        "preregistered_before_v23_pool_pixels_or_training"
+    )
+    assert intervention["initialization"] == "pinned_base_checkpoint_only"
+    assert evidence["owner_false_positive_cells"] == [4, 28, 32]
+    assert evidence["owner_false_positive_image_ids"] == [2969, 972, 3405]
+    assert evidence["owner_missed_cells"] == [6, 34]
+    assert evidence["owner_missed_image_ids"] == [487, 93]
+    assert evidence[
+        "unworn_helmet_without_head_false_positive_cells"
+    ] == [32]
+    for path_key, sha_key in (
+        ("training_report", "training_report_file_sha256"),
+        ("audit_evidence", "audit_evidence_file_sha256"),
+        ("owner_review", "owner_review_file_sha256"),
+        ("diagnosis", "diagnosis_file_sha256"),
+    ):
+        path = PROJECT_ROOT / evidence[path_key]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == evidence[
+            sha_key
+        ]
+    assert changes["inherit_v22_sampling_and_replay_configuration"] is True
+    assert changes["add_owner_miss_replay_image_ids"] == [487, 93]
+    assert changes["add_hard_negative_error_replay_image_ids"] == [
+        2969,
+        972,
+        3405,
+    ]
+    assert changes["owner_miss_replay_weight"] == held[
+        "owner_miss_replay_weight"
+    ] == 40.0
+    assert changes["hard_negative_error_replay_weight"] == held[
+        "hard_negative_error_replay_weight"
+    ] == 28.0
+    assert held["empty_image_weight"] == 9.0
+    assert held["small_helmet_weight"] == 4.0
+    assert held["calibration_min_precision"] == 0.90
+    assert held["audit_min_precision"] == 0.85
+    assert held["audit_min_recall"] == 0.70
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_gt_pool_is_fresh_frozen_and_pixel_sealed() -> None:
+    config = yaml.safe_load(V23_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["freeze_outcome"]
+    pool = json.loads(V23_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical = dict(pool)
+    embedded_sha = canonical.pop("manifest_sha256")
+    primary_strata = Counter(
+        str(row["stratum"]) for row in pool["primary_cases"]
+    )
+    reserve_strata = Counter(
+        str(row["stratum"]) for row in pool["sealed_reserve_cases"]
+    )
+
+    assert hashlib.sha256(V23_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        outcome["pool_file_sha256"]
+    )
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == outcome["manifest_sha256"]
+    assert pool["status"] == (
+        "v23_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert primary_strata == {
+        "dataset_gt_empty": 14,
+        "positive_area_q1": 13,
+        "positive_area_q2": 13,
+        "positive_area_q3": 12,
+        "positive_area_q4": 12,
+    }
+    assert reserve_strata == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 6,
+        "positive_area_q2": 6,
+        "positive_area_q3": 6,
+        "positive_area_q4": 6,
+    }
+    assert len(pool["future_v23_training_exclusion_group_ids"]) == 96
+    assert len(set(pool["future_v23_training_exclusion_group_ids"])) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["model_inference_run"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_gt_primary_render_has_no_model_boxes_or_reserve_pixels() -> None:
+    config = yaml.safe_load(V23_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["render_outcome"]
+    evidence = json.loads(V23_GT_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    canonical = dict(evidence)
+    embedded_sha = canonical.pop("evidence_sha256")
+
+    assert hashlib.sha256(V23_GT_EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        outcome["evidence_file_sha256"]
+    )
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == outcome["evidence_sha256"]
+    assert evidence["status"] == (
+        "v23_gt_only_primary_review_rendered_before_training"
+    )
+    assert len(evidence["cases"]) == 64
+    assert evidence["primary_images_read"] == 64
+    assert evidence["primary_images_normalized"] == 64
+    assert evidence["model_boxes_present"] is False
+    assert evidence["model_inference_run"] is False
+    assert evidence["sealed_reserve_pixels_read"] == 0
+    assert evidence["validation_images_read"] == 0
+    assert evidence["test_images_read"] == 0
+    assert len(evidence["pages"]) == 4
+    for page, registered in zip(
+        evidence["pages"],
+        outcome["pages"],
+        strict=True,
+    ):
+        page_path = PROJECT_ROOT / page["path"]
+        assert page == registered
+        assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
+            page["sha256"]
+        )
     assert config["generation_gate"]["allowed"] is False
 
 
