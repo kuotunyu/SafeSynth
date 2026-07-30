@@ -373,6 +373,27 @@ numeric_audit_outcome:
   validation_images_read: 0
   test_images_read: 0
   whole_image_generation_run: false
+model_review_registration:
+  status: supervised_labeler_v23_model_review_pages_frozen
+  owner_review_status: pending
+  manifest_path: reports/supervised_labeler_v23_model_review_manifest.json
+  manifest_file_sha256: 2867ececb3f7a0a215ee2a2c8f6ddef251530b00270e572b6eba5bb92dd9756d
+  manifest_sha256: d072fa09ce9c590dbade7e744a9648db192caa85b52dea41a92af4c7a1e345b4
+  reviewed_images: 48
+  approve_only_if_problem_count: 0
+  page_paths:
+  - reports/figures/supervised_labeler_v23_model_review/review_page_01.png
+  - reports/figures/supervised_labeler_v23_model_review/review_page_02.png
+  - reports/figures/supervised_labeler_v23_model_review/review_page_03.png
+  page_sha256:
+  - f561c2af77bfcf12cfcf511c1adf58d52bbcc6be1a917e0337de27e5cc58f846
+  - 9f55b1cc0b6bd7cc3834c249046873fa2e4986b83fbc899b51859f63701d949f
+  - 1759e4db797d5b2156ff0b13d7bf0d6fdf5a96bbee28e574f71c9c59b2d84dd2
+  render_model_inference_run: false
+  source_model_inference_images: 48
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
 generation_gate:
   allowed: false
   reason: The v23 numeric audit passed all preregistered gates. Owner review of the frozen
