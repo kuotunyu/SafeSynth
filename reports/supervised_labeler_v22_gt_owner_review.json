@@ -1,0 +1,551 @@
+{
+  "categories": {
+    "ambiguous_cells": [],
+    "dataset_gt_false_positive_cells": [
+      17,
+      32,
+      33,
+      41
+    ],
+    "dataset_gt_localization_cells": [],
+    "dataset_gt_miss_cells": [],
+    "uncertain_cells": []
+  },
+  "decisions": [
+    {
+      "cell": 1,
+      "decision": "PASS",
+      "group_id": 34,
+      "image_id": 35,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 2,
+      "decision": "PASS",
+      "group_id": 3953,
+      "image_id": 4082,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 3,
+      "decision": "PASS",
+      "group_id": 1354,
+      "image_id": 1365,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 4,
+      "decision": "PASS",
+      "group_id": 2891,
+      "image_id": 2969,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 5,
+      "decision": "PASS",
+      "group_id": 3891,
+      "image_id": 4017,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 6,
+      "decision": "PASS",
+      "group_id": 486,
+      "image_id": 487,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 7,
+      "decision": "PASS",
+      "group_id": 2480,
+      "image_id": 2528,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 8,
+      "decision": "PASS",
+      "group_id": 2906,
+      "image_id": 2984,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 9,
+      "decision": "PASS",
+      "group_id": 2201,
+      "image_id": 2237,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 10,
+      "decision": "PASS",
+      "group_id": 631,
+      "image_id": 632,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 11,
+      "decision": "PASS",
+      "group_id": 268,
+      "image_id": 269,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 12,
+      "decision": "PASS",
+      "group_id": 2491,
+      "image_id": 2541,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 13,
+      "decision": "PASS",
+      "group_id": 1742,
+      "image_id": 1764,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 14,
+      "decision": "PASS",
+      "group_id": 485,
+      "image_id": 486,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 15,
+      "decision": "PASS",
+      "group_id": 3943,
+      "image_id": 4071,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 16,
+      "decision": "PASS",
+      "group_id": 4139,
+      "image_id": 4286,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 17,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 4767,
+      "image_id": 4957,
+      "reason": "The far-left green box is an extremely thin edge fragment; the helmeted head is too small and clipped for a meaningful box.",
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 18,
+      "decision": "PASS",
+      "group_id": 1260,
+      "image_id": 1270,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 19,
+      "decision": "PASS",
+      "group_id": 2393,
+      "image_id": 2437,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 20,
+      "decision": "PASS",
+      "group_id": 1881,
+      "image_id": 1907,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 21,
+      "decision": "PASS",
+      "group_id": 1972,
+      "image_id": 2000,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 22,
+      "decision": "PASS",
+      "group_id": 3567,
+      "image_id": 3676,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 23,
+      "decision": "PASS",
+      "group_id": 3827,
+      "image_id": 3951,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 24,
+      "decision": "PASS",
+      "group_id": 918,
+      "image_id": 921,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 25,
+      "decision": "PASS",
+      "group_id": 3392,
+      "image_id": 3496,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 26,
+      "decision": "PASS",
+      "group_id": 4606,
+      "image_id": 4785,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 27,
+      "decision": "PASS",
+      "group_id": 4201,
+      "image_id": 4354,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 28,
+      "decision": "PASS",
+      "group_id": 1411,
+      "image_id": 1425,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 29,
+      "decision": "PASS",
+      "group_id": 969,
+      "image_id": 972,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 30,
+      "decision": "PASS",
+      "group_id": 4617,
+      "image_id": 4796,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 31,
+      "decision": "PASS",
+      "group_id": 3202,
+      "image_id": 4028,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 32,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 867,
+      "image_id": 869,
+      "reason": "The right green box covers a partly hidden person without a visible safety hard hat.",
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 33,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 3662,
+      "image_id": 3775,
+      "reason": "The far-right green box is an extremely thin edge fragment; the object is too small and clipped for a meaningful box.",
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 34,
+      "decision": "PASS",
+      "group_id": 260,
+      "image_id": 261,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 35,
+      "decision": "PASS",
+      "group_id": 3303,
+      "image_id": 3405,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 36,
+      "decision": "PASS",
+      "group_id": 4312,
+      "image_id": 4472,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 37,
+      "decision": "PASS",
+      "group_id": 45,
+      "image_id": 46,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 38,
+      "decision": "PASS",
+      "group_id": 562,
+      "image_id": 563,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 39,
+      "decision": "PASS",
+      "group_id": 1878,
+      "image_id": 1903,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 40,
+      "decision": "PASS",
+      "group_id": 3845,
+      "image_id": 3970,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 41,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 1102,
+      "image_id": 1108,
+      "reason": "The far-right green box is an extremely thin edge fragment; the object is too small and clipped for a meaningful box.",
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 42,
+      "decision": "PASS",
+      "group_id": 3916,
+      "image_id": 4044,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 43,
+      "decision": "PASS",
+      "group_id": 92,
+      "image_id": 93,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 44,
+      "decision": "PASS",
+      "group_id": 4791,
+      "image_id": 4982,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 45,
+      "decision": "PASS",
+      "group_id": 3268,
+      "image_id": 3365,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 46,
+      "decision": "PASS",
+      "group_id": 4182,
+      "image_id": 4333,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 47,
+      "decision": "PASS",
+      "group_id": 4360,
+      "image_id": 4524,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 48,
+      "decision": "PASS",
+      "group_id": 2731,
+      "image_id": 2796,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 49,
+      "decision": "PASS",
+      "group_id": 1538,
+      "image_id": 1553,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 50,
+      "decision": "PASS",
+      "group_id": 3339,
+      "image_id": 3441,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 51,
+      "decision": "PASS",
+      "group_id": 3222,
+      "image_id": 3317,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 52,
+      "decision": "PASS",
+      "group_id": 3344,
+      "image_id": 3446,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 53,
+      "decision": "PASS",
+      "group_id": 396,
+      "image_id": 397,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 54,
+      "decision": "PASS",
+      "group_id": 2196,
+      "image_id": 2232,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 55,
+      "decision": "PASS",
+      "group_id": 2274,
+      "image_id": 2313,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 56,
+      "decision": "PASS",
+      "group_id": 3335,
+      "image_id": 3437,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 57,
+      "decision": "PASS",
+      "group_id": 1714,
+      "image_id": 1735,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 58,
+      "decision": "PASS",
+      "group_id": 1269,
+      "image_id": 1279,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 59,
+      "decision": "PASS",
+      "group_id": 3590,
+      "image_id": 3700,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 60,
+      "decision": "PASS",
+      "group_id": 2599,
+      "image_id": 2655,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 61,
+      "decision": "PASS",
+      "group_id": 2684,
+      "image_id": 2747,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 62,
+      "decision": "PASS",
+      "group_id": 2756,
+      "image_id": 2823,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 63,
+      "decision": "PASS",
+      "group_id": 3304,
+      "image_id": 3406,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 64,
+      "decision": "PASS",
+      "group_id": 1323,
+      "image_id": 1334,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    }
+  ],
+  "experiment_id": "supervised_labeler_v22_gt_review",
+  "gt_review_evidence_sha256": "bb8f93862d0e0349824b72b92aeed1e8a524137c0fc125c78c5949bf7781346a",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_boxes_present": false,
+  "model_inference_run": false,
+  "owner_note": "Quarantine complete images 17, 33, and 41 because their clipped edge boxes are too small or thin to be meaningful. Quarantine complete image 32 because its right box has no visible hard hat. All other 60 primary GT-only cells are approved.",
+  "pass_images": 60,
+  "pool_manifest_sha256": "88514d31285ba896cb3d60a7ea0c153620b9a11774a6dbedd38545fee1a2935b",
+  "problem_images": 4,
+  "quarantined_images": 4,
+  "review_sha256": "729da4507dd53a16a3d6118203e68496bf0f6beb6c7de5813269f8347defdb48",
+  "review_stage": "gt_only",
+  "reviewed_by": "kuotunyu",
+  "reviewed_images": 64,
+  "reviewed_on": "2026-07-30",
+  "schema_version": 1,
+  "sealed_reserve_images": 32,
+  "sealed_reserve_pixels_read": 0,
+  "status": "v22_gt_only_primary_adjudicated_four_quarantines",
+  "test_images_read": 0,
+  "v22_training_started": false,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

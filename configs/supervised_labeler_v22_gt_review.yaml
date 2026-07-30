@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_four_images_quarantined"
 source_split: "Train"
 split_seed: 20260806
 
@@ -346,6 +346,34 @@ render_outcome:
       sha256: >-
         4c767f43222046eb15ebab98ba549996c15fd1a18518b60beb9ad9709026e448
 
+owner_adjudication_outcome:
+  status: "v22_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v22_gt_owner_review.json"
+  owner_review_file_sha256: >-
+    0c53c80ebdae8a71fdb603f4a023a30ec568cae5134f7df9eb9c8e676194a994
+  owner_review_sha256: >-
+    729da4507dd53a16a3d6118203e68496bf0f6beb6c7de5813269f8347defdb48
+  adjudicated_audit_path: >-
+    splits/supervised_labeler_v22_adjudicated_audit.json
+  adjudicated_audit_file_sha256: >-
+    e70748657fa5f93bc7b589beff071cd6726d44ab2153c1a375317955123ad103
+  adjudicated_audit_sha256: >-
+    f150f3b580498e405c272647da041a2d01e4ed0e83f9eeba5243b219d4a4512b
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-30"
+  reviewed_images: 64
+  passed_images: 60
+  quarantined_cells: [17, 32, 33, 41]
+  quarantined_image_ids: [4957, 869, 3775, 1108]
+  quarantined_group_ids: [4767, 867, 3662, 1102]
+  adjudicated_audit_images: 48
+  valid_primary_surplus_images: 12
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  v22_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+
 gpu_schedule:
   smoke_estimate_minutes: [1, 3]
   formal_training_and_calibration_estimate_minutes: [28, 42]
@@ -355,6 +383,7 @@ gpu_schedule:
 generation_gate:
   allowed: false
   reason: >-
-    v22 intervention and independent GT-only pool are frozen. The 64 primary
-    green-box cases are rendered and now require owner adjudication. No v22
-    model work is allowed until that review is recorded.
+    Fresh v22 GT adjudication passed with cells 17, 32, 33, and 41
+    quarantined and a clean 48-image audit frozen. Split freeze, CPU
+    preflight, GPU smoke, base-only training, independent numeric audit, and
+    any required owner model review are still required.
