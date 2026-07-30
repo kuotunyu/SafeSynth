@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v21_gt_review"
-status: "pool_frozen_before_pixel_review_or_training"
+status: "gt_only_primary_review_pending_owner"
 source_split: "Train"
 split_seed: 20260805
 
@@ -300,9 +300,42 @@ freeze_outcome:
   validation_images_read: 0
   test_images_read: 0
 
+render_outcome:
+  status: "v21_gt_only_primary_review_rendered_before_training"
+  evidence_path: "reports/supervised_labeler_v21_gt_review.json"
+  evidence_file_sha256: >-
+    95729a2d5e8a75a2edd275c6b9595be71646da43b26a03d7681c227e47ec5efe
+  evidence_sha256: >-
+    e44c1b2efdba159d514a278c1dab29746e4a974c5563941792e9ccbab965cff8
+  primary_images_read: 64
+  primary_images_normalized: 63
+  sealed_reserve_pixels_read: 0
+  model_boxes_present: false
+  model_inference_run: false
+  v21_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+  pages:
+    - cells: [1, 16]
+      path: "reports/figures/supervised_labeler_v21_gt_review/page_01.png"
+      sha256: >-
+        4afdbb02c048b9775eaa8727fde084d435e74e0997362b71a15589ee5de936d7
+    - cells: [17, 32]
+      path: "reports/figures/supervised_labeler_v21_gt_review/page_02.png"
+      sha256: >-
+        b8fde9e610c91c0399d0492386b4325beb5a130682dd321d7dec691ef97225b3
+    - cells: [33, 48]
+      path: "reports/figures/supervised_labeler_v21_gt_review/page_03.png"
+      sha256: >-
+        1133bd5dadc38cc114bf07360dc40e2d8f5636adc3cbecd3b0554cd7c5688f03
+    - cells: [49, 64]
+      path: "reports/figures/supervised_labeler_v21_gt_review/page_04.png"
+      sha256: >-
+        1e69596ff9d2de0252f218dfef4bb4d66adc875b5eb04140e0d6d3e9d49aaec5
+
 generation_gate:
   allowed: false
   reason: >-
-    v21 intervention and independent GT pool are frozen, but the 64 primary
-    GT-only cases have not been rendered or reviewed. No v21 model work is
-    allowed yet.
+    v21 intervention and independent GT pool are frozen and the 64 primary
+    GT-only cases are rendered, but kuotunyu has not adjudicated them. No v21
+    model work is allowed yet.
