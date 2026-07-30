@@ -394,6 +394,7 @@ V20_NUMERIC_DIAGNOSIS_PATH = (
     / "reports"
     / "supervised_labeler_v20_numeric_failure_diagnosis.json"
 )
+V21_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v21.yaml"
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3293,6 +3294,55 @@ def test_v20_gt_adjudication_quarantines_cells_16_and_53() -> None:
     ).hexdigest() == config["owner_adjudication_outcome"][
         "adjudicated_audit_file_sha256"
     ]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
+    config = load_supervised_labeler_config(V21_CONFIG_PATH)
+    sampling = config["sampling"]
+    registration = config["independence_registration"]
+
+    assert config["status"] == "preregistered_split_pending"
+    assert config["split_manifest_sha256"] == "pending_split_freeze"
+    assert config["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
+    assert config["optimization"]["epochs"] == 8
+    assert sampling["empty_image_weight"] == 12.0
+    assert sampling["owner_miss_replay_weight"] == 32.0
+    assert sampling["hard_negative_error_replay_weight"] == 36.0
+    assert {462, 1666, 2892, 3926, 4352, 4582}.issubset(
+        sampling["owner_miss_replay_image_ids"]
+    )
+    assert {
+        1332,
+        1699,
+        1789,
+        1841,
+        2308,
+        3089,
+        3507,
+        3833,
+        4031,
+        4352,
+        4622,
+    }.issubset(sampling["hard_negative_error_replay_image_ids"])
+    assert config["calibration"]["min_precision"] == 0.90
+    assert config["audit_gate"]["min_precision"] == 0.85
+    assert config["postprocessing"]["max_outside_fraction"] == 0.10
+    assert registration["status"] == "frozen_before_v21_split_or_training"
+    assert registration["base_checkpoint_only"] is True
+    assert registration["v21_training_started"] is False
+    assert registration["audit_model_inference_run"] is False
+    assert registration["sealed_reserve_pixels_read"] == 0
+    assert registration["validation_images_read"] == 0
+    assert registration["test_images_read"] == 0
+    assert hashlib.sha256(
+        V21_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == registration["gt_owner_review_file_sha256"]
+    assert hashlib.sha256(
+        V21_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == registration["audit_manifest_file_sha256"]
     assert config["generation_gate"]["allowed"] is False
 
 
