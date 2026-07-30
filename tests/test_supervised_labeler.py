@@ -398,6 +398,9 @@ V21_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v21.yaml"
 V21_SPLIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v21_split.json"
 )
+V21_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v21_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3305,7 +3308,7 @@ def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
     sampling = config["sampling"]
     registration = config["independence_registration"]
 
-    assert config["status"] == "split_frozen_cpu_preflight_pending"
+    assert config["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
     assert config["split_manifest_sha256"] == (
         "252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70"
     )
@@ -3409,6 +3412,42 @@ def test_v21_split_replays_v20_errors_and_stays_independent() -> None:
     assert hashlib.sha256(V21_SPLIT_PATH.read_bytes()).hexdigest() == (
         config["split_outcome"]["split_file_sha256"]
     )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v21_cpu_preflight_verifies_replay_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V21_CONFIG_PATH)
+    outcome = config["cpu_preflight_outcome"]
+    report = json.loads(V21_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(
+        V21_PREFLIGHT_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["split_manifest_sha256"] == config["split_manifest_sha256"]
+    assert report["training"]["images_read"] == 2288
+    assert report["training"]["normalized_images"] == 2274
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["normalized_images"] == 617
+    assert report["calibration"]["invalid_boxes"] == 0
+    assert report["error_replay_weights"]["4352"] == 36.0
+    assert report["error_replay_weights"]["4582"] == 32.0
+    assert report["error_replay_weights"]["3507"] == 36.0
+    assert report["overlapping_replay_image_ids"] == [361, 774, 4151, 4352]
+    assert report["overlap_policy"] == "maximum_weight"
+    assert report["training_calibration_group_overlap"] == 0
+    assert report["v21_reserved_groups_in_model_data"] == 0
+    assert report["v20_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["v20_revealed_audit_groups_in_training"] == 48
+    assert report["untouched_audit_images"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
+    assert report["whole_image_generation_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
