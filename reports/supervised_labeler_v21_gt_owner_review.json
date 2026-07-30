@@ -1,0 +1,550 @@
+{
+  "categories": {
+    "ambiguous_cells": [],
+    "dataset_gt_false_positive_cells": [
+      11,
+      33,
+      35
+    ],
+    "dataset_gt_localization_cells": [],
+    "dataset_gt_miss_cells": [],
+    "uncertain_cells": []
+  },
+  "decisions": [
+    {
+      "cell": 1,
+      "decision": "PASS",
+      "group_id": 2182,
+      "image_id": 2217,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 2,
+      "decision": "PASS",
+      "group_id": 4484,
+      "image_id": 4655,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 3,
+      "decision": "PASS",
+      "group_id": 2630,
+      "image_id": 2689,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 4,
+      "decision": "PASS",
+      "group_id": 3491,
+      "image_id": 3598,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 5,
+      "decision": "PASS",
+      "group_id": 0,
+      "image_id": 1,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 6,
+      "decision": "PASS",
+      "group_id": 2544,
+      "image_id": 2595,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 7,
+      "decision": "PASS",
+      "group_id": 3055,
+      "image_id": 3138,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 8,
+      "decision": "PASS",
+      "group_id": 1436,
+      "image_id": 1450,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 9,
+      "decision": "PASS",
+      "group_id": 861,
+      "image_id": 863,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 10,
+      "decision": "PASS",
+      "group_id": 683,
+      "image_id": 684,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 11,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 2076,
+      "image_id": 2106,
+      "reason": "The left green box covers a clipped bare face with no visible safety hard hat.",
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 12,
+      "decision": "PASS",
+      "group_id": 3208,
+      "image_id": 3303,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 13,
+      "decision": "PASS",
+      "group_id": 832,
+      "image_id": 834,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 14,
+      "decision": "PASS",
+      "group_id": 2691,
+      "image_id": 2755,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 15,
+      "decision": "PASS",
+      "group_id": 4646,
+      "image_id": 4826,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 16,
+      "decision": "PASS",
+      "group_id": 3128,
+      "image_id": 3218,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 17,
+      "decision": "PASS",
+      "group_id": 2368,
+      "image_id": 2412,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 18,
+      "decision": "PASS",
+      "group_id": 1076,
+      "image_id": 1081,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 19,
+      "decision": "PASS",
+      "group_id": 1768,
+      "image_id": 1790,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 20,
+      "decision": "PASS",
+      "group_id": 3190,
+      "image_id": 3284,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 21,
+      "decision": "PASS",
+      "group_id": 3634,
+      "image_id": 3746,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 22,
+      "decision": "PASS",
+      "group_id": 2885,
+      "image_id": 2963,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 23,
+      "decision": "PASS",
+      "group_id": 2680,
+      "image_id": 2743,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 24,
+      "decision": "PASS",
+      "group_id": 1935,
+      "image_id": 1962,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 25,
+      "decision": "PASS",
+      "group_id": 1938,
+      "image_id": 1965,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 26,
+      "decision": "PASS",
+      "group_id": 2532,
+      "image_id": 2582,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 27,
+      "decision": "PASS",
+      "group_id": 4247,
+      "image_id": 4401,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 28,
+      "decision": "PASS",
+      "group_id": 933,
+      "image_id": 936,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 29,
+      "decision": "PASS",
+      "group_id": 1124,
+      "image_id": 1130,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 30,
+      "decision": "PASS",
+      "group_id": 2165,
+      "image_id": 2200,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 31,
+      "decision": "PASS",
+      "group_id": 1406,
+      "image_id": 1419,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 32,
+      "decision": "PASS",
+      "group_id": 1684,
+      "image_id": 1704,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 33,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 2378,
+      "image_id": 2422,
+      "reason": "The far-left green box covers a clipped person without a visible safety hard hat.",
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 34,
+      "decision": "PASS",
+      "group_id": 712,
+      "image_id": 714,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 35,
+      "decision": "DATASET_GT_FALSE_POSITIVE",
+      "group_id": 2302,
+      "image_id": 2342,
+      "reason": "The middle green box covers a bare head; no safety hard hat is visible.",
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 36,
+      "decision": "PASS",
+      "group_id": 2096,
+      "image_id": 2128,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 37,
+      "decision": "PASS",
+      "group_id": 3976,
+      "image_id": 4108,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 38,
+      "decision": "PASS",
+      "group_id": 4683,
+      "image_id": 4868,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 39,
+      "decision": "PASS",
+      "group_id": 1452,
+      "image_id": 1466,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 40,
+      "decision": "PASS",
+      "group_id": 2031,
+      "image_id": 2061,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 41,
+      "decision": "PASS",
+      "group_id": 3063,
+      "image_id": 3147,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 42,
+      "decision": "PASS",
+      "group_id": 583,
+      "image_id": 584,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 43,
+      "decision": "PASS",
+      "group_id": 4773,
+      "image_id": 4963,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 44,
+      "decision": "PASS",
+      "group_id": 3012,
+      "image_id": 3095,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 45,
+      "decision": "PASS",
+      "group_id": 888,
+      "image_id": 891,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 46,
+      "decision": "PASS",
+      "group_id": 2433,
+      "image_id": 2480,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 47,
+      "decision": "PASS",
+      "group_id": 4661,
+      "image_id": 4844,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 48,
+      "decision": "PASS",
+      "group_id": 3200,
+      "image_id": 3295,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 49,
+      "decision": "PASS",
+      "group_id": 182,
+      "image_id": 183,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 50,
+      "decision": "PASS",
+      "group_id": 4607,
+      "image_id": 4786,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 51,
+      "decision": "PASS",
+      "group_id": 3406,
+      "image_id": 3511,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 52,
+      "decision": "PASS",
+      "group_id": 2033,
+      "image_id": 2063,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 53,
+      "decision": "PASS",
+      "group_id": 1372,
+      "image_id": 1384,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 54,
+      "decision": "PASS",
+      "group_id": 726,
+      "image_id": 728,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 55,
+      "decision": "PASS",
+      "group_id": 1618,
+      "image_id": 1636,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 56,
+      "decision": "PASS",
+      "group_id": 3397,
+      "image_id": 3502,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 57,
+      "decision": "PASS",
+      "group_id": 4570,
+      "image_id": 4746,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 58,
+      "decision": "PASS",
+      "group_id": 1561,
+      "image_id": 1654,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    },
+    {
+      "cell": 59,
+      "decision": "PASS",
+      "group_id": 2073,
+      "image_id": 2103,
+      "reason": null,
+      "stratum": "positive_area_q3"
+    },
+    {
+      "cell": 60,
+      "decision": "PASS",
+      "group_id": 4447,
+      "image_id": 4617,
+      "reason": null,
+      "stratum": "positive_area_q1"
+    },
+    {
+      "cell": 61,
+      "decision": "PASS",
+      "group_id": 2553,
+      "image_id": 2606,
+      "reason": null,
+      "stratum": "positive_area_q2"
+    },
+    {
+      "cell": 62,
+      "decision": "PASS",
+      "group_id": 4744,
+      "image_id": 4934,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 63,
+      "decision": "PASS",
+      "group_id": 1616,
+      "image_id": 1634,
+      "reason": null,
+      "stratum": "dataset_gt_empty"
+    },
+    {
+      "cell": 64,
+      "decision": "PASS",
+      "group_id": 2005,
+      "image_id": 2033,
+      "reason": null,
+      "stratum": "positive_area_q4"
+    }
+  ],
+  "experiment_id": "supervised_labeler_v21_gt_review",
+  "gt_review_evidence_sha256": "e44c1b2efdba159d514a278c1dab29746e4a974c5563941792e9ccbab965cff8",
+  "label_semantics": "class_direct_helmeted_head_region",
+  "model_boxes_present": false,
+  "model_inference_run": false,
+  "owner_note": "Quarantine complete images 11 and 33 because their left clipped green boxes cover people with no visible safety hard hat. Quarantine complete image 35 because its middle green box covers a bare head. All other 61 primary GT-only cells are approved.",
+  "pass_images": 61,
+  "pool_manifest_sha256": "53b983b1bc49c8a825874068301cfe736b8b9b437e1589b6ad9d0631c435b6e9",
+  "problem_images": 3,
+  "quarantined_images": 3,
+  "review_sha256": "649dac06fa89d68627aa3e6215286b1d1c79e228d728ab2352c170fa08f180af",
+  "review_stage": "gt_only",
+  "reviewed_by": "kuotunyu",
+  "reviewed_images": 64,
+  "reviewed_on": "2026-07-30",
+  "schema_version": 1,
+  "sealed_reserve_images": 32,
+  "sealed_reserve_pixels_read": 0,
+  "status": "v21_gt_only_primary_adjudicated_three_quarantines",
+  "test_images_read": 0,
+  "v21_training_started": false,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

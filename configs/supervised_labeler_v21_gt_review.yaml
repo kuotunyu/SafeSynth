@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v21_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_three_images_quarantined"
 source_split: "Train"
 split_seed: 20260805
 
@@ -333,9 +333,38 @@ render_outcome:
       sha256: >-
         1e69596ff9d2de0252f218dfef4bb4d66adc875b5eb04140e0d6d3e9d49aaec5
 
+owner_adjudication_outcome:
+  status: "v21_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v21_gt_owner_review.json"
+  owner_review_file_sha256: >-
+    b9a299c9c3ea3c427945247dd05edff7344cb87a3ede5c01f9e7ab4bd40ab83c
+  owner_review_sha256: >-
+    649dac06fa89d68627aa3e6215286b1d1c79e228d728ab2352c170fa08f180af
+  adjudicated_audit_path: >-
+    splits/supervised_labeler_v21_adjudicated_audit.json
+  adjudicated_audit_file_sha256: >-
+    929f1b234728097e5d7436183116fc5f9e4d9fd69bd408135973366f6fc95ca4
+  adjudicated_audit_sha256: >-
+    2a539b3124cf2da00c35342e471d7961f4466b5f4214af3c2f52ca0dfdb84676
+  reviewed_by: "kuotunyu"
+  reviewed_on: "2026-07-30"
+  reviewed_images: 64
+  passed_images: 61
+  quarantined_cells: [11, 33, 35]
+  quarantined_image_ids: [2106, 2422, 2342]
+  quarantined_group_ids: [2076, 2378, 2302]
+  adjudicated_audit_images: 48
+  valid_primary_surplus_images: 13
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  v21_training_started: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    v21 intervention and independent GT pool are frozen and the 64 primary
-    GT-only cases are rendered, but kuotunyu has not adjudicated them. No v21
-    model work is allowed yet.
+    Fresh v21 GT adjudication passed with cells 11, 33, and 35 quarantined and
+    a clean 48-image audit frozen. Split freeze, CPU preflight, GPU smoke,
+    base-only training, independent numeric audit, and a separate zero-problem
+    owner model review are still required.
