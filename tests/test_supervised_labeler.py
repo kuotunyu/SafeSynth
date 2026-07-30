@@ -362,6 +362,9 @@ V20_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v20.yaml"
 V20_SPLIT_PATH = (
     PROJECT_ROOT / "splits" / "supervised_labeler_v20_split.json"
 )
+V20_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v20_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3153,6 +3156,41 @@ def test_v20_split_replays_v19_errors_and_stays_independent() -> None:
         "split_outcome"
     ]["file_sha256"]
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v20_cpu_preflight_verifies_replay_and_keeps_audit_sealed() -> None:
+    config = load_supervised_labeler_config(V20_CONFIG_PATH)
+    report = json.loads(V20_PREFLIGHT_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(V20_PREFLIGHT_PATH.read_bytes()).hexdigest() == (
+        config["cpu_preflight_outcome"]["report_file_sha256"]
+    )
+    assert report["status"] == "cpu_preflight_passed_gpu_smoke_waiting"
+    assert report["split_manifest_sha256"] == config[
+        "split_manifest_sha256"
+    ]
+    assert report["training"]["images_read"] == 2342
+    assert report["training"]["normalized_images"] == 2327
+    assert report["calibration"]["images_read"] == 621
+    assert report["calibration"]["normalized_images"] == 617
+    assert report["training"]["invalid_boxes"] == 0
+    assert report["calibration"]["invalid_boxes"] == 0
+    for image_id in (118, 857, 3117, 3651, 4187, 4452, 4924):
+        assert report["error_replay_weights"][str(image_id)] == 24.0
+    for image_id in (1241, 2910):
+        assert report["error_replay_weights"][str(image_id)] == 24.0
+    assert report["error_replay_weights"]["551"] == 12.0
+    assert report["calibration_min_precision"] == 0.90
+    assert report["audit_min_precision"] == 0.85
+    assert report["v20_reserved_groups_in_model_data"] == 0
+    assert report["v19_nonselected_groups_in_model_data"] == 0
+    assert report["prior_sealed_groups_in_model_data"] == 0
+    assert report["v19_revealed_audit_groups_in_training"] == 48
+    assert report["untouched_audit_pixels_read"] == 0
+    assert report["sealed_reserve_pixels_read"] == 0
+    assert report["validation_images_read"] == 0
+    assert report["test_images_read"] == 0
+    assert report["gpu_work_run"] is False
 
 
 def test_v19_gt_adjudication_quarantines_tiny_cell_36_edge_fragment() -> None:

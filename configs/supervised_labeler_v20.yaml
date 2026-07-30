@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v20"
-status: "split_frozen_cpu_preflight_pending"
+status: "cpu_preflight_passed_gpu_smoke_waiting"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260804
 training_seed: 20260809
@@ -272,9 +272,47 @@ split_outcome:
   test_images_read: 0
   v20_training_started: false
 
+cpu_preflight_outcome:
+  status: "passed_gpu_smoke_waiting"
+  report_path: "reports/supervised_labeler_v20_preflight.json"
+  report_file_sha256: >-
+    b03b062d3006df991a8dbbaaef962113a4c78a259567f9c94006c33673c8edad
+  markdown_path: "reports/supervised_labeler_v20_preflight.md"
+  markdown_file_sha256: >-
+    6e8e436f6522f4dd5420789aff095e4b8ca40ad6012d6dfc0a7b14133558be4d
+  training_images_read: 2342
+  training_images_normalized: 2327
+  training_invalid_boxes: 0
+  calibration_images_read: 621
+  calibration_images_normalized: 617
+  calibration_invalid_boxes: 0
+  sampling_weight_counts:
+    "1.0": 330
+    "2.0": 568
+    "4.0": 1224
+    "6.0": 178
+    "12.0": 12
+    "24.0": 30
+  replay_weights_verified: true
+  v19_owner_miss_replay_weight: 24.0
+  v19_false_positive_replay_weight: 24.0
+  calibration_min_precision: 0.90
+  audit_min_precision: 0.85
+  max_outside_fraction: 0.10
+  model_files_rehashed: 3
+  v20_reserved_groups_in_model_data: 0
+  v19_nonselected_groups_in_model_data: 0
+  prior_sealed_groups_in_model_data: 0
+  v19_revealed_audit_groups_in_training: 48
+  untouched_audit_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  gpu_work_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v20 GT adjudication, replay intervention, and leakage-free split are
-    frozen. CPU preflight, GPU smoke, base-only training, one-shot numeric
-    audit, and a zero-problem owner model review are still required.
+    frozen, and CPU preflight passed. GPU smoke, base-only training, one-shot
+    numeric audit, and a zero-problem owner model review are still required.
