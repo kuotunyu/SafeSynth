@@ -374,6 +374,11 @@ V20_TRAINING_REPORT_PATH = (
 V20_AUDIT_EVIDENCE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v20_audit_evidence.json"
 )
+V20_NUMERIC_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v20_numeric_failure_diagnosis.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3270,6 +3275,39 @@ def test_v20_numeric_audit_fails_precision_and_blocks_model_review() -> None:
     assert outcome["model_review_rendered"] is False
     assert outcome["owner_model_review_requested"] is False
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v20_numeric_failure_diagnosis_uses_frozen_boxes_only() -> None:
+    config = load_supervised_labeler_config(V20_CONFIG_PATH)
+    registration = config["numeric_failure_diagnosis"]
+    diagnosis = json.loads(
+        V20_NUMERIC_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V20_NUMERIC_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == registration["report_file_sha256"]
+    assert diagnosis["report_sha256"] == registration["report_sha256"]
+    assert diagnosis["aggregate"] == {
+        "false_negatives": 7,
+        "false_positives": 29,
+        "true_positives": 91,
+    }
+    assert diagnosis["false_positive_type_counts"] == {
+        "empty_gt_false_positive": 9,
+        "localization_false_positive": 3,
+        "semantic_false_positive": 17,
+    }
+    assert [
+        row["cell"] for row in diagnosis["false_negative_cells"]
+    ] == [41, 2, 11, 21, 23, 36]
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    assert diagnosis["sealed_reserve_pixels_read"] == 0
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
+    assert diagnosis["root_cause_summary"]["threshold_retuning_allowed"] is False
 
 
 def test_v19_gt_adjudication_quarantines_tiny_cell_36_edge_fragment() -> None:

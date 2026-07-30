@@ -1,0 +1,475 @@
+{
+  "aggregate": {
+    "false_negatives": 7,
+    "false_positives": 29,
+    "true_positives": 91
+  },
+  "diagnosis_model_inference_run": false,
+  "experiment_id": "supervised_labeler_v20",
+  "false_negative_cells": [
+    {
+      "cell": 41,
+      "false_negatives": 2,
+      "false_positive_details": [],
+      "false_positives": 0,
+      "image_id": 4582,
+      "prediction_count": 2,
+      "stratum": "positive_area_q4",
+      "true_positives": 2,
+      "truth_box_count": 4,
+      "unmatched_truth_indices": [
+        2,
+        3
+      ]
+    },
+    {
+      "cell": 2,
+      "false_negatives": 1,
+      "false_positive_details": [],
+      "false_positives": 0,
+      "image_id": 1666,
+      "prediction_count": 3,
+      "stratum": "positive_area_q2",
+      "true_positives": 3,
+      "truth_box_count": 4,
+      "unmatched_truth_indices": [
+        3
+      ]
+    },
+    {
+      "cell": 11,
+      "false_negatives": 1,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.053869969509478234,
+          "category": "semantic_false_positive",
+          "score": 0.0771484375
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 4352,
+      "prediction_count": 12,
+      "stratum": "positive_area_q2",
+      "true_positives": 11,
+      "truth_box_count": 12,
+      "unmatched_truth_indices": [
+        11
+      ]
+    },
+    {
+      "cell": 21,
+      "false_negatives": 1,
+      "false_positive_details": [],
+      "false_positives": 0,
+      "image_id": 2892,
+      "prediction_count": 2,
+      "stratum": "positive_area_q1",
+      "true_positives": 2,
+      "truth_box_count": 3,
+      "unmatched_truth_indices": [
+        2
+      ]
+    },
+    {
+      "cell": 23,
+      "false_negatives": 1,
+      "false_positive_details": [],
+      "false_positives": 0,
+      "image_id": 3926,
+      "prediction_count": 4,
+      "stratum": "positive_area_q2",
+      "true_positives": 4,
+      "truth_box_count": 5,
+      "unmatched_truth_indices": [
+        0
+      ]
+    },
+    {
+      "cell": 36,
+      "false_negatives": 1,
+      "false_positive_details": [],
+      "false_positives": 0,
+      "image_id": 462,
+      "prediction_count": 1,
+      "stratum": "positive_area_q3",
+      "true_positives": 1,
+      "truth_box_count": 2,
+      "unmatched_truth_indices": [
+        0
+      ]
+    }
+  ],
+  "false_positive_cells": [
+    {
+      "cell": 34,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.06667932448122707,
+          "category": "semantic_false_positive",
+          "score": 0.03857421875
+        },
+        {
+          "best_iou_to_any_truth": 0.04541528127410276,
+          "category": "semantic_false_positive",
+          "score": 0.037841796875
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.03466796875
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.023681640625
+        },
+        {
+          "best_iou_to_any_truth": 0.019868748353404065,
+          "category": "semantic_false_positive",
+          "score": 0.02294921875
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.0223388671875
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.02197265625
+        },
+        {
+          "best_iou_to_any_truth": 0.04026591877623513,
+          "category": "semantic_false_positive",
+          "score": 0.0216064453125
+        },
+        {
+          "best_iou_to_any_truth": 0.049036204021950205,
+          "category": "semantic_false_positive",
+          "score": 0.021240234375
+        }
+      ],
+      "false_positives": 9,
+      "image_id": 1332,
+      "prediction_count": 17,
+      "stratum": "positive_area_q1",
+      "true_positives": 8,
+      "truth_box_count": 8,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 13,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.0267333984375
+        },
+        {
+          "best_iou_to_any_truth": 0.04721206701821389,
+          "category": "semantic_false_positive",
+          "score": 0.0244140625
+        },
+        {
+          "best_iou_to_any_truth": 0.17371322504851194,
+          "category": "localization_false_positive",
+          "score": 0.0223388671875
+        },
+        {
+          "best_iou_to_any_truth": 0.06733796779608914,
+          "category": "semantic_false_positive",
+          "score": 0.02197265625
+        }
+      ],
+      "false_positives": 4,
+      "image_id": 3507,
+      "prediction_count": 10,
+      "stratum": "positive_area_q1",
+      "true_positives": 6,
+      "truth_box_count": 6,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 9,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0361328125
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0284423828125
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0233154296875
+        }
+      ],
+      "false_positives": 3,
+      "image_id": 4622,
+      "prediction_count": 3,
+      "stratum": "dataset_gt_empty",
+      "true_positives": 0,
+      "truth_box_count": 0,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 22,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.027587890625
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0272216796875
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0240478515625
+        }
+      ],
+      "false_positives": 3,
+      "image_id": 4031,
+      "prediction_count": 3,
+      "stratum": "dataset_gt_empty",
+      "true_positives": 0,
+      "truth_box_count": 0,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 39,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.3564735197674984,
+          "category": "localization_false_positive",
+          "score": 0.042724609375
+        },
+        {
+          "best_iou_to_any_truth": 0.005057650208143849,
+          "category": "semantic_false_positive",
+          "score": 0.03515625
+        },
+        {
+          "best_iou_to_any_truth": 0.36379179562331526,
+          "category": "localization_false_positive",
+          "score": 0.031982421875
+        }
+      ],
+      "false_positives": 3,
+      "image_id": 2308,
+      "prediction_count": 4,
+      "stratum": "positive_area_q1",
+      "true_positives": 1,
+      "truth_box_count": 1,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 18,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.03369140625
+        },
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.0240478515625
+        }
+      ],
+      "false_positives": 2,
+      "image_id": 1841,
+      "prediction_count": 2,
+      "stratum": "dataset_gt_empty",
+      "true_positives": 0,
+      "truth_box_count": 0,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 8,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "empty_gt_false_positive",
+          "score": 0.04150390625
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 1789,
+      "prediction_count": 1,
+      "stratum": "dataset_gt_empty",
+      "true_positives": 0,
+      "truth_box_count": 0,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 11,
+      "false_negatives": 1,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.053869969509478234,
+          "category": "semantic_false_positive",
+          "score": 0.0771484375
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 4352,
+      "prediction_count": 12,
+      "stratum": "positive_area_q2",
+      "true_positives": 11,
+      "truth_box_count": 12,
+      "unmatched_truth_indices": [
+        11
+      ]
+    },
+    {
+      "cell": 20,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.007663740326235041,
+          "category": "semantic_false_positive",
+          "score": 0.0240478515625
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 3089,
+      "prediction_count": 2,
+      "stratum": "positive_area_q1",
+      "true_positives": 1,
+      "truth_box_count": 1,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 29,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.053466796875
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 3833,
+      "prediction_count": 2,
+      "stratum": "positive_area_q4",
+      "true_positives": 1,
+      "truth_box_count": 1,
+      "unmatched_truth_indices": []
+    },
+    {
+      "cell": 46,
+      "false_negatives": 0,
+      "false_positive_details": [
+        {
+          "best_iou_to_any_truth": 0.0,
+          "category": "semantic_false_positive",
+          "score": 0.0267333984375
+        }
+      ],
+      "false_positives": 1,
+      "image_id": 1699,
+      "prediction_count": 3,
+      "stratum": "positive_area_q2",
+      "true_positives": 2,
+      "truth_box_count": 2,
+      "unmatched_truth_indices": []
+    }
+  ],
+  "false_positive_score_summary": {
+    "count": 29,
+    "maximum": 0.0771484375,
+    "median": 0.0267333984375,
+    "minimum": 0.021240234375
+  },
+  "false_positive_type_counts": {
+    "empty_gt_false_positive": 9,
+    "localization_false_positive": 3,
+    "semantic_false_positive": 17
+  },
+  "fresh_round_constraint": "Do not alter the v20 threshold, checkpoint, or audit decision. A v21 intervention may use the now-revealed v20 audit examples for explicit positive and hard-negative replay only after a new independent v21 audit is frozen.",
+  "match_iou": 0.5,
+  "matched_prediction_score_summary": {
+    "count": 91,
+    "maximum": 0.1513671875,
+    "median": 0.05029296875,
+    "minimum": 0.0223388671875
+  },
+  "per_stratum": {
+    "dataset_gt_empty": {
+      "false_negatives": 0,
+      "false_positives": 9,
+      "images": 8,
+      "predictions": 9,
+      "true_positives": 0,
+      "truth_boxes": 0
+    },
+    "positive_area_q1": {
+      "false_negatives": 1,
+      "false_positives": 17,
+      "images": 10,
+      "predictions": 48,
+      "true_positives": 31,
+      "truth_boxes": 32
+    },
+    "positive_area_q2": {
+      "false_negatives": 3,
+      "false_positives": 2,
+      "images": 10,
+      "predictions": 31,
+      "true_positives": 29,
+      "truth_boxes": 32
+    },
+    "positive_area_q3": {
+      "false_negatives": 1,
+      "false_positives": 0,
+      "images": 10,
+      "predictions": 14,
+      "true_positives": 14,
+      "truth_boxes": 15
+    },
+    "positive_area_q4": {
+      "false_negatives": 2,
+      "false_positives": 1,
+      "images": 10,
+      "predictions": 18,
+      "true_positives": 17,
+      "truth_boxes": 19
+    }
+  },
+  "report_sha256": "1c611b00d5d66a61beca9f516987b13ec5e8ff38c16e179094fcc1b4d558598c",
+  "root_cause_summary": {
+    "precision_gate_failure": "The frozen checkpoint produced 29 false positives against 91 true positives, so the preregistered 0.85 precision gate failed at 0.7583.",
+    "rendering_bug": false,
+    "threshold_retuning_allowed": false
+  },
+  "schema_version": 1,
+  "scope": "frozen_one_shot_audit_box_evidence_only",
+  "score_threshold": 0.021,
+  "sealed_reserve_pixels_read": 0,
+  "source_files": {
+    "audit_evidence_file_sha256": "222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a",
+    "audit_manifest_file_sha256": "c15c64bc1043f2ff39517c838114bc62d32f6d09e99eecf881bcdf273a2acac1",
+    "training_report_file_sha256": "415012415df1000c326d3551d60855cb87dd70543315f3b58b004f17052c4b62"
+  },
+  "source_image_pixels_read": 0,
+  "status": "v20_numeric_failure_diagnosed_without_new_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

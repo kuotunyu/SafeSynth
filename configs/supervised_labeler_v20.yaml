@@ -371,6 +371,35 @@ numeric_audit_outcome:
   model_review_rendered: false
   owner_model_review_requested: false
 
+numeric_failure_diagnosis:
+  status: "v20_numeric_failure_diagnosed_without_new_inference"
+  report_path: >-
+    reports/supervised_labeler_v20_numeric_failure_diagnosis.json
+  report_file_sha256: >-
+    a8ffe3060370127dba1ab8ac23e410607952758fa974d9c76bcab89c989dd416
+  report_sha256: >-
+    1c611b00d5d66a61beca9f516987b13ec5e8ff38c16e179094fcc1b4d558598c
+  false_positive_type_counts:
+    empty_gt_false_positive: 9
+    localization_false_positive: 3
+    semantic_false_positive: 17
+  concentrated_false_positive_cells:
+    - 34
+    - 13
+    - 9
+    - 22
+    - 39
+  false_negative_cells:
+    - 41
+    - 2
+    - 11
+    - 21
+    - 23
+    - 36
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
