@@ -1,10 +1,10 @@
 schema_version: 1
 experiment_id: supervised_labeler_v23
-status: model_intervention_preregistered_split_pending
+status: split_frozen_cpu_preflight_pending
 architecture: rtdetr_v2_r101vd_helmet_only
 split_seed: 20260807
 training_seed: 20260809
-split_manifest_sha256: pending_split_freeze
+split_manifest_sha256: 0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4
 model:
   repo_id: PekingU/rtdetr_v2_r101vd
   revision: 2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a
@@ -278,6 +278,29 @@ independence_registration:
   sealed_reserve_pixels_read: 0
   validation_images_read: 0
   test_images_read: 0
+split_outcome:
+  status: frozen_before_supervised_training
+  split_path: splits/supervised_labeler_v23_split.json
+  split_file_sha256: 41af8bbd4ab07bb76002eceee093331ba75d8b7d47100d753c00b1d6faa78123
+  split_manifest_sha256: 0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4
+  report_path: reports/supervised_labeler_v23_split.md
+  report_file_sha256: 6de019e9c2e3fa1934d0900afaf4d19e15e2b80c84e3cdc57817ad5de7f25645
+  training_images: 2193
+  training_groups: 2114
+  training_helmet_annotations: 8386
+  calibration_images: 621
+  untouched_audit_images: 48
+  v23_reserved_groups: 96
+  v23_prior_training_groups_removed: 96
+  v22_revealed_audit_groups: 48
+  v22_nonselected_excluded_groups: 48
+  owner_miss_replay_images: 28
+  positive_error_replay_images: 15
+  hard_negative_error_replay_images: 45
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
 generation_gate:
   allowed: false
   reason: The v23 five-image replay intervention and independent audit are frozen. A leakage-free
