@@ -107,6 +107,15 @@ from scripts.prepare_supervised_labeler_v21_gt_review import (
 from scripts.prepare_supervised_labeler_v21_gt_review import (
     POOL_PATH as V21_GT_POOL_PATH,
 )
+from scripts.prepare_supervised_labeler_v22_gt_review import (
+    CONFIG_PATH as V22_GT_CONFIG_PATH,
+)
+from scripts.prepare_supervised_labeler_v22_gt_review import (
+    EVIDENCE_PATH as V22_GT_EVIDENCE_PATH,
+)
+from scripts.prepare_supervised_labeler_v22_gt_review import (
+    POOL_PATH as V22_GT_POOL_PATH,
+)
 from scripts.record_supervised_labeler_v6_review import (
     build_review_evidence,
     parse_problem_cells,
@@ -3189,6 +3198,65 @@ def test_v21_intervention_is_preregistered_before_pool_pixels() -> None:
         path = PROJECT_ROOT / page["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+
+
+def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
+    config = yaml.safe_load(V22_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    intervention = config["future_v22_intervention"]
+    changes = intervention["model_facing_changes"]
+    evidence = intervention["revealed_development_evidence"]
+
+    assert config["status"] == "preregistered_before_pool_freeze"
+    assert intervention["status"] == (
+        "preregistered_before_v22_pool_pixels_or_training"
+    )
+    assert intervention["initialization"] == "pinned_base_checkpoint_only"
+    assert evidence["failed_gate"] == "numeric_audit_recall"
+    assert evidence["numeric_audit_passed"] is False
+    assert evidence["true_positives"] == 70
+    assert evidence["false_positives"] == 11
+    assert evidence["false_negatives"] == 34
+    assert evidence["false_negative_counts_by_stratum"] == {
+        "positive_area_q1": 11,
+        "positive_area_q2": 15,
+        "positive_area_q3": 6,
+        "positive_area_q4": 2,
+    }
+    assert set(evidence["false_negative_image_ids"]).issubset(
+        changes["owner_miss_replay_image_ids"]
+    )
+    assert set(evidence["false_positive_image_ids"]).issubset(
+        changes["hard_negative_error_replay_image_ids"]
+    )
+    assert changes[
+        "include_v21_audit_gt_as_revealed_training_development"
+    ]
+    assert changes["empty_image_weight"] == 9.0
+    assert changes["small_helmet_weight"] == 4.0
+    assert changes["owner_miss_replay_weight"] == 40.0
+    assert changes["positive_error_replay_weight"] == 12.0
+    assert changes["hard_negative_error_replay_weight"] == 28.0
+    assert changes["overlap_policy"] == "maximum_weight"
+    assert changes["epochs"] == 8
+    assert changes["min_calibration_precision"] == 0.90
+    assert changes["min_audit_precision"] == 0.85
+    assert intervention["held_constant"]["audit_min_recall"] == 0.70
+    assert intervention["held_constant"][
+        "audit_min_median_matched_iou"
+    ] == 0.60
+    for path_key, hash_key in (
+        ("training_report", "training_report_file_sha256"),
+        ("audit_evidence", "audit_evidence_file_sha256"),
+        ("diagnosis", "diagnosis_file_sha256"),
+    ):
+        assert hashlib.sha256(
+            (PROJECT_ROOT / evidence[path_key]).read_bytes()
+        ).hexdigest() == evidence[hash_key]
+    assert not V22_GT_POOL_PATH.exists()
+    assert not V22_GT_EVIDENCE_PATH.exists()
+    assert config["independence_boundary"]["validation_images_read"] == 0
+    assert config["independence_boundary"]["test_images_read"] == 0
+    assert config["generation_gate"]["allowed"] is False
 
 
 def test_v21_gt_adjudication_quarantines_cells_11_33_and_35() -> None:
