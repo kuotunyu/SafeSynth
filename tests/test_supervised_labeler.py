@@ -430,6 +430,13 @@ V21_NUMERIC_DIAGNOSIS_PATH = (
     / "reports"
     / "supervised_labeler_v21_numeric_failure_diagnosis.json"
 )
+V22_CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v22.yaml"
+V22_SPLIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v22_split.json"
+)
+V22_PREFLIGHT_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v22_preflight.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3544,6 +3551,57 @@ def test_v21_model_intervention_is_frozen_before_split_or_training() -> None:
     assert hashlib.sha256(
         V21_ADJUDICATED_AUDIT_PATH.read_bytes()
     ).hexdigest() == registration["audit_manifest_file_sha256"]
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    gt_config = yaml.safe_load(
+        V22_GT_CONFIG_PATH.read_text(encoding="utf-8")
+    )
+    sampling = config["sampling"]
+    preregistered = gt_config["future_v22_intervention"][
+        "model_facing_changes"
+    ]
+    registration = config["independence_registration"]
+
+    assert config["status"] == "preregistered_before_split_freeze"
+    assert config["split_manifest_sha256"] == "pending_split_freeze"
+    assert config["optimization"]["initialization"] == (
+        "pinned_base_checkpoint_only"
+    )
+    assert config["optimization"]["epochs"] == 8
+    for key in (
+        "empty_image_weight",
+        "small_helmet_weight",
+        "owner_miss_replay_image_ids",
+        "owner_miss_replay_weight",
+        "positive_error_replay_image_ids",
+        "positive_error_replay_weight",
+        "hard_negative_error_replay_image_ids",
+        "hard_negative_error_replay_weight",
+        "overlap_policy",
+    ):
+        assert sampling[key] == preregistered[key]
+    assert config["calibration"]["min_precision"] == 0.90
+    assert config["audit_gate"]["min_precision"] == 0.85
+    assert config["audit_gate"]["min_recall"] == 0.70
+    assert config["postprocessing"]["max_outside_fraction"] == 0.10
+    assert registration["status"] == "frozen_before_v22_split_or_training"
+    assert registration["base_checkpoint_only"] is True
+    assert registration["v22_training_started"] is False
+    assert registration["audit_model_inference_run"] is False
+    assert registration["sealed_reserve_pixels_read"] == 0
+    assert registration["validation_images_read"] == 0
+    assert registration["test_images_read"] == 0
+    assert hashlib.sha256(
+        V22_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == registration["gt_owner_review_file_sha256"]
+    assert hashlib.sha256(
+        V22_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == registration["audit_manifest_file_sha256"]
+    assert not V22_SPLIT_PATH.exists()
+    assert not V22_PREFLIGHT_PATH.exists()
     assert config["generation_gate"]["allowed"] is False
 
 

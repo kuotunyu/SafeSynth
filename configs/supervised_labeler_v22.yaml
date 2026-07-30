@@ -1,0 +1,296 @@
+schema_version: 1
+experiment_id: "supervised_labeler_v22"
+status: "preregistered_before_split_freeze"
+architecture: "rtdetr_v2_r101vd_helmet_only"
+split_seed: 20260806
+training_seed: 20260809
+split_manifest_sha256: "pending_split_freeze"
+
+model:
+  repo_id: "PekingU/rtdetr_v2_r101vd"
+  revision: "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a"
+  license: "apache-2.0"
+  transformers_version: "5.14.1"
+  required_download_bytes: 307337786
+  allow_files:
+    config.json: 5342
+    model.safetensors: 307332000
+    preprocessor_config.json: 444
+  local_files_only: true
+  image_size: 640
+
+data:
+  source_split: "train_only"
+  category: "helmet"
+  category_id_after_remap: 0
+  calibration_source: "v11_revealed_calibration_and_audit_history"
+  independent_audit_manifest: >-
+    splits/supervised_labeler_v22_adjudicated_audit.json
+  include_owner_approved_v21_audit_groups_in_training: true
+  exclude_v12_primary_and_sealed_reserve_groups_from_model_data: true
+  exclude_v13_sealed_reserve_groups_from_model_data: true
+  exclude_v14_sealed_reserve_groups_from_model_data: true
+  exclude_v15_sealed_reserve_groups_from_model_data: true
+  exclude_v16_nonselected_pool_groups_from_model_data: true
+  exclude_v17_nonselected_pool_groups_from_model_data: true
+  exclude_v18_nonselected_pool_groups_from_model_data: true
+  exclude_v19_nonselected_pool_groups_from_model_data: true
+  exclude_v21_nonselected_pool_groups_from_model_data: true
+  exclude_v22_primary_and_sealed_reserve_groups_from_model_data: true
+  new_untouched_audit_images: 48
+  quarantined_gt_defect_or_ambiguous_image_ids:
+    - 1171
+    - 3060
+    - 4155
+    - 4364
+    - 3272
+    - 837
+    - 2686
+    - 243
+    - 787
+    - 2117
+    - 1767
+    - 2225
+    - 3859
+    - 3903
+    - 4378
+    - 3923
+    - 4901
+    - 4479
+    - 2888
+    - 2106
+    - 2422
+    - 2342
+    - 4957
+    - 869
+    - 3775
+    - 1108
+  validation_images_read: 0
+  test_images_read: 0
+
+input_normalization:
+  method: "reflected_padding_normalize_cover_crop"
+  implementation: "src.synthetic.compose.normalize_reflected_padding"
+  output_shape: "source_native"
+  transform_helmet_annotations: true
+  guard:
+    action: "normalize_cover_crop"
+    min_pad_px: 8
+    max_pad_fraction: 0.31
+    orthogonal_sample_size: 64
+    max_pair_mae: 3.0
+    min_pair_correlation: 0.97
+    min_texture_std: 5.0
+
+sampling:
+  strategy: "deterministic_weighted_replacement"
+  epoch_samples: "training_image_count"
+  empty_image_weight: 9.0
+  close_helmet_pair_weight: 2.0
+  close_pair_center_distance_over_mean_sqrt_area_max: 1.0
+  small_helmet_weight: 4.0
+  small_helmet_relative_area_max: 0.0075
+  large_helmet_weight: 6.0
+  large_helmet_relative_area_min: 0.15
+  near_image_edge_helmet_weight: 4.0
+  near_image_edge_margin_fraction: 0.05
+  owner_miss_replay_image_ids:
+    - 1
+    - 118
+    - 462
+    - 684
+    - 857
+    - 1130
+    - 1384
+    - 1450
+    - 1666
+    - 1965
+    - 2480
+    - 2595
+    - 2755
+    - 2892
+    - 3117
+    - 3218
+    - 3598
+    - 3651
+    - 3926
+    - 4187
+    - 4352
+    - 4401
+    - 4452
+    - 4582
+    - 4844
+    - 4924
+  owner_miss_replay_weight: 40.0
+  positive_error_replay_image_ids:
+    - 361
+    - 551
+    - 688
+    - 774
+    - 1661
+    - 2171
+    - 2534
+    - 3313
+    - 3475
+    - 3605
+    - 3734
+    - 4051
+    - 4151
+    - 4363
+    - 4437
+  positive_error_replay_weight: 12.0
+  hard_negative_error_replay_image_ids:
+    - 210
+    - 361
+    - 774
+    - 1241
+    - 1332
+    - 1384
+    - 1547
+    - 1635
+    - 1699
+    - 1753
+    - 1789
+    - 1841
+    - 1873
+    - 2061
+    - 2262
+    - 2308
+    - 2580
+    - 2689
+    - 2732
+    - 2755
+    - 2829
+    - 2904
+    - 2910
+    - 2941
+    - 3089
+    - 3138
+    - 3218
+    - 3428
+    - 3507
+    - 3833
+    - 3934
+    - 4026
+    - 4031
+    - 4086
+    - 4100
+    - 4151
+    - 4352
+    - 4565
+    - 4618
+    - 4622
+    - 4826
+    - 4963
+  hard_negative_error_replay_weight: 28.0
+  overlap_policy: "maximum_weight"
+  selection_basis: >-
+    Preregistered in configs/supervised_labeler_v22_gt_review.yaml before any
+    v22 pool pixels or training were opened. Exact v21 miss images receive
+    positive replay weight 40, general small-helmet examples receive weight 4,
+    and v21 false-positive images receive hard-negative replay weight 28.
+
+optimization:
+  epochs: 8
+  train_batch_size: 8
+  eval_batch_size: 8
+  learning_rate: 0.0001
+  backbone_lr_multiplier: 0.1
+  weight_decay: 0.0001
+  warmup_steps: 500
+  max_grad_norm: 0.1
+  precision: "bf16"
+  dataloader_num_workers: 0
+  checkpoint_selection: "best_calibration_f1_at_precision_floor"
+  initialization: "pinned_base_checkpoint_only"
+  seed_selection_basis: "reuse_v11_v21_training_seed"
+
+postprocessing:
+  max_relative_area: 0.70
+  max_relative_height: 0.90
+  min_aspect_ratio: 0.20
+  max_aspect_ratio: 4.0
+  max_outside_fraction: 0.10
+  selection_basis: >-
+    All geometry limits are held constant from v21. The v21 errors are
+    addressed through preregistered data replay rather than post-audit
+    geometry editing.
+
+calibration:
+  score_thresholds:
+    - 0.005
+    - 0.0075
+    - 0.010
+    - 0.0125
+    - 0.015
+    - 0.018
+    - 0.019
+    - 0.020
+    - 0.021
+    - 0.022
+    - 0.023
+    - 0.024
+    - 0.025
+    - 0.026
+    - 0.027
+    - 0.028
+    - 0.030
+    - 0.035
+    - 0.040
+    - 0.050
+  match_iou: 0.50
+  min_precision: 0.90
+  selection_basis: >-
+    Held constant from the preregistered v21 calibration floor so the fresh
+    audit measures the replay intervention rather than threshold tuning.
+
+audit_gate:
+  min_precision: 0.85
+  min_recall: 0.70
+  min_median_matched_iou: 0.60
+  single_final_read: true
+
+human_review_gate:
+  required_after_numeric_pass: true
+  reviewer: "kuotunyu"
+  approve_only_if_problem_count: 0
+  exact_box_sidecar_required: true
+  separated_panels:
+    - "dataset_gt_green"
+    - "model_magenta"
+    - "overlay"
+  reject_categories:
+    - "background_or_unworn_helmet_false_positive"
+    - "missed_worn_helmeted_head"
+    - "merged_multiple_helmeted_heads"
+    - "bad_localization"
+    - "other_visual_failure"
+
+independence_registration:
+  status: "frozen_before_v22_split_or_training"
+  gt_review_config: "configs/supervised_labeler_v22_gt_review.yaml"
+  gt_owner_review: "reports/supervised_labeler_v22_gt_owner_review.json"
+  gt_owner_review_file_sha256: >-
+    0c53c80ebdae8a71fdb603f4a023a30ec568cae5134f7df9eb9c8e676194a994
+  gt_owner_review_sha256: >-
+    729da4507dd53a16a3d6118203e68496bf0f6beb6c7de5813269f8347defdb48
+  audit_manifest: "splits/supervised_labeler_v22_adjudicated_audit.json"
+  audit_manifest_file_sha256: >-
+    e70748657fa5f93bc7b589beff071cd6726d44ab2153c1a375317955123ad103
+  audit_manifest_sha256: >-
+    f150f3b580498e405c272647da041a2d01e4ed0e83f9eeba5243b219d4a4512b
+  v22_reserved_groups: 96
+  v21_owner_approved_audit_groups_allowed_as_revealed_training_data: true
+  prior_sealed_development_groups_excluded: true
+  base_checkpoint_only: true
+  v22_training_started: false
+  audit_model_inference_run: false
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+
+generation_gate:
+  allowed: false
+  reason: >-
+    v22 model intervention is registered, but split freeze, CPU preflight, GPU
+    smoke, base-only training, and the independent audit are still required.
