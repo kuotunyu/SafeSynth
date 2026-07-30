@@ -410,6 +410,11 @@ V21_TRAINING_REPORT_PATH = (
 V21_AUDIT_EVIDENCE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v21_audit_evidence.json"
 )
+V21_NUMERIC_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v21_numeric_failure_diagnosis.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3530,6 +3535,47 @@ def test_v21_numeric_audit_fails_recall_and_blocks_model_review() -> None:
     assert outcome["model_review_rendered"] is False
     assert outcome["owner_model_review_requested"] is False
     assert config["generation_gate"]["allowed"] is False
+
+
+def test_v21_numeric_failure_diagnosis_uses_frozen_boxes_only() -> None:
+    config = load_supervised_labeler_config(V21_CONFIG_PATH)
+    registration = config["numeric_failure_diagnosis"]
+    diagnosis = json.loads(
+        V21_NUMERIC_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+
+    assert hashlib.sha256(
+        V21_NUMERIC_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == registration["report_file_sha256"]
+    assert diagnosis["report_sha256"] == registration["report_sha256"]
+    assert diagnosis["aggregate"] == {
+        "false_negatives": 34,
+        "false_positives": 11,
+        "true_positives": 70,
+    }
+    assert diagnosis["false_positive_type_counts"] == {
+        "empty_gt_false_positive": 5,
+        "semantic_false_positive": 6,
+    }
+    assert diagnosis["per_stratum"]["positive_area_q1"][
+        "false_negatives"
+    ] == 11
+    assert diagnosis["per_stratum"]["positive_area_q2"][
+        "false_negatives"
+    ] == 15
+    assert diagnosis["per_stratum"]["positive_area_q3"][
+        "false_negatives"
+    ] == 6
+    assert diagnosis["per_stratum"]["positive_area_q4"][
+        "false_negatives"
+    ] == 2
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    assert diagnosis["sealed_reserve_pixels_read"] == 0
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
+    assert diagnosis["root_cause_summary"]["threshold_retuning_allowed"] is False
 
 
 def test_v20_split_replays_v19_errors_and_stays_independent() -> None:
