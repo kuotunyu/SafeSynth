@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v23_gt_review"
-status: "gt_only_primary_review_pending_owner"
+status: "gt_only_primary_adjudicated_three_images_quarantined"
 source_split: "Train"
 split_seed: 20260807
 
@@ -250,9 +250,35 @@ render_outcome:
         af8f3f11debd567086893641c58296479dbe9564b74865fe226cb8b19cd52650
       cells: [49, 64]
 
+owner_adjudication_outcome:
+  status: "v23_adjudicated_audit_frozen_before_training"
+  owner_review_path: "reports/supervised_labeler_v23_gt_owner_review.json"
+  owner_review_file_sha256: >-
+    c7fcda6634af91f9b288c171a9799e939cb141dc24aa6ce814ebf62ec0fd35ae
+  owner_review_sha256: >-
+    ed9c3cc8849b66877e81debd26d96961282079cd8850f2de6e12719f2d9ed77d
+  adjudicated_audit_path: >-
+    splits/supervised_labeler_v23_adjudicated_audit.json
+  adjudicated_audit_file_sha256: >-
+    8f85a47dea74f4143eea63fff0bcc830cf4988fa08c465f386409c4fe1c22e34
+  adjudicated_audit_sha256: >-
+    a222ff5102cc135d659428fac8a264ee554d00c54d73df5bc756ef965fde1b04
+  reviewed_primary_images: 64
+  passed_primary_images: 61
+  quarantined_primary_images: 3
+  quarantined_cells: [5, 18, 52]
+  selected_audit_images: 48
+  valid_primary_surplus_images: 13
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
 generation_gate:
   allowed: false
   reason: >-
-    The v23 intervention and independent GT-only pool are frozen, but the 64
-    rendered primary GT cases are awaiting kuotunyu's green-box review. No
-    v23 model training, inference, or whole-image generation is allowed.
+    kuotunyu reviewed all 64 v23 primary GT-only cases. Complete images 05,
+    18, and 52 were quarantined, and a clean independent 48-image audit is
+    frozen without reserve reads. The v23 model split, CPU preflight, GPU
+    smoke, formal training, numeric audit, and owner model review remain
+    required before generation.

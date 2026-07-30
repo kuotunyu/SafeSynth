@@ -470,6 +470,12 @@ V23_GT_POOL_PATH = (
 V23_GT_EVIDENCE_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v23_gt_review.json"
 )
+V23_GT_OWNER_REVIEW_PATH = (
+    PROJECT_ROOT / "reports" / "supervised_labeler_v23_gt_owner_review.json"
+)
+V23_ADJUDICATED_AUDIT_PATH = (
+    PROJECT_ROOT / "splits" / "supervised_labeler_v23_adjudicated_audit.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3923,7 +3929,9 @@ def test_v23_intervention_is_preregistered_from_v22_owner_errors() -> None:
     changes = intervention["model_facing_changes"]
     held = intervention["held_constant"]
 
-    assert config["status"] == "gt_only_primary_review_pending_owner"
+    assert config["status"] == (
+        "gt_only_primary_adjudicated_three_images_quarantined"
+    )
     assert intervention["status"] == (
         "preregistered_before_v23_pool_pixels_or_training"
     )
@@ -4045,6 +4053,67 @@ def test_v23_gt_primary_render_has_no_model_boxes_or_reserve_pixels() -> None:
         assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
             page["sha256"]
         )
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v23_gt_adjudication_quarantines_cells_5_18_and_52() -> None:
+    config = yaml.safe_load(V23_GT_CONFIG_PATH.read_text(encoding="utf-8"))
+    outcome = config["owner_adjudication_outcome"]
+    review = json.loads(
+        V23_GT_OWNER_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    audit = json.loads(
+        V23_ADJUDICATED_AUDIT_PATH.read_text(encoding="utf-8")
+    )
+    canonical_review = dict(review)
+    review_sha = canonical_review.pop("review_sha256")
+    canonical_audit = dict(audit)
+    audit_sha = canonical_audit.pop("manifest_sha256")
+
+    assert hashlib.sha256(
+        V23_GT_OWNER_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["owner_review_file_sha256"]
+    assert canonical_mapping_sha256(canonical_review) == review_sha
+    assert review_sha == outcome["owner_review_sha256"]
+    assert review["status"] == (
+        "v23_gt_only_primary_adjudicated_three_quarantines"
+    )
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["reviewed_on"] == "2026-07-31"
+    assert review["pass_images"] == 61
+    assert review["problem_images"] == 3
+    assert review["categories"] == {
+        "ambiguous_cells": [],
+        "dataset_gt_false_positive_cells": [5, 18, 52],
+        "dataset_gt_localization_cells": [],
+        "dataset_gt_miss_cells": [],
+        "uncertain_cells": [],
+    }
+    assert hashlib.sha256(
+        V23_ADJUDICATED_AUDIT_PATH.read_bytes()
+    ).hexdigest() == outcome["adjudicated_audit_file_sha256"]
+    assert canonical_mapping_sha256(canonical_audit) == audit_sha
+    assert audit_sha == outcome["adjudicated_audit_sha256"]
+    assert audit["status"] == (
+        "v23_adjudicated_audit_frozen_before_training"
+    )
+    assert audit["selected_images"] == 48
+    assert audit["selected_stratum_counts"] == {
+        "dataset_gt_empty": 8,
+        "positive_area_q1": 10,
+        "positive_area_q2": 10,
+        "positive_area_q3": 10,
+        "positive_area_q4": 10,
+    }
+    assert audit["valid_primary_surplus_images"] == 13
+    assert audit["quarantined_primary_images"] == 3
+    assert {
+        int(row["primary_cell"]) for row in audit["quarantined_primary_cases"]
+    } == {5, 18, 52}
+    assert audit["sealed_reserve_pixels_read"] == 0
+    assert audit["model_inference_run"] is False
+    assert audit["validation_images_read"] == 0
+    assert audit["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
 
 
