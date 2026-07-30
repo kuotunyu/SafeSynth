@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v21"
-status: "cpu_preflight_passed_gpu_smoke_waiting"
+status: "gpu_smoke_passed_training_ready"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260805
 training_seed: 20260809
@@ -320,9 +320,24 @@ cpu_preflight_outcome:
   gpu_work_run: false
   whole_image_generation_run: false
 
+gpu_smoke_outcome:
+  status: "smoke_passed"
+  report_path: "reports/supervised_labeler_v21_smoke.json"
+  report_file_sha256: >-
+    de009c6701f016aee4274fe4279def022901d07129679b18c36fea99298a5710
+  batch_size: 8
+  helmet_boxes: 24
+  loss: 388.12371826171875
+  peak_vram_gib: 9.315726280212402
+  untouched_audit_images_read: 0
+  sealed_reserve_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v21 GT adjudication, replay intervention, and leakage-free split are
-    frozen and CPU preflight passed. GPU smoke, base-only training, one-shot
+    frozen; CPU preflight and GPU smoke passed. Base-only training, one-shot
     numeric audit, and a zero-problem owner model review are still required.

@@ -1,0 +1,10 @@
+{
+  "batch_size": 8,
+  "helmet_boxes": 24,
+  "loss": 388.12371826171875,
+  "peak_vram_gib": 9.315726280212402,
+  "status": "smoke_passed",
+  "test_images_read": 0,
+  "untouched_audit_images_read": 0,
+  "validation_images_read": 0
+}
