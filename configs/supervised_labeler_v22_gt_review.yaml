@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22_gt_review"
-status: "preregistered_before_pool_freeze"
+status: "gt_only_pool_frozen_before_pixel_review"
 source_split: "Train"
 split_seed: 20260806
 
@@ -302,6 +302,23 @@ future_v22_intervention:
     audit_min_median_matched_iou: 0.60
     calibration_threshold_grid: "v21"
 
+freeze_outcome:
+  status: "v22_gt_only_pool_frozen_before_pixel_review_or_training"
+  pool_path: "splits/supervised_labeler_v22_gt_pool.json"
+  pool_file_sha256: >-
+    31991595e8017a6db08f8016c81d1a6ab9e1158c2b22f333cf2a207e14de4180
+  manifest_sha256: >-
+    88514d31285ba896cb3d60a7ea0c153620b9a11774a6dbedd38545fee1a2935b
+  excluded_group_count: 1584
+  primary_images: 64
+  sealed_reserve_images: 32
+  future_v22_training_exclusion_groups: 96
+  primary_pixels_read: 0
+  sealed_reserve_pixels_read: 0
+  model_inference_run: false
+  validation_images_read: 0
+  test_images_read: 0
+
 gpu_schedule:
   smoke_estimate_minutes: [1, 3]
   formal_training_and_calibration_estimate_minutes: [28, 42]
@@ -311,5 +328,6 @@ gpu_schedule:
 generation_gate:
   allowed: false
   reason: >-
-    v22 intervention is preregistered, but the independent GT pool has not yet
-    been frozen or reviewed. No v22 model work is allowed yet.
+    v22 intervention and the independent GT-only pool are frozen, but primary
+    pixels have not yet been rendered or reviewed. No v22 model work is
+    allowed yet.

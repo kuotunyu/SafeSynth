@@ -3206,7 +3206,7 @@ def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
     changes = intervention["model_facing_changes"]
     evidence = intervention["revealed_development_evidence"]
 
-    assert config["status"] == "preregistered_before_pool_freeze"
+    assert config["status"] == "gt_only_pool_frozen_before_pixel_review"
     assert intervention["status"] == (
         "preregistered_before_v22_pool_pixels_or_training"
     )
@@ -3252,7 +3252,27 @@ def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
         assert hashlib.sha256(
             (PROJECT_ROOT / evidence[path_key]).read_bytes()
         ).hexdigest() == evidence[hash_key]
-    assert not V22_GT_POOL_PATH.exists()
+    pool = json.loads(V22_GT_POOL_PATH.read_text(encoding="utf-8"))
+    canonical_pool = dict(pool)
+    pool_sha = canonical_pool.pop("manifest_sha256")
+    assert canonical_mapping_sha256(canonical_pool) == pool_sha
+    assert pool["status"] == (
+        "v22_gt_only_pool_frozen_before_pixel_review_or_training"
+    )
+    assert pool_sha == config["freeze_outcome"]["manifest_sha256"]
+    assert pool["excluded_group_count"] == 1584
+    assert pool["primary_images"] == 64
+    assert pool["sealed_reserve_images"] == 32
+    assert len(pool["future_v22_training_exclusion_group_ids"]) == 96
+    assert pool["primary_pixels_read"] == 0
+    assert pool["sealed_reserve_pixels_read"] == 0
+    assert pool["model_inference_run"] is False
+    assert pool["v22_training_started"] is False
+    assert pool["validation_images_read"] == 0
+    assert pool["test_images_read"] == 0
+    assert hashlib.sha256(V22_GT_POOL_PATH.read_bytes()).hexdigest() == (
+        config["freeze_outcome"]["pool_file_sha256"]
+    )
     assert not V22_GT_EVIDENCE_PATH.exists()
     assert config["independence_boundary"]["validation_images_read"] == 0
     assert config["independence_boundary"]["test_images_read"] == 0
