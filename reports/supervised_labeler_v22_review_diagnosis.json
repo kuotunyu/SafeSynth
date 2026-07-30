@@ -1,0 +1,107 @@
+{
+  "diagnosis_model_inference_run": false,
+  "experiment_id": "supervised_labeler_v22",
+  "future_intervention_constraint": "Do not change the v22 threshold or geometry after audit. Replay miss image IDs 487 and 93 as positives and false-positive image IDs 2969, 972, and 3405 as hard negatives only in a preregistered fresh base-initialized model with a new independent audit.",
+  "match_iou": 0.5,
+  "report_sha256": "68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e",
+  "reported_cell_diagnoses": [
+    {
+      "cell": 4,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 2969,
+      "model_prediction_count": 1,
+      "owner_category": "model_false_positive",
+      "owner_detail": null,
+      "prediction_scores": [
+        0.040771484375
+      ],
+      "rendering_bug": false,
+      "true_positives": 0,
+      "truth_box_count": 0
+    },
+    {
+      "cell": 6,
+      "false_negatives": 1,
+      "false_positives": 0,
+      "image_id": 487,
+      "model_prediction_count": 1,
+      "owner_category": "model_missed_helmeted_head",
+      "owner_detail": null,
+      "prediction_scores": [
+        0.052734375
+      ],
+      "rendering_bug": false,
+      "true_positives": 1,
+      "truth_box_count": 2
+    },
+    {
+      "cell": 28,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 972,
+      "model_prediction_count": 1,
+      "owner_category": "model_false_positive",
+      "owner_detail": null,
+      "prediction_scores": [
+        0.046142578125
+      ],
+      "rendering_bug": false,
+      "true_positives": 0,
+      "truth_box_count": 0
+    },
+    {
+      "cell": 32,
+      "false_negatives": 0,
+      "false_positives": 1,
+      "image_id": 3405,
+      "model_prediction_count": 1,
+      "owner_category": "model_false_positive",
+      "owner_detail": "unworn_helmet_without_head",
+      "prediction_scores": [
+        0.08740234375
+      ],
+      "rendering_bug": false,
+      "true_positives": 0,
+      "truth_box_count": 0
+    },
+    {
+      "cell": 34,
+      "false_negatives": 1,
+      "false_positives": 1,
+      "image_id": 93,
+      "model_prediction_count": 5,
+      "owner_category": "model_missed_helmeted_head",
+      "owner_detail": null,
+      "prediction_scores": [
+        0.078125,
+        0.07373046875,
+        0.048095703125,
+        0.042724609375,
+        0.0361328125
+      ],
+      "rendering_bug": false,
+      "true_positives": 4,
+      "truth_box_count": 5
+    }
+  ],
+  "reported_cells_aggregate": {
+    "false_negatives": 2,
+    "false_positives": 4,
+    "true_positives": 5
+  },
+  "root_cause_summary": {
+    "false_positives": "The three owner-reported empty-GT cells each contain one model prediction. Cell 32 is specifically an unworn helmet without a head. The matcher also counts one unmatched prediction in owner-reported miss cell 34.",
+    "misses": "The two owner-reported positive cells contain two unmatched ground-truth worn helmeted heads at the frozen threshold.",
+    "rendering_bug": false
+  },
+  "schema_version": 1,
+  "scope": "frozen_audit_evidence_only",
+  "score_threshold": 0.035,
+  "source_image_pixels_read": 0,
+  "source_owner_review_sha256": "d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee",
+  "status": "v22_owner_review_diagnosed_without_new_inference",
+  "test_images_read": 0,
+  "validation_images_read": 0,
+  "whole_image_generation_run": false
+}

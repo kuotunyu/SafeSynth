@@ -1,6 +1,6 @@
 schema_version: 1
 experiment_id: "supervised_labeler_v22"
-status: "numeric_audit_passed_owner_model_review_pending"
+status: "owner_model_review_rejected"
 architecture: "rtdetr_v2_r101vd_helmet_only"
 split_seed: 20260806
 training_seed: 20260809
@@ -405,7 +405,7 @@ numeric_audit_outcome:
 
 model_review_registration:
   status: "supervised_labeler_v22_model_review_pages_frozen"
-  owner_review_status: "pending_kuotunyu"
+  owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v22_model_review_manifest.json"
   manifest_file_sha256: >-
     d8e78fbbe81c14a8dfa00463867c2d3a1f533994a5715df2c9e0b4efccc5b242
@@ -432,10 +432,43 @@ model_review_registration:
   test_images_read: 0
   whole_image_generation_run: false
 
+owner_model_review_outcome:
+  status: "rejected_by_kuotunyu"
+  review_path: "reports/supervised_labeler_v22_model_human_review.json"
+  review_file_sha256: >-
+    2453d3f8fe898904eda4b700daf2431fa08a12155cc1f000cd811f8d5951d499
+  review_sha256: >-
+    d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee
+  problem_count: 5
+  model_false_positive_cells: [4, 28, 32]
+  model_missed_helmeted_head_cells: [6, 34]
+  unworn_helmet_without_head_false_positive_cells: [32]
+  ambiguous_dataset_gt_quarantine_cells: []
+  numeric_audit_passed: true
+  owner_visual_gate_passed: false
+  generation_allowed: false
+
+owner_review_diagnosis:
+  status: "complete_without_new_inference"
+  report_path: "reports/supervised_labeler_v22_review_diagnosis.json"
+  report_file_sha256: >-
+    d9e64990569a0cec11f74954d9f299401b369a93ca0e3966d5fe3fb56da0c74f
+  report_sha256: >-
+    68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e
+  reported_cells_true_positives: 5
+  reported_cells_false_positives: 4
+  reported_cells_false_negatives: 2
+  diagnosis_model_inference_run: false
+  source_image_pixels_read: 0
+  validation_images_read: 0
+  test_images_read: 0
+  whole_image_generation_run: false
+
 generation_gate:
   allowed: false
   reason: >-
     v22 intervention, split, CPU preflight, GPU smoke, base-only training, and
-    the one-shot independent numeric audit passed. Generation remains closed
-    until kuotunyu reviews all 48 frozen separated-panel cases and reports
-    zero visual problems.
+    the one-shot independent numeric audit passed, but kuotunyu rejected the
+    frozen visual review. Cells 04, 28, and 32 contain semantic false
+    positives; cells 06 and 34 contain missed worn helmeted heads. A
+    preregistered fresh intervention and independent audit are required.

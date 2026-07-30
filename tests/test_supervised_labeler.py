@@ -451,6 +451,16 @@ V22_MODEL_REVIEW_MANIFEST_PATH = (
     / "reports"
     / "supervised_labeler_v22_model_review_manifest.json"
 )
+V22_MODEL_HUMAN_REVIEW_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v22_model_human_review.json"
+)
+V22_REVIEW_DIAGNOSIS_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "supervised_labeler_v22_review_diagnosis.json"
+)
 V13_PREFLIGHT_PATH = (
     PROJECT_ROOT / "reports" / "supervised_labeler_v13_preflight.json"
 )
@@ -3579,9 +3589,7 @@ def test_v22_model_intervention_is_frozen_before_split_or_training() -> None:
     ]
     registration = config["independence_registration"]
 
-    assert config["status"] == (
-        "numeric_audit_passed_owner_model_review_pending"
-    )
+    assert config["status"] == "owner_model_review_rejected"
     assert config["split_manifest_sha256"] == (
         "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c"
     )
@@ -3799,7 +3807,7 @@ def test_v22_owner_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["status"] == (
         "supervised_labeler_v22_model_review_pages_frozen"
     )
-    assert registration["owner_review_status"] == "pending_kuotunyu"
+    assert registration["owner_review_status"] == "rejected_by_kuotunyu"
     assert manifest["reviewed_images"] == 48
     assert manifest["checkpoint_epoch"] == 4
     assert manifest["score_threshold"] == pytest.approx(0.035)
@@ -3824,6 +3832,78 @@ def test_v22_owner_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["validation_images_read"] == 0
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_owner_rejection_and_frozen_evidence_are_canonical() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    outcome = config["owner_model_review_outcome"]
+    review = json.loads(
+        V22_MODEL_HUMAN_REVIEW_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(review)
+    embedded_sha = canonical.pop("review_sha256")
+
+    assert hashlib.sha256(
+        V22_MODEL_HUMAN_REVIEW_PATH.read_bytes()
+    ).hexdigest() == outcome["review_file_sha256"]
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == outcome["review_sha256"]
+    assert review["status"] == "rejected_by_kuotunyu"
+    assert review["reviewed_by"] == "kuotunyu"
+    assert review["reviewed_on"] == "2026-07-31"
+    assert review["problem_cells"] == [4, 6, 28, 32, 34]
+    assert review["categories"] == {
+        "ambiguous_dataset_gt_quarantine_cells": [],
+        "model_false_positive_cells": [4, 28, 32],
+        "model_missed_helmeted_head_cells": [6, 34],
+        "unworn_helmet_without_head_false_positive_cells": [32],
+    }
+    assert {
+        int(case["cell"]): int(case["image_id"])
+        for case in review["problem_cases"]
+    } == {
+        4: 2969,
+        6: 487,
+        28: 972,
+        32: 3405,
+        34: 93,
+    }
+    assert review["generation_allowed"] is False
+    assert review["validation_images_read"] == 0
+    assert review["test_images_read"] == 0
+    assert review["whole_image_generation_run"] is False
+    assert config["generation_gate"]["allowed"] is False
+
+
+def test_v22_owner_rejection_diagnosis_uses_no_new_inference() -> None:
+    config = load_supervised_labeler_config(V22_CONFIG_PATH)
+    outcome = config["owner_review_diagnosis"]
+    diagnosis = json.loads(
+        V22_REVIEW_DIAGNOSIS_PATH.read_text(encoding="utf-8")
+    )
+    canonical = dict(diagnosis)
+    embedded_sha = canonical.pop("report_sha256")
+
+    assert hashlib.sha256(
+        V22_REVIEW_DIAGNOSIS_PATH.read_bytes()
+    ).hexdigest() == outcome["report_file_sha256"]
+    assert canonical_mapping_sha256(canonical) == embedded_sha
+    assert embedded_sha == outcome["report_sha256"]
+    assert diagnosis["status"] == (
+        "v22_owner_review_diagnosed_without_new_inference"
+    )
+    assert diagnosis["reported_cells_aggregate"] == {
+        "false_negatives": 2,
+        "false_positives": 4,
+        "true_positives": 5,
+    }
+    assert diagnosis["root_cause_summary"]["rendering_bug"] is False
+    assert diagnosis["diagnosis_model_inference_run"] is False
+    assert diagnosis["source_image_pixels_read"] == 0
+    assert diagnosis["validation_images_read"] == 0
+    assert diagnosis["test_images_read"] == 0
+    assert diagnosis["whole_image_generation_run"] is False
     assert config["generation_gate"]["allowed"] is False
 
 
