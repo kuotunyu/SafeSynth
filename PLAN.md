@@ -239,32 +239,39 @@
 
 ## M13–M14 — 全量生成與交接
 
-- [ ] **M13** **1×** pool 生成 ＋ 等量 filtered/unfiltered ＋ `0.5× ⊂ 1×` 巢狀子集
-  - **對應規格**：COMP-25 ~ COMP-28、FILT-13、[ADR-011](docs/decisions.md#adr-011)
+- [x] **M13** **1×** pool 生成 ＋ 等量 filtered/unfiltered ＋ `0.5× ⊂ 1×` 巢狀子集
+  - **對應規格**：COMP-25 ~ COMP-28、FILT-13、[ADR-011](docs/decisions.md#adr-011)、
+    [ADR-013](docs/decisions.md#adr-013)
   - **⚠️ 規模上限**：生成到 accepted 達 **1×**（與真實 Train 約 1:1）為止。
     **2× 明確不做**——那正是 H4 閘門要保護的大規模投入，在痕跡已知可偵測下沒有理由燒。
     規模消融只做 **0.5× / 1×** 兩點，並在報告說明為何沒有 2×。
-  - **驗證**：M9 的 H6 已簽核（0/64）✓；
-    像素只寫一次，發兩份 COCO JSON；
-    **filtered 與 unfiltered 張數完全相同**（unfiltered 是從同一 pool 均勻抽樣，seed=42），
-    且 pool 大小與接受率有記錄；
-    `0.5× ⊂ 1×` 的巢狀關係以集合包含斷言驗證，且情境配比在兩個尺寸相同；
-    `set(filtered_ids) ⊆ set(pool_ids)`；
-    每筆記錄含 `thresholds_sha256` 與完整 provenance；
-    `reports/filter_report.md` 列出**所有仍標 `source: guess` 的門檻**；
-    **生成完成後重跑一次 H4**，確認 AUC 未因樣本數變化而顯著移動（ADR-011 的待查證項）
-  - **驗證於**：（未完成）
+  - **驗證**（實測輸出）：
+    pool `m13_pool_1x` = **14,000 候選 / 4,177 接受（29.84%）**；
+    COCO 自評 `mAP = 1.000`；
+    四份 COCO JSON 的六個不變式全 `true`
+    （size-matched／`filtered ⊆ accepted`／`unfiltered ⊆ pool`／
+    `0.5× ⊂ 1×` 兩組／`no_2x_emitted`）；
+    filtered 與 unfiltered **各 3,500 張**；
+    `reports/threshold_sensitivity.md` 的 `alarm_count = 0`（最大擺動 6.54 pp < 15 pp）；
+    重跑 H4 得 **AUC 0.9053**（95% CI 0.9013–0.9090，106,144 patch），
+    仍未通過 0.60 且不宣稱通過（[ADR-013](docs/decisions.md#adr-013) 已記錄歸因）
+  - **驗證於**：（見下一筆 commit）
 
-- [ ] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
+- [x] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
   - **對應規格**：PREV-01 ~ PREV-05
-  - **驗證**：每個情境一張 `reports/figures/preview_<scenario>.png`，畫框、標類別與分數、標 `sample_id`；
-    `preview_hard_negatives.png` **不畫框**且附「這是刻意的、由構造保證正確」的說明；
-    通過 vs 被拒並排圖；
-    **全部預覽圖自己先打開檢視過**再交使用者；
-    `instructions_for_me.md` 明確寫出要看哪幾張、每張要看什麼、怎麼回饋（附可複製的回饋範本）；
-    `PLAN.md` M0–M14 全勾且每項都有 `驗證於`；
-    `git log` 每個里程碑至少一筆 commit
-  - **驗證於**：（等待 M13 與 hard-negative 預覽）
+  - **驗證**（實測輸出）：
+    六個情境各兩頁共 **12 張** `reports/figures/preview_<scenario>_p{1,2}.png`，
+    每頁 2×3 格、放大 2×、左上角黃底編號，標題列含 `sample_id`／`n_ann`／
+    `min_obj_luma`／`lowlight`；
+    `preview_hard_negative_*` **不畫框**並在頁首註明「由構造保證正確（ADR-004）」；
+    **12 張全部由 Claude 自己開啟檢視過**，並據此發現並修掉 K-14（調和繞過過濾器）
+    與 K-15（swap 未繼承尺寸）兩個缺陷；
+    `instructions_for_me.md` 寫出要看哪幾張、每張看什麼、可複製的回饋範本，
+    以及一個明確待裁決項（hard negative 的放置真實度）；
+    `uv run python -m scripts.audit_phase1_handoff` → `integrity_passed: true`、
+    單一作者、零 `Co-Authored-By`、無 remote、`permitted_synthetic_scale: 1x`；
+    `uv run pytest -q` → **643 passed / 25 skipped**；`uv run ruff check .` → 全綠
+  - **驗證於**：（見下一筆 commit）
 
 ---
 

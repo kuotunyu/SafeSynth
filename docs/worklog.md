@@ -8,32 +8,35 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-31
-- **最後驗證 commit**：`d83d4cf` test(synthesis): freeze v23 owner review pages（共 231 筆）
-- **目前里程碑**：`M0`–`M8`、`M10`、`M12` 完成。
-  `M9` 的 H6 已由 kuotunyu 以 0/64 簽核（保持 `[~]` 直到素材庫接入 compositor）。
-  **`M11` 已於 2026-07-31 結案為 failed-and-accepted**（[ADR-011](decisions.md#adr-011)）——
-  H4 未通過且不宣稱通過，但閘門後果從「無限阻擋」改為「允許到 1×、禁止 2×」。
-  `M13` 起解除阻擋。
-- **⚠️ 未 commit 的改動**：無。
+- **更新時間**：2026-07-31（M13 pool 重生成完畢）
+- **最後驗證 commit**：`c96339f` fix(synthesis): scale the swapped head to the helmet it replaces
+- **目前里程碑**：`M0`–`M10`、`M12` 完成，`M11` 結案為 failed-and-accepted
+  （[ADR-011](decisions.md#adr-011)：H4 未通過且不宣稱通過，後果改為「允許 1×、禁止 2×」）。
+  `M13` 的 pool 與四份子集已產出，**驗收未完**（H4 重跑進行中）。
+- **⚠️ 未 commit 的改動**：`reports/` 的預覽圖與統計（等 M13 驗收一起提交）。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
-- **資料與素材落地**：Kaggle version 1、Pass-1 masks、7,255 個通過素材、
-  300 張 H4/M12 候選與全部診斷 run 都在 `D:\sdg-data\02-safesynth`；
+- **資料與素材落地**：Kaggle version 1、Pass-1 masks、7,255 個通過素材
+  （**compose 載入時再排除 102 個過暗素材**，見 CUT-14，實際可用 7,153）、
+  `m13_pool_1x`（14,000 候選 / 4,177 接受）與四份 COCO 子集都在 `D:\sdg-data\02-safesynth`；
   Test 洩漏為 0，cutout 重現抽查 100/100。
 - **環境**：已安裝並驗證。Python 3.12.13、torch 2.13.0+cu130、
   torchvision 0.28.0+cu130、transformers 5.14.1、diffusers 0.39.0。
   `docs/environment.md §5` 驗證表十列全過（含 `cuda.is_available()==True` / RTX 4090）。
-- **下一個動作（一句話、可直接動手）**：執行 `M13`——生成 1× pool
-  （**上限 1×，不做 2×**）、產出等量 filtered/unfiltered 與 `0.5× ⊂ 1×` 巢狀子集，
-  完成後重跑一次 H4 確認 AUC 未顯著移動。
-- **卡住的事**：無阻擋。H4 AUC 0.7964 現在是**已知限制**而非 blocker，
-  但它必須出現在 README 正文與每一張成果表旁。
-- **⚠️ 已知待修（不阻擋 M13）**：`uv run ruff check .` 有 4 個 import 排序錯誤
-  （`notebooks/00_flux2_v2_diagnostic.ipynb`、
-  `scripts/diagnose_supervised_labeler_v20_numeric_failure.py`），可 `--fix` 自動修。
-- **等使用者做的事**：目前無；遠端 GitHub repo 仍未建立。
+- **下一個動作（一句話、可直接動手）**：H4 重跑結束後填回 AUC，
+  跑 `scripts.threshold_sensitivity` 與 `scripts.audit_phase1_handoff`，
+  勾 `PLAN.md` 的 M13／M14 並補 `驗證於`。
+- **卡住的事**：無阻擋。
+- **⚠️ 已知限制（不阻擋，但必須寫進 README）**：
+  1. H4 未通過（貼上痕跡可偵測），依 ADR-011 帶著限制推進
+  2. **接受率隨 pool 變大而衰減**（2,000 張時 58.4%、14,000 張時 29.8%），
+     因為去重要跟所有已接受樣本比。這是 copy-paste 在 3,500 張背景上的天花板（K-13）
+  3. hard negative 的**貼上質感已修好**（表面紋理 52.4 → 503.3，真實安全帽 1350.9），
+     但**放置位置**仍可能落在半空中——這需要深度理解，而實測顯示本資料集
+     沒有深度—尺寸關係（R²=0.0001），沒有便宜的解法（K-11）
+- **等使用者做的事**：看 12 張預覽圖並裁決 hard negative 的放置問題；
+  遠端 GitHub repo 仍未建立。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_phase1_handoff
@@ -46,6 +49,42 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-31 · 使用者審查揪出四個缺陷；重生成 M13 pool
+
+- **對應規格**：FILT-15、CUT-14、COMP-18、COMP-20b/20c、[ADR-013](decisions.md#adr-013)
+- **起因**：kuotunyu 審查 `preview_head_no_helmet_p1` 與 `preview_hard_negative_p1` 後回報三件事。
+  追查結果是**四個不同的缺陷**，其中兩個是我在修的過程中自己造成或發現的。
+
+| # | 回報／發現 | 根因 | 處置 |
+|---|---|---|---|
+| 1 | 「整張圖黑掉」 | `low_light` 的 gamma×gain 兩個 guess 範圍相乘，實測 3.17×0.54 把中灰壓到 16。**38.3% 的接受圖**中招 | 範圍改由真實圖亮度推導 ＋ 每張圖自適應鉗制 ＋ FILT-15（K-12） |
+| 2 | 「hard negative 像後製」 | distractor **完全沒走**標註貼上的光度管線（羽化／去汙／調和／雜訊匹配四樣全無） | 併入同一管線 ＋ 接地陰影（K-11） |
+| 3 | 自查發現：FILT-15 上線後**還是**有 head 框著黑斑 | Lab 調和在 FILT-15 之前跑，把素材亮度 8.5 的剪影抬到 45.4 過門檻 | 加 CUT-14 在素材端擋（K-14） |
+| 4 | 自查發現：頭大到不成比例 | `do_swap` 只設 `center_override`，沒設 `target_bbox_xywh`，**實作偏離 COMP-18 規格** | swap 一併繼承 anchor 尺寸（K-15） |
+
+- **驗證（實測輸出）**：
+  - 表面紋理（Laplacian 變異數，真實 helmet p50 = 1350.9）：distractor 由 **52.4 → 503.3**
+  - swap 頭尺寸：`head_w/anchor_w` 中位數由 2.17 → **0.949**，`head_h/anchor_h` 由 2.27 → **1.000**
+  - CUT-14 實際排除 **102 / 7,255**（head 27／helmet 74／person 1）
+  - 低光鉗制：2,184 次抽樣中 681 次維持全強度、1,368 次降強度、135 次完全抑制
+  - `low_light_blur` 仍然真的暗：整圖亮度 p50 = 98.2 vs 其他情境 123–131
+  - pool：14,000 候選 / **4,177 接受**（29.8%），COCO 自評 mAP = **1.000**
+  - 四份子集六個不變式全過；filtered 與 unfiltered 各 3,500，`0.5× ⊂ 1×`
+  - `uv run pytest -q` → **330 passed**；`uv run ruff check .` → All checks passed
+- **決策**：[ADR-013](decisions.md#adr-013)（四個決策 ＋ 三個「量測後否決」）
+- **踩到的坑**：K-11（改寫）、K-12、K-13、K-14、K-15
+- **刻意不做**：
+  - 依深度的尺寸先驗——`log(min_side) ~ cy` 的 R² = **0.0001**，本資料集沒有這個關係
+  - 框內 RMS 對比當閘門——它量的是框的鬆緊，會誤殺又小又亮的遠距安全帽
+  - |物件−周圍| 亮度差當閘門——真實物件的 p1 只有 **0.67**，真實差異在色相不在亮度
+  - 刪掉那個 5×30 的扁 helmet 框——那是真實標註，鐵律禁止刪，且 Real-only 組也有
+  - 修「暗頭髮貼到暗背景」——物件亮度 32.2 落在真實 head 分布內（p1 = 23.19），
+    門檻拉到抓得到它就會連真實資料最暗的裸頭一起丟
+- **教訓**：連續兩個缺陷（#3、#4）都是**自動檢查全過、打開圖才看到**。
+  #4 更進一步顯示「有規則」不等於「規則會執行」——FILT-08 需要 `person` 框，
+  而全資料集只有 3.16% 的圖有。
+- **commit**：`974df2e`、`c96339f`
 
 ### 2026-07-31 · M11 結案為 failed-and-accepted；退回 v23 labeler
 

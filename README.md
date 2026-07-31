@@ -35,14 +35,18 @@ the experiment is the *data*, not the model:
 
 The pipeline works: a guarded, frozen 70/15/15 group split; a 7,255-item SAM 2.1
 cutout bank; a deterministic compositor that recomputes every bounding box from
-the visible mask; and a geometric/quality filter whose 300-image ledger
-reconciles exactly (196 pass / 104 reject, zero threshold-sensitivity alarms).
+the visible mask; and a geometric, photometric and quality filter whose ledger
+reconciles exactly. The delivered pool is 14,000 candidates yielding 4,177
+accepted images, exported as size-matched filtered and unfiltered arms of 3,500
+each with 0.5x nested inside 1x. COCO self-evaluation on the emitted ground
+truth returns mAP 1.000, which is the check that the boxes mean what the format
+says they mean.
 
 **But the paste artifacts are detectable.** A pre-registered gate (H4) asked
 whether a small classifier could distinguish pasted patches from real object
 patches, with a pre-registered maximum of **AUC 0.60**. On a group-disjoint,
-class- and size-matched split of 2,028 patches, a HOG+HSV logistic regression
-reaches **AUC 0.7964** (bootstrap 95% CI 0.7481-0.8392). The gate did not pass,
+class- and size-matched split of 106,144 patches, a HOG+HSV logistic regression
+reaches **AUC 0.9053** (bootstrap 95% CI 0.9013-0.9090). The gate did not pass,
 and this repository does not claim that it did.
 
 Nine synthesis routes were tried against it and all failed: feather-parameter
@@ -63,8 +67,30 @@ costs.** Generation is capped at 1x real-Train size (2x is explicitly not done,
 since that is exactly the large investment the gate existed to prevent), and the
 four-arm comparison runs with the H4 AUC reported alongside every result. If
 synthetic data still helps, the conclusion is that detectable paste artifacts do
-not prevent transfer. If it does not, AUC 0.7964 is the mechanism. Both outcomes
+not prevent transfer. If it does not, AUC 0.9053 is the mechanism. Both outcomes
 are reportable; neither is hidden.
+
+### Two limits that constrain what this approach can deliver
+
+**Copy-paste saturates on 3,500 backgrounds.** Acceptance is not a constant: the
+near-duplicate filter compares each candidate against every already-accepted
+sample, so the marginal rate decays as the pool grows. Measured on one config
+and seed: 58.4% at 2,000 candidates, 33.8% at 10,000, 29.8% at 14,000, where
+`NEAR_DUPLICATE_SYNTHETIC` becomes the single largest rejection reason. Reaching
+1x needed 14,000 candidates. This is a ceiling of the method, not a threshold to
+loosen, and it bounds how much distinct synthetic data this route can ever
+produce from this dataset.
+
+**Hard-negative placement is only half solved.** Distractors were being
+composited with none of the photometric treatment annotated pastes receive, and
+owner review correctly read every one of them as pasted; surface texture by
+Laplacian variance was 52.4 against 1350.9 for real helmets. They now run the
+same path plus a ground-contact shadow, reaching 503.3. What is *not* fixed is
+where they land: without depth understanding an object can still sit in mid-air,
+and a shadow only helps where a surface actually exists. A depth-aware size
+prior was measured and abandoned - regressing log(min_side) on normalized cy
+over 17,815 real annotations gives R^2 = 0.0001, so this dataset carries no
+depth-size relation to exploit.
 
 Validation and Test reads remain at zero throughout.
 

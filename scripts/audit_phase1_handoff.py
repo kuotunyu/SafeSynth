@@ -135,14 +135,28 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
     h6_signoff = root / "reports" / "hard_negative_signoff.json"
     h6_approved = _valid_h6_signoff(h6_signoff)
 
+    def _h4_is_consistent(report: dict) -> bool:
+        return (
+            isinstance(report.get("auc"), float)
+            and isinstance(report.get("max_auc_for_scaleup"), float)
+            and report.get("passed") is (report["auc"] <= report["max_auc_for_scaleup"])
+        )
+
+    # The M11 report is the pre-registered milestone artifact and stays the
+    # consistency anchor. The M13 rerun on the delivered pool is what every
+    # result table has to display, so quoting M11 alone would hand the reader a
+    # superseded number under the words "every result table must display this".
     h4_path = root / "reports" / "h4_artifact_gate.json"
     h4 = _read_json(h4_path)
-    h4_result_consistent = (
-        isinstance(h4.get("auc"), float)
-        and isinstance(h4.get("max_auc_for_scaleup"), float)
-        and h4.get("passed") is (h4["auc"] <= h4["max_auc_for_scaleup"])
-    )
-    h4_passed = h4_result_consistent and bool(h4["passed"])
+    h4_result_consistent = _h4_is_consistent(h4)
+
+    h4_latest_path = root / "reports" / "h4_artifact_gate_m13.json"
+    h4_latest = _read_json(h4_latest_path) if h4_latest_path.exists() else None
+    if h4_latest is not None and not _h4_is_consistent(h4_latest):
+        h4_result_consistent = False
+    h4_current = h4_latest if h4_latest is not None else h4
+
+    h4_passed = h4_result_consistent and bool(h4_current["passed"])
 
     ledger_path = root / "reports" / "filter_ledger.json"
     ledger = _read_json(ledger_path)
@@ -176,11 +190,17 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         # labeler iterations failed to move it, the failure is carried forward as a
         # published limitation instead of blocking indefinitely, and the generation
         # cap becomes "1x, never 2x" rather than "unbounded once passed".
+        provenance = (
+            f"delivered pool, {h4_latest.get('n_examples', '?')} patches"
+            if h4_latest is not None
+            else "M11 pre-registration"
+        )
         known_limitations.append(
-            f"M11/H4 AUC {h4['auc']:.4f} exceeds the "
-            f"{h4['max_auc_for_scaleup']:.2f} maximum: paste artifacts are detectable. "
-            "Accepted as a reported limitation per ADR-011; generation is capped at 1x "
-            "and 2x is forbidden. Every result table must display this AUC."
+            f"H4 AUC {h4_current['auc']:.4f} ({provenance}) exceeds the "
+            f"{h4_current['max_auc_for_scaleup']:.2f} maximum: paste artifacts are "
+            "detectable. Accepted as a reported limitation per ADR-011; generation is "
+            "capped at 1x and 2x is forbidden. Every result table must display this AUC. "
+            f"M11 pre-registration measured {h4['auc']:.4f} on 300 images."
         )
 
     # H6 gates whether hard-negative material may be used at all; H4 only caps scale.
@@ -220,10 +240,18 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
             "signoff_path": str(h6_signoff.relative_to(root)),
         },
         "h4": {
-            "auc": h4["auc"],
-            "max_auc_for_scaleup": h4["max_auc_for_scaleup"],
+            "auc": h4_current["auc"],
+            "auc_ci95": h4_current.get("auc_ci95"),
+            "n_examples": h4_current.get("n_examples"),
+            "max_auc_for_scaleup": h4_current["max_auc_for_scaleup"],
             "passed": h4_passed,
             "disposition": "failed_and_accepted_per_adr_011" if not h4_passed else "passed",
+            "source": (
+                "h4_artifact_gate_m13.json"
+                if h4_latest is not None
+                else "h4_artifact_gate.json"
+            ),
+            "m11_preregistration_auc": h4["auc"],
         },
         "m12": {
             "n_total": ledger["n_total"],

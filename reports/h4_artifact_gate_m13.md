@@ -1,9 +1,9 @@
 # Spike H4 — paste-artifact detectability
 
-- Source run: `D:\sdg-data\02-safesynth\synthetic\m13_pool_1x` (300 images)
-- Examples: 75106 (60482 train / 14624 group-disjoint test)
-- HOG + HSV logistic-regression AUC: **0.9159**
-- Bootstrap 95% CI: 0.9115–0.9201
+- Source run: `D:/sdg-data/02-safesynth/synthetic/m13_pool_1x` (14000 generated images)
+- Examples: 106144 (85590 train / 20554 group-disjoint test)
+- HOG + HSV logistic-regression AUC: **0.9053**
+- Bootstrap 95% CI: 0.9013–0.9090
 - Scale-up maximum AUC: 0.60
 - Decision: **FAIL — scale-up gate closed**
 
