@@ -81,16 +81,24 @@ and seed: 58.4% at 2,000 candidates, 33.8% at 10,000, 29.8% at 14,000, where
 loosen, and it bounds how much distinct synthetic data this route can ever
 produce from this dataset.
 
-**Hard-negative placement is only half solved.** Distractors were being
-composited with none of the photometric treatment annotated pastes receive, and
-owner review correctly read every one of them as pasted; surface texture by
-Laplacian variance was 52.4 against 1350.9 for real helmets. They now run the
-same path plus a ground-contact shadow, reaching 503.3. What is *not* fixed is
-where they land: without depth understanding an object can still sit in mid-air,
-and a shadow only helps where a surface actually exists. A depth-aware size
-prior was measured and abandoned - regressing log(min_side) on normalized cy
-over 17,815 real annotations gives R^2 = 0.0001, so this dataset carries no
-depth-size relation to exploit.
+**Hard-negative placement is only half solved, and is shipped that way on
+purpose.** Distractors were being composited with none of the photometric
+treatment annotated pastes receive, and owner review correctly read every one of
+them as pasted; surface texture by Laplacian variance was 52.4 against 1350.9
+for real helmets. They now run the same path plus a ground-contact shadow,
+reaching 503.3. What is *not* fixed is where they land: without depth
+understanding an object can still sit in mid-air, and a shadow only helps where
+a surface actually exists. A depth-aware size prior was measured and abandoned -
+regressing log(min_side) on normalized cy over 17,815 real annotations gives
+R^2 = 0.0001, so this dataset carries no depth-size relation to exploit.
+
+This was accepted rather than fixed because the *labels* are right even where
+the realism is not. The dataset does not annotate a helmet nobody is wearing -
+image 4029 carries three helmets on a meeting-room table and zero helmet boxes -
+so leaving a distractor unannotated matches the real labelling rule exactly. The
+cost is confined to one secondary metric: these distractors skew easy, so
+false positives per hard-negative image measures something weaker than intended.
+The headline metrics, AP_small and bare-head recall, are unaffected.
 
 Validation and Test reads remain at zero throughout.
 

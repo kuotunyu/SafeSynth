@@ -12,7 +12,7 @@
 - **最後驗證 commit**：`7c8d9d3` feat(synthesis): deliver the M13 1x pool and close Phase 1 verification
 - **目前里程碑**：`M0`–`M10`、`M12` 完成，`M11` 結案為 failed-and-accepted
   （[ADR-011](decisions.md#adr-011)：H4 未通過且不宣稱通過，後果改為「允許 1×、禁止 2×」）。
-  `M13` 的 pool 與四份子集已產出，**驗收未完**（H4 重跑進行中）。
+  **`M13`、`M14` 已完成並驗收**（驗證於 `7c8d9d3`）。**Phase 1 全部完成。**
 - **⚠️ 未 commit 的改動**：`reports/` 的預覽圖與統計（等 M13 驗收一起提交）。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
@@ -35,8 +35,7 @@
   3. hard negative 的**貼上質感已修好**（表面紋理 52.4 → 503.3，真實安全帽 1350.9），
      但**放置位置**仍可能落在半空中——這需要深度理解，而實測顯示本資料集
      沒有深度—尺寸關係（R²=0.0001），沒有便宜的解法（K-11）
-- **等使用者做的事**：看 12 張預覽圖並裁決 hard negative 的放置問題；
-  遠端 GitHub repo 仍未建立。
+- **等使用者做的事**：無。K-11 已裁決為接受。遠端 GitHub repo 仍未建立（發佈時才需要）。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_phase1_handoff
@@ -49,6 +48,37 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-07-31 · K-11 裁決為「接受」；補寫 DATA-24 標註語意
+
+- **對應規格**：[DATA-24](data_protocol.md)、[K-11](troubleshooting.md)
+- **起因**：使用者問「這個任務是要框安全帽還是框人頭？放在桌上的安全帽要框嗎？」
+  ——這是最根本的語意問題，而**規格裡查不到答案**。
+  H1 的**做法**寫在 `data_protocol.md`、**結論**只散落在
+  [ADR-007](decisions.md#adr-007) 與 `evaluation_spec.md`，
+  而「沒人戴的安全帽要不要框」**從來沒有任何文件回答過**。
+- **實測回答**（渲染真實圖 + 原始標註驗證）：
+  - `helmet` 框的是**戴著安全帽的整顆頭**，`head` 是**沒戴帽的頭**，兩者互斥
+    （9,603 個同圖配對只有 95 個 IoU>0.1 = 0.99%；
+    長寬比中位數 helmet 0.875／head 0.830，都是高>寬，不是帽殼的寬扁形）
+  - **沒人戴的安全帽不框**。`image_id=4029` 會議桌上 3 頂紅色安全帽，
+    標註是 `head=8`、**`helmet=0`**；對照 `1629`／`3803` 的 helmet 框都在戴帽的人身上
+  - 證據圖 `reports/figures/review/loose_helmet_question.png`
+- **自我更正**：前一則日誌寫「GT 自己前後不一致（1629、3803 有框，4029 沒框）」，
+  暗示 GT 對未佩戴安全帽的處理不一致。**把這三張圖連同標註渲染出來後，
+  它們其實是一致的**——1629／3803 框的是戴著的帽，4029 沒框桌上的帽，
+  完全符合「只框戴著的」這條規則。原本的說法沒有再驗證就寫進日誌，已更正。
+- **裁決**：K-11 的 hard negative 放置真實度 → **接受，列為已知限制**。
+  使用者授權 Claude 判斷。關鍵理由是 DATA-24：
+  既然真實資料本來就不框沒人戴的安全帽，**干擾物不給標註在語意上完全正確**，
+  浮空影響的是真實度而非標籤正確性。代價限縮在
+  `hard-negative 每圖誤報數` 這個次要指標，主敘事指標不受影響。
+- **順手修**：`reports/figures/` 有 72 個檔案 + 18 個資料夾，
+  使用者找不到要看的 12 張。改成 `reports/figures/review/`（只有 15 個檔案 ＋ README）。
+  原本想把歷史檔案搬進 `archive/`，但那會弄壞 21 個測試——
+  supervised labeler 的審查頁是**凍結證據，路徑與 SHA 都釘死**，已回退該部分。
+- **驗證**：`uv run pytest -q` → **643 passed / 25 skipped**；`uv run ruff check .` → 全綠
+- **commit**：見下一筆
 
 ### 2026-07-31 · 使用者審查揪出四個缺陷；重生成 M13 pool
 
