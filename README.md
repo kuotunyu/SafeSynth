@@ -31,69 +31,42 @@ the experiment is the *data*, not the model:
 
 ## Status
 
-Phase 1 has frozen the guarded split, built and visually verified a 7,255-item
-SAM 2.1 cutout bank, implemented the deterministic compositor and filter, and
-verified the 300-image filter ledger (196 pass / 104 reject; zero threshold
-sensitivity alarms). The scale-up gate remains intentionally closed: the
-group-disjoint H4 paste-artifact classifier reaches AUC 0.7964 against the
-pre-registered maximum of 0.60. Full generation will not begin until that is
-fixed. The repository owner approved the H6 hard-negative sheet at 0/64 true
-helmets and selected the pre-registered Option A generative-inpainting route.
-The pinned Apache-2.0 model is now downloaded and SHA-256 verified locally. Its
-fixed 64-image identity pilot has zero changes outside the edit masks and zero
-changes inside the protected cores, but `kuotunyu` rejected the visual gate
-after observing more than three severe failures. Cell 02 exposed an invalid
-input draft and cell 04 exposed a mislocalized edit region. Option A therefore
-does not proceed to the one-shot H4 artifact gate, and no new H4 AUC has been
-computed. Phase 2 remains blocked.
+**Phase 1 is complete, and it produced a negative result worth stating up front.**
 
-A separate four-case, Train-only Colab diagnostic compared the failed v1
-reference-conditioning call against two pre-declared lower-strength variants
-on an A100 40 GB. All 12 outputs preserved every pixel outside the edit mask,
-but removing the reference changed masked RGB values by only 0.2260/255 on
-average and lower strength showed no consistent visual improvement. No variant
-was selected. A subsequent CPU-only preflight found reflected padding throughout
-the source dataset, so v5 removes each detected mirrored border, resizes the
-clean center with preserved aspect ratio, transforms every label and Pass-1
-mask identically, and then reapplies the anchor guards. `kuotunyu` rejected the
-fixed 64-input v5 sheet at 33/64 issues: isolated helmet/head cutouts frequently
-looked composited, floated without a credible anatomical carrier, or produced
-an implausible head/helmet structure. FLUX inference was not run because its
-five-pixel boundary edit cannot repair an invalid core. Any successor must use
-a coupled head + helmet + upper-body synthesis unit and pass a new zero-issue
-CPU input sheet. A Train-only CPU audit found that 111/113 existing person
-cutouts have a paired helmet/head annotation, spanning 76 source groups (90
-people are at least 80 pixels high), but the visual and diversity gates rejected
-all three coupled-person paste candidates. Geometry-only v6 visibly mismatched
-scenes; scene-matched v6b still mismatched pose and rewrote faces/clothing; v7
-preserved source position and core pixels but left only 22 strict donors across
-19 groups and exhausted all 3,500 Train backgrounds at 63/64 drafts. Raising
-the reuse cap after seeing that result was rejected, and the pool cannot support
-the later 300-image H4 gate honestly. Whole-person pasting is therefore stopped.
-A final Train-only v8 diagnostic edited an existing worker in place instead of
-pasting one. `kuotunyu` passed cases 01 and 02, rejected case 03 for obvious
-post-production appearance, and marked case 04 a severe failure. The fixed
-four-case result is therefore rejected without a 64-case scale-up. No new H4
-AUC has been computed, M13 remains closed, and Phase 2 has not started.
+The pipeline works: a guarded, frozen 70/15/15 group split; a 7,255-item SAM 2.1
+cutout bank; a deterministic compositor that recomputes every bounding box from
+the visible mask; and a geometric/quality filter whose 300-image ledger
+reconciles exactly (196 pass / 104 reject, zero threshold-sensitivity alarms).
 
-Two final regional-placement alternatives were then rejected on Train-only CPU
-capacity evidence: v9 found 123 candidate placements across 17 source groups but
-could not supply the required 64 strict cases, while helmet-anchored v9b found
-only 92 strict placements across seven groups. The active successor is the
-preregistered whole-image v10 route, which removes the empty-background capacity
-ceiling. Its exact four prompts and seeds are frozen before output inspection.
-The pinned Apache-2.0 Grounding DINO Tiny labeler is downloaded and verified,
-but failed its group-disjoint 96-image Train-only calibration/audit: untouched
-precision was 0.8065 and median matched IoU was 0.7566, while recall was only
-0.1214 against the frozen 0.70 minimum. It has been replaced for v10 by a
-preregistered supervised RT-DETRv2-R50 v6 labeler. On a new untouched,
-group-disjoint 48-image Train-only audit, v6 reached precision 0.8995, recall
-0.8584, and median matched IoU 0.8430, passing all three numeric gates. Its exact
-checkpoint SHA-256, threshold 0.023, and fixed geometry filter are now wired
-into the v10 runner; the old zero-shot report cannot open that gate. `kuotunyu`
-has approved the fixed four-case v10 input manifest, but the v6 48-image visual
-review is still pending, so FLUX remains hard-locked. Validation/Test reads and
-new whole-image generations remain zero.
+**But the paste artifacts are detectable.** A pre-registered gate (H4) asked
+whether a small classifier could distinguish pasted patches from real object
+patches, with a pre-registered maximum of **AUC 0.60**. On a group-disjoint,
+class- and size-matched split of 2,028 patches, a HOG+HSV logistic regression
+reaches **AUC 0.7964** (bootstrap 95% CI 0.7481-0.8392). The gate did not pass,
+and this repository does not claim that it did.
+
+Nine synthesis routes were tried against it and all failed: feather-parameter
+search, multiband blending, Poisson blending (AUC 0.8869 - it washes out the
+helmet hue that carries the class signal), same-class in-place replacement
+(0.8312), an exact-source paired control (0.9049), FLUX.2 reference-conditioned
+boundary inpainting, whole-person pasting, regional placement, and whole-image
+generation. A feature-family diagnostic shows HOG-only at 0.7792 and HSV-only at
+0.6816 - both resampling/boundary *and* photometric signals exceed the bar, so
+no single-parameter fix exists. An 18-round supervised auto-labeler effort
+(v6 through v23) built to support the last of those routes was also stopped: its
+best checkpoint peaks at confidence 0.14 with true- and false-positive score
+distributions almost completely overlapping, which is an undertrained model
+rather than a labeling-quality problem.
+
+**The decision (ADR-011) is to treat this as a finding and measure what it
+costs.** Generation is capped at 1x real-Train size (2x is explicitly not done,
+since that is exactly the large investment the gate existed to prevent), and the
+four-arm comparison runs with the H4 AUC reported alongside every result. If
+synthetic data still helps, the conclusion is that detectable paste artifacts do
+not prevent transfer. If it does not, AUC 0.7964 is the mechanism. Both outcomes
+are reportable; neither is hidden.
+
+Validation and Test reads remain at zero throughout.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.

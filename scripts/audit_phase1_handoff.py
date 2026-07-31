@@ -167,13 +167,24 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         "m12_filter_ledger_is_internally_consistent": ledger_consistent,
     }
     blockers: list[str] = []
+    known_limitations: list[str] = []
     if not h6_approved:
         blockers.append("M9/H6 requires kuotunyu's review and exact-grid signoff.")
     if not h4_passed:
-        blockers.append(
+        # ADR-011: the H4 verdict is UNCHANGED and is not claimed to pass. What
+        # changed is the consequence. After nine synthesis routes and eighteen
+        # labeler iterations failed to move it, the failure is carried forward as a
+        # published limitation instead of blocking indefinitely, and the generation
+        # cap becomes "1x, never 2x" rather than "unbounded once passed".
+        known_limitations.append(
             f"M11/H4 AUC {h4['auc']:.4f} exceeds the "
-            f"{h4['max_auc_for_scaleup']:.2f} scale-up maximum."
+            f"{h4['max_auc_for_scaleup']:.2f} maximum: paste artifacts are detectable. "
+            "Accepted as a reported limitation per ADR-011; generation is capped at 1x "
+            "and 2x is forbidden. Every result table must display this AUC."
         )
+
+    # H6 gates whether hard-negative material may be used at all; H4 only caps scale.
+    permitted_scale = "none" if not h6_approved else ("2x" if h4_passed else "1x")
 
     return {
         "head_commit": _git(root, "rev-parse", "HEAD").strip(),
@@ -212,6 +223,7 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
             "auc": h4["auc"],
             "max_auc_for_scaleup": h4["max_auc_for_scaleup"],
             "passed": h4_passed,
+            "disposition": "failed_and_accepted_per_adr_011" if not h4_passed else "passed",
         },
         "m12": {
             "n_total": ledger["n_total"],
@@ -225,7 +237,9 @@ def audit(root: Path = PROJECT_ROOT) -> dict[str, Any]:
             contributor_identity_valid and local_identity_valid and not remotes
         ),
         "scale_up_allowed": h6_approved and h4_passed,
+        "permitted_synthetic_scale": permitted_scale,
         "blockers": blockers,
+        "known_limitations": known_limitations,
     }
 
 
@@ -246,7 +260,8 @@ def _render_markdown(result: dict[str, Any]) -> str:
             "- Pre-publication state (identity + no remote): "
             f"**{mark(result['prepublication_state_safe'])}**"
         ),
-        f"- Scale-up allowed: **{mark(result['scale_up_allowed'])}**",
+        f"- Unrestricted scale-up (H4 passed): **{mark(result['scale_up_allowed'])}**",
+        f"- Permitted synthetic scale: **{result['permitted_synthetic_scale']}**",
         "",
         "## Integrity checks",
         "",
@@ -290,13 +305,16 @@ def _render_markdown(result: dict[str, Any]) -> str:
             "",
         ]
     )
-    lines.extend(f"- {blocker}" for blocker in result["blockers"])
+    lines.extend(f"- {blocker}" for blocker in result["blockers"] or ["(none)"])
+    lines.extend(["", "## Known limitations carried forward", ""])
+    lines.extend(f"- {item}" for item in result["known_limitations"] or ["(none)"])
     lines.extend(
         [
             "",
-            "The failed H6/H4 gate lines are expected project blockers, not audit",
-            "integrity failures. Do not create a signoff on the user's behalf and do",
-            "not start M13 until both gates pass.",
+            "A failed H6 line is a hard blocker: do not create a signoff on the user's",
+            "behalf. A failed H4 line is NOT a blocker any more — per ADR-011 it is an",
+            "accepted, published limitation that caps generation at 1x and forbids 2x.",
+            "It is still a failure and must never be reported as a pass.",
             "",
         ]
     )

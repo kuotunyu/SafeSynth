@@ -167,7 +167,7 @@
 
 ---
 
-## M10–M12 — 合成引擎與過濾（**M11 之前，合成總量不得超過 300 張**）
+## M10–M12 — 合成引擎與過濾（閘門已由 [ADR-011](docs/decisions.md#adr-011) 改寫為「≤1×，禁止 2×」）
 
 - [x] **M10** `src/synthetic/compose.py` ＋ COCO 自評測試
   - **對應規格**：COMP-01 ~ COMP-19、COMP-28、COMP-29
@@ -201,8 +201,17 @@
     排除素材庫 selection bias 是主要假象；
     kuotunyu 已批准 Option A；FLUX.2 klein base 4B 的模型 SHA、Apache-2.0
     授權、身份保留遮罩、64 圖人工 gate 與全新 one-shot H4 fold 已在
-    `docs/h4_generative_preregistration.md` 預註冊，**權重尚未下載，硬閘門
-    維持關閉，M13 不得開始**）
+    `docs/h4_generative_preregistration.md` 預註冊）
+  - **結案（2026-07-31，[ADR-011](docs/decisions.md#adr-011)）**：**failed-and-accepted**。
+    H4 **未通過且不宣稱通過**（AUC 0.7964 > 0.60）。
+    9 條合成路線（羽化參數／multiband／Poisson／原位替換／exact-source／
+    FLUX.2 邊界 inpainting／whole-person v6–v8／regional v9–v9b／whole-image v10）
+    與 18 輪 labeler 迭代（v6→v23）全部未能翻轉；
+    feature-family 診斷顯示 HOG-only 0.7792、HSV-only 0.6816，
+    **重採樣/邊界與光度兩類訊號都超標，非單一參數可修**。
+    v23 labeler 另經獨立重算確認**嚴重欠訓練**（best epoch 3、48 圖 audit 最高信心 0.14、
+    TP 與 FP 分數分布幾乎完全重疊，中位數 0.0583 vs 0.0481），已退回且不再迭代。
+    閘門後果改為「**允許到 1×，禁止 2×**」，H4 失敗成為專案的一項公開發現。
 
 - [x] **M12** `src/filtering/rules.py` ＋ golden tests ＋ 門檻敏感度表
   - **對應規格**：FILT-01 ~ FILT-14
@@ -224,17 +233,21 @@
 
 ## M13–M14 — 全量生成與交接
 
-- [ ] **M13** 全量 2× pool 生成 ＋ 等量 filtered/unfiltered ＋ 巢狀子集
-  - **對應規格**：COMP-25 ~ COMP-28、FILT-13
-  - **驗證**：**M11 已通過**（前置條件，未過不准開始）；
+- [ ] **M13** **1×** pool 生成 ＋ 等量 filtered/unfiltered ＋ `0.5× ⊂ 1×` 巢狀子集
+  - **對應規格**：COMP-25 ~ COMP-28、FILT-13、[ADR-011](docs/decisions.md#adr-011)
+  - **⚠️ 規模上限**：生成到 accepted 達 **1×**（與真實 Train 約 1:1）為止。
+    **2× 明確不做**——那正是 H4 閘門要保護的大規模投入，在痕跡已知可偵測下沒有理由燒。
+    規模消融只做 **0.5× / 1×** 兩點，並在報告說明為何沒有 2×。
+  - **驗證**：M9 的 H6 已簽核（0/64）✓；
     像素只寫一次，發兩份 COCO JSON；
     **filtered 與 unfiltered 張數完全相同**（unfiltered 是從同一 pool 均勻抽樣，seed=42），
     且 pool 大小與接受率有記錄；
-    `0.5× ⊂ 1× ⊂ 2×` 的巢狀關係以集合包含斷言驗證，且情境配比在三個尺寸相同；
+    `0.5× ⊂ 1×` 的巢狀關係以集合包含斷言驗證，且情境配比在兩個尺寸相同；
     `set(filtered_ids) ⊆ set(pool_ids)`；
     每筆記錄含 `thresholds_sha256` 與完整 provenance；
-    `reports/filter_report.md` 列出**所有仍標 `source: guess` 的門檻**
-  - **驗證於**：（等待 M11 通過與 M9 使用者簽核）
+    `reports/filter_report.md` 列出**所有仍標 `source: guess` 的門檻**；
+    **生成完成後重跑一次 H4**，確認 AUC 未因樣本數變化而顯著移動（ADR-011 的待查證項）
+  - **驗證於**：（未完成）
 
 - [ ] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
   - **對應規格**：PREV-01 ~ PREV-05
@@ -257,8 +270,10 @@ split 一旦被生成端汙染、cutout bank 一旦混入 Val/Test 來源，整�
 `M10` 之後都便宜可重做。
 
 兩道硬閘門：
-1. **`M3`–`M5` 全綠之前，一張合成圖都不准生**
-2. **`M11` 通過之前，合成總量不得超過 300 張**
+1. **`M3`–`M5` 全綠之前，一張合成圖都不准生**（維持有效，已通過）
+2. ~~`M11` 通過之前，合成總量不得超過 300 張~~ →
+   **[ADR-011](docs/decisions.md#adr-011) 改為「允許到 1×，禁止 2×」**。
+   H4 的技術判定不變（未通過），改變的是判定的後果。
 
 ---
 
