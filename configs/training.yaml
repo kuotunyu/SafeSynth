@@ -111,9 +111,18 @@ augmentation:
   # does the COCO -> normalized cxcywh conversion at the end.
   bbox_format: "coco"                        # source: fixed
   bbox_clip: true                            # source: fixed
-  bbox_min_area: 4                           # source: guess
-  # ^ the HF example uses 25, which is too aggressive here: a distant helmet at
-  #   416x416 can legitimately be ~5x5 px. Keep this low.
+  bbox_min_area: 4                           # source: measured (drops 0 of 21,685 real
+                                             # and 0 of 25,278 synthetic annotations)
+  # The HF example uses 25. Measured on this dataset: the smallest real annotation
+  # has area 20, and exactly 2 of 21,685 fall at or below 25 — so 25 would silently
+  # delete real ground truth. At 4, nothing is dropped from either source.
+  #
+  # ⚠️ This filter runs even for the real_only arm, whose transform list is EMPTY.
+  # Albumentations warns "Got processor for bboxes, but no transform to process it"
+  # and then applies bbox_params anyway, so min_area filtering happens in all four
+  # arms. That is what we want — identical label handling across arms — but it does
+  # mean this is not an "augmentation-only" knob: raising it deletes ground truth
+  # from every arm at once.
 
   real_only:
     horizontal_flip: 0.0                     # source: fixed  (no augmentation at all)
