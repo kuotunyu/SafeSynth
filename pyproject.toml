@@ -78,6 +78,12 @@ torchvision = [{ index = "pytorch-cu130" }]
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint.per-file-ignores]
+# Colab diagnostic notebooks are frozen evidence of routes that were tried and
+# rejected (see ADR-010 / ADR-011). They are archived exactly as they were run,
+# so cosmetic rewrites are not applied to them. C408 = dict() instead of a literal.
+"notebooks/*.ipynb" = ["C408"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

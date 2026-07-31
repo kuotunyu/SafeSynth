@@ -1,9 +1,7 @@
 {
-  "blockers": [
-    "M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum."
-  ],
+  "blockers": [],
   "coauthor_trailer_commits": [],
-  "commit_count_all_refs": 52,
+  "commit_count_all_refs": 231,
   "commit_hook": {
     "core_hooks_path": ".githooks",
     "tracked_index_entry": "100755 67b800375400e43e1fbfc687bc2d090bef2a6e0e 0\t.githooks/commit-msg"
@@ -15,6 +13,7 @@
   "github_identity_ready": true,
   "h4": {
     "auc": 0.7964240650755725,
+    "disposition": "failed_and_accepted_per_adr_011",
     "max_auc_for_scaleup": 0.6,
     "passed": false
   },
@@ -24,7 +23,7 @@
     "grid_sha256": "0e385d857067aa293c5e3d0dd43ad84b4141ff9bac5c8d4aefed187ee9c45739",
     "signoff_path": "reports\\hard_negative_signoff.json"
   },
-  "head_commit": "8753913216bb4ab6b24c58b9a92969be0f352aa8",
+  "head_commit": "d83d4cf7475016d8848acb0963fa28261f119782",
   "identity_violations": [],
   "integrity_checks": {
     "all_authors_and_committers_are_kuotunyu": true,
@@ -37,6 +36,9 @@
     "single_contributor_commit_hook_is_active": true
   },
   "integrity_passed": true,
+  "known_limitations": [
+    "M11/H4 AUC 0.7964 exceeds the 0.60 maximum: paste artifacts are detectable. Accepted as a reported limitation per ADR-011; generation is capped at 1x and 2x is forbidden. Every result table must display this AUC."
+  ],
   "local_identity": {
     "email": "61350295+kuotunyu@users.noreply.github.com",
     "name": "kuotunyu"
@@ -46,6 +48,7 @@
     "n_reject": 104,
     "n_total": 300
   },
+  "permitted_synthetic_scale": "1x",
   "prepublication_state_safe": true,
   "remotes": [],
   "scale_up_allowed": false,

@@ -23,7 +23,7 @@
 | `strength_effect_v1_vs_reference_055` | 0.8904 | 3.0179 |
 | `reference_effect_at_strength_055` | 0.4329 | 0.2260 |
 
-- Detail sheet: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\reports\figures\flux2_v2_diagnostic_detail.png`
+- Detail sheet: `reports/figures/flux2_v2_diagnostic_detail.png`
 
 ## Method decision
 

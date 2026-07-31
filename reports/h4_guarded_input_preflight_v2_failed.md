@@ -8,7 +8,7 @@
 - Allowed input issues: **0**
 - Geometry fingerprint: `beda026df3975f0eee43f8dd1531719824b64bef36a5fd68b53f0375d35a4129`
 - Observed input issues: **at least 2**
-- Contact sheet: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\reports\figures\h4_guarded_input_preflight_v2_failed.png`
+- Contact sheet: `reports/figures/h4_guarded_input_preflight_v2_failed.png`
 
 Each numbered cell shows the full DRAFT on the left and an enlarged anchor crop on the right. The cyan rectangle marks the exact object support that will receive boundary inpainting.
 

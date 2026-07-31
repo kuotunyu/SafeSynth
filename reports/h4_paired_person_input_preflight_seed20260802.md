@@ -11,7 +11,7 @@
 - Distinct Train backgrounds: **64**
 - Scene CLIP cosine threshold/observed minimum: **0.6 / 0.6014**
 - Geometry fingerprint: `d12564be5d382c1038002913051b492da76ea2d6c82722beab922352e2c01c12`
-- Contact sheet: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\reports\figures\h4_paired_person_input_preflight_seed20260802.png`
+- Contact sheet: `reports/figures/h4_paired_person_input_preflight_seed20260802.png`
 
 Each cell shows the full CPU draft on the left and an enlarged person crop on the right. Cyan is the coupled person support; yellow is the linked helmet/head label transported with that same person.
 

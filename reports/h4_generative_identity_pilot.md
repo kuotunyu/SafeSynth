@@ -23,8 +23,8 @@
 - Label mismatches were not separately counted, because exceeding the severe
   identity-failure limit already fails the gate.
 - Consequence: Option A does not proceed to the one-shot H4 artifact gate.
-- Contact sheet: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\reports\figures\h4_generative_identity_pilot.png`
-- Detail contact sheet: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\reports\figures\h4_generative_identity_pilot_detail.png`
+- Contact sheet: `reports/figures/h4_generative_identity_pilot.png`
+- Detail contact sheet: `reports/figures/h4_generative_identity_pilot_detail.png`
 
 Each numbered cell is ordered DRAFT / EDIT MASK / REFERENCE / OUTPUT.
 The cyan rectangle marks the registered editable boundary band.

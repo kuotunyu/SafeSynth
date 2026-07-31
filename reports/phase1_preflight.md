@@ -1,10 +1,11 @@
 # Phase 1 handoff preflight
 
-- Audited HEAD: `8753913216bb4ab6b24c58b9a92969be0f352aa8`
-- Commits across all local refs: **52**
+- Audited HEAD: `d83d4cf7475016d8848acb0963fa28261f119782`
+- Commits across all local refs: **231**
 - GitHub contributor identity ready: **PASS**
 - Pre-publication state (identity + no remote): **PASS**
-- Scale-up allowed: **FAIL**
+- Unrestricted scale-up (H4 passed): **FAIL**
+- Permitted synthetic scale: **1x**
 
 ## Integrity checks
 
@@ -32,8 +33,13 @@
 
 ## Blocking actions
 
-- M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum.
+- (none)
 
-The failed H6/H4 gate lines are expected project blockers, not audit
-integrity failures. Do not create a signoff on the user's behalf and do
-not start M13 until both gates pass.
+## Known limitations carried forward
+
+- M11/H4 AUC 0.7964 exceeds the 0.60 maximum: paste artifacts are detectable. Accepted as a reported limitation per ADR-011; generation is capped at 1x and 2x is forbidden. Every result table must display this AUC.
+
+A failed H6 line is a hard blocker: do not create a signoff on the user's
+behalf. A failed H4 line is NOT a blocker any more — per ADR-011 it is an
+accepted, published limitation that caps generation at 1x and forbids 2x.
+It is still a failure and must never be reported as a pass.
