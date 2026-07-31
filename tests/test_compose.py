@@ -404,3 +404,55 @@ def test_source_gate_ignores_classes_without_a_floor(tmp_path) -> None:
 
     assert len(kept) == 1
     assert report["dropped_by_class"] == {}
+
+
+# spec: COMP-18
+def test_swapped_head_inherits_the_removed_helmet_size() -> None:
+    """The swap sets position AND scale from its anchor.
+
+    Regression: only the centre was inherited, so the head kept the scenario's
+    generic scale_range and came out several times too large for the body -
+    measured 52x68 replacing a 24x30 helmet.
+    """
+
+    rgba = np.zeros((60, 50, 4), dtype=np.uint8)
+    rgba[5:55, 5:45, 3] = 255
+    anchor = [213.0, 169.0, 24.0, 30.0]
+
+    scale = _transform_scale(
+        scenario="head_no_helmet",
+        settings={"scale_range": (0.60, 1.00)},
+        class_name="head",
+        rgba=rgba,
+        config={"compose": {"max_paste_scale": {"head": 3.0}}},
+        rng=np.random.default_rng(0),
+        target_bbox_xywh=anchor,
+    )
+
+    assert abs(scale * 40 - anchor[2]) < 1.0
+    assert abs(scale * 50 - anchor[3]) < 1.0
+
+
+# spec: COMP-18
+def test_swap_scale_ignores_the_generic_scale_range() -> None:
+    """A wide scale_range must not move the result when an anchor is given."""
+
+    rgba = np.zeros((60, 50, 4), dtype=np.uint8)
+    rgba[5:55, 5:45, 3] = 255
+    anchor = [10.0, 10.0, 24.0, 30.0]
+    kwargs = {
+        "scenario": "head_no_helmet",
+        "class_name": "head",
+        "rgba": rgba,
+        "config": {"compose": {"max_paste_scale": {"head": 3.0}}},
+        "target_bbox_xywh": anchor,
+    }
+
+    narrow = _transform_scale(
+        settings={"scale_range": (0.60, 0.61)}, rng=np.random.default_rng(1), **kwargs
+    )
+    wide = _transform_scale(
+        settings={"scale_range": (0.20, 2.50)}, rng=np.random.default_rng(2), **kwargs
+    )
+
+    assert narrow == wide

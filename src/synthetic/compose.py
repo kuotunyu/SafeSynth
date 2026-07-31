@@ -1648,6 +1648,7 @@ def _build_sample(
         intentional_removals: set[int] = set()
         center_override: tuple[float, float] | None = None
         replacement_anchor: dict[str, Any] | None = None
+        swap_anchor_annotation_id: int | None = None
         target_bbox_xywh: Sequence[float] | None = None
         person_boxes = [
             annotation["bbox"]
@@ -1722,7 +1723,21 @@ def _build_sample(
                 radius=int(settings["swap_inpaint_radius"]),
             )
             intentional_removals.add(int(removed["id"]))
-            x, y, width, height = (float(value) for value in removed["bbox"])
+            swap_anchor_annotation_id = int(removed["id"])
+            # The head must inherit the removed helmet's SIZE as well as its
+            # position. Without this the swap kept the scenario's generic
+            # scale_range and produced heads several times too large for the
+            # body they sit on: a 52x68 head replacing a 24x30 helmet, in a
+            # scene whose other helmets were 34x40 and 28x33.
+            #
+            # Matching the whole anchor box (not just its width) is safe here
+            # because the two classes have almost the same aspect in the real
+            # data - head h/w median 1.208, helmet 1.143 - so the two rules
+            # differ by under 3%. There are no same-person (head, helmet) pairs
+            # to calibrate anything finer against; H1 established the classes
+            # are mutually exclusive per person.
+            target_bbox_xywh = removed["bbox"]
+            x, y, width, height = (float(value) for value in target_bbox_xywh)
             center_override = (x + width / 2, y + height / 2)
         elif scenario == "head_no_helmet" and not person_boxes:
             last_reason = "NO_VALID_HEAD_ANCHOR"
@@ -2006,6 +2021,9 @@ def _build_sample(
                 if replacement_anchor is not None
                 else None
             ),
+            # Kept separate from replacement_anchor: that field also drives the
+            # requested paste class, and a helmet->head swap must request a head.
+            "swap_anchor_annotation_id": swap_anchor_annotation_id,
             "postfx": postfx_applied,
             "dedup": {
                 "phash": output_phash,

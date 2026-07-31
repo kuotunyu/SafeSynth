@@ -301,3 +301,32 @@ Lab 局部調和、雜訊匹配四件事；`_paste_hard_negatives` 一件都沒�
 
 **這條是目視發現的，不是測試發現的**——所有自動檢查都通過了。
 CLAUDE.md 的「自己產的圖要自己打開檢視」不是客套話。
+
+---
+
+### K-15 — helmet→head 替換只繼承位置，沒繼承尺寸
+
+**症狀**：`preview_head_no_helmet_p1` 裡出現**大到不成比例的頭**貼在人身上。
+實測 `s42_011879`：貼上的 head 是 **52×68**，被取代的 helmet 只有 **24×30**
+（面積約 5 倍），而同一場景另外兩頂安全帽是 34×40 與 28×33。
+
+**根因**：`_build_sample` 的 `do_swap` 分支只設了 `center_override`，
+**沒有設 `target_bbox_xywh`**——對照 `context_replacement` 分支兩個都設。
+於是 `_transform_scale` 走到 `else` 分支，沿用情境的通用 `scale_range`。
+[COMP-18](synthesis_spec.md) 的虛擬碼本來就寫了要縮放到 anchor 框，
+**是實作偏離了規格**，不是規格沒寫。
+
+**為什麼沒有任何過濾器攔下它**：
+[FILT-08](filtering_spec.md) 的 head/person 尺寸比例需要一個 `person` 框才能比對，
+而全資料集只有 **3.16%** 的圖有 person 標註。這條路徑上通常沒有可比對的對象。
+**「有規則」不等於「規則會執行」**——條件式規則要問清楚它的前提多常成立。
+
+**解法**：swap 分支一併設 `target_bbox_xywh = removed["bbox"]`。
+修後實測 head_w/anchor_w 中位數 **0.949**、head_h/anchor_h 中位數 **1.000**
+（修前那個案例是 2.17 與 2.27）。
+
+**預防**：`tests/test_compose.py -k swap`，其中一條斷言
+即使把 `scale_range` 放到極寬，只要給了 anchor，結果就不會變。
+
+**這條同樣是目視發現的**，而且發生在 [K-14](#k-14) 之後——
+連續兩個 bug 都是自動檢查全過、打開圖才看到。

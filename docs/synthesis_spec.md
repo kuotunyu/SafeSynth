@@ -334,14 +334,28 @@ L 通道則給強處理（曝光不符是最顯眼的破綻，而且不帶類別
   ```
   選一個既有的 helmet 標註 h（其 Pass 1 mask 需通過 QC）
   先用 cv2.INPAINT_TELEA 把 dilate(M_h) 區域抹掉        <-- 這一步是關鍵
-  取一個 head cutout，縮放到略大於原 helmet 框
+  取一個 head cutout，縮放到與 h 的框相符（見下）
   貼上
   斷言殘留的 helmet 區域比例低於門檻（否則 crash）
   移除標註 h，新增一個 head 標註
-  記錄 intentional_removals = [h.id]
+  記錄 intentional_removals = [h.id]、swap_anchor_annotation_id = h.id
   ```
   **必須先 inpaint 再貼**，否則會留下帽緣殘影。在 416 下的約 48 px 區域上，
   Telea 又快又夠用，因為之後大部分會被蓋住。
+
+  ⚠️ **尺寸必須繼承 anchor，不是只繼承位置。**
+  實作曾經只設 `center_override` 而沒設 `target_bbox_xywh`，於是頭沿用了情境的
+  通用 `scale_range`，貼出**大到不成比例**的頭：實測 `s42_011879` 用 **52×68**
+  的頭取代 **24×30** 的安全帽，而同場景另外兩頂安全帽是 34×40 與 28×33。
+  因為這裡通常沒有 `person` 框（全資料集只有 3.16% 的圖有），
+  [FILT-08](filtering_spec.md) 的尺寸比例規則無從比對，這個錯誤不會被任何過濾器攔下。
+
+  **縮放規則**：把 head cutout 的 alpha 框以幾何平均縮放到 h 的框。
+  取整個框而不是只取寬度，是因為兩類的長寬比在真實資料上幾乎相同
+  （head h/w 中位數 1.208、helmet 1.143，兩種規則差不到 3%）。
+  無法做得更細——H1 已確認同一個人身上 helmet 與 head 互斥，
+  **真實資料裡不存在可供校準的 (head, helmet) 配對**。
+  實測結果：head_w / anchor_w 中位數 0.949、head_h / anchor_h 中位數 1.000。
 
 **COMP-19 — `low_light_blur` 刻意重複計算**：除了它自己的專屬配額，
 低光／模糊也會作為**修飾**套用到其他情境的一部分樣本上（比例見各情境的 `postfx_prob`）。
