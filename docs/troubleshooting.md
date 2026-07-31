@@ -418,3 +418,57 @@ hard_hat_workers2463.png 的偵測結果（門檻 0.30）：
 
 **預防**：不要憑載入訊息判斷權重有沒有載進去，**跑一次推論看它會不會偵測**。
 `scripts/smoke_train.py` 的存在就是為了在花掉 Colab 時數之前先跑過這條路徑。
+
+---
+
+### K-18 — smoke test 跳過 eval，四組 Colab 訓練全部陣亡
+
+**症狀**：Colab 上四組**全部**在訓練約 2 分鐘後死在同一個地方，
+而且**沒有跳出紅色 Error**（每組的例外被 `try/except` 接住，印完 traceback 就繼續下一組），
+所以畫面看起來像在跑。最後 `完成的組別: []`。
+
+```
+File "/content/safesynth/src/training/run.py", line 114, in compute_metrics
+    logits_batches.append(torch.as_tensor(logits))
+RuntimeError: Could not infer dtype of dict
+```
+
+**根因（兩層，第二層才是真的）**：
+
+**表層**：`eval_do_concat_batches=False` 時，Trainer 交給 `compute_metrics` 的是
+**每個 batch 一個 tuple 的 list**，而那個 tuple 的 **index 0 是 loss dict，不是 logits**。
+實測 `transformers 5.14.1` 的結構：
+
+```
+predictions: list（每個 eval batch 一個）
+  predictions[i]: tuple，長度 14
+    [0] -> dict，keys = loss_vfl / loss_bbox / loss_giou / ..._aux_*
+    [1] -> ndarray (B, 300, num_labels)   ← logits
+    [2] -> ndarray (B, 300, 4)            ← pred_boxes
+```
+
+我寫的是 `logits, boxes = batch[0], batch[1]`，抓到 loss dict 和 logits。
+
+**深層（真正的錯）**：**`scripts/smoke_train.py` 當初設了 `eval_strategy="no"`**，
+理由是「smoke test 不該花時間評測 756 張 val」。
+於是 `compute_metrics` 這條路徑**本機從來沒有被執行過一次**。
+訓練路徑測得很仔細（冷啟動、熱啟動、checkpoint 都驗了），評測路徑則是零覆蓋。
+
+**解法**：
+1. 用**形狀**而不是**索引**找 logits 與 boxes
+   （`extract_logits_and_boxes`：末維 == num_labels 的是 logits，== 4 的是 boxes）。
+   tuple 佈局已經變過一次，就會再變
+2. **smoke test 一定要跑 eval**。改用 val 的一小片（預設 16 張）——
+   夠快，但 batching、形狀萃取、COCOeval 三條路全部走過
+3. `run_arm` 結束時明確跑一次 `trainer.evaluate()` 並把指標寫進 `run_record.json`，
+   讓「eval 有沒有真的算出東西」變成可稽核的紀錄而不是假設
+
+**代價**：浪費了約 12 分鐘 Colab（四組各約 2–3 分鐘）加使用者一次來回。
+
+**教訓（比這個 bug 本身重要）**：
+**smoke test 跳過的路徑就是沒有被覆蓋的路徑，不管測試套件多綠。**
+當初為了「跑得快」關掉 eval，等於把最貴的驗證機會關掉。
+會被 CI 綠燈掩蓋的缺口，通常就是你為了省時間主動關掉的那一塊。
+
+**預防**：`tests/test_training_metrics.py` 用實測到的 14-tuple 結構（index 0 是 loss dict）
+釘住四條測試，其中一條刻意把 tuple 重新排序，確認萃取不依賴位置。

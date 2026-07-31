@@ -8,16 +8,35 @@
       "arm": "filtered_syn",
       "augmentation_profile": "standard_aug",
       "n_real_train": 3500,
-      "n_real_val": 756,
+      "n_real_val": 16,
       "n_synthetic": 3500,
       "n_train_total": 7000,
       "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
     },
+    "eval_metrics": {
+      "epoch": 0.0045662100456621,
+      "eval_loss": 40.94146728515625,
+      "eval_map": 0.0008386978451565753,
+      "eval_map_50": 0.0023466705178378116,
+      "eval_map_75": 0.0006141389804085161,
+      "eval_map_large": -1.0,
+      "eval_map_medium": 0.0028118142466211312,
+      "eval_map_small": 0.0009259339336611691,
+      "eval_mar_1": 0.0,
+      "eval_mar_10": 0.0047286184210526315,
+      "eval_mar_100": 0.05785361842105263,
+      "eval_mar_large": -1.0,
+      "eval_mar_medium": 0.09444444444444443,
+      "eval_mar_small": 0.030324324324324324,
+      "eval_runtime": 0.4344,
+      "eval_samples_per_second": 36.833,
+      "eval_steps_per_second": 4.604
+    },
     "resumed_from": null,
     "seed": 1337,
     "total_steps": 2,
-    "train_loss": 106.6422119140625,
-    "train_runtime_seconds": 2.8833
+    "train_loss": 52.10710906982422,
+    "train_runtime_seconds": 3.5235
   },
   "resume_verified": true,
   "warm_start": {
@@ -27,15 +46,34 @@
       "arm": "filtered_syn",
       "augmentation_profile": "standard_aug",
       "n_real_train": 3500,
-      "n_real_val": 756,
+      "n_real_val": 16,
       "n_synthetic": 3500,
       "n_train_total": 7000,
       "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
     },
+    "eval_metrics": {
+      "epoch": 0.0091324200913242,
+      "eval_loss": 42.883689880371094,
+      "eval_map": 0.0007154164956424197,
+      "eval_map_50": 0.002339107636173031,
+      "eval_map_75": 0.0003968332705013988,
+      "eval_map_large": -1.0,
+      "eval_map_medium": 0.0023806737248029293,
+      "eval_map_small": 0.000601480503899161,
+      "eval_mar_1": 0.0,
+      "eval_mar_10": 0.0065378289473684206,
+      "eval_mar_100": 0.04481907894736842,
+      "eval_mar_large": -1.0,
+      "eval_mar_medium": 0.07592592592592592,
+      "eval_mar_small": 0.02156756756756757,
+      "eval_runtime": 0.4062,
+      "eval_samples_per_second": 39.389,
+      "eval_steps_per_second": 4.924
+    },
     "resumed_from": "D:\\sdg-data\\02-safesynth\\runs\\smoke\\filtered_syn_seed_1337\\checkpoint-2",
     "seed": 1337,
     "total_steps": 4,
-    "train_loss": 45.09642791748047,
-    "train_runtime_seconds": 1.8421
+    "train_loss": 24.007230758666992,
+    "train_runtime_seconds": 2.2591
   }
 }

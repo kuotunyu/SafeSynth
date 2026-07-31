@@ -27,6 +27,7 @@ from src.training.data import (
 from src.training.metrics import (
     build_coco_ground_truth,
     evaluate_detections,
+    extract_logits_and_boxes,
     predictions_to_coco,
 )
 from src.training.trainer import (
@@ -101,6 +102,9 @@ def make_compute_metrics(processor, val_samples):
 
     ground_truth = build_coco_ground_truth(val_samples, CLASS_NAMES)
     image_ids = [int(sample.image_id) for sample in val_samples]
+    # (height, width) per image, in the order the eval dataloader yields them.
+    # Trainer's eval loader does not shuffle, so this order is the dataset order.
+    target_sizes_all = [[sample.height, sample.width] for sample in val_samples]
 
     def compute_metrics(eval_prediction) -> dict[str, float]:
         from types import SimpleNamespace
@@ -108,22 +112,28 @@ def make_compute_metrics(processor, val_samples):
         predictions = eval_prediction.predictions
         # eval_do_concat_batches=False means predictions arrive as a list of
         # per-batch outputs rather than one concatenated array.
+        batches = (
+            predictions
+            if isinstance(predictions, list)
+            else [predictions]
+        )
         logits_batches, boxes_batches = [], []
-        for batch in predictions if isinstance(predictions, (list, tuple)) else [predictions]:
-            logits, boxes = batch[0], batch[1]
+        for batch in batches:
+            logits, boxes = extract_logits_and_boxes(
+                batch, num_labels=len(CLASS_NAMES)
+            )
             logits_batches.append(torch.as_tensor(logits))
             boxes_batches.append(torch.as_tensor(boxes))
-        logits = torch.cat(logits_batches, dim=0)
-        boxes = torch.cat(boxes_batches, dim=0)
+        logits = torch.cat(logits_batches, dim=0).float()
+        boxes = torch.cat(boxes_batches, dim=0).float()
 
+        count = int(logits.shape[0])
         outputs = SimpleNamespace(logits=logits, pred_boxes=boxes)
-        target_sizes = torch.tensor(
-            [[416, 416]] * logits.shape[0], dtype=torch.float32
-        )
+        target_sizes = torch.tensor(target_sizes_all[:count], dtype=torch.float32)
         processed = processor.post_process_object_detection(
             outputs, threshold=0.0, target_sizes=target_sizes
         )
-        detections = predictions_to_coco(processed, image_ids[: logits.shape[0]])
+        detections = predictions_to_coco(processed, image_ids[:count])
         return evaluate_detections(ground_truth, detections)
 
     return compute_metrics
@@ -176,6 +186,9 @@ def run_arm(
 
     checkpoint = find_resumable_checkpoint(paths.output_dir) if resume else None
     result = trainer.train(resume_from_checkpoint=checkpoint)
+    # Evaluate explicitly at the end so the record always carries metrics, even
+    # when eval_strategy would not have fired on the final step.
+    final_metrics = trainer.evaluate()
 
     record = {
         "arm": composition.arm,
@@ -184,6 +197,11 @@ def run_arm(
         "resumed_from": checkpoint,
         "train_runtime_seconds": float(result.metrics.get("train_runtime", 0.0)),
         "train_loss": float(result.metrics.get("train_loss", float("nan"))),
+        "eval_metrics": {
+            key: float(value)
+            for key, value in final_metrics.items()
+            if isinstance(value, (int, float))
+        },
         "composition": composition.summary(),
         "bf16": bool(use_bf16),
     }

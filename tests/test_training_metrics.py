@@ -9,8 +9,10 @@ import torch
 
 from src.training.metrics import (
     COCO_STAT_NAMES,
+    EvalStructureError,
     build_coco_ground_truth,
     evaluate_detections,
+    extract_logits_and_boxes,
     predictions_to_coco,
 )
 
@@ -100,3 +102,75 @@ def test_degenerate_boxes_are_dropped() -> None:
 
     assert len(detections) == 1
     assert detections[0]["category_id"] == 2
+
+
+def _fake_eval_batch(batch_size: int = 2, num_labels: int = 3) -> tuple:
+    """The measured transformers 5.14.1 layout: 14-tuple, loss dict at index 0.
+
+    This exact shape is what killed the first Colab run, so it is pinned here.
+    """
+
+    import numpy as np
+
+    loss_dict = {
+        "loss_vfl": np.array(1.0),
+        "loss_bbox": np.array(2.0),
+        "loss_giou": np.array(3.0),
+    }
+    logits = np.zeros((batch_size, 300, num_labels), dtype=np.float32)
+    boxes = np.zeros((batch_size, 300, 4), dtype=np.float32)
+    filler = [np.zeros((batch_size, 4), dtype=np.float32) for _ in range(11)]
+    return (loss_dict, logits, boxes, *filler)
+
+
+# spec: TRAIN-01
+def test_logits_and_boxes_are_found_past_the_loss_dict() -> None:
+    """Index 0 is the loss dict, not the logits. Positional access broke on this."""
+
+    logits, boxes = extract_logits_and_boxes(_fake_eval_batch(), num_labels=3)
+
+    assert logits.shape == (2, 300, 3)
+    assert boxes.shape == (2, 300, 4)
+
+
+def test_extraction_survives_a_reordered_tuple() -> None:
+    """Selection is by trailing dimension, so layout changes do not break it."""
+
+    import numpy as np
+
+    logits = np.zeros((2, 300, 3), dtype=np.float32)
+    boxes = np.zeros((2, 300, 4), dtype=np.float32)
+    reordered = (boxes, {"loss": np.array(1.0)}, logits)
+
+    found_logits, found_boxes = extract_logits_and_boxes(reordered, num_labels=3)
+
+    assert found_logits.shape == (2, 300, 3)
+    assert found_boxes.shape == (2, 300, 4)
+
+
+def test_missing_logits_raises_instead_of_producing_zero_map() -> None:
+    """A silent zero mAP would read as 'the model learned nothing'."""
+
+    import numpy as np
+
+    with pytest.raises(EvalStructureError, match="Could not locate"):
+        extract_logits_and_boxes(
+            ({"loss": np.array(1.0)}, np.zeros((2, 4), dtype=np.float32)),
+            num_labels=3,
+        )
+
+
+def test_four_class_model_would_not_confuse_boxes_with_logits() -> None:
+    """With num_labels=4 both arrays end in 4; the first match must win in order."""
+
+    import numpy as np
+
+    logits = np.zeros((2, 300, 4), dtype=np.float32)
+    boxes = np.zeros((2, 300, 4), dtype=np.float32)
+
+    found_logits, found_boxes = extract_logits_and_boxes(
+        ({"loss": np.array(0.0)}, logits, boxes), num_labels=4
+    )
+
+    assert found_logits is not None
+    assert found_boxes is not None

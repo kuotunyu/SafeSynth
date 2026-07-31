@@ -97,6 +97,58 @@ def evaluate_detections(
     }
 
 
+class EvalStructureError(RuntimeError):
+    """Raised when the eval output does not contain identifiable logits/boxes."""
+
+
+def extract_logits_and_boxes(batch: Any, *, num_labels: int):
+    """Find logits and pred_boxes inside one eval batch, BY SHAPE not by index.
+
+    With `eval_do_concat_batches=False`, Trainer hands compute_metrics a list of
+    per-batch tuples. Measured on transformers 5.14.1, each tuple has 14 entries
+    and entry 0 is the LOSS DICT, not the logits:
+
+        predictions[i][0] -> dict of loss terms
+        predictions[i][1] -> ndarray (B, 300, num_labels)
+        predictions[i][2] -> ndarray (B, 300, 4)
+
+    Indexing positionally is what broke the first Colab run - `batch[0]` returned
+    the loss dict and torch.as_tensor raised "Could not infer dtype of dict".
+    Selecting by trailing dimension survives the tuple layout changing again,
+    which it already has once.
+    """
+
+    import numpy as np
+
+    if isinstance(batch, dict):
+        candidates = list(batch.values())
+    elif isinstance(batch, (list, tuple)):
+        candidates = list(batch)
+    else:
+        candidates = [batch]
+
+    logits = boxes = None
+    for item in candidates:
+        if not hasattr(item, "shape") or getattr(item, "ndim", 0) != 3:
+            continue
+        array = np.asarray(item)
+        if logits is None and array.shape[-1] == num_labels:
+            logits = array
+        elif boxes is None and array.shape[-1] == 4:
+            boxes = array
+
+    if logits is None or boxes is None:
+        shapes = [
+            tuple(getattr(item, "shape", ())) if hasattr(item, "shape") else type(item).__name__
+            for item in candidates
+        ]
+        raise EvalStructureError(
+            f"Could not locate logits (..., {num_labels}) and boxes (..., 4) in the "
+            f"eval batch. Saw: {shapes}"
+        )
+    return logits, boxes
+
+
 def predictions_to_coco(
     processed: Sequence[dict[str, Any]], image_ids: Sequence[int]
 ) -> list[dict[str, Any]]:

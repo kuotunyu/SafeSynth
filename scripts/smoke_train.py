@@ -1,13 +1,20 @@
 """TRAIN-13: prove the training path runs locally before it costs Colab time.
 
-Two things are verified, and the second is the one that matters on Colab:
+Three things are verified:
 
 1. A tiny number of real optimizer steps completes and writes a checkpoint.
-2. Running again with that checkpoint present RESUMES rather than restarting.
+2. The EVALUATION path runs and returns real COCO metrics.
+3. Running again with that checkpoint present RESUMES rather than restarting.
 
-TRAIN-10 says resume is not an optional feature because Colab disconnects, and
-that it is accepted by measurement rather than by inspection. So this script runs
-the branch both ways and compares.
+Point 2 is here because its absence cost a four-arm Colab run. The first version
+of this script set eval_strategy="no" to keep the smoke test fast, so
+compute_metrics was never executed locally, and all four arms died in it after
+about two minutes of training each. A smoke test that skips a code path does not
+cover that code path, however green it looks.
+
+The evaluation runs on a small slice of val rather than all 756 images, which
+keeps it quick while still exercising the batching, the shape extraction and
+COCOeval end to end.
 """
 
 from __future__ import annotations
@@ -15,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from dataclasses import replace
 
 import yaml
 
@@ -32,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--resume-steps", type=int, default=4)
     parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--val-images", type=int, default=16)
     parser.add_argument("--keep", action="store_true", help="do not delete the run dir")
     return parser.parse_args()
 
@@ -43,12 +52,13 @@ def main() -> None:
     config = yaml.safe_load(
         (PROJECT_ROOT / "configs" / "training.yaml").read_text(encoding="utf-8")
     )
-    # A smoke test must not evaluate the full 756-image val set; that would take
-    # longer than the training it is smoke-testing.
-    config["run"]["eval_strategy"] = "no"
+    # Evaluation MUST run here. Skipping it is exactly what let a broken
+    # compute_metrics reach Colab and kill all four arms.
+    config["run"]["eval_strategy"] = "steps"
     config["run"]["save_strategy"] = "steps"
     config["run"]["load_best_model_at_end"] = False
     config["schedule"]["warmup_steps"] = 1
+    config["run"]["eval_on_n_val_images"] = args.val_images
 
     arms = build_all_arms(
         manifest_path=paths.splits / "split_manifest.json",
@@ -58,6 +68,11 @@ def main() -> None:
         },
     )
     composition = arms[args.arm]
+    # Evaluate on a slice of val so the smoke test stays fast while still
+    # running the full eval path: batching, shape extraction, COCOeval.
+    composition = replace(
+        composition, real_val=composition.real_val[: args.val_images]
+    )
 
     output_dir = paths.runs / "smoke" / f"{args.arm}_seed_{args.seed}"
     if output_dir.exists():

@@ -41,6 +41,12 @@ class Sample:
     boxes_xywh: tuple[tuple[float, float, float, float], ...]
     class_indices: tuple[int, ...]
     is_synthetic: bool
+    # Needed to rescale predictions back to annotation coordinates. Not all
+    # images are exactly 416x416 - some synthetic outputs are 415 wide after
+    # reflected-padding normalization - so this is read per image rather than
+    # assumed.
+    width: int = 416
+    height: int = 416
 
 
 def load_coco_samples(
@@ -65,7 +71,11 @@ def load_coco_samples(
     for image in payload["images"]:
         name = image["file_name"].split("/")[-1]
         if allow is None or name in allow:
-            images[int(image["id"])] = name
+            images[int(image["id"])] = (
+                name,
+                int(image.get("width", 416)),
+                int(image.get("height", 416)),
+            )
 
     grouped: dict[int, list[dict[str, Any]]] = {image_id: [] for image_id in images}
     for annotation in payload["annotations"]:
@@ -74,7 +84,9 @@ def load_coco_samples(
             grouped[image_id].append(annotation)
 
     samples: list[Sample] = []
-    for image_id, name in sorted(images.items(), key=lambda item: item[1]):
+    for image_id, (name, width, height) in sorted(
+        images.items(), key=lambda item: item[1][0]
+    ):
         boxes: list[tuple[float, float, float, float]] = []
         classes: list[int] = []
         for annotation in sorted(grouped[image_id], key=lambda a: int(a["id"])):
@@ -90,6 +102,8 @@ def load_coco_samples(
                 boxes_xywh=tuple(boxes),
                 class_indices=tuple(classes),
                 is_synthetic=is_synthetic,
+                width=width,
+                height=height,
             )
         )
     return samples
