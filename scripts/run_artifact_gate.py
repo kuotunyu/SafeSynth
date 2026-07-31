@@ -174,7 +174,7 @@ def main() -> None:
     lines = [
         "# Spike H4 — paste-artifact detectability",
         "",
-        f"- Source run: `{run_dir}` (300 images)",
+        f"- Source run: `{_repo_relative(run_dir)}` ({n_images} generated images)",
         (
             f"- Examples: {result['n_examples']} "
             f"({result['n_train']} train / {result['n_test']} group-disjoint test)"
@@ -222,3 +222,29 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _repo_relative(path) -> str:
+    """Repo-relative POSIX path; absolute paths leak the local username."""
+
+    from pathlib import Path as _Path
+
+    candidate = _Path(path)
+    for root in (_Path(__file__).resolve().parents[1],):
+        try:
+            return candidate.resolve().relative_to(root).as_posix()
+        except ValueError:
+            continue
+    return candidate.as_posix()
+
+
+def _repo_relative(path) -> str:
+    """Repo-relative POSIX path; absolute paths leak the local username."""
+
+    from pathlib import Path as _Path
+
+    candidate = _Path(path)
+    try:
+        return candidate.resolve().relative_to(_Path(__file__).resolve().parents[1]).as_posix()
+    except ValueError:
+        return candidate.as_posix()

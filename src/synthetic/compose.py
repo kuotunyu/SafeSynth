@@ -59,8 +59,9 @@ EXPERIMENTAL_SCENARIOS = ("context_replacement",)
 # ---------------------------------------------------------------------------
 # ADR-011 scale cap.
 #
-# H4 did not pass (paste-artifact AUC 0.7964 against a pre-registered maximum of
-# 0.60) and this project does not claim otherwise. The consequence was changed
+# H4 did not pass (paste-artifact AUC 0.9159 on the 1x pool against a pre-registered
+# maximum of 0.60; M11 measured 0.7964 on 300 images, and the estimate rose once the
+# sample grew to 75,106 patches) and this project does not claim otherwise. The consequence was changed
 # from "block indefinitely" to "1x is allowed, 2x is forbidden": there is no
 # reason to spend a large generation budget on data whose artifacts are known to
 # be detectable.
