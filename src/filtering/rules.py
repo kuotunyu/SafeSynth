@@ -26,6 +26,7 @@ class RejectReason(StrEnum):
     NO_CHANGE = "NO_CHANGE"
     SAM2_MASK_REJECTED = "SAM2_MASK_REJECTED"
     PLACEMENT_RETRIES_EXHAUSTED = "PLACEMENT_RETRIES_EXHAUSTED"
+    ILLEGIBLE_ANNOTATION = "ILLEGIBLE_ANNOTATION"
 
 
 @dataclass(frozen=True)
@@ -302,6 +303,38 @@ def _filt_11(sample: Mapping[str, Any], config: Mapping[str, Any]) -> list[Rejec
     return reasons
 
 
+# spec: FILT-15
+def _filt_15(
+    instances: Sequence[Mapping[str, Any]], config: Mapping[str, Any]
+) -> list[RejectReason]:
+    """Reject samples whose annotations no longer describe anything visible.
+
+    Gated on the mean luma of the object's OWN pixels, per class. The floor is
+    absolute for pasted objects — we chose to put them there, so we can choose
+    not to. For carried-through real annotations it is relaxed to whatever the
+    untouched background already offered, recorded at composition time as
+    `object_mean_luma_pre_postfx`; without that, the rule would reject
+    backgrounds for the source dataset's own dim objects.
+    """
+
+    floors = config["rules"]["annotation_legibility"]["min_object_mean_luma"]
+    reasons: list[RejectReason] = []
+    for instance in instances:
+        if "object_mean_luma" not in instance:
+            continue
+        floor = floors.get(str(instance["class_name"]))
+        if floor is None:
+            continue
+        floor = float(floor)
+        if instance.get("kind") == "existing":
+            floor = min(
+                floor, float(instance.get("object_mean_luma_pre_postfx", floor))
+            )
+        if float(instance["object_mean_luma"]) < floor:
+            reasons.append(RejectReason.ILLEGIBLE_ANNOTATION)
+    return reasons
+
+
 def filter_sample(
     sample: Mapping[str, Any],
     config: Mapping[str, Any],
@@ -324,6 +357,7 @@ def filter_sample(
     # FILT-09/10 also needs hard negatives, which carry no annotation.
     raw_reasons.extend(_filt_09_10(sample.get("instances", []), config))
     raw_reasons.extend(_filt_11(sample, config))
+    raw_reasons.extend(_filt_15(instances, config))
     reasons = tuple(dict.fromkeys(reason.value for reason in raw_reasons))
 
     configured = set(config["reject_reasons"])

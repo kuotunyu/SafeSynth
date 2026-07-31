@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
+from PIL import Image
 
 from src.synthetic.compose import (
     Paste,
     _decode_rle,
+    _drop_illegible_source_material,
     _encode_rle,
     _generative_seed,
     _requested_classes,
     _sample_seed,
     _scenario_sequence,
     _transform_scale,
-    _visible_paste_masks,
+    _visible_masks,
     context_replacement_input_guard,
     normalize_reflected_padding,
     reflected_padding_guard,
@@ -346,10 +350,57 @@ def test_visible_paste_mask_excludes_only_layers_in_front() -> None:
         z_index=2,
     )
 
-    visible = _visible_paste_masks(
+    visible = _visible_masks(
         existing_layers=[back, front],
         pastes=[paste],
     )["paste:0"]
 
     assert np.array_equal(visible, paste_mask & ~front_mask)
     assert np.any(visible & back_mask)
+
+
+def _write_cutout(directory, name, *, luma: int, size: int = 24) -> dict:
+    """A solid-colour RGBA cutout with a circular alpha, at a chosen brightness."""
+
+    rgba = np.zeros((size, size, 4), dtype=np.uint8)
+    rgba[..., :3] = luma
+    yy, xx = np.mgrid[0:size, 0:size]
+    rgba[..., 3] = np.where(
+        (yy - size / 2) ** 2 + (xx - size / 2) ** 2 <= (size / 2 - 1) ** 2, 255, 0
+    )
+    path = directory / f"{name}.png"
+    Image.fromarray(rgba, mode="RGBA").save(path)
+    return {"cutout_id": name, "class_name": "head", "file": path.name}
+
+
+# spec: CUT-14
+def test_black_silhouette_source_material_is_refused(tmp_path) -> None:
+    """FILT-15 cannot catch these: harmonization lifts the mean before it looks.
+
+    Measured case 001610_ann008186 — source luma 8.5, composite luma 45.4, which
+    clears the FILT-15 floor while still being a featureless blob.
+    """
+
+    bank = [
+        _write_cutout(tmp_path, "silhouette", luma=9),
+        _write_cutout(tmp_path, "usable", luma=120),
+    ]
+    paths = SimpleNamespace(cutouts=tmp_path)
+
+    kept, report = _drop_illegible_source_material(
+        bank, paths=paths, floors={"head": 23.19}
+    )
+
+    assert [item["cutout_id"] for item in kept] == ["usable"]
+    assert report == {"n_before": 2, "n_after": 1, "dropped_by_class": {"head": 1}}
+
+
+# spec: CUT-14
+def test_source_gate_ignores_classes_without_a_floor(tmp_path) -> None:
+    bank = [_write_cutout(tmp_path, "dark", luma=3)]
+    paths = SimpleNamespace(cutouts=tmp_path)
+
+    kept, report = _drop_illegible_source_material(bank, paths=paths, floors={})
+
+    assert len(kept) == 1
+    assert report["dropped_by_class"] == {}

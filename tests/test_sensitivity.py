@@ -47,6 +47,13 @@ def config() -> dict:
                 "max_hamming_to_other_real_image": 6,
                 "min_changed_pixel_ratio": 0.005,
             },
+            "annotation_legibility": {
+                "min_object_mean_luma": {
+                    "head": 23.19,
+                    "helmet": 45.58,
+                    "person": 24.26,
+                },
+            },
         },
         "assertions": {
             "real_annotation_count_invariant": True,
@@ -72,6 +79,7 @@ def config() -> dict:
             "NO_CHANGE",
             "SAM2_MASK_REJECTED",
             "PLACEMENT_RETRIES_EXHAUSTED",
+            "ILLEGIBLE_ANNOTATION",
         ],
     }
 

@@ -195,6 +195,81 @@ def test_z_order_bug_crashes(config: dict) -> None:
         filter_sample(valid_sample(near, far), config)
 
 
+# spec: FILT-15
+def test_pasted_object_crushed_to_black_is_rejected(config: dict) -> None:
+    dark = instance(
+        "h",
+        "helmet",
+        [100, 100, 40, 30],
+        object_mean_luma=6.4,
+        object_mean_luma_pre_postfx=118.0,
+    )
+
+    assert "ILLEGIBLE_ANNOTATION" in reasons(valid_sample(dark), config)
+
+
+# spec: FILT-15
+def test_floor_is_per_class_so_dark_hair_survives(config: dict) -> None:
+    """A head at luma 32 is a dark-haired head; a helmet at luma 32 is a shadow.
+
+    Pooling the classes would preferentially discard bare heads, which is the
+    exact class the pipeline exists to produce more of.
+    """
+
+    head = instance("head", "head", [100, 100, 40, 30], object_mean_luma=32.0)
+    helmet = instance("helmet", "helmet", [200, 100, 40, 30], object_mean_luma=32.0)
+
+    assert filter_sample(valid_sample(head), config).passed
+    assert "ILLEGIBLE_ANNOTATION" in reasons(valid_sample(helmet), config)
+
+
+# spec: FILT-15
+def test_legible_pasted_object_passes(config: dict) -> None:
+    bright = instance(
+        "h",
+        "helmet",
+        [100, 100, 40, 30],
+        object_mean_luma=118.0,
+        object_mean_luma_pre_postfx=118.0,
+    )
+
+    assert filter_sample(valid_sample(bright), config).passed
+
+
+# spec: FILT-15
+def test_dim_real_annotation_is_not_our_defect_to_reject(config: dict) -> None:
+    """An object the source dataset already left dim must not close the background.
+
+    The relaxation is bounded: the annotation is held to what the untouched
+    background offered, so post-fx still cannot take it below that.
+    """
+
+    inherited = instance(
+        "real:1",
+        "helmet",
+        [100, 100, 40, 30],
+        kind="existing",
+        object_mean_luma=20.0,
+        object_mean_luma_pre_postfx=20.0,
+    )
+    sample = valid_sample(inherited)
+    sample["invariants"]["n_real_ann_in"] = 1
+    sample["invariants"]["n_real_ann_out"] = 1
+
+    assert filter_sample(sample, config).passed
+
+    darkened = copy.deepcopy(sample)
+    darkened["instances"][0]["object_mean_luma"] = 4.0
+    assert "ILLEGIBLE_ANNOTATION" in reasons(darkened, config)
+
+
+# spec: FILT-15
+def test_records_without_legibility_fields_are_not_judged(config: dict) -> None:
+    """Older records predate schema v2; absence of a measurement is not a failure."""
+
+    assert filter_sample(valid_sample(), config).passed
+
+
 def test_every_reject_reason_is_declared(config: dict) -> None:
     sample = valid_sample()
     sample["dedup"]["min_hamming_to_other_real_image"] = 0

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -470,13 +471,238 @@ def seam_energy_ratio(
     return float(magnitude[band].mean() / interior_energy)
 
 
+def _luma(image_rgb: np.ndarray) -> np.ndarray:
+    patch = np.asarray(image_rgb, dtype=np.float32)
+    return 0.299 * patch[..., 0] + 0.587 * patch[..., 1] + 0.114 * patch[..., 2]
+
+
+def box_legibility(
+    image_rgb: np.ndarray, bbox_xywh: Sequence[float]
+) -> tuple[float, float]:
+    """Return (mean BT.601 luma, RMS luma spread) inside a COCO XYWH box.
+
+    Recorded as provenance only. FILT-15 gates on `object_legibility` instead:
+    a box mean is contaminated by whatever background sits in its corners, so it
+    reports a dark object on a bright wall as bright.
+    """
+
+    x, y, width, height = (float(value) for value in bbox_xywh)
+    x0, y0 = max(0, round(x)), max(0, round(y))
+    x1 = min(int(image_rgb.shape[1]), round(x + width))
+    y1 = min(int(image_rgb.shape[0]), round(y + height))
+    if x1 <= x0 or y1 <= y0:
+        return 0.0, 0.0
+    luma = _luma(image_rgb[y0:y1, x0:x1])
+    return float(luma.mean()), float(luma.std())
+
+
+def object_legibility(
+    image_rgb: np.ndarray,
+    mask: np.ndarray | None,
+    bbox_xywh: Sequence[float],
+) -> tuple[float, float]:
+    """Return (mean, RMS) BT.601 luma over an object's OWN pixels.
+
+    This is the number FILT-15 gates on: whether the annotated object still
+    carries evidence of itself, rather than whether its bounding box happens to
+    contain something bright. Falls back to the box when no mask is available,
+    which is the honest degradation for a `box_fallback` real annotation.
+    """
+
+    if mask is None:
+        return box_legibility(image_rgb, bbox_xywh)
+    support = np.asarray(mask, dtype=bool)
+    if not support.any():
+        return box_legibility(image_rgb, bbox_xywh)
+    luma = _luma(image_rgb)[support]
+    return float(luma.mean()), float(luma.std())
+
+
+def draw_contact_shadow(
+    image_rgb: np.ndarray,
+    alpha: np.ndarray,
+    *,
+    frame_slice: tuple[slice, slice],
+    patch_slice: tuple[slice, slice],
+    config: Mapping[str, Any],
+) -> np.ndarray:
+    """Darken an ellipse under an object's footprint so it touches the ground.
+
+    Without this a distractor is a colour patch at an arbitrary depth: the owner
+    review of preview_hard_negative_p1 read every one of them as "後製". A contact
+    shadow is the cheapest cue that puts an object ON something rather than in
+    front of everything, and it is geometry-free, so no label changes.
+
+    The ellipse is tied to the footprint WIDTH in both axes, which is what makes
+    it read as a ground plane: a shadow as tall as the object reads as a second
+    object instead.
+    """
+
+    if not bool(config.get("enabled", False)):
+        return image_rgb
+    footprint = np.asarray(alpha[patch_slice], dtype=np.float32) >= 128
+    if not footprint.any():
+        return image_rgb
+    ys, xs = np.where(footprint)
+    # Frame coordinates, not patch coordinates. The patch rectangle is tight to
+    # the object, so an ellipse drawn inside it lands entirely under the object
+    # and is then painted over — a shadow that exists in the array and never in
+    # the picture. It has to be allowed to spill past the footprint.
+    frame_y, frame_x = frame_slice[0].start, frame_slice[1].start
+    base_y = frame_y + float(ys.max())
+    center_x = frame_x + float(xs.mean())
+    width = float(xs.max() - xs.min() + 1)
+    axis_x = max(1.0, width * float(config["width_fraction"]) / 2.0)
+    axis_y = max(1.0, width * float(config["height_fraction"]) / 2.0)
+    center_y = base_y + width * float(config["y_offset_fraction"])
+    sigma = max(0.8, width * float(config["blur_sigma_fraction"]))
+    pad = int(np.ceil(3 * sigma)) + 2
+    height, image_width = image_rgb.shape[:2]
+    x0 = max(0, round(center_x - axis_x) - pad)
+    x1 = min(image_width, round(center_x + axis_x) + pad + 1)
+    y0 = max(0, round(center_y - axis_y) - pad)
+    y1 = min(height, round(center_y + axis_y) + pad + 1)
+    if x1 <= x0 or y1 <= y0:
+        return image_rgb
+    canvas = np.zeros((y1 - y0, x1 - x0), dtype=np.float32)
+    cv2.ellipse(
+        canvas,
+        (round(center_x) - x0, round(center_y) - y0),
+        (round(axis_x), round(axis_y)),
+        0,
+        0,
+        360,
+        1.0,
+        thickness=-1,
+    )
+    canvas = cv2.GaussianBlur(canvas, (0, 0), sigma)
+    peak = float(canvas.max())
+    if peak <= 0:
+        return image_rgb
+    canvas *= float(config["opacity"]) / peak
+    output = image_rgb.copy()
+    region = output[y0:y1, x0:x1].astype(np.float32)
+    output[y0:y1, x0:x1] = np.clip(
+        region * (1.0 - canvas[..., None]), 0, 255
+    ).astype(np.uint8)
+    return output
+
+
+@dataclass(frozen=True)
+class LegibilityTarget:
+    """One object that whole-image darkening is not allowed to extinguish."""
+
+    bbox_xywh: tuple[float, float, float, float]
+    min_mean_luma: float
+    mask: np.ndarray | None = None
+
+
+# Descending scan rather than a bisection: sensor noise makes the measured luma
+# only near-monotone in the strength scale, and a scan needs no monotonicity
+# assumption to be correct. Eleven crop-sized evaluations are free.
+_POSTFX_STRENGTH_LADDER = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
+
+
+def _low_light_transform(
+    image_rgb: np.ndarray,
+    *,
+    gamma: float,
+    gain: float,
+    wb_r: float,
+    wb_b: float,
+    noise: np.ndarray,
+    strength: float,
+) -> np.ndarray:
+    """Apply low light interpolated `strength` of the way from identity."""
+
+    effective_gamma = 1.0 + strength * (gamma - 1.0)
+    effective_gain = 1.0 + strength * (gain - 1.0)
+    effective_wb_r = 1.0 + strength * (wb_r - 1.0)
+    effective_wb_b = 1.0 + strength * (wb_b - 1.0)
+    normalized = (
+        np.power(np.asarray(image_rgb, dtype=np.float32) / 255.0, effective_gamma)
+        * effective_gain
+    )
+    normalized[..., 0] *= effective_wb_r
+    normalized[..., 2] *= effective_wb_b
+    normalized += noise * strength
+    return np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
+
+
+def _solve_low_light_strength(
+    image_rgb: np.ndarray,
+    *,
+    gamma: float,
+    gain: float,
+    wb_r: float,
+    wb_b: float,
+    noise: np.ndarray,
+    targets: Sequence[LegibilityTarget],
+) -> float:
+    """Largest strength on the ladder that leaves every target object legible.
+
+    Uncapped, `gamma` and `gain` multiply: the measured worst case was gamma 3.17
+    with gain 0.54, which maps mid-grey to luma 16 and turns the whole frame into
+    a black rectangle that still carries annotations. No single global range can
+    fix that, because how much darkening a frame can absorb depends on the frame.
+    Solving per sample is the only formulation that does.
+    """
+
+    if not targets:
+        return 1.0
+    crops = []
+    for target in targets:
+        x, y, width, height = target.bbox_xywh
+        x0, y0 = max(0, round(x)), max(0, round(y))
+        x1 = min(image_rgb.shape[1], x0 + max(1, round(width)))
+        y1 = min(image_rgb.shape[0], y0 + max(1, round(height)))
+        crop = image_rgb[y0:y1, x0:x1]
+        if not crop.size:
+            continue
+        crop_mask = None
+        if target.mask is not None:
+            crop_mask = np.asarray(target.mask, dtype=bool)[y0:y1, x0:x1]
+            if not crop_mask.any():
+                crop_mask = None
+        crops.append((target, crop, noise[y0:y1, x0:x1], crop_mask))
+    for strength in _POSTFX_STRENGTH_LADDER:
+        legible = True
+        for target, crop, crop_noise, crop_mask in crops:
+            darkened = _low_light_transform(
+                crop,
+                gamma=gamma,
+                gain=gain,
+                wb_r=wb_r,
+                wb_b=wb_b,
+                noise=crop_noise,
+                strength=strength,
+            )
+            mean_luma, _ = object_legibility(
+                darkened, crop_mask, (0, 0, crop.shape[1], crop.shape[0])
+            )
+            if mean_luma < target.min_mean_luma:
+                legible = False
+                break
+        if legible:
+            return strength
+    return 0.0
+
+
 def apply_postfx(
     image_rgb: np.ndarray,
     *,
     config: dict[str, Any],
     rng: np.random.Generator,
+    legibility_targets: Sequence[LegibilityTarget] = (),
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    """Apply geometry-preserving whole-image degradation deterministically."""
+    """Apply geometry-preserving whole-image degradation deterministically.
+
+    `legibility_targets` caps how far the low-light pass may go: the strength is
+    reduced until every listed box stays above its floor. Motion blur is left
+    uncapped on purpose — it costs contrast rather than light, and FILT-15
+    measures the final image, so blur-induced illegibility surfaces as an honest
+    rejection instead of a silent clamp.
+    """
 
     output = np.asarray(image_rgb, dtype=np.uint8).copy()
     applied: dict[str, Any] = {}
@@ -487,17 +713,38 @@ def apply_postfx(
         noise_sigma = float(rng.uniform(*low_light["noise_sigma"]))
         wb_r = float(rng.uniform(*low_light["wb_gain_r"]))
         wb_b = float(rng.uniform(*low_light["wb_gain_b"]))
-        normalized = np.power(output.astype(np.float32) / 255.0, gamma) * gain
-        normalized[..., 0] *= wb_r
-        normalized[..., 2] *= wb_b
-        normalized += rng.normal(0, noise_sigma / 255.0, output.shape)
-        output = np.clip(normalized * 255.0, 0, 255).astype(np.uint8)
+        # Drawn once, before the strength scan, so the number of ladder steps
+        # taken cannot change the rng state and break run-to-run determinism.
+        noise = rng.normal(0, noise_sigma / 255.0, output.shape)
+        strength = _solve_low_light_strength(
+            output,
+            gamma=gamma,
+            gain=gain,
+            wb_r=wb_r,
+            wb_b=wb_b,
+            noise=noise,
+            targets=legibility_targets,
+        )
+        output = _low_light_transform(
+            output,
+            gamma=gamma,
+            gain=gain,
+            wb_r=wb_r,
+            wb_b=wb_b,
+            noise=noise,
+            strength=strength,
+        )
         applied["low_light"] = {
-            "gamma": gamma,
-            "gain": gain,
-            "noise_sigma": noise_sigma,
-            "wb_gain_r": wb_r,
-            "wb_gain_b": wb_b,
+            # Effective values are what the pixels actually saw; the requested
+            # pair is kept so the clamp is auditable rather than invisible.
+            "gamma": 1.0 + strength * (gamma - 1.0),
+            "gain": 1.0 + strength * (gain - 1.0),
+            "noise_sigma": noise_sigma * strength,
+            "wb_gain_r": 1.0 + strength * (wb_r - 1.0),
+            "wb_gain_b": 1.0 + strength * (wb_b - 1.0),
+            "requested_gamma": gamma,
+            "requested_gain": gain,
+            "strength_scale": strength,
         }
     blur = config["motion_blur"]
     if rng.random() < float(blur["prob_given_postfx"]):

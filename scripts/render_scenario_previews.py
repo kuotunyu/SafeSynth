@@ -82,6 +82,18 @@ def _draw_cell(
     detail = f"{record['sample_id']}   n_ann={len(record['instances'])}"
     if record.get("hard_negatives"):
         detail += f"   distractors={len(record['hard_negatives'])}"
+    # The darkest annotated object, so a "can't see it" report can be checked
+    # against what FILT-15 measured instead of argued about (ADR-013).
+    lumas = [
+        float(instance["object_mean_luma"])
+        for instance in record["instances"]
+        if "object_mean_luma" in instance
+    ]
+    if lumas:
+        detail += f"   min_obj_luma={min(lumas):.0f}"
+    strength = record.get("postfx", {}).get("low_light", {}).get("strength_scale")
+    if strength is not None:
+        detail += f"   lowlight={strength:.1f}"
     if "changed_pixel_ratio" in record.get("dedup", {}):
         detail += f"   changed={record['dedup']['changed_pixel_ratio']:.3f}"
     marker.text((92, 10), detail, fill=(235, 235, 235), font=SMALL_FONT)

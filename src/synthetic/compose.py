@@ -26,15 +26,19 @@ from src.data.paths import PROJECT_ROOT, ProjectPaths, load_project_paths
 from src.filtering.rules import filter_sample
 from src.synthetic.composition import (
     Layer,
+    LegibilityTarget,
     alpha_composite,
     annulus_mask,
     apply_postfx,
+    box_legibility,
     box_to_mask,
     decontaminate_soft_edge,
+    draw_contact_shadow,
     feather_alpha,
     harmonize_lab,
     inpaint_masked_object,
     match_high_frequency_noise,
+    object_legibility,
     placement_slices,
     poisson_composite,
     recompute_visible_annotations,
@@ -85,7 +89,15 @@ TARGET_ACCEPTED_1X = 3_500
 # generation toward the scenarios that survive least often, which drags the overall
 # rate down: 41.7% before reweighting, 38.3% after. A 9,000 pool yielded only 3,449
 # accepted against the 3,500 needed for 1x, hence 10,000.
-MAX_POOL_IMAGES = 10_000
+#
+# Raised to 14,000 after the ADR-013 regeneration. Acceptance is NOT constant in
+# pool size: FILT-11 compares each candidate against every already-accepted one,
+# so the marginal rate decays as the accepted set grows. Measured on the same
+# config and seed: 58.4% at 2,000 candidates but 33.8% at 10,000, which yielded
+# 3,377 — short of 1x. That decay is the honest ceiling of copy-paste on 3,500
+# backgrounds, not a threshold to loosen. The ACCEPTED cap of 3,500 is still the
+# binding rule; this number only bounds how long the search may run.
+MAX_POOL_IMAGES = 14_000
 
 
 @dataclass
@@ -312,6 +324,49 @@ def _load_context(
     if any(item.get("annotated", False) for item in hardneg_bank):
         raise RuntimeError("Hard negatives must never be annotated (ADR-004)")
     return coco, bank, hardneg_bank, train_images, annotations, frozen, test_ids
+
+
+def _source_object_luma(paths: ProjectPaths, item: Mapping[str, Any]) -> float:
+    """Mean BT.601 luma over a cutout's own pixels, before any compositing."""
+
+    rgba = np.asarray(
+        Image.open(paths.cutouts / item["file"]).convert("RGBA"), dtype=np.float32
+    )
+    support = rgba[..., 3] > 127
+    if not support.any():
+        return 0.0
+    luma = 0.299 * rgba[..., 0] + 0.587 * rgba[..., 1] + 0.114 * rgba[..., 2]
+    return float(luma[support].mean())
+
+
+def _drop_illegible_source_material(
+    bank: Sequence[Mapping[str, Any]],
+    *,
+    paths: ProjectPaths,
+    floors: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Refuse source cutouts that carry no visible object (CUT-14).
+
+    FILT-15 cannot catch these. It measures the composite, and Lab harmonization
+    runs first: a source at luma 8.5 comes out at 45.4, above the floor, still a
+    featureless blob. Harmonization moves the mean, it does not invent detail, so
+    the only place to reject unusable material is before it is ever pasted.
+    """
+
+    kept: list[dict[str, Any]] = []
+    dropped: Counter[str] = Counter()
+    for item in bank:
+        class_name = str(item["class_name"])
+        floor = floors.get(class_name)
+        if floor is None or _source_object_luma(paths, item) >= float(floor):
+            kept.append(dict(item))
+        else:
+            dropped[class_name] += 1
+    return kept, {
+        "n_before": len(bank),
+        "n_after": len(kept),
+        "dropped_by_class": dict(sorted(dropped.items())),
+    }
 
 
 def _load_pass1(
@@ -919,6 +974,7 @@ def _paste_hard_negatives(
         return rendered, []
     rules = config["filtering"]["rules"]["hard_negative_no_overlap"]
     max_iou = float(rules["max_iou_with_annotation"])
+    hard_negative_config = config["hard_negatives"]
     low, high = (int(value) for value in settings["n_pasted"])
     wanted = int(rng.integers(low, high + 1))
     scale_low, scale_high = (float(value) for value in settings["scale_range"])
@@ -957,21 +1013,65 @@ def _paste_hard_negatives(
                 break
         else:
             continue
-        region = output[top : top + patch_h, left : left + patch_w]
-        alpha = (warped[..., 3:4].astype(np.float32) / 255.0)
-        output[top : top + patch_h, left : left + patch_w] = np.clip(
-            region.astype(np.float32) * (1.0 - alpha)
-            + warped[..., :3].astype(np.float32) * alpha,
-            0,
-            255,
-        ).astype(np.uint8)
+        # K-11: distractors used to be hard-alpha pasted with no harmonization at
+        # all, while annotated pastes got the full treatment. The owner review read
+        # every one of them as "後製". They now go through the same path.
+        frame_slice = (slice(top, top + patch_h), slice(left, left + patch_w))
+        patch_slice = (slice(0, patch_h), slice(0, patch_w))
+        blending = config["compose"]["blending"]
+        harmonization = config["compose"]["harmonization"]
+        rgb = warped[..., :3].copy()
+        if blending["edge_decontamination"]:
+            rgb = decontaminate_soft_edge(
+                rgb,
+                warped[..., 3],
+                core_alpha_min=int(blending["edge_core_alpha_min"]),
+            )
+        alpha = feather_alpha(warped[..., 3], config=blending)
+        output = draw_contact_shadow(
+            output,
+            alpha,
+            frame_slice=frame_slice,
+            patch_slice=patch_slice,
+            config=hard_negative_config["contact_shadow"],
+        )
+        target = output[frame_slice]
+        target_ring = annulus_mask(
+            alpha.shape,
+            alpha >= 128,
+            outer_scale=float(harmonization["annulus_outer_scale"]),
+        )
+        if target_ring.sum() < int(harmonization["annulus_min_valid_px"]):
+            target_ring = alpha < 128
+        if harmonization["enabled"]:
+            rgb = harmonize_lab(rgb, alpha, target, target_ring, config=harmonization)
+        if harmonization["noise_match"]:
+            rgb = match_high_frequency_noise(
+                rgb,
+                alpha,
+                target,
+                target_ring,
+                sigma_cap=float(harmonization["noise_match_sigma_cap"]),
+                rng=rng,
+            )
+        output = alpha_composite(
+            output,
+            rgb,
+            alpha,
+            frame_slice=frame_slice,
+            patch_slice=patch_slice,
+        )
         use_counts[str(item["cutout_id"])] += 1
         placed.append(
             {
                 "annotated": False,
                 "bbox_xywh": box,
                 "class_name": None,
+                "contact_shadow": bool(
+                    hard_negative_config["contact_shadow"]["enabled"]
+                ),
                 "cutout_id": str(item["cutout_id"]),
+                "harmonized": bool(harmonization["enabled"]),
                 "instance_id": f"hardneg:{index}",
                 "kind": "hard_negative",
                 "max_iou_with_annotation": max(
@@ -1462,12 +1562,17 @@ def _instance_records(
     return records
 
 
-def _visible_paste_masks(
+def _visible_masks(
     *,
     existing_layers: Sequence[Layer],
     pastes: Sequence[Paste],
 ) -> dict[str, np.ndarray]:
-    """Compute final visible support for each paste without editing occluders."""
+    """Final visible support for every layer, pasted or carried through.
+
+    Carried-through layers are included because FILT-15 measures real annotations
+    too: post-fx darkens the whole frame, so a real object can be extinguished by
+    a paste it had nothing to do with.
+    """
 
     layers = sorted(
         [*existing_layers, *(paste.layer for paste in pastes)],
@@ -1479,8 +1584,7 @@ def _visible_paste_masks(
     visible: dict[str, np.ndarray] = {}
     for layer in reversed(layers):
         support = np.asarray(layer.mask, dtype=bool)
-        if layer.kind == "pasted":
-            visible[layer.instance_id] = support & ~union_above
+        visible[layer.instance_id] = support & ~union_above
         union_above |= support
     return visible
 
@@ -1762,12 +1866,12 @@ def _build_sample(
             if not hard_negatives:
                 last_reason = "NO_HARD_NEGATIVE_PLACEMENT"
                 continue
+        visible_masks = _visible_masks(
+            existing_layers=existing_layers,
+            pastes=pastes,
+        )
         generative_records: dict[str, dict[str, Any]] = {}
         if generative_inpainter is not None:
-            visible_masks = _visible_paste_masks(
-                existing_layers=existing_layers,
-                pastes=pastes,
-            )
             for paste in sorted(
                 pastes,
                 key=lambda item: (item.layer.z_index, item.layer.instance_id),
@@ -1799,14 +1903,60 @@ def _build_sample(
                 )
                 for paste in pastes
             }
+        luma_floors = filter_config["rules"]["annotation_legibility"][
+            "min_object_mean_luma"
+        ]
+        # Measured before post-fx, so a carried-through real annotation is judged
+        # against what the untouched background already offered rather than
+        # against an absolute floor the source dataset never promised (FILT-15).
+        pre_postfx_legibility = {
+            str(instance["instance_id"]): object_legibility(
+                rendered,
+                visible_masks.get(str(instance["instance_id"])),
+                instance["bbox_xywh"],
+            )
+            for instance in visibility.annotations
+        }
         postfx_applied: dict[str, Any] = {}
         apply_fx = scenario == "low_light_blur" or rng.random() < float(
             settings["postfx_prob"]
         )
         if apply_fx:
+            targets = []
+            for instance in visibility.annotations:
+                floor = luma_floors.get(str(instance["class_name"]))
+                if floor is None:
+                    continue
+                floor = float(floor)
+                if instance.get("kind") == "existing":
+                    floor = min(
+                        floor,
+                        pre_postfx_legibility[str(instance["instance_id"])][0],
+                    )
+                targets.append(
+                    LegibilityTarget(
+                        bbox_xywh=tuple(
+                            float(value) for value in instance["bbox_xywh"]
+                        ),
+                        min_mean_luma=floor,
+                        mask=visible_masks.get(str(instance["instance_id"])),
+                    )
+                )
             rendered, postfx_applied = apply_postfx(
-                rendered, config=config["postfx"], rng=rng
+                rendered,
+                config=config["postfx"],
+                rng=rng,
+                legibility_targets=targets,
             )
+            # A low_light_blur sample whose darkening was clamped to nothing is
+            # an ordinary image filed under a scenario that promises a dark one.
+            # Retry on another background rather than mislabel the mix.
+            if (
+                scenario == "low_light_blur"
+                and postfx_applied.get("low_light", {}).get("strength_scale") == 0.0
+            ):
+                last_reason = "LOW_LIGHT_FULLY_SUPPRESSED"
+                continue
         instances = _instance_records(
             visibility=visibility.annotations,
             pastes=pastes,
@@ -1814,13 +1964,28 @@ def _build_sample(
             seams=seams,
             generative=generative_records,
         )
+        for instance in instances:
+            instance_id = str(instance["instance_id"])
+            pre_luma, _ = pre_postfx_legibility[instance_id]
+            object_luma, object_rms = object_legibility(
+                rendered, visible_masks.get(instance_id), instance["bbox_xywh"]
+            )
+            box_luma, box_rms = box_legibility(rendered, instance["bbox_xywh"])
+            instance["object_mean_luma"] = object_luma
+            instance["object_mean_luma_pre_postfx"] = pre_luma
+            # Box statistics are provenance only; FILT-15 gates on the object.
+            instance["object_luma_rms"] = object_rms
+            instance["box_mean_luma"] = box_luma
+            instance["box_rms_contrast"] = box_rms
         output_phash = _phash_hex(rendered)
         changed = np.any(
             np.abs(rendered.astype(np.int16) - original.astype(np.int16)) > 2,
             axis=2,
         )
         record: dict[str, Any] = {
-            "schema_version": 1,
+            # v2 adds the FILT-15 legibility statistics to every instance and the
+            # post-fx `strength_scale` that records how far the clamp pulled back.
+            "schema_version": 2,
             "sample_id": f"s{int(config['seed'])}_{sample_index:06d}",
             "scenario": scenario,
             "width": int(image_shape[1]),
@@ -2041,6 +2206,11 @@ def generate(
     categories = {
         int(record["id"]): str(record["name"]) for record in coco["categories"]
     }
+    bank, source_legibility = _drop_illegible_source_material(
+        bank,
+        paths=paths,
+        floors=config["cutout_bank"]["min_source_object_luma"],
+    )
     bank_by_class: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in bank:
         bank_by_class[str(item["class_name"])].append(item)
@@ -2233,6 +2403,14 @@ def generate(
         float(value)
         for value in config["scenarios"]["small_distant"]["target_min_side_px"]
     )
+    # The FILT-15 clamp reduces low-light strength silently unless it is reported.
+    # A pool where most draws were pulled back to zero is a pool whose low-light
+    # scenario did not happen, which the reader has to be able to see.
+    strengths = [
+        float(record["postfx"]["low_light"]["strength_scale"])
+        for record in records
+        if record.get("postfx", {}).get("low_light")
+    ]
     summary = {
         "output_dir": str(output_dir),
         "n_images": len(records),
@@ -2265,6 +2443,16 @@ def generate(
             "target_range": [target_low, target_high],
             "within_target_range": sum(
                 target_low <= value <= target_high for value in small_distant_sides
+            ),
+        },
+        "source_material_legibility": source_legibility,
+        "low_light_clamp": {
+            "draws": len(strengths),
+            "kept_full_strength": sum(value == 1.0 for value in strengths),
+            "reduced": sum(0.0 < value < 1.0 for value in strengths),
+            "fully_suppressed": sum(value == 0.0 for value in strengths),
+            "mean_strength_scale": (
+                sum(strengths) / len(strengths) if strengths else None
             ),
         },
         "image_hashes": {

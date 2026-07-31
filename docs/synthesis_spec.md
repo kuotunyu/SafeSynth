@@ -159,6 +159,25 @@ VOC 旗標、SAM2 設定與分數、mask 各項統計、外觀統計（Lab 均�
 後者才是真實多樣性。低於 `min_distinct_person_groups` 時，
 `crowded` 情境改用 head + helmet 素材，**並在報告中明說**。
 
+**CUT-14 — 素材本身必須看得出是個物件。**
+
+**判定式**：`source_object_luma >= min_source_object_luma[class_name]`，
+量的是 cutout **自己的像素**（alpha ≥ 128 的部分），在任何合成之前。
+**參數**：`configs/compose.yaml` → `cutout_bank.min_source_object_luma`
+**實作位置**：`src/synthetic/compose.py` 的 `_drop_illegible_source_material`，
+在 bank 載入時執行；被排除的數量寫進 `summary.json` 的 `source_material_legibility`
+**驗證**：`uv run pytest tests/test_compose.py -k CUT_14` ／ `-k source`
+
+**為什麼 [FILT-15](filtering_spec.md) 蓋不到這件事**——這是本規格最容易被誤以為重複的一條：
+FILT-15 量的是**合成結果**，而 Lab 調和在它之前執行。
+實測案例 `001610_ann008186` 的素材亮度是 **8.5**（一團純黑剪影，沒有可還原的細節），
+調和把它抬到合成圖上的 **45.4**，**通過了 FILT-15 的門檻**，
+但它仍然是一塊沒有特徵的黑斑。
+**調和搬動的是平均值，它不會生出細節。** 因此不可用的素材只能在貼上之前擋掉。
+
+門檻與 FILT-15 相同（真實 Train 物件遮罩的每類 p1）。
+在 7,255 個素材上實測排除 **102 個（1.40%）**：head 27、helmet 74、person 1。
+
 ---
 
 ## 3. 合成引擎（`src/synthetic/compose.py`）
@@ -351,6 +370,25 @@ L 通道則給強處理（曝光不符是最顯眼的破綻，而且不帶類別
 - **放置限制在地面帶**。均勻隨機會把圓頂放到天空，那不是 hard negative——
   真實的黃色機具、三角錐、油桶都在地面上。
   （實測：均勻放置時 8 張只過 3 張，改地面帶後 12 張過 11 張）
+- **distractor 走與標註貼上完全相同的光度管線**（[K-11](troubleshooting.md#k-11)）。
+  原本它只做幾何變換＋硬 alpha 合成，**完全沒有**羽化、邊緣去汙、Lab 調和與雜訊匹配，
+  而標註貼上四樣都有。使用者審查 `preview_hard_negative_p1` 時把每一個都判為
+  「像後製的圖片」。客觀量測證實了這個判斷：以 Laplacian 變異數量表面紋理，
+  真實安全帽 p50 = 1350.9，修前的 distractor 只有 **52.4**（約 1/26），修後 505.2
+
+**COMP-20c — 接地陰影。**
+在 distractor 底部畫一個模糊橢圓並乘性壓暗背景，讓它落在場景裡而不是浮在任意深度。
+參數在 `configs/compose.yaml` → `hard_negatives.contact_shadow`。三個判定式：
+1. 橢圓的**兩個半軸都以物件寬度為基準**——高度等同物件的陰影會被讀成第二個物件
+2. 陰影在**畫面座標**上繪製並允許溢出 patch 矩形。patch 貼合物件邊界，
+   畫在 patch 內的陰影會被物件本身完全蓋掉——存在於陣列裡，不存在於畫面上
+3. 陰影在物件合成**之前**施加，且**不改動任何幾何**，所以標籤完全不受影響
+
+⚠️ **「依深度的尺寸先驗」已量測後放棄，不要再提。**
+以 17,815 個真實 Train 標註擬合 `log(min_side) = a + b·cy` 得
+**b = −0.0350、R² = 0.0001**，分桶中位數由上而下是 28 / 27 / 22 / 23。
+這個資料集**沒有可用的深度—尺寸關係**（416×416 的網路照片沒有一致的相機幾何），
+硬加一條先驗只會讓 distractor 離真實分布更遠。
 
 **COMP-21 — 挖料的三層防護**（挖料已停用，以下保留為記錄與 H6 簽核的依據）**。**
 ⚠️ 因為約 2/3 真實物件未標註（[data_protocol.md §1.3](data_protocol.md)），

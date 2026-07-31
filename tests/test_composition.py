@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from src.synthetic.composition import (
     Layer,
+    LegibilityTarget,
     alpha_composite,
     apply_postfx,
     assign_z_order,
+    box_legibility,
     decontaminate_soft_edge,
+    draw_contact_shadow,
     feather_alpha,
     inpaint_masked_object,
     match_high_frequency_noise,
+    object_legibility,
     placement_slices,
     poisson_composite,
     recompute_visible_annotations,
@@ -257,6 +262,224 @@ def test_postfx_preserves_shape_and_is_seed_reproducible() -> None:
     assert first.shape == image.shape
     assert np.array_equal(first, second)
     assert set(metadata) == {"low_light", "motion_blur"}
+
+
+def _blackout_postfx_config() -> dict:
+    """The measured worst case from the m13 1x pool: gamma 3.17 with gain 0.54."""
+
+    return {
+        "low_light": {
+            "prob_given_postfx": 1,
+            "gamma": [3.17, 3.17],
+            "gain": [0.54, 0.54],
+            "noise_sigma": [0, 0],
+            "wb_gain_r": [1, 1],
+            "wb_gain_b": [1, 1],
+        },
+        "motion_blur": {
+            "prob_given_postfx": 0,
+            "kernel_lengths": [3],
+            "angle_deg": [0, 0],
+        },
+    }
+
+
+def _textured_scene() -> np.ndarray:
+    rng = np.random.default_rng(0)
+    image = np.full((64, 64, 3), 150, dtype=np.uint8)
+    image[16:48, 16:48] = rng.integers(90, 210, size=(32, 32, 3), dtype=np.uint8)
+    return image
+
+
+def test_postfx_blackout_is_clamped_when_an_object_must_stay_legible() -> None:
+    image = _textured_scene()
+    target = LegibilityTarget(bbox_xywh=(16, 16, 32, 32), min_mean_luma=45.58)
+
+    unclamped, unclamped_meta = apply_postfx(
+        image, config=_blackout_postfx_config(), rng=np.random.default_rng(3)
+    )
+    clamped, clamped_meta = apply_postfx(
+        image,
+        config=_blackout_postfx_config(),
+        rng=np.random.default_rng(3),
+        legibility_targets=[target],
+    )
+
+    assert box_legibility(unclamped, target.bbox_xywh)[0] < target.min_mean_luma
+    assert box_legibility(clamped, target.bbox_xywh)[0] >= target.min_mean_luma
+    assert unclamped_meta["low_light"]["strength_scale"] == 1.0
+    assert 0 < clamped_meta["low_light"]["strength_scale"] < 1.0
+    # The requested draw is preserved so the clamp is auditable, not invisible.
+    assert clamped_meta["low_light"]["requested_gamma"] == 3.17
+    assert clamped_meta["low_light"]["gamma"] < 3.17
+
+
+def test_postfx_clamp_tracks_the_object_not_its_box() -> None:
+    """A dark object inside a bright box is what the box statistic misses."""
+
+    image = np.full((64, 64, 3), 240, dtype=np.uint8)
+    mask = np.zeros((64, 64), dtype=bool)
+    mask[28:36, 28:36] = True
+    image[mask] = 70
+
+    box_only = LegibilityTarget(bbox_xywh=(16, 16, 32, 32), min_mean_luma=45.58)
+    object_aware = LegibilityTarget(
+        bbox_xywh=(16, 16, 32, 32), min_mean_luma=45.58, mask=mask
+    )
+
+    _, box_meta = apply_postfx(
+        image,
+        config=_blackout_postfx_config(),
+        rng=np.random.default_rng(4),
+        legibility_targets=[box_only],
+    )
+    darkened, object_meta = apply_postfx(
+        image,
+        config=_blackout_postfx_config(),
+        rng=np.random.default_rng(4),
+        legibility_targets=[object_aware],
+    )
+
+    assert box_meta["low_light"]["strength_scale"] == 1.0
+    assert object_meta["low_light"]["strength_scale"] < 1.0
+    assert object_legibility(darkened, mask, (16, 16, 32, 32))[0] >= 45.58
+
+
+def test_postfx_clamp_does_not_disturb_rng_determinism() -> None:
+    image = _textured_scene()
+    target = LegibilityTarget(bbox_xywh=(16, 16, 32, 32), min_mean_luma=45.58)
+    config = _blackout_postfx_config()
+    config["low_light"]["noise_sigma"] = [6, 6]
+
+    first, _ = apply_postfx(
+        image, config=config, rng=np.random.default_rng(11), legibility_targets=[target]
+    )
+    second, _ = apply_postfx(
+        image, config=config, rng=np.random.default_rng(11), legibility_targets=[target]
+    )
+
+    assert np.array_equal(first, second)
+
+
+def test_postfx_leaves_full_strength_when_the_scene_can_absorb_it() -> None:
+    image = np.full((64, 64, 3), 250, dtype=np.uint8)
+    image[16:48, 16:32] = 210
+    target = LegibilityTarget(bbox_xywh=(16, 16, 32, 32), min_mean_luma=10.0)
+
+    _, metadata = apply_postfx(
+        image,
+        config=_blackout_postfx_config(),
+        rng=np.random.default_rng(5),
+        legibility_targets=[target],
+    )
+
+    assert metadata["low_light"]["strength_scale"] == 1.0
+
+
+def _shadow_config(**overrides) -> dict:
+    config = {
+        "enabled": True,
+        "opacity": 0.32,
+        "width_fraction": 0.95,
+        "height_fraction": 0.26,
+        "y_offset_fraction": 0.02,
+        "blur_sigma_fraction": 0.16,
+    }
+    config.update(overrides)
+    return config
+
+
+def _dome_alpha(size: int = 40) -> np.ndarray:
+    alpha = np.zeros((size, size), dtype=np.uint8)
+    cv2.ellipse(
+        alpha, (size // 2, size - 1), (size // 2 - 1, size - 2), 0, 180, 360, 255, -1
+    )
+    return alpha
+
+
+# spec: COMP-25
+def test_contact_shadow_falls_below_the_footprint() -> None:
+    """The shadow has to escape the patch rectangle or the object covers it."""
+
+    image = np.full((120, 120, 3), 200, dtype=np.uint8)
+    alpha = np.zeros((120, 120), dtype=np.uint8)
+    alpha[40:80, 40:80] = _dome_alpha()
+
+    shadowed = draw_contact_shadow(
+        image,
+        alpha,
+        frame_slice=(slice(0, 120), slice(0, 120)),
+        patch_slice=(slice(0, 120), slice(0, 120)),
+        config=_shadow_config(),
+    )
+
+    below = shadowed[80:92, 45:75]
+    assert below.mean() < 200, "no darkening appeared underneath the object"
+    far_away = shadowed[0:20, 0:20]
+    assert np.array_equal(far_away, image[0:20, 0:20])
+
+
+# spec: COMP-25
+def test_contact_shadow_is_wider_than_it_is_tall() -> None:
+    """Both axes scale with footprint WIDTH; a tall shadow reads as an object."""
+
+    image = np.full((160, 160, 3), 220, dtype=np.uint8)
+    alpha = np.zeros((160, 160), dtype=np.uint8)
+    alpha[60:100, 60:100] = _dome_alpha()
+
+    shadowed = draw_contact_shadow(
+        image,
+        alpha,
+        frame_slice=(slice(0, 160), slice(0, 160)),
+        patch_slice=(slice(0, 160), slice(0, 160)),
+        config=_shadow_config(),
+    )
+    darkened = shadowed.mean(axis=2) < 218
+    darkened[:100] = False  # ignore rows the object itself occupies
+    ys, xs = np.where(darkened)
+
+    assert len(ys) > 0
+    assert np.ptp(xs) > np.ptp(ys)
+
+
+# spec: COMP-25
+def test_contact_shadow_disabled_is_a_no_op() -> None:
+    image = np.full((80, 80, 3), 180, dtype=np.uint8)
+    alpha = np.zeros((80, 80), dtype=np.uint8)
+    alpha[20:60, 20:60] = _dome_alpha()
+
+    unchanged = draw_contact_shadow(
+        image,
+        alpha,
+        frame_slice=(slice(0, 80), slice(0, 80)),
+        patch_slice=(slice(0, 80), slice(0, 80)),
+        config=_shadow_config(enabled=False),
+    )
+
+    assert np.array_equal(unchanged, image)
+
+
+def test_object_legibility_ignores_background_inside_the_box() -> None:
+    """The measured owner-review case: box mean 67.9, object mean 32.2."""
+
+    image = np.full((64, 64, 3), 240, dtype=np.uint8)
+    mask = np.zeros((64, 64), dtype=bool)
+    mask[28:36, 28:36] = True
+    image[mask] = 30
+
+    box_mean, _ = box_legibility(image, (16, 16, 32, 32))
+    object_mean, _ = object_legibility(image, mask, (16, 16, 32, 32))
+
+    assert box_mean > 150
+    assert 25 < object_mean < 35
+
+
+def test_object_legibility_falls_back_to_the_box_without_a_mask() -> None:
+    image = _textured_scene()
+
+    assert object_legibility(image, None, (16, 16, 32, 32)) == box_legibility(
+        image, (16, 16, 32, 32)
+    )
 
 
 def test_seam_energy_detects_hard_boundary() -> None:

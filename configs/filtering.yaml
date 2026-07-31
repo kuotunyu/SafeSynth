@@ -124,6 +124,45 @@ rules:
     # "Nothing happened" guard: every paste was tiny or fully occluded.
     min_changed_pixel_ratio: 0.005           # source: guess
 
+  # FILT-15 — an annotated object must still carry visible evidence of itself
+  #
+  # Found by owner review of preview_head_no_helmet_p1 cell 02: boxes drawn over
+  # a frame that low-light post-fx had crushed to black. Measured over the SAM2
+  # Pass-1 masks of 9,761 real Train annotations (2026-07-31), OBJECT-pixel mean
+  # luma:
+  #             p0.5     p1     p2     p5    p50
+  #   head     18.62  23.19  29.17  43.24  92.72
+  #   helmet   36.73  45.58  54.09  66.93 125.97
+  #   person   20.35  24.26  28.86  40.87  89.46
+  # Per class, because heads are legitimately far darker than helmets (dark
+  # hair). A pooled floor would preferentially reject dark-haired bare heads —
+  # precisely the rare class the whole pipeline exists to strengthen.
+  #
+  # Measured over the OBJECT MASK, not the box. A box mean is contaminated by
+  # background in the corners: the head in review cell 01 measures 67.9 over its
+  # box and 32.2 over its own pixels, and only the second describes the head.
+  #
+  # Two other statistics were measured and REJECTED as gates. Recorded here so
+  # they do not get re-proposed:
+  #   - box RMS contrast: rises with box area (real p1 is 13.21 below 16^2 but
+  #     30.75 above 96^2) and punishes tight crops, so it flagged small, bright,
+  #     perfectly visible distant helmets. Pasted helmet boxes sit ~20 points
+  #     below real ones on this statistic purely for being tighter.
+  #   - |object - surround| luma separation: real objects barely have any.
+  #     p1 = 0.67 and p5 = 3.34 over the same 9,761 annotations, because real
+  #     objects differ from their background in HUE far more than in luma. Any
+  #     floor tight enough to bite would reject real-looking composites.
+  #
+  # `existing` annotations are held to min(floor, their value in the untouched
+  # background): the source dataset has its own dim objects, and rejecting a
+  # sample for a defect it inherited rather than caused would shrink the usable
+  # background pool without improving a single label.
+  annotation_legibility:
+    min_object_mean_luma:
+      head:   23.19                          # source: calibrated (real Train mask p1)
+      helmet: 45.58                          # source: calibrated (real Train mask p1)
+      person: 24.26                          # source: calibrated (real Train mask p1)
+
 # ===========================================================================
 # Reject reasons. rules.py must emit only these strings.
 # ===========================================================================
@@ -145,6 +184,7 @@ reject_reasons:
   - NO_CHANGE
   - SAM2_MASK_REJECTED
   - PLACEMENT_RETRIES_EXHAUSTED
+  - ILLEGIBLE_ANNOTATION
 
 # ===========================================================================
 # These are ASSERTIONS, not filters. A violation is a bug in compose.py, so the

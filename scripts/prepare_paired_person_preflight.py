@@ -23,7 +23,7 @@ from src.synthetic.compose import (
     _load_context,
     _load_pass1,
     _render_pastes,
-    _visible_paste_masks,
+    _visible_masks,
     _write_image,
     prepare_context_replacement_background,
 )
@@ -773,7 +773,7 @@ def _try_background(
                             config=render_config,
                             rng=rng,
                         )
-                        visible_mask = _visible_paste_masks(
+                        visible_mask = _visible_masks(
                             existing_layers=existing_layers,
                             pastes=[paste],
                         )[paste.layer.instance_id]

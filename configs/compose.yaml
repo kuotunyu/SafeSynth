@@ -114,6 +114,24 @@ cutout_bank:
       person: 0.80                           # source: guess
     min_mask_area_px: 250                    # source: fixed
 
+  # CUT-14 — source material must carry a visible object
+  #
+  # FILT-15 cannot cover this, and the reason is worth stating: it measures the
+  # COMPOSITE, and Lab harmonization runs first. Cutout 001610_ann008186 has a
+  # source object luma of 8.5 — a black silhouette with no recoverable detail —
+  # and harmonization lifted it to 45.4 in the composite, clearing the FILT-15
+  # floor. Harmonization moves the mean; it does not invent detail. Unusable
+  # material can therefore only be rejected before it is ever pasted.
+  #
+  # Same floors as FILT-15 (real Train object-mask p1 per class), applied to the
+  # cutout's own pixels. Measured over the 7,255-item bank: this drops 102 items
+  # (1.40%) — head 27, helmet 74, person 1. `summary.json` reports the count under
+  # `source_material_legibility`, so the exclusion is never silent.
+  min_source_object_luma:
+    head:   23.19                            # source: calibrated (real Train mask p1)
+    helmet: 45.58                            # source: calibrated (real Train mask p1)
+    person: 24.26                            # source: calibrated (real Train mask p1)
+
   # person is scarce AND video-derived: 751 instances across only 158 images.
   # Cap per group so the bank reports honest diversity. See ADR-003.
   max_person_cutouts_per_group: 2            # source: fixed
@@ -245,7 +263,7 @@ compose:
 # are stated next to each weight; the weight itself is the means, not the goal.
 scenarios:
   small_distant:
-    weight: 0.356   # source: measured (target accepted share 25%)
+    weight: 0.3554   # source: measured (target accepted share 25%)
     n_pasted: [3, 8]
     scale_range: [0.25, 0.55]
     target_min_side_px: [8, 20]
@@ -256,7 +274,7 @@ scenarios:
     postfx_prob: 0.20
 
   head_no_helmet:
-    weight: 0.214   # source: measured (target accepted share 25%)
+    weight: 0.1953   # source: measured (target accepted share 25%)
     n_pasted: [1, 3]
     # ⚠️ These are CONDITIONAL, not a global mix. paste_head needs a `person` box to
     # anchor a bare head onto a body, and `person` exists in only 158/5000 images
@@ -277,7 +295,7 @@ scenarios:
     postfx_prob: 0.20
 
   partial_occlusion:
-    weight: 0.105   # source: measured (target accepted share 15%)
+    weight: 0.1110   # source: measured (target accepted share 15%)
     n_targets: [1, 3]
     scale_range: [0.60, 1.00]
     # Solve for the occlusion offset directly instead of rejection-sampling it.
@@ -285,7 +303,7 @@ scenarios:
     postfx_prob: 0.20
 
   crowded:
-    weight: 0.171   # source: measured (target accepted share 12%)
+    weight: 0.1737   # source: measured (target accepted share 12%)
     n_pasted: [5, 12]
     scale_range: [0.50, 1.00]
     min_visible_fraction: 0.35               # source: guess
@@ -293,7 +311,7 @@ scenarios:
     postfx_prob: 0.20
 
   hard_negative:
-    weight: 0.078   # source: measured (target accepted share 13%)
+    weight: 0.0834   # source: measured (target accepted share 13%)
     n_pasted: [2, 4]                         # source: measured (1-2 small distractors tripped
                                              # FILT-11's NO_CHANGE guard on 4/8 smoke samples)
     scale_range: [0.80, 1.60]                # source: measured (0.50-1.20 rendered them too small
@@ -304,7 +322,7 @@ scenarios:
     postfx_prob: 0.20
 
   low_light_blur:
-    weight: 0.076   # source: measured (target accepted share 10%)
+    weight: 0.0812   # source: measured (target accepted share 10%)
                                              # modifier to 20% of every other scenario)
     n_pasted: [0, 3]
     postfx_prob: 1.00
@@ -324,10 +342,28 @@ scenarios:
 # photometric inconsistency between object and scene for the detector to exploit.
 # ===========================================================================
 postfx:
+  # Low light was the single worst defect in the first 1x pool: gamma and gain
+  # MULTIPLY, and the guessed ranges let them reach gamma 3.17 with gain 0.54,
+  # which maps mid-grey to luma 16. 38% of accepted images ended up holding at
+  # least one annotation darker or flatter than 99% of real ones — labels over
+  # black rectangles. Owner review of preview_head_no_helmet_p1 caught it.
+  #
+  # The ranges below are now derived rather than guessed. Real Train image mean
+  # luma (n=3,500): p0.5=34.52, p1=41.81, p5=70.11, p50=128.38, min=10.13.
+  # Requiring the transform to map the MEDIAN real image into the real dark tail
+  # (p0.5 at the strong end, p5 at the mild end) pins the endpoints:
+  #     gain 0.70 -> gamma 2.3942 gives out_luma 34.52  (real p0.5)
+  #     gain 0.95 -> gamma 1.8067 gives out_luma 70.11  (real p5)
+  # There is no such thing as a construction-site photo darker than the darkest
+  # one in the dataset, so the real distribution IS the ceiling on plausibility.
+  #
+  # The per-sample clamp in apply_postfx stays regardless: these ranges are
+  # calibrated on the median image, and a background that is already dark still
+  # cannot absorb the mild end.
   low_light:
     prob_given_postfx: 0.60                  # source: guess
-    gamma: [1.8, 3.2]                        # source: guess
-    gain: [0.45, 0.80]                       # source: guess
+    gamma: [1.8067, 2.3942]                  # source: calibrated (real image luma p5/p0.5)
+    gain: [0.70, 0.95]                       # source: calibrated (real image luma p5/p0.5)
     noise_sigma: [3, 10]                     # source: guess
     wb_gain_r: [0.92, 1.00]                  # source: guess
     wb_gain_b: [1.00, 1.12]                  # source: guess
@@ -358,6 +394,30 @@ hard_negatives:
   procedural_fraction: 1.00                  # source: measured (ADR-012)
   # Mined candidates below this are dropped: they are too small to be mistaken for a helmet.
   mined_min_side_px: 24                      # source: measured (real helmet min_side p10 = 22)
+
+  # K-11. Owner review of preview_hard_negative_p1 rejected every distractor as
+  # "像後製的圖片". Root cause: distractors were hard-alpha pasted with NO
+  # harmonization, feathering, edge decontamination or noise matching, while
+  # annotated pastes got all four. They now run the same path, plus this shadow.
+  #
+  # A depth-aware size prior was the other planned fix and was DROPPED after
+  # measurement: log(min_side) against normalized cy over 17,815 real Train
+  # annotations gives slope -0.0350 and R^2 = 0.0001, and the bucket medians go
+  # 28 / 27 / 22 / 23 from top to bottom. This dataset has no usable depth-size
+  # relation, so imposing one would move the distractors AWAY from the real
+  # distribution. Do not re-propose it without new evidence.
+  #
+  # These five are guesses tuned by looking at the rendered contact sheet, which
+  # is the only available method: the dataset has no annotated shadows to fit.
+  # Both ellipse axes scale with the footprint WIDTH on purpose — a shadow as
+  # tall as the object reads as a second object rather than as ground contact.
+  contact_shadow:
+    enabled: true                            # source: fixed   (K-11)
+    opacity: 0.32                            # source: guess   (tuned on the contact sheet)
+    width_fraction: 0.95                     # source: guess
+    height_fraction: 0.26                    # source: guess
+    y_offset_fraction: 0.02                  # source: guess
+    blur_sigma_fraction: 0.16                # source: guess
 
   mining:
     # HSV window for safety yellow/orange.
