@@ -65,16 +65,21 @@ EXPERIMENTAL_SCENARIOS = ("context_replacement",)
 # reason to spend a large generation budget on data whose artifacts are known to
 # be detectable.
 #
-# 1x means ACCEPTED samples reaching parity with the 3,500-image real Train
-# split. The candidate pool has to be larger than that because the filter rejects
-# roughly a third of what the compositor produces, so the pool cap is set to a
-# value that is comfortably above the pool needed for 1x while still sitting
-# BELOW 2x accepted (7,000). That makes 2x unreachable by construction rather
-# than by convention.
+# 1x means ACCEPTED samples reaching parity with the 3,500-image real Train split.
+#
+# The cap that matters is therefore on ACCEPTED samples, not on the candidate pool.
+# An earlier version of this constant capped the pool at 6,000 and claimed that
+# made 2x unreachable; that conflated the two. The pool is just candidates, and a
+# measured 47.4% acceptance rate on the first full run meant a 6,000 pool could
+# not even reach 1x.
+#
+# The guarantee now lives where it belongs: the 1x export takes the first
+# TARGET_ACCEPTED_1X accepted samples by stable rank and never more, so 2x is
+# impossible regardless of how large the pool is. MAX_POOL_IMAGES is only a
+# runaway guard, sized from the measured acceptance rate with headroom.
 # ---------------------------------------------------------------------------
 TARGET_ACCEPTED_1X = 3_500
-MAX_POOL_IMAGES = 6_000
-assert MAX_POOL_IMAGES < 2 * TARGET_ACCEPTED_1X, "pool cap must make 2x unreachable"
+MAX_POOL_IMAGES = 9_000
 
 
 @dataclass
@@ -2369,9 +2374,9 @@ def main() -> None:
     args = parse_args()
     if args.n <= 0 or args.n > MAX_POOL_IMAGES:
         raise ValueError(
-            f"ADR-011 scale cap: requested {args.n} images, allowed range is "
-            f"[1, {MAX_POOL_IMAGES}]. H4 did not pass (AUC 0.7964 > 0.60), so "
-            "generation is capped at a 1x pool and 2x is forbidden."
+            f"ADR-011 pool guard: requested {args.n} candidates, allowed range is "
+            f"[1, {MAX_POOL_IMAGES}]. The binding rule is the ACCEPTED cap of "
+            f"{TARGET_ACCEPTED_1X} (1x); H4 did not pass so 2x is forbidden."
         )
     paths = load_project_paths()
     generative_inpainter = None
