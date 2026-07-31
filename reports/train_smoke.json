@@ -1,0 +1,41 @@
+{
+  "arm": "filtered_syn",
+  "checkpoint_written_on_cold_start": true,
+  "cold_start": {
+    "arm": "filtered_syn",
+    "bf16": true,
+    "composition": {
+      "arm": "filtered_syn",
+      "augmentation_profile": "standard_aug",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 3500,
+      "n_train_total": 7000,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    },
+    "resumed_from": null,
+    "seed": 1337,
+    "total_steps": 2,
+    "train_loss": 106.6422119140625,
+    "train_runtime_seconds": 2.8833
+  },
+  "resume_verified": true,
+  "warm_start": {
+    "arm": "filtered_syn",
+    "bf16": true,
+    "composition": {
+      "arm": "filtered_syn",
+      "augmentation_profile": "standard_aug",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 3500,
+      "n_train_total": 7000,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    },
+    "resumed_from": "D:\\sdg-data\\02-safesynth\\runs\\smoke\\filtered_syn_seed_1337\\checkpoint-2",
+    "seed": 1337,
+    "total_steps": 4,
+    "train_loss": 45.09642791748047,
+    "train_runtime_seconds": 1.8421
+  }
+}

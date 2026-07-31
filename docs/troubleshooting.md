@@ -374,3 +374,47 @@ assert helper_line < guard_line
 
 **預防**：**模組層級只放 import、常數與 def；把 `if __name__` 區塊放在檔案最後一行**。
 任何在它之後的 `def` 對 `main()` 而言都不存在。
+
+---
+
+### K-17 — RT-DETRv2 載入時噴一大串 missing / unexpected keys（**是良性的**）
+
+**症狀**：`AutoModelForObjectDetection.from_pretrained("PekingU/rtdetr_v2_r18vd")`
+印出兩大段嚇人的清單：
+
+```
+There were missing keys in the checkpoint model loaded:
+  ['model.encoder.aifi.0.layers.0.self_attn.k_proj.weight', ...,
+   'class_embed.0.weight', 'bbox_embed.0.layers.0.weight', ...]
+There were unexpected keys in the checkpoint model loaded:
+  ['model.encoder.encoder.0.layers.0.fc1.bias', ...,
+   'model.decoder.layers.0.self_attn.out_proj.bias', ...]
+```
+
+`class_embed` 與 `bbox_embed` 出現在 missing 清單裡，看起來像是**偵測頭根本沒載到權重**。
+如果真是這樣，訓練會照樣跑出漂亮的 loss 曲線，然後得到一個什麼都偵測不到的模型。
+
+**根因**：這是 `transformers` **載入時自動改名**的正常行為，
+清單印的是**改名前**的鍵名。checkpoint 存的是舊命名
+（`self_attn.out_proj`、`fc1`），5.14.1 的模型類別用新命名
+（`self_attn.o_proj`、`mlp.fc1`）。改名成功了，訊息只是沒講清楚。
+
+**怎麼確認它是良性的**（不要用讀的，用測的）：
+**不改類別數**載入原始 checkpoint（80 類 COCO），對一張真實工地照做推論。
+
+```
+hard_hat_workers2463.png 的偵測結果（門檻 0.30）：
+  person 0.774 / person 0.627 / person 0.488 / sports ball 0.476 ...
+```
+
+抓到 5 個 person、最高信心 0.774。**隨機初始化的 decoder 不可能做到這件事**
+（logits 會接近均勻，最高分落在 1/80 附近，0.30 門檻下什麼都不剩）。
+順帶一提 `sports ball` / `frisbee` 就是安全帽——COCO 沒有 helmet 類別，
+圓形彩色物件被歸到最接近的類。
+
+**只有這 5 個張量是真的重新初始化的**（`MISMATCH` 那段才是真的）：
+`enc_score_head.{weight,bias}`、`decoder.class_embed.{weight,bias}`、
+`denoising_class_embed.weight`——因為 80 類換 3 類，本來就該重來。
+
+**預防**：不要憑載入訊息判斷權重有沒有載進去，**跑一次推論看它會不會偵測**。
+`scripts/smoke_train.py` 的存在就是為了在花掉 Colab 時數之前先跑過這條路徑。
