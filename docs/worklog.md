@@ -9,7 +9,7 @@
 *每次收工覆寫，只留最新一份。*
 
 - **更新時間**：2026-07-31（M13 pool 重生成完畢）
-- **最後驗證 commit**：`c96339f` fix(synthesis): scale the swapped head to the helmet it replaces
+- **最後驗證 commit**：`7c8d9d3` feat(synthesis): deliver the M13 1x pool and close Phase 1 verification
 - **目前里程碑**：`M0`–`M10`、`M12` 完成，`M11` 結案為 failed-and-accepted
   （[ADR-011](decisions.md#adr-011)：H4 未通過且不宣稱通過，後果改為「允許 1×、禁止 2×」）。
   `M13` 的 pool 與四份子集已產出，**驗收未完**（H4 重跑進行中）。

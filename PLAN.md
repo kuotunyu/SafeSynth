@@ -255,7 +255,7 @@
     `reports/threshold_sensitivity.md` 的 `alarm_count = 0`（最大擺動 6.54 pp < 15 pp）；
     重跑 H4 得 **AUC 0.9053**（95% CI 0.9013–0.9090，106,144 patch），
     仍未通過 0.60 且不宣稱通過（[ADR-013](docs/decisions.md#adr-013) 已記錄歸因）
-  - **驗證於**：（見下一筆 commit）
+  - **驗證於**：`7c8d9d3` @ 2026-07-31
 
 - [x] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
   - **對應規格**：PREV-01 ~ PREV-05
@@ -271,7 +271,7 @@
     `uv run python -m scripts.audit_phase1_handoff` → `integrity_passed: true`、
     單一作者、零 `Co-Authored-By`、無 remote、`permitted_synthetic_scale: 1x`；
     `uv run pytest -q` → **643 passed / 25 skipped**；`uv run ruff check .` → 全綠
-  - **驗證於**：（見下一筆 commit）
+  - **驗證於**：`7c8d9d3` @ 2026-07-31
 
 ---
 
