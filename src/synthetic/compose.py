@@ -79,7 +79,12 @@ EXPERIMENTAL_SCENARIOS = ("context_replacement",)
 # runaway guard, sized from the measured acceptance rate with headroom.
 # ---------------------------------------------------------------------------
 TARGET_ACCEPTED_1X = 3_500
-MAX_POOL_IMAGES = 9_000
+# Sized from the measured acceptance rate with headroom. Reweighting the scenarios
+# by inverse pass rate (so the POST-FILTER mix hits its target) deliberately shifts
+# generation toward the scenarios that survive least often, which drags the overall
+# rate down: 41.7% before reweighting, 38.3% after. A 9,000 pool yielded only 3,449
+# accepted against the 3,500 needed for 1x, hence 10,000.
+MAX_POOL_IMAGES = 10_000
 
 
 @dataclass
