@@ -175,7 +175,7 @@ json.dump(obj, open(p, "w", encoding="utf-8", newline="\n"), ...)
 
 ### K-11 — Hard negative 看起來像貼上的色塊，不像場景中的物件（**已修**）
 
-**症狀**：`preview_hard_negative_p1.png` 裡的 distractor 明顯「浮」在畫面上——
+**症狀**：`review/preview_hard_negative_p1.png` 裡的 distractor 明顯「浮」在畫面上——
 沒有接地陰影、懸在任意深度、光照與場景不一致，整體像貼紙而非實物。
 使用者 2026-07-31 審查後裁決：「每張圖片裡的安全帽都像後製的圖片」。
 
@@ -193,8 +193,8 @@ Lab 局部調和、雜訊匹配四件事；`_paste_hard_negatives` 一件都沒�
 | distractor（修後） | 161.9 | **505.2** | 1195.9 | 1447.1 |
 
 修前的表面紋理只有真實安全帽的 **1/26**。這就是「像後製」的物理量。
-目視對照：`reports/figures/k11_hard_negative_before.png` 與
-`reports/figures/preview_hard_negative_p1.png`。
+目視對照：`reports/figures/review/k11_hard_negative_before.png` 與
+`reports/figures/review/preview_hard_negative_p1.png`。
 
 **解法**（[COMP-20b](synthesis_spec.md)／[COMP-20c](synthesis_spec.md)）：
 1. distractor 改走與標註貼上**完全相同**的光度管線
@@ -224,7 +224,7 @@ Lab 局部調和、雜訊匹配四件事；`_paste_hard_negatives` 一件都沒�
 三個標註框（1 個貼上的 head、2 個真實 helmet）都框在看不到東西的地方。
 使用者回報：「有 1 個 head 框，但物件是一團黑根本看不到」。
 
-目視證據：`reports/figures/k12_blackout_evidence.png`
+目視證據：`reports/figures/review/k12_blackout_evidence.png`
 （左為合成結果、右為未動過的背景，同一個框位）。
 
 **根因**：`configs/compose.yaml` 的 `postfx.low_light` 有兩個獨立採樣的參數

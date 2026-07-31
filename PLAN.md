@@ -260,7 +260,7 @@
 - [x] **M14** 各情境預覽 grid ＋ `instructions_for_me.md` ＋ Phase 1 驗收
   - **對應規格**：PREV-01 ~ PREV-05
   - **驗證**（實測輸出）：
-    六個情境各兩頁共 **12 張** `reports/figures/preview_<scenario>_p{1,2}.png`，
+    六個情境各兩頁共 **12 張** `reports/figures/review/preview_<scenario>_p{1,2}.png`，
     每頁 2×3 格、放大 2×、左上角黃底編號，標題列含 `sample_id`／`n_ann`／
     `min_obj_luma`／`lowlight`；
     `preview_hard_negative_*` **不畫框**並在頁首註明「由構造保證正確（ADR-004）」；

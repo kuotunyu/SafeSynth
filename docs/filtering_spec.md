@@ -273,7 +273,7 @@ helmet 中心落在 head 上緣的上下某個範圍，橫向偏移不超過 ±�
 ## 5. 預覽圖（給人抽查用）
 
 ### PREV-01 — 每情境一張預覽 grid
-`reports/figures/preview_<scenario>.png`，格數見 `preview.grid_rows/cols`。
+`reports/figures/review/preview_<scenario>.png`，格數見 `preview.grid_rows/cols`。
 每格畫框、標類別、標關鍵過濾分數、標 `sample_id`（這樣使用者回饋時能精確指出是哪一格）。
 
 ### PREV-02 — hard negative 的預覽圖**不畫框**

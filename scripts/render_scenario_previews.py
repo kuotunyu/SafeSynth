@@ -153,7 +153,11 @@ def render(*, pool_tag: str, rows: int, cols: int, pages: int) -> dict[str, Any]
                     cell,
                     ((offset % cols) * cell_w, header + (offset // cols) * cell_h),
                 )
-            output = paths.figures / f"preview_{scenario}_p{page + 1}.png"
+            # reports/figures/ accumulates every diagnostic this project has ever
+            # produced (72 files and counting). Review artifacts go in their own
+            # directory so the owner opens a folder holding only what they were
+            # asked to look at, next to a README that says how to look at it.
+            output = paths.figures / "review" / f"preview_{scenario}_p{page + 1}.png"
             output.parent.mkdir(parents=True, exist_ok=True)
             sheet.save(output, optimize=True)
             files.append({"file": output.name, "sha256": _sha256_file(output)})
