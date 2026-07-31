@@ -68,8 +68,13 @@ def main() -> None:
     summary = json.loads(
         (run_dir / "summary.json").read_text(encoding="utf-8")
     )
-    if int(summary["n_images"]) != 300:
-        raise RuntimeError("H4 requires exactly 300 generated images")
+    # M11 ran this on exactly the 300 images the pre-scale-up gate allowed. ADR-011
+    # asks for a confirmation run on the full 1x pool, so the count is recorded as
+    # evidence instead of being pinned. A floor is kept because the AUC confidence
+    # interval is meaningless on a handful of patches.
+    n_images = int(summary["n_images"])
+    if n_images < 300:
+        raise RuntimeError(f"H4 needs at least 300 generated images, got {n_images}")
     try:
         examples = build_patch_examples(
             paths=paths,
