@@ -1,0 +1,12 @@
+{
+  "archive": "safesynth_train_data.zip",
+  "bytes": 3024302267,
+  "n_members": 10417,
+  "n_real_images": 4256,
+  "n_synthetic_images": 6152,
+  "n_test_images_excluded": 744,
+  "path": "D:\\sdg-data\\02-safesynth\\colab\\safesynth_train_data.zip",
+  "sha256": "d5bdeec732116aeecae710aa371f0595a7fc7edf7ecf7818975835e5311247f3",
+  "size_gb": 3.02,
+  "test_images_in_archive": 0
+}

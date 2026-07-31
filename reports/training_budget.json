@@ -1,0 +1,72 @@
+{
+  "arms": {
+    "filtered_syn": {
+      "arm": "filtered_syn",
+      "augmentation_profile": "standard_aug",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 3500,
+      "n_train_total": 7000,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    },
+    "real_only": {
+      "arm": "real_only",
+      "augmentation_profile": "real_only",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 0,
+      "n_train_total": 3500,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    },
+    "standard_aug": {
+      "arm": "standard_aug",
+      "augmentation_profile": "standard_aug",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 0,
+      "n_train_total": 3500,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    },
+    "unfiltered_syn": {
+      "arm": "unfiltered_syn",
+      "augmentation_profile": "standard_aug",
+      "n_real_train": 3500,
+      "n_real_val": 756,
+      "n_synthetic": 3500,
+      "n_train_total": 7000,
+      "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+    }
+  },
+  "batch_size": 16,
+  "equal_step_plan": {
+    "filtered_syn": {
+      "epochs": 24.943,
+      "n_train_images": 7000,
+      "real_image_exposures": 24.91,
+      "steps_per_epoch": 437,
+      "total_steps": 10900
+    },
+    "real_only": {
+      "epochs": 50.0,
+      "n_train_images": 3500,
+      "real_image_exposures": 49.83,
+      "steps_per_epoch": 218,
+      "total_steps": 10900
+    },
+    "standard_aug": {
+      "epochs": 50.0,
+      "n_train_images": 3500,
+      "real_image_exposures": 49.83,
+      "steps_per_epoch": 218,
+      "total_steps": 10900
+    },
+    "unfiltered_syn": {
+      "epochs": 24.943,
+      "n_train_images": 7000,
+      "real_image_exposures": 24.91,
+      "steps_per_epoch": 437,
+      "total_steps": 10900
+    }
+  },
+  "measured_ms_per_step_rtx4090": 165.0
+}
