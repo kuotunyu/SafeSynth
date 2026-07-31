@@ -56,6 +56,26 @@ SCENARIO_ORDER = (
 )
 EXPERIMENTAL_SCENARIOS = ("context_replacement",)
 
+# ---------------------------------------------------------------------------
+# ADR-011 scale cap.
+#
+# H4 did not pass (paste-artifact AUC 0.7964 against a pre-registered maximum of
+# 0.60) and this project does not claim otherwise. The consequence was changed
+# from "block indefinitely" to "1x is allowed, 2x is forbidden": there is no
+# reason to spend a large generation budget on data whose artifacts are known to
+# be detectable.
+#
+# 1x means ACCEPTED samples reaching parity with the 3,500-image real Train
+# split. The candidate pool has to be larger than that because the filter rejects
+# roughly a third of what the compositor produces, so the pool cap is set to a
+# value that is comfortably above the pool needed for 1x while still sitting
+# BELOW 2x accepted (7,000). That makes 2x unreachable by construction rather
+# than by convention.
+# ---------------------------------------------------------------------------
+TARGET_ACCEPTED_1X = 3_500
+MAX_POOL_IMAGES = 6_000
+assert MAX_POOL_IMAGES < 2 * TARGET_ACCEPTED_1X, "pool cap must make 2x unreachable"
+
 
 @dataclass
 class Paste:
@@ -245,6 +265,7 @@ def _load_context(
 ) -> tuple[
     dict[str, Any],
     list[dict[str, Any]],
+    list[dict[str, Any]],
     dict[int, dict[str, Any]],
     dict[int, list[dict[str, Any]]],
     dict[int, dict[str, Any]],
@@ -272,12 +293,14 @@ def _load_context(
     test_ids = {int(record["image_id"]) for record in test_blocklist["images"]}
     if test_ids & set(train_images):
         raise RuntimeError("Train backgrounds intersect the frozen Test blocklist")
-    if any(
-        str(item["src_split"]) != "train" or int(item["src_image_id"]) in test_ids
-        for item in bank
-    ):
-        raise RuntimeError("Cutout bank contains a Val/Test source")
-    return coco, bank, train_images, annotations, frozen, test_ids
+    hardneg_path = paths.cutouts / "hardneg_bank_manifest.jsonl"
+    hardneg_bank = _read_jsonl(hardneg_path) if hardneg_path.exists() else []
+    for item in (*bank, *hardneg_bank):
+        if str(item["src_split"]) != "train" or int(item["src_image_id"]) in test_ids:
+            raise RuntimeError("Cutout bank contains a Val/Test source")
+    if any(item.get("annotated", False) for item in hardneg_bank):
+        raise RuntimeError("Hard negatives must never be annotated (ADR-004)")
+    return coco, bank, hardneg_bank, train_images, annotations, frozen, test_ids
 
 
 def _load_pass1(
@@ -858,6 +881,110 @@ def _choose_bank_item(
     return population[int(rng.integers(0, len(population)))]
 
 
+def _paste_hard_negatives(
+    *,
+    rendered: np.ndarray,
+    kept_boxes: Sequence[Sequence[float]],
+    bank: Sequence[Mapping[str, Any]],
+    cutouts_root: Path,
+    settings: Mapping[str, Any],
+    config: Mapping[str, Any],
+    use_counts: Counter[str],
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, list[dict[str, Any]]]:
+    """Composite unannotated distractors after the annotated stack (COMP-20..24).
+
+    Hard negatives carry no annotation by construction: the label space is
+    {helmet, head, person} and a yellow dome is none of them, so under COCO
+    semantics the absence of a box is the correct and complete labelling
+    (ADR-004). FILT-10 additionally forbids them from overlapping any kept
+    annotation - occluding a real labelled object with an unlabelled blob would
+    corrupt the label instead of sharpening the decision boundary. Because they
+    are non-overlapping by rule, they can be composited in their own pass
+    without disturbing the annotated instance stack or its z-order.
+    """
+
+    if not bank:
+        return rendered, []
+    rules = config["filtering"]["rules"]["hard_negative_no_overlap"]
+    max_iou = float(rules["max_iou_with_annotation"])
+    low, high = (int(value) for value in settings["n_pasted"])
+    wanted = int(rng.integers(low, high + 1))
+    scale_low, scale_high = (float(value) for value in settings["scale_range"])
+    # Rigid distractors tolerate more rotation than heads do, so the limit lives in
+    # the shared per-class table rather than in the scenario block.
+    max_rotation = float(config["compose"]["rotation_deg"]["hard_negative"])
+    height, width = rendered.shape[:2]
+    output = rendered.copy()
+    placed: list[dict[str, Any]] = []
+
+    for index in range(wanted):
+        eligible = [
+            item
+            for item in bank
+            if use_counts[str(item["cutout_id"])] < int(item["max_uses"])
+        ]
+        if not eligible:
+            break
+        item = eligible[int(rng.integers(0, len(eligible)))]
+        rgba = np.asarray(Image.open(cutouts_root / item["file"]).convert("RGBA"))
+        scale = float(rng.uniform(scale_low, scale_high))
+        angle = float(rng.uniform(-max_rotation, max_rotation))
+        hflip = bool(rng.random() < 0.5)
+        warped = warp_rgba(rgba, scale=scale, rotation_deg=angle, hflip=hflip)
+        patch_h, patch_w = warped.shape[:2]
+        if patch_h < 4 or patch_w < 4 or patch_h >= height or patch_w >= width:
+            continue
+        cy_low, cy_high = (float(value) for value in settings["cy_range"])
+        for _ in range(24):  # bounded retries; a rejected placement is not a failure
+            left = int(rng.integers(0, width - patch_w))
+            # Ground-plane band: a dome floating in the sky is not a hard negative.
+            center_y = float(rng.uniform(cy_low, cy_high)) * height
+            top = int(np.clip(center_y - patch_h / 2, 0, height - patch_h))
+            box = [float(left), float(top), float(patch_w), float(patch_h)]
+            if all(_iou_xywh(box, kept) <= max_iou for kept in kept_boxes):
+                break
+        else:
+            continue
+        region = output[top : top + patch_h, left : left + patch_w]
+        alpha = (warped[..., 3:4].astype(np.float32) / 255.0)
+        output[top : top + patch_h, left : left + patch_w] = np.clip(
+            region.astype(np.float32) * (1.0 - alpha)
+            + warped[..., :3].astype(np.float32) * alpha,
+            0,
+            255,
+        ).astype(np.uint8)
+        use_counts[str(item["cutout_id"])] += 1
+        placed.append(
+            {
+                "annotated": False,
+                "bbox_xywh": box,
+                "class_name": None,
+                "cutout_id": str(item["cutout_id"]),
+                "instance_id": f"hardneg:{index}",
+                "kind": "hard_negative",
+                "max_iou_with_annotation": max(
+                    (_iou_xywh(box, kept) for kept in kept_boxes), default=0.0
+                ),
+                "negative_source": str(item["negative_source"]),
+                "src_group_id": int(item["src_group_id"]),
+                "src_image_id": int(item["src_image_id"]),
+                "transform": {"hflip": hflip, "rotation_deg": angle, "scale": scale},
+            }
+        )
+    return output, placed
+
+
+def _iou_xywh(first: Sequence[float], second: Sequence[float]) -> float:
+    ax, ay, aw, ah = (float(value) for value in first)
+    bx, by, bw, bh = (float(value) for value in second)
+    ix1, iy1 = max(ax, bx), max(ay, by)
+    ix2, iy2 = min(ax + aw, bx + bw), min(ay + ah, by + bh)
+    inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    union = aw * ah + bw * bh - inter
+    return inter / union if union > 0 else 0.0
+
+
 def _log_size_descriptor(bbox_xywh: Sequence[float]) -> np.ndarray:
     width = max(float(bbox_xywh[2]), 1)
     height = max(float(bbox_xywh[3]), 1)
@@ -876,6 +1003,11 @@ def _requested_classes(
             str(rng.choice(("helmet", "head"), p=(0.75, 0.25)))
             for _ in range(count)
         ]
+    if scenario == "hard_negative":
+        # Distractors are composited in their own unannotated pass, so this
+        # scenario contributes no annotated pastes of its own. The background's
+        # real annotations are still carried through unchanged.
+        return []
     if scenario == "head_no_helmet":
         return ["head"] * count
     if scenario == "partial_occlusion":
@@ -1563,7 +1695,10 @@ def _build_sample(
                 (float(bbox[0]) + float(bbox[2]) / 2, float(bbox[1]) + float(bbox[3]) / 2)
             )
             prior_boxes.append(list(bbox))
-        if not pastes and scenario != "low_light_blur":
+        # low_light_blur may legitimately paste nothing (it is a whole-image effect),
+        # and hard_negative never produces an ANNOTATED paste at all - its distractors
+        # are composited in a separate unannotated pass further down.
+        if not pastes and scenario not in {"low_light_blur", "hard_negative"}:
             rng.bit_generator.state = attempt_state
             rng.random()
             continue
@@ -1598,6 +1733,24 @@ def _build_sample(
             config=render_config,
             rng=rng,
         )
+        hard_negatives: list[dict[str, Any]] = []
+        if scenario == "hard_negative":
+            rendered, hard_negatives = _paste_hard_negatives(
+                rendered=rendered,
+                kept_boxes=[
+                    [float(value) for value in instance["bbox_xywh"]]
+                    for instance in visibility.annotations
+                ],
+                bank=bank_by_class.get("hard_negative", []),
+                cutouts_root=paths.cutouts,
+                settings=settings,
+                config=render_config,
+                use_counts=use_counts,
+                rng=rng,
+            )
+            if not hard_negatives:
+                last_reason = "NO_HARD_NEGATIVE_PLACEMENT"
+                continue
         generative_records: dict[str, dict[str, Any]] = {}
         if generative_inpainter is not None:
             visible_masks = _visible_paste_masks(
@@ -1668,6 +1821,9 @@ def _build_sample(
             },
             "instances": instances,
             "pairs": [],
+            # Kept OUT of "instances" on purpose: everything in that list becomes a
+            # COCO annotation, and hard negatives must never produce one (ADR-004).
+            "hard_negatives": hard_negatives,
             "intentional_removals": sorted(intentional_removals),
             "replacement_anchor_annotation_id": (
                 int(replacement_anchor["id"])
@@ -1704,7 +1860,7 @@ def _build_sample(
                 "seed": int(config["seed"]),
                 "attempts_limit": max_attempts,
                 "hard_negative_signoff_required": True,
-                "hard_negative_used": False,
+                "hard_negative_used": bool(hard_negatives),
                 "generative_inpaint_used": generative_inpainter is not None,
             },
         }
@@ -1763,8 +1919,10 @@ def _scenario_sequence(
             raise ValueError(f"Unknown scenarios: {sorted(unknown)}")
         names = list(selected)
     else:
-        # M9 remains explicitly blocked on kuotunyu's contact-sheet signoff.
-        names = [name for name in SCENARIO_ORDER if name != "hard_negative"]
+        # M9 closed: kuotunyu signed off the H6 sheet at 0/64 real helmets and the
+        # bank is materialised, so hard_negative now participates like any other
+        # scenario. Its distractors are unannotated by construction (ADR-004).
+        names = list(SCENARIO_ORDER)
     weights = np.asarray([float(config["scenarios"][name]["weight"]) for name in names])
     weights /= weights.sum()
     if n >= len(names):
@@ -1868,7 +2026,7 @@ def generate(
     if blending_method is not None:
         config["compose"]["blending"]["method"] = blending_method
     rng = np.random.default_rng(seed)
-    coco, bank, train_images, annotations, frozen, _ = _load_context(paths)
+    coco, bank, hardneg_bank, train_images, annotations, frozen, _ = _load_context(paths)
     categories = {
         int(record["id"]): str(record["name"]) for record in coco["categories"]
     }
@@ -1880,6 +2038,11 @@ def generate(
     missing = {"helmet", "head"} - set(bank_by_class)
     if missing:
         raise RuntimeError(f"Cutout bank lacks required classes: {sorted(missing)}")
+    # Distractors live under their own key so they can never be selected as an
+    # annotated paste: _requested_classes only ever yields helmet/head/person.
+    bank_by_class["hard_negative"] = sorted(
+        hardneg_bank, key=lambda item: str(item["cutout_id"])
+    )
     person_groups = {
         int(item["src_group_id"]) for item in bank_by_class.get("person", [])
     }
@@ -2025,7 +2188,7 @@ def generate(
         "info": {
             "description": "SafeSynth M10 deterministic preview",
             "seed": seed,
-            "hard_negative_status": "H6 approved; compositor integration pending",
+            "hard_negative_status": "H6 approved (0/64); procedural bank wired, distractors unannotated by construction",
             "generation_method": (
                 "reference_conditioned_boundary_inpaint_v1"
                 if generative_inpainter is not None
@@ -2076,7 +2239,7 @@ def generate(
             )
         ),
         "coco_self_map": self_map,
-        "hard_negative_status": "h6_approved_compositor_integration_pending",
+        "hard_negative_status": "h6_approved_procedural_bank_wired",
         "blending_method": str(config["compose"]["blending"]["method"]),
         "generative_inpaint_used": generative_inpainter is not None,
         "person_crowded_fallback": person_crowded_fallback,
@@ -2121,7 +2284,7 @@ def _write_stats_report(
         f"- Filter pass/reject: {summary['passed']} / {summary['rejected']}",
         f"- COCO self-evaluation bbox mAP: `{summary['coco_self_map']:.3f}`",
         f"- Output: `{summary['output_dir']}`",
-        "- Hard negatives: **not used**; H6 passed and compositor integration is pending.",
+        "- Hard negatives: procedural bank wired; distractors carry no annotation (ADR-004).",
         (
             "- Generative boundary inpainting: "
             f"**{'used' if summary['generative_inpaint_used'] else 'not used'}**."
@@ -2204,11 +2367,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if args.n <= 0 or args.n > 300:
-        raise ValueError("M11 hard gate: preview count must be in [1, 300]")
-    if args.scenario and "hard_negative" in args.scenario:
-        raise RuntimeError(
-            "H6 is approved, but hard-negative compositor integration is not complete."
+    if args.n <= 0 or args.n > MAX_POOL_IMAGES:
+        raise ValueError(
+            f"ADR-011 scale cap: requested {args.n} images, allowed range is "
+            f"[1, {MAX_POOL_IMAGES}]. H4 did not pass (AUC 0.7964 > 0.60), so "
+            "generation is capped at a 1x pool and 2x is forbidden."
         )
     paths = load_project_paths()
     generative_inpainter = None

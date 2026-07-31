@@ -48,7 +48,15 @@ def test_generative_seed_is_stable_and_instance_isolated() -> None:
     )
 
 
-def test_default_preview_covers_every_unblocked_scenario() -> None:
+def test_default_preview_covers_every_scenario() -> None:
+    """M9 closed, so hard_negative now participates like any other scenario.
+
+    kuotunyu signed off the H6 sheet at 0/64 real helmets and the procedural bank
+    is materialised, so the compositor no longer excludes it. Its distractors are
+    unannotated by construction (ADR-004) and are asserted separately in
+    test_hard_negatives_never_produce_annotations.
+    """
+
     sequence = _scenario_sequence(
         32, scenario_config(), None, np.random.default_rng(42)
     )
@@ -58,9 +66,25 @@ def test_default_preview_covers_every_unblocked_scenario() -> None:
         "head_no_helmet",
         "partial_occlusion",
         "crowded",
+        "hard_negative",
         "low_light_blur",
     }
-    assert "hard_negative" not in sequence
+
+
+def test_hard_negative_requests_no_annotated_pastes() -> None:
+    """The scenario must contribute zero annotated instances of its own.
+
+    Everything _requested_classes returns becomes an annotated paste and then a
+    COCO annotation. Hard negatives are composited in a separate unannotated
+    pass, so this must stay empty or the distractors would gain labels.
+    """
+
+    assert (
+        _requested_classes(
+            "hard_negative", 3, np.random.default_rng(0), person_crowded_fallback=False
+        )
+        == []
+    )
 
 
 def test_partial_occlusion_adds_one_person_occluder() -> None:

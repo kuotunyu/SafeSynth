@@ -272,8 +272,13 @@ scenarios:
 
   hard_negative:
     weight: 0.13                             # source: guess   (must be large enough to move FP rate)
-    n_pasted: [1, 3]
-    scale_range: [0.50, 1.20]
+    n_pasted: [2, 4]                         # source: measured (1-2 small distractors tripped
+                                             # FILT-11's NO_CHANGE guard on 4/8 smoke samples)
+    scale_range: [0.80, 1.60]                # source: measured (0.50-1.20 rendered them too small
+                                             # to register as a change on a 416x416 frame)
+    # Ground plane. Uniform placement put domes in the sky, which is not a hard
+    # negative at all - real yellow machinery, cones and drums sit on the ground.
+    cy_range: [0.45, 0.95]                   # source: guess
     postfx_prob: 0.20
 
   low_light_blur:
@@ -319,8 +324,18 @@ postfx:
 # Hard negatives. NOT annotated, by construction — see ADR-004.
 # ===========================================================================
 hard_negatives:
-  mined_fraction: 0.70                       # source: guess   (domain texture beats procedural control)
-  procedural_fraction: 0.30                  # source: guess
+  # ADR-012 flipped these after measuring the mined candidates against real helmets:
+  #   real helmet cutouts (n=5,578): min_side p10=22 / median=34 / p90=74, aspect median 0.84
+  #   mined candidates   (n=80)    : 51/80 below 16 px; the largest are 101x170, 112x31, 59x164
+  # Mined material is a mix of tiny yellow specks and elongated yellow structures, i.e.
+  # EASY negatives. This is structural: `require_outside_helmet_size_range` deliberately
+  # pushes candidates away from helmet-typical geometry in order to avoid scooping up real
+  # unlabelled helmets, so mining cannot produce helmet-like distractors by construction.
+  # Procedural shapes can be rendered AT helmet size and shape with zero contamination risk.
+  mined_fraction: 0.00                       # source: measured (ADR-012: mining cannot produce object-like negatives here)
+  procedural_fraction: 1.00                  # source: measured (ADR-012)
+  # Mined candidates below this are dropped: they are too small to be mistaken for a helmet.
+  mined_min_side_px: 24                      # source: measured (real helmet min_side p10 = 22)
 
   mining:
     # HSV window for safety yellow/orange.
