@@ -330,3 +330,34 @@ CLAUDE.md 的「自己產的圖要自己打開檢視」不是客套話。
 
 **這條同樣是目視發現的**，而且發生在 [K-14](#k-14) 之後——
 連續兩個 bug 都是自動檢查全過、打開圖才看到。
+
+---
+
+### K-16 — 函式定義在 `if __name__ == "__main__":` 之後，執行時還不存在
+
+**症狀**：`scripts/run_artifact_gate.py` 跑了 20 分鐘、**JSON 已經寫出來**，
+最後在產生 markdown 那一行掛掉：
+
+```
+File "scripts/run_artifact_gate.py", line 177, in main
+    f"- Source run: `{_repo_relative(run_dir)}` ({n_images} generated images)",
+NameError: name '_repo_relative' is not defined
+```
+
+**根因**：`_repo_relative` 被定義在檔案**最底部**，也就是
+`if __name__ == "__main__": main()` **後面**。
+Python 由上而下執行模組層級的程式碼，`main()` 被呼叫時那個 `def` 還沒執行到。
+而且底部有**兩份重複的定義**——修過一次但補錯位置。
+
+**為什麼特別難發現**：這條路徑要跑完整個分類器（約 20 分鐘）才會走到，
+而且**失敗發生在主要產物寫出之後**，所以 JSON 是好的、只有報告缺了。
+單元測試不會執行 `__main__` 區塊，所以測試全過。
+
+**解法**：把 helper 移到 `main()` **上面**，刪掉重複的那份。
+加一條 AST 斷言比較 `_repo_relative` 與 `if __name__` 的行號來自查：
+```python
+assert helper_line < guard_line
+```
+
+**預防**：**模組層級只放 import、常數與 def；把 `if __name__` 區塊放在檔案最後一行**。
+任何在它之後的 `def` 對 `main()` 而言都不存在。

@@ -24,6 +24,22 @@ CAPTION_HEIGHT = 38
 SECTION_HEIGHT = 28
 
 
+def _repo_relative(path) -> str:
+    """Repo-relative POSIX path; absolute paths leak the local username."""
+
+    from pathlib import Path as _Path
+
+    candidate = _Path(path)
+    try:
+        return (
+            candidate.resolve()
+            .relative_to(_Path(__file__).resolve().parents[1])
+            .as_posix()
+        )
+    except ValueError:
+        return candidate.as_posix()
+
+
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -213,19 +229,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-def _repo_relative(path) -> str:
-    """Render a path as repo-relative POSIX for inclusion in a report.
-
-    Absolute paths embed the local username, which publish-repo gate 1 rejects,
-    and they are meaningless to anyone who clones the repository.
-    """
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        candidate = candidate.resolve().relative_to(_Path(__file__).resolve().parents[1])
-    except ValueError:
-        pass
-    return candidate.as_posix()

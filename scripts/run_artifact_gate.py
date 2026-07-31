@@ -58,6 +58,16 @@ def _render_roc(labels: np.ndarray, scores: np.ndarray, output: Path) -> None:
     plt.close(figure)
 
 
+def _repo_relative(path) -> str:
+    """Repo-relative POSIX path; absolute paths leak the local username."""
+
+    candidate = Path(path)
+    try:
+        return candidate.resolve().relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return candidate.as_posix()
+
+
 def main() -> None:
     args = parse_args()
     paths = load_project_paths()
@@ -222,29 +232,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-def _repo_relative(path) -> str:
-    """Repo-relative POSIX path; absolute paths leak the local username."""
-
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    for root in (_Path(__file__).resolve().parents[1],):
-        try:
-            return candidate.resolve().relative_to(root).as_posix()
-        except ValueError:
-            continue
-    return candidate.as_posix()
-
-
-def _repo_relative(path) -> str:
-    """Repo-relative POSIX path; absolute paths leak the local username."""
-
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        return candidate.resolve().relative_to(_Path(__file__).resolve().parents[1]).as_posix()
-    except ValueError:
-        return candidate.as_posix()
