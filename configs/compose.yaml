@@ -243,8 +243,15 @@ scenarios:
   head_no_helmet:
     weight: 0.25                             # source: guess   (bare-head recall is headline #2)
     n_pasted: [1, 3]
-    submode_paste_head_prob: 0.40            # source: guess
-    submode_helmet_to_head_swap_prob: 0.60   # source: guess
+    # ⚠️ These are CONDITIONAL, not a global mix. paste_head needs a `person` box to
+    # anchor a bare head onto a body, and `person` exists in only 158/5000 images
+    # (3.16%). When a background has no person box the swap is forced regardless of
+    # this probability, so in practice head_no_helmet is ~100% swap (measured:
+    # 2208/2212 generated samples). That is the intended fallback, not a bug - the
+    # swap is also the higher-value operation, converting the abundant class into
+    # the scarce one in correct context.
+    submode_paste_head_prob: 0.40            # source: guess (only reachable with a person box)
+    submode_helmet_to_head_swap_prob: 0.60   # source: guess (only reachable with a person box)
     # The swap converts the abundant class into the scarce one, in place, with
     # correct context. Inpaint the helmet away BEFORE pasting the bare head,
     # otherwise a helmet-rim ghost survives.
