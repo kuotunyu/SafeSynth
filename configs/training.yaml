@@ -127,11 +127,26 @@ augmentation:
     # photometric — must bracket configs/compose.yaml `postfx`
     random_brightness_contrast: 0.5          # source: guess
     hue_saturation_value: 0.1                # source: guess
-    gamma_range: [1.8, 3.2]                  # source: fixed  (matches compose.yaml postfx.low_light)
-    gauss_noise_sigma: [3, 10]               # source: fixed  (matches compose.yaml)
+    # ⚠ These three MUST track configs/compose.yaml. ADR-013 recalibrated the
+    # synthetic low-light range from [1.8, 3.2] to [1.8067, 2.3942] (the old one
+    # multiplied with `gain` and produced black frames), and this file was left
+    # behind. A baseline given a WIDER photometric range than the synthetic arm
+    # ever sees does not make the comparison conservative - it makes the two arms
+    # incomparable in an undocumented direction. Re-check this pair whenever
+    # either file changes.
+    gamma_range: [1.8067, 2.3942]            # source: fixed  (tracks compose.yaml postfx.low_light.gamma)
+    # Albumentations RandomGamma takes gamma_limit in PERCENT, so this becomes
+    # (181, 239). Passing 1.81 there would be a no-op, silently.
+    gain_range: [0.70, 0.95]                 # source: fixed  (tracks compose.yaml postfx.low_light.gain)
+    # ^ compose multiplies gamma AND gain; RandomGamma alone cannot express that,
+    #   so the gain leg is applied as a matching brightness reduction.
+    gauss_noise_sigma: [3, 10]               # source: fixed  (tracks compose.yaml postfx.low_light.noise_sigma)
     motion_blur: 0.1                         # source: guess
-    blur_limit: 7                            # source: guess
-    jpeg_quality: [70, 95]                   # source: fixed  (matches compose.yaml)
+    blur_limit: 7                            # source: guess  (compose kernel_lengths max is 9)
+    jpeg_quality: [70, 95]                   # source: fixed  (tracks compose.yaml postfx.jpeg.quality)
+    # NOTE compose sets postfx.jpeg.always=false (H4 found a 0.737 format shortcut),
+    # so synthetic images are PNG. This augmentation therefore applies JPEG to BOTH
+    # arms' real images equally, which is the only way it stays a fair comparison.
 
   # arms 3 and 4 use the SAME augmentation as standard_aug, plus synthetic data.
   # Anything else confounds "synthetic helps" with "different augmentation".

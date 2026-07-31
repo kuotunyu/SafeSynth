@@ -45,7 +45,8 @@ from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
 **`transformers` v5 改了 image processor 命名**（[ADR-006](decisions.md#adr-006)）：
 `RTDetrImageProcessor` 現在**就是**快版（torchvision），慢版改叫 `RTDetrImageProcessorPil`，
-`RTDetrImageProcessorFast` 已不存在。**2025 年寫的教學抄下來會 ImportError 或行為悄悄不同。**
+`RTDetrImageProcessorFast` **仍存在但已 deprecated**（import 時只印一行警告，不會 ImportError）。
+**2025 年寫的教學抄下來不會爆炸，會安靜地行為不同——那更難抓**（[ADR-014](decisions.md#adr-014) 實測）。
 
 **三件從 checkpoint 的 `preprocessor_config.json` 讀到的事，違反任一項都會安靜壞掉：**
 

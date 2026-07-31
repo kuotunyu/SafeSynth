@@ -950,3 +950,89 @@ K-11 原本規劃的第二步。17,815 個真實標註擬合 `log(min_side) = a 
     以及 pool 由 10,000 增到 14,000（patch 數變多，信賴區間變窄）
   - 因此 AUC 的任何變化都要歸因到光度分布與樣本數，
     **不准歸功於 distractor 真實度，也不准歸功於 FILT-15**
+
+---
+
+## ADR-014 — M15 起手：TRAIN-01 的 API 查證結果（2026-07-31 重驗）
+
+> [TRAIN-01](training_spec.md) 規定「寫 notebook 之前必須先查證當前的訓練 API，
+> 不得憑記憶動手」，並要求在 M15 重新確認一次 2026-07-27 的查證。這是那次重驗。
+
+### 方法：用執行驗證，不是讀文件
+
+文件描述的是意圖，**已安裝的套件才決定實際行為**。
+所以每一條宣稱都在 `transformers 5.14.1` / `torch 2.13.0+cu130` 上**實際跑一次**。
+
+### 結果：規格的關鍵宣稱全部成立
+
+| 宣稱 | 實測 |
+|---|---|
+| `RTDetrV2ImageProcessor` 不存在 | ✅ `hasattr` = False |
+| `AutoImageProcessor` 解析到什麼 | ✅ `RTDetrImageProcessor` |
+| `do_normalize` | ✅ **False**（只除以 255；`image_mean/std` 惰性） |
+| `size` | ✅ 已是 640×640 |
+| `do_convert_annotations` | ✅ True |
+| label 格式 `{class_labels, boxes}` | ✅ forward 通過，loss 有限（159.62） |
+| 參數量 | ✅ 20.1M |
+| `ignore_mismatched_sizes` 必要 | ✅ LOAD REPORT 顯示 5 個分類頭張量因 80→3 重新初始化 |
+
+**座標轉換逐位驗證**——這是「最容易錯又最不會報錯」的一項：
+
+```
+輸入 COCO xywh 絕對座標 (416 底圖)：[100, 50, 40, 60]
+輸出 boxes：[0.2884615, 0.1923077, 0.0961538, 0.1442308]
+
+手算：cx=(100+20)/416=0.288462  cy=(50+30)/416=0.192308
+      w=40/416=0.096154         h=60/416=0.144231   ✅ 完全吻合
+```
+
+確認是**正規化 cxcywh**，且**絕不可以自己再轉一次**。
+
+`post_process_object_detection(outputs, threshold=0.5, target_sizes=None, use_focal_loss=True)`
+
+### 一處必須更正規格（依 TRAIN-02「以查證為準」）
+
+`training_spec.md` §1.1 寫「`RTDetrImageProcessorFast` 已不存在」。
+**實測它仍然存在**，只是在 import 時發出 deprecation 警告：
+
+> `RTDetrImageProcessorFast` is deprecated. The `Fast` suffix for image processors
+> has been removed; use `RTDetrImageProcessor` instead.
+
+差別重要：抄 2025 年教學**不會 ImportError**，會安靜地跑下去只印一行警告。
+「壞掉」比「安靜地不一樣」好抓，所以這條要改寫。
+
+### 已知問題（網路查證）——與規格預測一致
+
+[HF 論壇回報](https://discuss.huggingface.co/t/potential-bug-in-the-rt-detr-v2-fine-tune-script/139774)
+證實了規格預先寫下的那個崩潰：eval 的最後一批剛好只有 1 張時，
+`image_size` 由 `tensor([H,W])` 塌成 `tensor([H])`，
+`collect_targets` 拋 `ValueError: not enough values to unpack (expected 2, got 1)`。
+
+本專案 val = **756**，`756 % 8 = 4`，天生避開。
+但 `assert_eval_batch_remainder_not_one` 的啟動斷言仍要保留——
+epoch 數、batch size 或 split 任何一項改動都可能踩到。
+
+### 順帶抓到的跨檔漂移（與 API 無關，但更危險）
+
+`configs/training.yaml` 的 `standard_aug.gamma_range` 是 `[1.8, 3.2]`，
+註解寫著「matches compose.yaml postfx.low_light」。
+但 [ADR-013](#adr-013) 已把 compose 的 gamma 重新校準為 `[1.8067, 2.3942]`，
+**training.yaml 沒有跟著改，註解卻仍宣稱兩者相符**。
+
+這會直接傷害 [EXP-01](experiment_protocol.md)／TRAIN-05 的公平性論證：
+基線組拿到比合成組**更寬**的光度增強，兩組在一個沒被記錄的方向上不可比。
+
+處置：training.yaml 對齊 compose，並新增 `gain_range`
+（compose 的 gamma 與 gain **相乘**，單靠 `RandomGamma` 表達不出來）。
+新增 `tests/test_config_coupling.py` 七條測試把這個耦合釘死，
+包含一條檢查 `blur_limit` 有覆蓋到 compose 的最長 motion-blur kernel。
+
+⚠️ **Albumentations 的 `RandomGamma` 吃的是百分比**，所以 1.8067 要寫成 181。
+直接傳 1.81 會變成幾乎不做事的 no-op，而且不會報錯。
+
+### 後果
+
+- notebook 一律用 `AutoImageProcessor` / `AutoModelForObjectDetection`
+- 不自行做任何 normalize 或座標轉換
+- `configs/training.yaml` 的 `image_size` / `do_normalize` / `do_convert_annotations`
+  是**記錄 checkpoint 的既有值**，不是要覆寫它們
