@@ -130,7 +130,26 @@
     主表仍以 RT-DETRv2 為準，速度對照另立一表
   - **已完成的部分**（`55da06a`）：RF-DETR-Nano 實際載入並前向通過（`RfDetrForObjectDetection`，transformers 5.14.1）；兩個模型的 Hub 授權於量測當下重新查證皆為 `apache-2.0` 並釘住 revision；`grep -rn ultralytics` **零命中**，而且改成由 `scripts/check_forbidden_licences.py` **真的執行掃描**（原本是寫死的字串，種一個違規檔進去照樣說通過）；延遲數字含 batch／解析度／dtype 三項。
   - **實測發現，且它推翻了原本要下的結論**：把輸入從 640 降到 320（像素少 4 倍），**兩個模型都沒有變快**（RT-DETRv2 +0.1%、RF-DETR +3.5%）。batch-1 是 dispatch-bound，量到的是我們的 eager-PyTorch 推論路徑而不是架構。**所以「RF-DETR-Nano 比較快」這句話不能寫**——只量一個解析度就會理直氣壯地寫下錯的結論。
-  - **這個 `[~]` 涵蓋的範圍**：① 延遲數字量自**預訓練 80 類 checkpoint**，不是微調後的 3 類權重，報告全篇標著 PROVISIONAL，要在最終權重上重測一次；② ADR-005 範圍裡的「RF-DETR 用同樣四組各訓練一次」需要 GPU，留到 GPU 空出來再跑。
+  - **① 微調權重重測：程式已完成，數字量不出來**（2026-08-01，GPU 已空出）。
+    `--weights` 可指向本機微調 checkpoint（demo 實際服務的 `real_only/seed_1337/checkpoint-1752`），
+    處理器仍取自 Hub（Trainer 輸出目錄沒有 `preprocessor_config.json`）。
+    **PROVISIONAL 標籤改成推導的**：讀 `config.id2label`，只有當所有列都預測
+    `helmet/head/person` 才會消失；把 `--weights` 指向 COCO checkpoint 不會讓它消失。
+    模型確實換了（20.08 M 參數 vs 80 類的 20.2 M、logits `[1,300,3]`）。
+    **但數字無法發佈**：見 [K-22](docs/troubleshooting.md)——同一支 harness 兩次跑出
+    11.81 ms 與 26.74 ms，延遲跟著 SM clock 走（2520 MHz→12.89 ms、1215 MHz→27.85 ms）。
+    已加 `evaluate_clock_spread()` 與 `benchmark.max_clock_spread_ratio`，
+    修好取樣點之後重跑三次，spread 1.50／3.11／3.65，**三次都 FAIL**。
+    要取得可發佈數字需 `nvidia-smi -lgc`（**需管理員權限，屬使用者親自執行**）。
+  - **修正一句先前的描述**：上面寫的「batch-1 是 dispatch-bound」講得太滿。
+    CUDA event 量到的 GPU 側時間 ≈ wall clock（12.17 vs 12.20 ms），
+    而且 wall clock 與 SM clock 近乎成反比——時間花在 GPU 上、隨時脈縮放，
+    但**不隨像素量縮放**。「不隨解析度變化」這個觀察不變，
+    「所以兩個模型不能靠這個數字分高下」這個結論也不變。
+  - **② 這個 `[~]` 的另一半**：ADR-005 範圍裡的「RF-DETR 用同樣四組各訓練一次」。
+    需要為 RF-DETR 另寫一份訓練設定（`configs/training.yaml` 的
+    `do_normalize: false`、backbone LR 分組都是 RT-DETR 專屬），
+    且**本機 4090 沒有任何訓練速度實測**（四組都跑在 Colab L4），時數未知。
   - **驗證於**：（未完成）
 
 ---

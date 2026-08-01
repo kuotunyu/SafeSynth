@@ -8,8 +8,8 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-01（M16–M19 完成、demo 上線、README 有結果）
-- **最後驗證 commit**：`38e5635` test(eval): make the error-analysis figures provable, not just green
+- **更新時間**：2026-08-01 晚（M20 ① 的程式完成，但數字量不出來——見下）
+- **最後驗證 commit**：`00a3da9` docs(worklog): the afternoon, including the mistake and the two things measured then declined
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19` 完成**，
   **`M20` 與 `M22` 進行中**（都只差需要 GPU 或需要你選素材的那一半），
   **`M23` 實質完成**（README 有結果與圖、`verify_readme` PASS、CI 已加兩道關卡），
@@ -29,10 +29,12 @@ uns\<arm>\seed_1337\`
   **`results/detection_metrics.csv` 現在是被追蹤的**（441 列）——EVAL-12 要求所有報告數字
   都能從它重算，`scripts/verify_readme.py` 與 CI 都以它為準。
 - **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
-  **本輪全程未使用 GPU**（另一個專案佔用中），評測與分析都在 CPU 上跑，
-  744 張 × 4 組約 13 分鐘。
+  GPU 於本輪後段空出並用於 M20 ①（延遲重測），其餘評測與分析在 CPU 上。
 - **下一個動作（一句話、可直接動手）**：等使用者對 `instructions_for_me.md` 裡的 repo 體積問題（437 MB，其中 362.9 MB 是孤兒圖）做決定，那件事在第一次 push 之前處理才便宜。
-- **卡住的事**：無阻擋。
+- **卡住的事**：**M20 ① 卡在機器本身**。`reports/speed_baseline_probe.md` 目前是
+  **FAIL** 狀態且這是正確的——這台 4090 在使用中，同一次執行內 SM clock 從 690 盪到 2520 MHz。
+  要取得可發佈的延遲數字需要 `nvidia-smi -lgc 2520,2520`（**管理員權限，使用者親自執行**），
+  量完再 `nvidia-smi -rgc`。詳見 [K-22](troubleshooting.md)。
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
      這是預先登記的閘門確實有預測力，不是事後找的藉口
@@ -58,6 +60,39 @@ uns\<arm>\seed_1337\`
 ---
 
 ## 工作日誌
+
+### 2026-08-01（晚）— M20 ①：微調權重重測，以及一個會幫忙背書的驗收條件
+
+- **對應規格**：DEMO-03、DEMO-05
+- **做了什麼**
+  1. `--weights KEY=PATH` 讓 harness 量本機微調權重（處理器仍取自 Hub，
+     因為 Trainer 輸出目錄沒有 `preprocessor_config.json`）。
+     模型確實換了：20.08 M 參數、logits `[1,300,3]`。
+  2. **PROVISIONAL 標籤從寫死改成推導**。原本是一個常數字串——
+     和這支腳本自己 docstring 裡罵過的「授權掃描寫死字串」是同一種錯。
+     現在讀 `config.id2label`：只有當每一列都預測 `helmet/head/person` 才會消失，
+     而且把 `--weights` 指到 COCO checkpoint 也不會讓它消失。
+  3. 新增 `sm_clock_mhz` 欄位、`evaluate_clock_spread()` 與
+     `benchmark.max_clock_spread_ratio: 1.15`。
+- **驗證（實際輸出）**
+  - `10/10 killed`（PROVISIONAL 推導 ＋ `--weights` 解析）
+  - `14/14 killed`（時脈檢查與取樣位置）
+  - `1428 passed, 42 skipped`；`ruff` All checks passed；`verify_readme` PASS
+- **踩到的坑（[K-22](troubleshooting.md)）**：同一支 harness 幾分鐘內兩次跑出
+  **11.81 ms** 與 **26.74 ms**，而 p95 檢查兩次都給 PASS——因為每一列一起變慢，比值不動。
+  排除了 CPU 負載（11%）、P/E core 排程（綁核前後 26.5 vs 26.8 ms）、
+  暖機不足（加 10 秒 matmul 前導**反而變慢**）。真正的變數是 SM clock：
+  2520 MHz→12.89 ms、1215 MHz→27.85 ms。
+- **我自己的第二個錯**：時脈檢查的第一版把取樣點放在計時迴圈**之後**。
+  `nvidia-smi` 要 100 ms，期間 GPU 已在降頻，而且誤差**不是常數**——
+  end-to-end 迭代結尾有 CPU 後處理，GPU 閒得更久。四列讀到
+  2520/1770/2340/1680 MHz，報出一個 1.50 的假 spread。改到迴圈中點取樣，
+  並丟棄被打斷的那次迭代。
+- **刻意不做**：沒有為了讓報告變綠而放寬 `max_clock_spread_ratio`，
+  也沒有從三次 FAIL 的執行裡挑一個比較好看的數字發佈。
+  報告維持 FAIL，README 一個延遲數字都沒引用。
+- **決策**：無新 ADR。
+
 
 *append-only，新的插在最上面。*
 
@@ -172,38 +207,3 @@ uns\<arm>\seed_1337\`
 - **驗證**：`uv run pytest -q` → **643 passed / 25 skipped**；`uv run ruff check .` → 全綠
 - **commit**：見下一筆
 
-### 2026-07-31 · 使用者審查揪出四個缺陷；重生成 M13 pool
-
-- **對應規格**：FILT-15、CUT-14、COMP-18、COMP-20b/20c、[ADR-013](decisions.md#adr-013)
-- **起因**：kuotunyu 審查 `preview_head_no_helmet_p1` 與 `preview_hard_negative_p1` 後回報三件事。
-  追查結果是**四個不同的缺陷**，其中兩個是我在修的過程中自己造成或發現的。
-
-| # | 回報／發現 | 根因 | 處置 |
-|---|---|---|---|
-| 1 | 「整張圖黑掉」 | `low_light` 的 gamma×gain 兩個 guess 範圍相乘，實測 3.17×0.54 把中灰壓到 16。**38.3% 的接受圖**中招 | 範圍改由真實圖亮度推導 ＋ 每張圖自適應鉗制 ＋ FILT-15（K-12） |
-| 2 | 「hard negative 像後製」 | distractor **完全沒走**標註貼上的光度管線（羽化／去汙／調和／雜訊匹配四樣全無） | 併入同一管線 ＋ 接地陰影（K-11） |
-| 3 | 自查發現：FILT-15 上線後**還是**有 head 框著黑斑 | Lab 調和在 FILT-15 之前跑，把素材亮度 8.5 的剪影抬到 45.4 過門檻 | 加 CUT-14 在素材端擋（K-14） |
-| 4 | 自查發現：頭大到不成比例 | `do_swap` 只設 `center_override`，沒設 `target_bbox_xywh`，**實作偏離 COMP-18 規格** | swap 一併繼承 anchor 尺寸（K-15） |
-
-- **驗證（實測輸出）**：
-  - 表面紋理（Laplacian 變異數，真實 helmet p50 = 1350.9）：distractor 由 **52.4 → 503.3**
-  - swap 頭尺寸：`head_w/anchor_w` 中位數由 2.17 → **0.949**，`head_h/anchor_h` 由 2.27 → **1.000**
-  - CUT-14 實際排除 **102 / 7,255**（head 27／helmet 74／person 1）
-  - 低光鉗制：2,184 次抽樣中 681 次維持全強度、1,368 次降強度、135 次完全抑制
-  - `low_light_blur` 仍然真的暗：整圖亮度 p50 = 98.2 vs 其他情境 123–131
-  - pool：14,000 候選 / **4,177 接受**（29.8%），COCO 自評 mAP = **1.000**
-  - 四份子集六個不變式全過；filtered 與 unfiltered 各 3,500，`0.5× ⊂ 1×`
-  - `uv run pytest -q` → **330 passed**；`uv run ruff check .` → All checks passed
-- **決策**：[ADR-013](decisions.md#adr-013)（四個決策 ＋ 三個「量測後否決」）
-- **踩到的坑**：K-11（改寫）、K-12、K-13、K-14、K-15
-- **刻意不做**：
-  - 依深度的尺寸先驗——`log(min_side) ~ cy` 的 R² = **0.0001**，本資料集沒有這個關係
-  - 框內 RMS 對比當閘門——它量的是框的鬆緊，會誤殺又小又亮的遠距安全帽
-  - |物件−周圍| 亮度差當閘門——真實物件的 p1 只有 **0.67**，真實差異在色相不在亮度
-  - 刪掉那個 5×30 的扁 helmet 框——那是真實標註，鐵律禁止刪，且 Real-only 組也有
-  - 修「暗頭髮貼到暗背景」——物件亮度 32.2 落在真實 head 分布內（p1 = 23.19），
-    門檻拉到抓得到它就會連真實資料最暗的裸頭一起丟
-- **教訓**：連續兩個缺陷（#3、#4）都是**自動檢查全過、打開圖才看到**。
-  #4 更進一步顯示「有規則」不等於「規則會執行」——FILT-08 需要 `person` 框，
-  而全資料集只有 3.16% 的圖有。
-- **commit**：`974df2e`、`c96339f`
