@@ -142,6 +142,14 @@ small bucket 佔 100% 也還是 20 個框。比例檢定看不出這件事，絕
 - 只有 1 seed 的組別報單值，並在表格註明「單一 seed」
 - **`person` AP 必須附對測試圖做 1,000 次重抽的 bootstrap 95% 信賴區間**
   （[EXP-03](experiment_protocol.md)），以及該 split 的 person 實例數與圖片數
+- 重抽單位是**影像**不是實例：同一張擁擠工地照的二十顆頭並不獨立，
+  對實例重抽會造出窄好幾倍的假區間
+- **判定式：區間必須與 worker 數無關。** 每一次 resample 從
+  `SeedSequence(seed)` 的獨立子種子取樣，因此 `(seed, resamples)` 唯一決定結果；
+  平行度只買 wall clock，不改數字。
+  參數：`configs/evaluation.yaml` → `metrics.bootstrap_workers`（本文件不複製數值）
+- **驗證**：同一組輸入在 1 / 8 / 12 / 16 / 20 workers 下產出的 `BootstrapCI`
+  必須逐欄相等（含上下界）
 
 **EVAL-10 — 「進步」的門檻**
 一個組別要被宣稱優於另一個，差距必須大於雜訊。

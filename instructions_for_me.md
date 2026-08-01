@@ -52,6 +52,31 @@ PLAN 的前置判斷寫得很清楚：**若 Filtered 組沒有提升，補 seed 
 
 ### 3️⃣ GPU 空出來之後（你決定時機）
 
+### 🔧 一分鐘就能解鎖 M20 ①：用管理員權限鎖住 GPU 時脈
+
+**你答應要做這件事，但還沒做。** 開「以系統管理員身分執行」的 PowerShell：
+
+```bash
+nvidia-smi -lgc 2520,2520
+```
+
+告訴我一聲，我重跑約 5 分鐘。**跑完務必解除**（鎖著會讓 GPU 一直高頻耗電發熱、
+影響你其他專案）：
+
+```bash
+nvidia-smi -rgc
+```
+
+為什麼需要這個：這台 4090 在使用中，同一次執行內 SM clock 從 690 盪到 2520 MHz，
+延遲跟著差 2.3 倍。`reports/speed_baseline_probe.md` 現在是 **FAIL** 狀態，
+那是正確的——舊版報告的 `11.81 ms` 是運氣好抽中的，而當時的檢查給它 PASS。
+細節見 [K-22](docs/troubleshooting.md)。
+
+**不想做也完全可以**：M20 ① 維持 `[~]`，README 本來就沒引用任何延遲數字，
+不影響任何主結論。
+
+---
+
 兩件事在等 GPU，都不急：
 - **在微調後的 3 類權重上重測延遲**（M20 ①）。約 15 分鐘，跑完就能拿掉
   `reports/speed_baseline_probe.md` 全篇的 PROVISIONAL 標記

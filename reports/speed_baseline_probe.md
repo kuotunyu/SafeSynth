@@ -7,7 +7,7 @@
 > logits per query become 3 - and nothing else, so those numbers should carry over
 > closely. They MUST still be re-measured before any of them reaches the README.
 
-- Generated: `2026-08-01T14:31:06Z`
+- Generated: `2026-08-01T15:05:44Z`
 - Device: `cuda (NVIDIA GeForce RTX 4090)`
 - Requested dtype: `float16` -> effective dtype: `float16`
 - Warmup / timed iterations: `20` / `200` (warmup discarded, never timed)
@@ -21,10 +21,10 @@ Every setting above is read from `configs/evaluation.yaml`; the harness in `src/
 
 | Measurement | Device | Batch | Input | dtype | SM clock (MHz) | Median (ms) | p95 (ms) | FPS | Iters (warmup+timed) |
 |---|---|---:|---:|---|---:|---:|---:|---:|---|
-| RT-DETRv2-R18 [model-only] | cuda | 1 | 640 | float16 | 2520 | 27.70 | 41.56 | 36.1 | 20+199 |
-| RT-DETRv2-R18 [end-to-end] | cuda | 1 | 640 | float16 | 780 | 33.03 | 53.12 | 30.3 | 20+199 |
-| RF-DETR-Nano [model-only] | cuda | 1 | 640 | float16 | 855 | 19.08 | 28.59 | 52.4 | 20+199 |
-| RF-DETR-Nano [end-to-end] | cuda | 1 | 640 | float16 | 690 | 28.52 | 30.92 | 35.1 | 20+199 |
+| RT-DETRv2-R18 [model-only] | cuda | 1 | 640 | float16 | 2520 | 13.26 | 18.60 | 75.4 | 20+199 |
+| RT-DETRv2-R18 [end-to-end] | cuda | 1 | 640 | float16 | 2520 | 18.53 | 25.91 | 54.0 | 20+199 |
+| RF-DETR-Nano [model-only] | cuda | 1 | 640 | float16 | 2520 | 9.48 | 11.54 | 105.5 | 20+199 |
+| RF-DETR-Nano [end-to-end] | cuda | 1 | 640 | float16 | 2520 | 16.29 | 20.39 | 61.4 | 20+199 |
 
 `model-only` is a forward pass on a tensor already resident on the device. `end-to-end` additionally includes image preprocessing, the host-to-device copy and `post_process_object_detection`; that is what a user feels. Both are wrapped in `torch.cuda.synchronize()` inside the timed region - without it the timer would measure how fast Python enqueues work.
 
@@ -36,17 +36,17 @@ A benchmark taken while the machine was busy shows a long tail: the reported med
 
 | Measurement | p95 / median | Verdict |
 |---|---:|---|
-| RT-DETRv2-R18 [model-only] | 1.50 | CONTENDED - repeat, do not publish |
-| RT-DETRv2-R18 [end-to-end] | 1.61 | CONTENDED - repeat, do not publish |
-| RF-DETR-Nano [model-only] | 1.50 | CONTENDED - repeat, do not publish |
-| RF-DETR-Nano [end-to-end] | 1.08 | ok |
-| RT-DETRv2-R18 [model-only @ 320] | 1.39 | CONTENDED - repeat, do not publish |
-| RT-DETRv2-R18 [model-only @ 1280] | 1.64 | CONTENDED - repeat, do not publish |
-| RF-DETR-Nano [model-only @ 320] | 1.36 | CONTENDED - repeat, do not publish |
-| RF-DETR-Nano [model-only @ 1280] | 1.44 | CONTENDED - repeat, do not publish |
-| RF-DETR-Nano [model-only @ 384, native preset] | 1.36 | CONTENDED - repeat, do not publish |
+| RT-DETRv2-R18 [model-only] | 1.40 | CONTENDED - repeat, do not publish |
+| RT-DETRv2-R18 [end-to-end] | 1.40 | CONTENDED - repeat, do not publish |
+| RF-DETR-Nano [model-only] | 1.22 | ok |
+| RF-DETR-Nano [end-to-end] | 1.25 | ok |
+| RT-DETRv2-R18 [model-only @ 320] | 1.50 | CONTENDED - repeat, do not publish |
+| RT-DETRv2-R18 [model-only @ 1280] | 1.67 | CONTENDED - repeat, do not publish |
+| RF-DETR-Nano [model-only @ 320] | 1.20 | ok |
+| RF-DETR-Nano [model-only @ 1280] | 1.32 | CONTENDED - repeat, do not publish |
+| RF-DETR-Nano [model-only @ 384, native preset] | 2.15 | CONTENDED - repeat, do not publish |
 
-**FAIL** - 8 of 9 measured rows exceeded the threshold.
+**FAIL** - 6 of 9 measured rows exceeded the threshold.
 
 ### GPU clock check (the failure the p95 ratio cannot see)
 
@@ -54,7 +54,7 @@ The p95 / statistic ratio is a WITHIN-row test. On 2026-08-01 two runs of this h
 
 | Lowest (MHz) | Highest (MHz) | Spread | Limit | Verdict |
 |---:|---:|---:|---:|---|
-| 690 | 2520 | 3.65 | 1.15 | FAIL - re-measure |
+| 2520 | 2520 | 1.00 | 1.15 | PASS |
 
 ## 2. Peak VRAM
 
@@ -80,18 +80,18 @@ Section 1 runs BOTH models at the config `input_size`, so that comparison is app
 
 | Measurement | Device | Batch | Input | dtype | SM clock (MHz) | Median (ms) | p95 (ms) | FPS | Iters (warmup+timed) |
 |---|---|---:|---:|---|---:|---:|---:|---:|---|
-| RT-DETRv2-R18 [model-only @ 320] | cuda | 1 | 320 | float16 | 570 | 25.83 | 35.99 | 38.7 | 20+199 |
-| RT-DETRv2-R18 [model-only @ 1280] | cuda | 1 | 1280 | float16 | 1575 | 27.23 | 44.77 | 36.7 | 20+199 |
-| RF-DETR-Nano [model-only @ 320] | cuda | 1 | 320 | float16 | 585 | 18.99 | 25.79 | 52.7 | 20+199 |
-| RF-DETR-Nano [model-only @ 1280] | cuda | 1 | 1280 | float16 | 2700 | 18.68 | 26.84 | 53.5 | 20+199 |
-| RF-DETR-Nano [model-only @ 384, native preset] | cuda | 1 | 384 | float16 | 1185 | 18.80 | 25.58 | 53.2 | 20+199 |
+| RT-DETRv2-R18 [model-only @ 320] | cuda | 1 | 320 | float16 | 2520 | 13.82 | 20.76 | 72.4 | 20+199 |
+| RT-DETRv2-R18 [model-only @ 1280] | cuda | 1 | 1280 | float16 | 2520 | 13.32 | 22.31 | 75.1 | 20+199 |
+| RF-DETR-Nano [model-only @ 320] | cuda | 1 | 320 | float16 | 2520 | 9.57 | 11.44 | 104.5 | 20+199 |
+| RF-DETR-Nano [model-only @ 1280] | cuda | 1 | 1280 | float16 | 2520 | 13.05 | 17.25 | 76.6 | 20+199 |
+| RF-DETR-Nano [model-only @ 384, native preset] | cuda | 1 | 384 | float16 | 2520 | 11.82 | 25.42 | 84.6 | 20+199 |
 
-- **RT-DETRv2-R18**: 320x320 costs `25.83` ms against `27.70` ms at 640x640 (`-6.8%`), on 4x fewer input pixels.
-- **RT-DETRv2-R18**: 1280x1280 costs `27.23` ms against `27.70` ms at 640x640 (`-1.7%`), on 4x more input pixels.
-- **RF-DETR-Nano**: 320x320 costs `18.99` ms against `19.08` ms at 640x640 (`-0.5%`), on 4x fewer input pixels.
-- **RF-DETR-Nano**: 1280x1280 costs `18.68` ms against `19.08` ms at 640x640 (`-2.1%`), on 4x more input pixels.
+- **RT-DETRv2-R18**: 320x320 costs `13.82` ms against `13.26` ms at 640x640 (`+4.2%`), on 4x fewer input pixels.
+- **RT-DETRv2-R18**: 1280x1280 costs `13.32` ms against `13.26` ms at 640x640 (`+0.5%`), on 4x more input pixels.
+- **RF-DETR-Nano**: 320x320 costs `9.57` ms against `9.48` ms at 640x640 (`+0.9%`), on 4x fewer input pixels.
+- **RF-DETR-Nano**: 1280x1280 costs `13.05` ms against `9.48` ms at 640x640 (`+37.7%`), on 4x more input pixels.
 
-MEASURED: across a 16x span of input pixel counts (320x320 to 1280x1280), the largest move any model-only measurement made was `-6.8%` (RT-DETRv2-R18 at 320x320). Compute-bound behaviour would be roughly -75% at the small end and +300% at the large end.
+MEASURED: across a 16x span of input pixel counts (320x320 to 1280x1280), the largest move any model-only measurement made was `+37.7%` (RF-DETR-Nano at 1280x1280). Compute-bound behaviour would be roughly -75% at the small end and +300% at the large end.
 
 The criterion, stated before the numbers above are read: a compute-bound batch-1 measurement falls towards a quarter of its cost when both input dimensions are halved and rises towards four times it when they are doubled. To the extent a measurement does NOT follow the pixel count, its wall clock is dominated by per-operator Python and CUDA launch overhead in eager mode - it characterises OUR INFERENCE PATH rather than the network, and two models cannot be separated on the strength of it. Read section 1 accordingly: it is the latency a user of this eager-PyTorch demo would feel, not a claim about which architecture is faster.
 
