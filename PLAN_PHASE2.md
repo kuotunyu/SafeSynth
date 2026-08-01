@@ -57,7 +57,7 @@
 
 ## M16 — 四組 × 1 seed 訓練（Colab，使用者執行）＋ 產出盤點
 
-- [ ] **M16** 回收 Colab 產出並盤點完整性
+- [x] **M16** 回收 Colab 產出並盤點完整性
   - **對應規格**：TRAIN-15 ~ TRAIN-18
   - **驗證**：對照 `instructions_for_me.md` 的預期清單逐項確認，**缺檔就列清單停下來問使用者**；
     四組各有 checkpoint 與訓練 log；
@@ -66,22 +66,28 @@
     確認四組吃的**真實影像完全相同**（比對訓練資料清單的雜湊）；
     確認 `+Standard Aug` 組的增強清單**含光度增強**（[EXP-01](docs/experiment_protocol.md)）；
     確認 unfiltered 與 filtered 兩組的**張數相同**
-  - **驗證於**：（未完成）
+  - **驗證於**：`7f2f0b3` @ 2026-08-01
+  - **實際結果**：`uv run python -m scripts.audit_colab_results --archive ...` → **PASS，0 fatal、4 warning**。四組 `real_train_digest` 全部相同（`b46e8263…`）、步數皆 10,900、filtered 與 unfiltered 皆 3,500、real_only 與 standard_aug 皆 0。
+  - **踩到的坑**：4 個 warning 是打包程式漏抓 `trainer_state.json`——HF 把它寫在 `checkpoint-N/` 裡面，而 glob 只掃 `seed_*/` 那一層，`is_file()` 把「找不到」變成「安靜跳過」。已修並移進被測模組（`src/training/ingest.py`）。
+    另見 [K-20](docs/troubleshooting.md)：`run_record.json` 的 `eval_metrics` 與任何 checkpoint 都對不上，只能當「有跑過評測」的存在性證據。
 
 ---
 
 ## M17–M20 — 合規、評測與分析（本機 4090）
 
-- [ ] **M17** `src/inference/compliance.py`：兩種模式 ＋ 操作點選擇
+- [x] **M17** `src/inference/compliance.py`：兩種模式 ＋ 操作點選擇
   - **對應規格**：EVAL-01 ~ EVAL-04
   - **驗證**：`class_direct` 與 `geometric_pairing` 兩種模式都實作且由 config 切換；
     **`uv run pytest tests/test_compliance.py -k person_not_load_bearing` 通過**——
     把所有 `person` 偵測刪光後，合規判定結果**逐位元相同**；
     信心門檻在 **Validation** 上掃描選出（**絕不在 Test 上選**），
     掃描曲線與選定值寫進 `reports/compliance_operating_point.md`
-  - **驗證於**：（未完成）
+  - **驗證於**：`bc44f3f` @ 2026-08-01
+  - **實際結果**：EVAL-04 在 Validation 上選出 **0.07**（bare-head recall 0.8575、compliance precision 0.8507，下限 0.80），已凍結進 config。
+  - **抓到兩個缺陷**：① 原本的佔位值 0.50 對這個模型是災難——223,200 個偵測的最高分只有 **0.2495**，在 0.50 上它什麼都不預測；② `select_operating_point` 會選出「從不觸發」的退化解（`unfiltered_syn` 選到 recall 0.0000 / precision 1.0000）。零召回現已不合格。
+  - **最重要的結果**：各組各選各的操作點後，**`unfiltered_syn` 在任何會偵測到東西的門檻上都達不到 0.80 精確度**，`filtered_syn` 可以（0.8076）。過濾決定了能不能當合規檢查器部署。
 
-- [ ] **M18** `scripts/eval.py` ＋ 四組對照主表
+- [x] **M18** `scripts/eval.py` ＋ 四組對照主表
   - **對應規格**：EVAL-05 ~ EVAL-14
   - **驗證**：`assert_test_untouched()` 啟動時通過，且訓練資料清單與 Test image id 交集為空；
     **`AP_small` 在每張圖自己的原始標註座標下計算**——用構造案例反向驗證
@@ -93,9 +99,12 @@
     `pycocotools` 與 `faster-coco-eval` 在同一輸入上 mAP 差距為 0；
     `results/detection_metrics.csv` 每列一個 arm × seed × 指標，
     且 `reports/` 的每個表格數字都能由它重新聚合出**完全相同**的值
-  - **驗證於**：（未完成）
+  - **驗證於**：`7f2f0b3` @ 2026-08-01
+  - **實際結果**：`results/detection_metrics.csv` 441 列。**兩條獨立實作算出的主表一致到 8.8e-07**（JSON 浮點往返誤差）。凍結 Test 744 張：`real_only` primary AP_small **0.4511**、`standard_aug` 0.4236、`unfiltered_syn` 0.3759、`filtered_syn` 0.3664。**合成沒有提升。**
+  - **防洩漏實跑通過**：`assert_test_untouched()` 覆蓋 744 張；四組訓練清單的 digest 皆等於凍結 train split，與 Test 交集為零。
+  - **bootstrap 未跑**（`--bootstrap-resamples 0`），所以 **EVAL-09 尚未滿足**，報告已載明。
 
-- [ ] **M19** 錯誤分析：FP/FN 對照 grid ＋ 情境切分表
+- [x] **M19** 錯誤分析：FP/FN 對照 grid ＋ 情境切分表
   - **對應規格**：EVAL-15 ~ EVAL-18
   - **驗證**：四類對照圖（修好的 FN／修好的 FP／**新增的 FP**／兩組都錯）各若干張產出並
     **自己打開檢視**；
@@ -104,15 +113,21 @@
     **檢驗針對性**：若 `small_distant` 佔 25% 預算但小物件桶的進步與其他桶相當，
     如實寫出「這是資料變多而非針對性生效」；
     hard-negative 子集的每圖誤報數獨立成表
-  - **驗證於**：（未完成）
+  - **驗證於**：`7f2f0b3` @ 2026-08-01
+  - **實際結果**：四類對照圖已產出並**逐張打開檢視**（`reports/figures/error_analysis/`）。相對 baseline，`filtered_syn` 修好 73 個漏檢、**新製造 1,304 個**——弄壞的是修好的 18 倍；修好 715 個誤報、新增 291 個。
+  - **針對性判定：`target_slice_did_not_improve`**，而且比無效更糟——`small_distant` 佔可切片預算最大份額（21.7%），而 `small_object` 是**移動最不利**的切片（−0.0572，對比 `crowded` −0.0412、`low_light` −0.0477）。
+  - **未滿足**：hard-negative 子集在凍結 Test 上是**空的**（744 張全都含 helmet 或 head），EVAL-16 的候選區域 fallback 未實作，該表無法產生。
 
-- [ ] **M20** 速度對照組（寬鬆授權模型，**不得用 Ultralytics**）
+- [~] **M20** 速度對照組（寬鬆授權模型，**不得用 Ultralytics**）
   - **對應規格**：DEMO-05、[ADR-005](docs/decisions.md#adr-005)
   - **驗證**：所選模型的授權經查證且與 MIT repo 相容，證據寫進 ADR-005；
     `grep -rn "ultralytics" src/ scripts/ notebooks/` → **零命中**；
     速度數字含 batch size、輸入解析度、dtype 三項脈絡
     （**缺這三項的 FPS 沒有意義**）；
     主表仍以 RT-DETRv2 為準，速度對照另立一表
+  - **已完成的部分**（`55da06a`）：RF-DETR-Nano 實際載入並前向通過（`RfDetrForObjectDetection`，transformers 5.14.1）；兩個模型的 Hub 授權於量測當下重新查證皆為 `apache-2.0` 並釘住 revision；`grep -rn ultralytics` **零命中**，而且改成由 `scripts/check_forbidden_licences.py` **真的執行掃描**（原本是寫死的字串，種一個違規檔進去照樣說通過）；延遲數字含 batch／解析度／dtype 三項。
+  - **實測發現，且它推翻了原本要下的結論**：把輸入從 640 降到 320（像素少 4 倍），**兩個模型都沒有變快**（RT-DETRv2 +0.1%、RF-DETR +3.5%）。batch-1 是 dispatch-bound，量到的是我們的 eager-PyTorch 推論路徑而不是架構。**所以「RF-DETR-Nano 比較快」這句話不能寫**——只量一個解析度就會理直氣壯地寫下錯的結論。
+  - **未完成**：① 延遲數字用的是**預訓練 80 類 checkpoint**，不是微調後的 3 類權重，報告全篇標著 PROVISIONAL，需在最終權重上重測；② ADR-005 範圍裡的「RF-DETR 用同樣四組訓練一次」尚未做（需要 GPU）。
   - **驗證於**：（未完成）
 
 ---

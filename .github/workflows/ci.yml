@@ -16,12 +16,16 @@
 # skip for reasons that hold here too (38 modules have no __main__ guard, and
 # faster-coco-eval is not a dependency - see EVAL-13).
 #
-# WHY THE README VERIFIER IS NOT A STEP HERE. scripts/verify_readme.py compares
-# the README against results/detection_metrics.csv, and .gitignore excludes
-# /results/* from the repository, so a fresh clone has nothing to compare
-# against and the script exits EXIT_NOTHING_TO_VERIFY (3) by design. Adding it
-# as a gate would make CI permanently red for a reason unrelated to the code.
-# It becomes a CI step once that file is tracked.
+# THE README VERIFIER IS A GATE. scripts/verify_readme.py compares every number
+# in a README results table against results/detection_metrics.csv, which IS now
+# tracked - .gitignore carries an explicit exception for it precisely so that a
+# fresh clone can run this check. EVAL-12 makes that file the thing every
+# reported number is measured against, so a README claim with no source in it
+# should fail the build rather than be noticed later by a reader.
+#
+# The script exits 3 for "nothing to verify yet" when the CSV is absent. That is
+# deliberately NOT treated as success below: a run that verified nothing must
+# not look like a run that verified everything.
 
 name: CI
 
@@ -69,3 +73,14 @@ jobs:
 
       - name: Test
         run: uv run pytest -q
+
+      # PUB-01: no number reaches the README without a source in results/.
+      - name: Verify the README against results/
+        run: uv run python -m scripts.verify_readme
+
+      # PLAN_PHASE2 M20 / ADR-005: importing an AGPL-3.0 detector would make the
+      # importing file a derivative work and break the MIT licence. The scanner
+      # exits non-zero on a hit and is proved in both directions by
+      # tests/test_forbidden_licences.py.
+      - name: Scan for forbidden licences
+        run: uv run python -m scripts.check_forbidden_licences
