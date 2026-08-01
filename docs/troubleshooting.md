@@ -582,3 +582,42 @@ assert result.ap_medium == pytest.approx(0.0)
 **這個坑的普遍形式**：**當你有兩條路可以得到同一個數字，就去比對它們。**
 本例只花了兩趟各約 200 秒的 CPU 推論，就把「權重壞了」和「記錄壞了」分開——
 而這兩者的後續處置完全不同（前者要重跑訓練，後者只要改讀取來源）。
+
+---
+
+### K-21 — `git add -A` 把背景 agent 注入的變異提交進 main
+
+**症狀**：`scripts/verify_readme.py` 在 git HEAD 是
+`if len(value) > _IDENTIFIER_MIN_LENGTH`，工作樹卻是 `>=`。
+沒有人「改壞」它——**是 commit 把改壞的那一瞬間拍了下來。**
+
+**經過**：背景有一個 workflow 在對 `verify_readme.py` 做變異測試，流程是
+「注入 → 跑測試 → 還原」。我在同一時間為了提交 worklog 跑了 `git add -A`，
+正好落在它注入 A07 變異（`>=` → `>`）而還沒還原的那個窗口。
+於是 commit `4987841`（訊息只講 worklog）夾帶了兩樣不屬於它的東西：
+被變異的 `verify_readme.py`，以及 agent 當時寫到一半的 193 行測試。
+
+**後果是實測的，不是理論的**：`_IDENTIFIER_MIN_LENGTH = 4`，
+而本機的 `USERNAME` 是 `3Hml`——**長度正好是 4**。
+用 `>` 的版本收集到 **0 個識別字**，於是 PUB-10 的洩漏掃描
+**在這台機器上什麼都不搜尋**，卻照樣印 PASS。
+用 `>=` 收集到 `['3Hml']`。這是「安靜地什麼都不做」的檢查，
+和 [K-19](#k-19) 講的假驗證同一族。
+
+**怎麼發現的**：不是我發現的。是變異驗證 agent 在比對 HEAD 與工作樹時撞見的，
+並且它正確判斷「工作樹才是對的、HEAD 是被污染的那個」——
+依據是模組自己的 docstring 與更早的兩個 commit 都寫 `>=`。
+
+**解法**：把 `>=` 提交回去，並新增
+`test_an_identifier_exactly_at_the_minimum_length_is_still_searched_for`
+——用字面的 4 字元與 3 字元名字斷言邊界，**不 import `_IDENTIFIER_MIN_LENGTH`**
+（import 常數就會變成拿程式跟自己比）。實測：把 HEAD 那版放回去，該測試立刻紅。
+
+**預防（這是流程問題，不是程式問題）**：
+1. **背景 agent 在跑的時候，不要用 `git add -A`。** 逐一列出自己動過的檔案，
+   或至少先 `git status --porcelain` 確認每一個要進 commit 的檔案都是自己改的
+2. commit 之後掃一眼 `--stat`：**出現在 stat 裡卻沒出現在 commit 訊息裡的檔案，
+   就是夾帶進來的**。本例 `verify_readme.py` 與 `test_verify_readme.py`
+   出現在一個標題是 `docs(worklog)` 的 commit 裡，光看 stat 就該起疑
+3. 變異測試會「短暫地把程式改壞」，這是它的正常運作方式。
+   它與任何自動 staging 的操作**天生互斥**

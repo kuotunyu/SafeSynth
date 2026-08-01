@@ -841,7 +841,7 @@ def collect_local_identifiers(
     identifiers = {
         value
         for value in (item.strip() for item in raw)
-        if len(value) > _IDENTIFIER_MIN_LENGTH and value.lower() not in _GENERIC_ACCOUNT_NAMES
+        if len(value) >= _IDENTIFIER_MIN_LENGTH and value.lower() not in _GENERIC_ACCOUNT_NAMES
     }
     return sorted(identifiers)
 
