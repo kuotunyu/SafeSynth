@@ -72,6 +72,20 @@ mAP 掃過所有信心值積分，合規判定則需要一個單一的操作點�
 | `mAP50-95 (helmet, head)` | 綜合品質 |
 | compliance precision / recall | 任務層級的最終產出 |
 
+**EVAL-05b — bare-head recall 一定要標明信心門檻，而且主表用的是操作點的那個值。**
+
+⚠️ **在門檻 0 上讀這個數字沒有鑑別力。** RT-DETRv2 每張圖固定輸出 300 個 query，
+在 IoU 0.5 下做一對一貪婪配對時，門檻 0 幾乎必然為每個裸頭找到一個框——
+實測四組全部落在 0.987–0.990，彼此差不到 0.3%，
+**它量的是「300 個框裡有沒有一個碰到」，不是「偵測得到嗎」**。
+
+規則：
+- 主表的 bare-head recall 在 `compliance.score_threshold`（由 [EVAL-04](#13-信心分數門檻)
+  在 Validation 上選出並凍結）上讀取
+- 門檻 0 的值可以另外列為**召回上限**，但必須標成上限，不得當成表現
+- 任何地方出現這個數字，都要同時出現它的門檻與 IoU；缺門檻的 recall 與缺
+  batch/解析度/dtype 的 FPS 一樣沒有意義
+
 ### 2.2 次要
 
 **EVAL-06** — `mAP50`、per-class AP、`mAP_all3`、AP_medium／AP_large、
