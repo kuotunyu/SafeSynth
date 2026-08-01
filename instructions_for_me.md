@@ -111,7 +111,8 @@ uv run python app.py --device cpu
 
 ### ✅ 時機 1：Phase 2 的 Colab 往返 —— **已完成**
 
-四組各 10,900 步跑完，權重已解壓到 `D:\sdg-data-safesynthuns\`，
+四組各 10,900 步跑完，權重已解壓到 `D:\sdg-data-safesynth
+uns\`，
 盤點稽核 PASS（0 fatal），主表已算完。實測 L4 約 1.7–1.9 it/s、
 每組約 1.6–1.75 小時、四組約 6.5 小時。
 
@@ -127,6 +128,45 @@ uv run python app.py --device cpu
 而且打包時漏抓了全部四組的 `trainer_state.json`（HF 寫在 `checkpoint-N/` 裡，
 glob 只掃 `seed_*/`，`is_file()` 把「找不到」變成安靜跳過）。
 已移進被測模組並補了 6 條測試，M21 補 seed 時不會再漏。
+
+### 🔴 發佈前必須先決定的一件事：repo 有 437 MB，而且時機不能拖
+
+我量了一下追蹤中的檔案：
+
+| | 檔案數 | 大小 |
+|---|---:|---:|
+| 全部追蹤檔案 | 910 | **437.5 MB** |
+| 其中 `reports/figures/` | 149 | 422.3 MB |
+| 其中**沒有被任何 .md 引用** | **116** | **362.9 MB** |
+
+那 116 個孤兒圖幾乎都是 Phase 1 已放棄路線的診斷輸出——
+`supervised_labeler_v6` 到 `v23` 的 audit（每張約 5.8 MB）、
+FLUX.2 與 paired-person 的 preflight。它們當時有用，現在沒有任何文件指向它們。
+
+CLAUDE.md 寫的是「專案資料夾只留程式碼、設定、文件、`splits/`、`reports/` **小圖**」，
+5.8 MB 一張不算小圖。
+
+**為什麼時機關鍵：**
+
+從 HEAD 刪掉檔案**不會讓 clone 變小**——git 歷史裡的 blob 還在，
+別人 clone 還是要下載 437 MB。真正要瘦身得用 `git filter-repo` 改寫歷史。
+
+**這個 repo 還沒 push 過**，所以現在做 `filter-repo` 完全沒有副作用。
+**push 之後再做就變成 force-push 改寫已公開歷史**，那是完全不同等級的麻煩。
+
+**三個選項，你決定：**
+
+1. **維持原樣**——437 MB 的 clone。GitHub 收，但 clone 很慢，而且對一個
+   以「工程紀律」為賣點的作品集 repo 來說不好看
+2. **只從 HEAD 刪掉那 116 個孤兒**——HEAD 乾淨了，但 clone 大小不變。
+   意義不大，除非你只在意「現在看起來如何」
+3. **`git filter-repo` 從歷史裡清掉**（推薦，而且要在第一次 push 之前做）。
+   依規矩**這是你親自執行的動作**，我可以先產出精確的檔案清單給你核對。
+
+我沒有動任何一個檔案——刪除是不可逆的，而且清單需要你過目
+（有些圖你可能想留著當研究過程的證據）。
+
+---
 
 ### ⏳ 時機 2：發佈前 → **建 GitHub repo 與 push**（預計 20 分鐘）
 
