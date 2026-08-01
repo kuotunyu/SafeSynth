@@ -54,6 +54,19 @@ metrics:
   bootstrap_resamples: 1000                  # source: fixed   (over test IMAGES, not instances)
   bootstrap_ci: 0.95                         # source: fixed
 
+  # EVAL-08 verdict: the ABSOLUTE floor below which the smallest size bucket
+  # cannot carry the headline claim, however large its relative share is.
+  # A share test alone is not sufficient — a bucket holding 20 instances is
+  # 100% of a 20-instance split and still measures nothing.
+  # Chosen as the worst-case binomial sample size for a +/-5 percentage-point
+  # margin at the `bootstrap_ci` level:
+  #     n = (z / (2 * E))^2 = (1.9599640 / (2 * 0.05))^2 = 384.15  ->  385
+  # At exactly that n the single-arm half width printed in the report is 4.99
+  # points; below it the bucket cannot resolve a 5-point difference at all.
+  # The 5-point tolerance is the judgement call, hence `guess`; the arithmetic
+  # that turns it into 385 is not.
+  small_bucket_min_instances: 385            # source: guess   (E = 5 points)
+
   # Scenario-sliced reporting (EVAL-17). Test images are bucketed automatically
   # from GT statistics, not by hand. This is what checks whether "targeted"
   # synthesis actually hit its target rather than just adding data.
@@ -75,6 +88,14 @@ benchmark:
   batch_size: 1                              # source: fixed   (latency is a batch-1 question)
   dtype: "float16"                           # source: guess   (record it; FPS without dtype is meaningless)
   input_size: 640                            # source: fixed
+
+  # Acceptance criterion for a benchmark run, not a property of the model.
+  # A desktop GPU that also drives the display produces a long tail when the
+  # machine is busy: the reported statistic can look ordinary while p95 blows
+  # out. Any row whose p95 / reported-statistic ratio exceeds this must be
+  # re-measured, not published. The script performs this check and writes the
+  # measured ratio of every row into the report.
+  max_p95_to_statistic_ratio: 1.3            # source: guess
 
 # ===========================================================================
 # Error analysis — EVAL-15
