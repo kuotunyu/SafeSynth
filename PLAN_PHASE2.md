@@ -187,7 +187,7 @@
 
 ## M22–M24 — Demo 與發佈
 
-- [~] **M22** Gradio demo（原生 Windows，**不用 WSL**）＋ 效能量測 ＋ GIF
+- [x] **M22** Gradio demo（原生 Windows，**不用 WSL**）＋ 效能量測 ＋ GIF
   - **對應規格**：DEMO-01 ~ DEMO-04
   - **驗證**：上傳圖片與影片兩種輸入都能跑；
     畫面顯示 bbox、**合規狀態用顏色區分**、幀層級 `compliant/total` 與 `compliance_rate`；
@@ -228,7 +228,18 @@
     列入 `EXCLUDED_FRAMES` 並寫明理由——這種事沒有自動判準看得出來。
   - **驗證**：`uv run pytest tests/test_demo_gif.py` → 20 passed；
     變異測試 **13/13 killed**（含「用裸頭數排序」與「只看單一判定」這兩個真實錯誤）。
-  - **驗證於**：（未完成——待 M20 ① 的延遲數字補齊後一併勾選）
+  - **③ 影片分頁第一次被執行**（2026-08-02）。它從發佈以來沒跑過。
+    `annotate_video` 已從 Gradio callback 抽成模組層函式回傳 `VideoResult`——
+    只能透過瀏覽器到達的 callback 就是沒人跑的 callback，而這個檔案裡
+    每一段沒跑過的路徑最後都證實是壞的。
+    **圖片與影片 × CPU 與 CUDA 四條路徑全部實跑通過**，加上「餵非影片檔」那條分支。
+    CUDA 峰值 VRAM 讀到 **92 MiB**。
+  - **順帶更正一個沒量過就寫下的數字**：docstring 原本寫「CPU 約 300 ms 一張」，
+    實測（12 張 val、暖機後中位數）是 **204 ms**，CUDA 是 **20 ms**。
+    `instructions_for_me.md` 原本寫 1.2 秒，差了 6 倍，已改。
+  - **驗證**：`uv run pytest tests/test_demo.py` → 27 passed；
+    變異測試 13/13（GIF 選圖）。全套 `1465 passed, 42 skipped`。
+  - **驗證於**：`741fd6d` @ 2026-08-02
 
 - [~] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
   - **對應規格**：PUB-01 ~ PUB-05、PUB-10
