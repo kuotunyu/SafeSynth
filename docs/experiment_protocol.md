@@ -104,9 +104,11 @@ SafeSynth 的 **Real-only 本來就吃全部真實 Train**，沒有更高的真�
 - `mAP50-95 (helmet, head)`
 - compliance precision / recall
 
-⚠️ **`AP_small` 必須在原始 416×416 座標下計算**（[EVAL-07](evaluation_spec.md)）。
-影像在 416 標註、在 640 訓練，若在 640 座標算面積，每個物件會膨脹約 2.37 倍，
+⚠️ **`AP_small` 必須在每張圖自己的原始標註座標下計算**（[EVAL-07](evaluation_spec.md)）。
+影像在約 416 標註、在 640 訓練，若在 640 座標算面積，每個物件會膨脹約 2.37 倍，
 大量原本屬於 small 的物件會被歸到 medium——主敘事指標會**安靜地**變成在測量另一件事。
+且影像**不是單一解析度**（[DATA-25](data_protocol.md#data-25--影像不是單一解析度預測框必須逐圖映射)），
+映射必須逐圖、兩軸分開。
 
 **次要**
 - per-class AP（`person` 依 EXP-03 呈現）

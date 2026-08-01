@@ -472,3 +472,76 @@ predictions: list（每個 eval batch 一個）
 
 **預防**：`tests/test_training_metrics.py` 用實測到的 14-tuple 結構（index 0 是 loss dict）
 釘住四條測試，其中一條刻意把 tuple 重新排序，確認萃取不依賴位置。
+
+---
+
+### K-19 — 96% 分支覆蓋率、零 partial branch，四個一個 token 的 bug 全部存活
+
+**症狀**：沒有症狀。這正是問題所在。
+
+Phase 2 的四個模組（`detection.py`、`compliance.py`、`slices.py`、`benchmark.py`）
+寫完當下全部綠燈、`ruff` 全清。`detection.py` 的分支覆蓋率是
+**369 statements / 18 miss / 94 branch / BrPart = 0 / 96%**——
+每一行都跑到了，每一個分支的兩個方向都走過了。
+
+然後對原始碼做 mutation testing，把一個 token 改掉：
+
+| 注入的變異 | 語意後果 | 測試反應 |
+|---|---|---|
+| `detection.py` `.index("small")` → `.index("medium")` | **`AP_small` 變成 `AP_medium`**（本專案主敘事指標 #1） | 38 passed |
+| `detection.py` maxDets 軸 `-1` → `0` | 每圖只算 1 個偵測而不是 100 個 | 38 passed |
+| `detection.py` bootstrap 尾端少掉 `/2` | 95% 信賴區間變成 90%，仍標示為 95% | 38 passed |
+| `compliance.py` 同時拔掉 `_drop_person` 與 `HELMET_CLASS` 過濾 | **EVAL-03「`person` 不可承重」直接失守** | 37 passed |
+| `compliance.py` IoU 門檻 `iou_threshold` → `-1.0` | 比對完全不看空間位置 | 37 passed |
+| `slices.py` 聚合函式內乘上 `640/416` | **正是 EVAL-07 要防的那個 bug** | 47 passed |
+
+**根因**：這是 [K-18](#k-18--smoke-test-跳過-eval四組-colab-訓練全部陣亡) 的下一層。
+K-18 是「測試跳過的路徑沒有覆蓋」；這次是**「有測試，但那個測試不可能失敗」**。
+
+四種具體形態，全部在本專案出現過：
+
+1. **拿程式碼自己的輸出當期望值**
+   `assert result.ap_small == compute_ap_small(gt, dt)`——兩邊是同一段程式。
+   `config=None` 的預設路徑也一樣：只斷言它等於 `config=CONFIG` 的結果，
+   等於拿程式跟自己比，只能抓到兩個呼叫端不一致，抓不到值本身是錯的
+2. **fixture 退化到讓錯誤分支給出相同答案**
+   `slices.py` 的每一個 fixture 框在乘上 `640/416` 之後**還在同一個 bucket**，
+   所以 EVAL-07 的守門測試守不到真正產出報告的那些聚合函式。
+   `build_pair_descriptor` 的 `dx` 也一樣：唯一的測試場景兩個中心都在 x=130，
+   分子恰好是 0，於是分母寫成 `head_w`、`head_h` 還是 `helmet_w` 都得到 0.0
+3. **只測 undefined 分支，不測有值的分支**
+   `per_class_ap_small` 只有 `-1.0`（未定義）那條被斷言過，
+   從來沒有任何測試斷言它等於一個**已知的數字**——
+   所以 small 與 medium 換掉也沒人發現
+4. **邊界從來不是決勝點**
+   `>= min_compliance_precision` 改成 `>` 還是綠的，
+   因為恰好落在門檻上的那個點在所有測試裡都不是贏家，它的資格從未被觀察到
+
+**解法**：接受標準從「測試通過」改成**「注入的變異必須讓測試失敗」**。
+每一條修好的測試都要當場做四步：注入 → 跑 → 必須紅 → 還原 → 必須綠。
+沒跑過這四步就不算修好。
+
+寫斷言的形態也跟著改：
+
+```python
+# 壞：assert result.ap_small is not None
+# 壞：assert result.ap_small == compute_ap_small(gt, dt)   # 跟自己比
+# 好：
+# GT: one 30x30 head (900 px^2 -> small) and one 40x40 head (1600 px^2 -> medium).
+# The detector hits the small one exactly and misses the other, so by definition
+# AP_small = 1.0 and AP_medium = 0.0.
+assert result.ap_small == pytest.approx(1.0)
+assert result.ap_medium == pytest.approx(0.0)
+```
+
+第三種形態才有鑑別力：它**區分得出 small 和 medium**。前兩種區分不出來，
+所以 `.index("small")` 的變異才活得下來。
+
+**教訓**：**分支覆蓋率證明每一行都被執行，不證明任何一個回傳值是對的。**
+在這個專案裡，「安靜地算錯」比「拋例外」危險得多——
+因為約 2/3 真實物件未標註，我們本來就只能做相對比較，
+一個被靜悄悄換成 `AP_medium` 的 `AP_small` 不會有任何一個數字看起來不合理。
+
+**預防**：任何實作編號需求（`EVAL-*`／`FILT-*`／`TRAIN-*`）的函式，
+新增測試時要先問一句「**如果我把這行改壞，這條測試會紅嗎？**」，
+不確定就當場改壞試一次。這比再寫三條測試有用。

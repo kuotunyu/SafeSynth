@@ -13,7 +13,7 @@
 | Kaggle handle | `andrewmvd/hard-hat-detection` | 同上 |
 | 影像數 | **5,000** | Dataset Ninja、HF Voxel51、SHEL5K 論文三方一致 |
 | 標註物件總數 | **25,502** | Dataset Ninja（與 per-class 加總完全吻合） |
-| 影像格式／解析度 | PNG，**416 × 416** | [SHEL5K 論文](https://www.mdpi.com/1424-8220/22/6/2315) |
+| 影像格式／解析度 | PNG，⚠️ **不是單一解析度**——見 [DATA-25](#data-25--影像不是單一解析度預測框必須逐圖映射) | 上游文獻寫 416 × 416（[SHEL5K 論文](https://www.mdpi.com/1424-8220/22/6/2315)），**實測不符** |
 | 標註格式 | PASCAL VOC XML，每圖一份 | |
 | 預設 split | **無** | Dataset Ninja 明確說明 |
 | 下載大小 | **約 1.2–1.5 GB** | 來源不一致（1.22 GB vs 1.33 GB），M2 實測後回填 |
@@ -312,6 +312,51 @@ compliance_rate = n_helmet / (n_helmet + n_head)
    不是把帽子拿掉，所以尺寸繼承 anchor 才合理
 3. [FILT-07](filtering_spec.md) 的 helmet-above-head 幾何規則**沒有真實配對可校準**，
    它只治理合成的「戴著」構圖，報告中必須註明這點
+
+---
+
+### DATA-25 — 影像不是單一解析度，預測框必須逐圖映射
+
+**上游全部寫錯，我們自己量過。** SHEL5K 論文、Kaggle、Roboflow 都說這份資料是
+416 × 416。實測 `coco_all.json` 的 5,000 張影像：
+
+| 尺寸 | 張數 | 佔比 |
+|---|---:|---:|
+| **416 × 415** | **2,461** | **49.2%**（多數） |
+| 416 × 416 | 2,192 | 43.8% |
+| 415 × 416 | 324 | 6.5% |
+| 415 × 415 | 23 | 0.5% |
+
+`416 × 416` 不但不是唯一尺寸，**連多數都不是**。
+凍結的 Test split（744 張）同樣四種都有：353／340／47／4。
+
+**驗證方式**：抽 40 張 PNG 用 Pillow 直接讀 `Image.size`，與 `coco_all.json`
+記錄的 `width`／`height` 逐張比對，**零不符**——所以 COCO 裡的值來自真實像素，
+不是從 XML 抄的——**DATA-08** 的 PNG／XML 交叉比對確實生效了。
+
+**判定式**：任何把偵測框從訓練解析度映射回標註座標的程式，
+**一律使用該圖自己的 `width`／`height`**，不得使用任何全域縮放因子。
+
+```
+scale_x = image.width  / evaluated_width      # 逐圖
+scale_y = image.height / evaluated_height     # 逐圖，且與 scale_x 不一定相等
+```
+
+**為什麼這條要單獨立一個 ID**：誤差只有 1 px，小到不會有任何東西報錯，
+但它同時打壞兩件事——
+
+1. **`scale_x != scale_y`**。用一個純量縮放會讓其中一軸偏 0.24%。
+   `head` 平均約 34 × 34 ≈ 1,156 px²，正好卡在 small／medium 邊界（1,024）附近，
+   所以面積上的小偏差會真的把物件換桶，直接動到 [EVAL-07](evaluation_spec.md) 的主敘事指標
+2. **x 與 y 可以互換而不被發現**。若測試 fixture 全是正方形，
+   把 `(height, width)` 寫成 `(width, height)` 的轉置錯誤會安靜通過
+   （這正是 [K-19](troubleshooting.md) 抓到的其中一條變異）
+
+**實作**：`Sample`（[`src/training/data.py`](../src/training/data.py)）已經帶
+per-image `width`／`height`，`run.py` 的 `target_sizes` 也是逐圖給的，
+所以現有路徑是對的。這條規則是為了讓它**保持**是對的。
+
+**測試要求**：任何座標映射的測試，**至少一個 fixture 必須是非正方形**。
 
 ---
 

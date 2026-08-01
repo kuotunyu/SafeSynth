@@ -77,8 +77,11 @@
 - [ ] **M18** `scripts/eval.py` ＋ 四組對照主表
   - **對應規格**：EVAL-05 ~ EVAL-14
   - **驗證**：`assert_test_untouched()` 啟動時通過，且訓練資料清單與 Test image id 交集為空；
-    **`AP_small` 在原始 416×416 座標下計算**——用構造案例反向驗證
-    （已知 area 略小於與略大於門檻的兩個 GT，斷言分桶正確）；
+    **`AP_small` 在每張圖自己的原始標註座標下計算**——用構造案例反向驗證
+    （已知 area 略小於與略大於門檻的兩個 GT，斷言分桶正確），
+    且座標映射的測試**至少一個 fixture 非正方形**
+    （[DATA-25](docs/data_protocol.md#data-25--影像不是單一解析度預測框必須逐圖映射)：
+    影像不是單一解析度，全正方形 fixture 抓不到兩軸轉置）；
     同時輸出各 size bucket 的**實例數**；
     `pycocotools` 與 `faster-coco-eval` 在同一輸入上 mAP 差距為 0；
     `results/detection_metrics.csv` 每列一個 arm × seed × 指標，

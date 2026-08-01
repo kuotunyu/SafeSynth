@@ -108,8 +108,17 @@ each milestone is implemented against.
 ## Dataset
 
 [Hard Hat Workers](https://www.kaggle.com/datasets/andrewmvd/hard-hat-detection)
-(Kaggle `andrewmvd/hard-hat-detection`, CC0 1.0): 5,000 images at 416x416, PASCAL
-VOC boxes, three classes — `helmet` (18,966), `head` (5,785), `person` (751).
+(Kaggle `andrewmvd/hard-hat-detection`, CC0 1.0): 5,000 images, PASCAL VOC boxes,
+three classes — `helmet` (18,966), `head` (5,785), `person` (751).
+
+Every upstream source describes these images as 416x416. Measuring them says
+otherwise: 416x415 is the plurality at 2,461 images, against 2,192 at 416x416,
+324 at 415x416 and 23 at 415x415. The difference is one pixel and nothing
+raises, but `head` averages roughly 34x34 = 1,156 px², which sits right beside
+the COCO small/medium boundary of 1,024 — so a single global rescale factor
+would move objects between buckets and quietly change what `AP_small` measures.
+Predictions are therefore mapped back per image, with `scale_x` and `scale_y`
+computed separately.
 
 A documented caveat shapes the entire evaluation design: SHEL5K
 ([Sensors 2022](https://www.mdpi.com/1424-8220/22/6/2315)) re-annotated these
