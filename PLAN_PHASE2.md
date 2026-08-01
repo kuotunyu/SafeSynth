@@ -151,7 +151,7 @@
 
 ## M22–M24 — Demo 與發佈
 
-- [ ] **M22** Gradio demo（原生 Windows，**不用 WSL**）＋ 效能量測 ＋ GIF
+- [~] **M22** Gradio demo（原生 Windows，**不用 WSL**）＋ 效能量測 ＋ GIF
   - **對應規格**：DEMO-01 ~ DEMO-04
   - **驗證**：上傳圖片與影片兩種輸入都能跑；
     畫面顯示 bbox、**合規狀態用顏色區分**、幀層級 `compliant/total` 與 `compliance_rate`；
@@ -161,6 +161,19 @@
     且記錄 batch size／解析度／dtype；
     demo GIF 畫面**同時有戴帽與沒戴帽的人**，最好再有一個遠距小物件；
     GIF 在 `.gitignore` 的 `assets/*` 規則中加了例外
+  - **已完成的部分**（`17e5153`）：`app.py` 圖片與影片兩個分頁都實作；
+    合規狀態用顏色區分（綠＝戴帽、紅＝裸頭、灰＝`person` 不帶判定）；
+    幀層級 `compliant / total` 與 `compliance_rate` 都顯示；
+    效能行含 model-only 與 end-to-end 兩個數字、batch／解析度／dtype 三項脈絡，
+    CUDA 時另報 `max_memory_allocated()`；啟動時跑一次 warm-up 不計時。
+  - **實測驗收**：對兩張真實 Test 影像跑完整路徑並**打開圖檢視**——
+    `hard_hat_workers245` 12/15 compliant、`hard_hat_workers2261` 6/15，
+    輸出在 `reports/figures/demo_examples/`。
+    第一版渲染是壞的（15 個完整標籤在 416px 上糊成一團），看圖才發現，已改成
+    依框寬遞減的標籤。
+  - **這個 `[~]` 涵蓋的範圍**：① DEMO-04 的 GIF 需要一段工地短片，
+    手邊沒有素材，且選材要「同時有戴帽與沒戴帽的人」是需要人判斷的；
+    ② 峰值 VRAM 那一項只有 CPU 路徑被實跑過，CUDA 分支要等 GPU 空出來。
   - **驗證於**：（未完成）
 
 - [ ] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
