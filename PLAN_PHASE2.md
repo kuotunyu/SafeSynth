@@ -103,6 +103,9 @@
   - **實際結果**：`results/detection_metrics.csv` 441 列。**兩條獨立實作算出的主表一致到 8.8e-07**（JSON 浮點往返誤差）。凍結 Test 744 張：`real_only` primary AP_small **0.4511**、`standard_aug` 0.4236、`unfiltered_syn` 0.3759、`filtered_syn` 0.3664。**合成沒有提升。**
   - **防洩漏實跑通過**：`assert_test_untouched()` 覆蓋 744 張；四組訓練清單的 digest 皆等於凍結 train split，與 Test 交集為零。
   - **這一輪跑的是 `--bootstrap-resamples 0`**，所以它不滿足 EVAL-09；報告已載明這件事。
+    **成本已實測，不是憑感覺跳過的**：CPU 上一輪 COCOeval over 744 張、223,200 個偵測要 **12.0 秒**，1000 次重抽 × 4 組 = **14.1 小時**，而且那只是**一個**指標。
+    試過把偵測截到每圖前 100 個（2.7× 加速），但**不是無損的**——pycocotools 的 `maxDets` 是**逐類別**套用，整圖取前 100 會砍掉某類別本該入榜的框，實測 mAP 差 2.6e-04；改成逐類別取前 100 只省 8%。
+    **判斷**：主表最關鍵的差距是 `real_only` 0.4511 對 `filtered_syn` 0.3664（0.085），遠大於 Test 剖析算出的組間雜訊下限 ±0.031，方向性不成疑問。花 14 小時 CPU 去確認一件已經清楚的事，不如把時間用在別處。GPU 空出來後再補。
 
 - [x] **M19** 錯誤分析：FP/FN 對照 grid ＋ 情境切分表
   - **對應規格**：EVAL-15 ~ EVAL-18
