@@ -154,6 +154,23 @@
 
 ---
 
+### EVAL-09 — bootstrap 信賴區間（2026-08-02 完成）
+
+- **驗證**：1,000 次重抽、單位是 Test **影像**不是實例；
+  `metrics.bootstrap_workers` 平行化，**區間與 worker 數無關**
+  （同輸入在 1/8/12/16/20 workers 下 `BootstrapCI` 逐欄相等）
+- **實測時數**：16 workers 共 **2 小時 20 分**（單執行緒換算 9.3 小時，加速 4.48×）
+- **對帳**：重跑的 424 個點估計與已 commit 的主表**逐一相同（0 個不一致）**，
+  前提是 `--device cpu`——見 [K-23](docs/troubleshooting.md)
+- **它改變了三個主張，只有一個對本專案有利**：
+  - `real_only` 勝過兩個合成組：**區間不重疊，成立**
+  - `real_only` 勝過 `standard_aug`：**區間重疊，不成立**。
+    0.0275 的點差落在雜訊內，README 原本把它當成排序，已改掉
+  - `filtered_syn` 在偵測指標上勝過 `unfiltered_syn`：**三個指標區間全部重疊，不成立**。
+    過濾可量測的效果在合規操作點，不在這裡
+
+---
+
 ## M21 — 補 seeds（條件性）
 
 - [ ] **M21** Real-only 與最佳 Filtered 組各補到 3 seeds

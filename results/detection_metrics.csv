@@ -13,17 +13,17 @@ real_only,1337,test,mar_medium,0.6488031073047542,1583,744,,,
 real_only,1337,test,mar_large,0.7667593781200969,158,744,,,
 real_only,1337,test,ap.helmet,0.5272079180944897,2825,744,,,
 real_only,1337,test,ap.head,0.5410555687098804,879,744,,,
-real_only,1337,test,ap.person,0.001933135147946654,113,744,,,
+real_only,1337,test,ap.person,0.001933135147946654,113,744,0.0009634001941501696,0.004765087742283527,bootstrap ci=0.95 resamples=1000 seed=42
 real_only,1337,test,ap_small.helmet,0.42030706598595363,1449,744,,,
 real_only,1337,test,ap_small.head,0.4818771154691799,608,744,,,
 real_only,1337,test,ap_small.person,0.00049684233404742,22,744,,,
 real_only,1337,test,primary_map,0.534131743402185,3704,744,,,
-real_only,1337,test,primary_map_small,0.45109209072756673,2057,744,,,
+real_only,1337,test,primary_map_small,0.45109209072756673,2057,744,0.43072553663968166,0.4752829505145603,bootstrap ci=0.95 resamples=1000 seed=42
 real_only,1337,test,instances.all,3817.0,3817,744,,,
 real_only,1337,test,instances.small,2079.0,2079,744,,,
 real_only,1337,test,instances.medium,1583.0,1583,744,,,
 real_only,1337,test,instances.large,158.0,158,744,,,
-real_only,1337,test,bare_head_recall,0.987485779294653,879,744,,,iou=0.5
+real_only,1337,test,bare_head_recall,0.987485779294653,879,744,0.9789857527934499,0.9943065246790108,iou=0.5; bootstrap ci=0.95 resamples=1000 seed=42
 real_only,1337,test,n_detections,223200.0,,744,,,
 real_only,1337,test,real_image_exposures,49.83,,744,,,TRAIN-07 equal-step budget: times each real training image was seen. Not a Test-set quantity
 real_only,1337,test,total_steps,10900.0,,744,,,"optimizer steps, from run_record.json"
@@ -119,17 +119,17 @@ standard_aug,1337,test,mar_medium,0.6925764003262592,1583,744,,,
 standard_aug,1337,test,mar_large,0.8040721723006704,158,744,,,
 standard_aug,1337,test,ap.helmet,0.5006993827929042,2825,744,,,
 standard_aug,1337,test,ap.head,0.49099022497954004,879,744,,,
-standard_aug,1337,test,ap.person,0.01524200715076283,113,744,,,
+standard_aug,1337,test,ap.person,0.01524200715076283,113,744,0.0027787369231048894,0.04631080473343456,bootstrap ci=0.95 resamples=1000 seed=42
 standard_aug,1337,test,ap_small.helmet,0.4065005312228883,1449,744,,,
 standard_aug,1337,test,ap_small.head,0.4406513390124962,608,744,,,
 standard_aug,1337,test,ap_small.person,0.0033727817352304274,22,744,,,
 standard_aug,1337,test,primary_map,0.4958448038862221,3704,744,,,
-standard_aug,1337,test,primary_map_small,0.42357593511769226,2057,744,,,
+standard_aug,1337,test,primary_map_small,0.42357593511769226,2057,744,0.3993209646674232,0.4529990445924868,bootstrap ci=0.95 resamples=1000 seed=42
 standard_aug,1337,test,instances.all,3817.0,3817,744,,,
 standard_aug,1337,test,instances.small,2079.0,2079,744,,,
 standard_aug,1337,test,instances.medium,1583.0,1583,744,,,
 standard_aug,1337,test,instances.large,158.0,158,744,,,
-standard_aug,1337,test,bare_head_recall,0.987485779294653,879,744,,,iou=0.5
+standard_aug,1337,test,bare_head_recall,0.987485779294653,879,744,0.9775335830573701,0.9956521739130435,iou=0.5; bootstrap ci=0.95 resamples=1000 seed=42
 standard_aug,1337,test,n_detections,223200.0,,744,,,
 standard_aug,1337,test,real_image_exposures,49.83,,744,,,TRAIN-07 equal-step budget: times each real training image was seen. Not a Test-set quantity
 standard_aug,1337,test,total_steps,10900.0,,744,,,"optimizer steps, from run_record.json"
@@ -225,17 +225,17 @@ unfiltered_syn,1337,test,mar_medium,0.6804619508101578,1583,744,,,
 unfiltered_syn,1337,test,mar_large,0.798844672657253,158,744,,,
 unfiltered_syn,1337,test,ap.helmet,0.41179849853209594,2825,744,,,
 unfiltered_syn,1337,test,ap.head,0.5075530944009348,879,744,,,
-unfiltered_syn,1337,test,ap.person,0.008033397558022324,113,744,,,
+unfiltered_syn,1337,test,ap.person,0.008033397558022324,113,744,0.0034380989852336873,0.019093545737463722,bootstrap ci=0.95 resamples=1000 seed=42
 unfiltered_syn,1337,test,ap_small.helmet,0.29562554255616097,1449,744,,,
 unfiltered_syn,1337,test,ap_small.head,0.4561212597064738,608,744,,,
 unfiltered_syn,1337,test,ap_small.person,0.00013582171934178208,22,744,,,
 unfiltered_syn,1337,test,primary_map,0.45967579646651535,3704,744,,,
-unfiltered_syn,1337,test,primary_map_small,0.3758734011313174,2057,744,,,
+unfiltered_syn,1337,test,primary_map_small,0.3758734011313174,2057,744,0.34737893467241676,0.40642418354994064,bootstrap ci=0.95 resamples=1000 seed=42
 unfiltered_syn,1337,test,instances.all,3817.0,3817,744,,,
 unfiltered_syn,1337,test,instances.small,2079.0,2079,744,,,
 unfiltered_syn,1337,test,instances.medium,1583.0,1583,744,,,
 unfiltered_syn,1337,test,instances.large,158.0,158,744,,,
-unfiltered_syn,1337,test,bare_head_recall,0.9897610921501706,879,744,,,iou=0.5
+unfiltered_syn,1337,test,bare_head_recall,0.9897610921501706,879,744,0.9788621154834833,0.9977092453984843,iou=0.5; bootstrap ci=0.95 resamples=1000 seed=42
 unfiltered_syn,1337,test,n_detections,223200.0,,744,,,
 unfiltered_syn,1337,test,real_image_exposures,24.91,,744,,,TRAIN-07 equal-step budget: times each real training image was seen. Not a Test-set quantity
 unfiltered_syn,1337,test,total_steps,10900.0,,744,,,"optimizer steps, from run_record.json"
@@ -331,17 +331,17 @@ filtered_syn,1337,test,mar_medium,0.6546495733534107,1583,744,,,
 filtered_syn,1337,test,mar_large,0.7771002710027102,158,744,,,
 filtered_syn,1337,test,ap.helmet,0.4794771830925097,2825,744,,,
 filtered_syn,1337,test,ap.head,0.49204848973212423,879,744,,,
-filtered_syn,1337,test,ap.person,0.0074097500917561605,113,744,,,
+filtered_syn,1337,test,ap.person,0.0074097500917561605,113,744,0.002438630558059995,0.024158132435408743,bootstrap ci=0.95 resamples=1000 seed=42
 filtered_syn,1337,test,ap_small.helmet,0.29944104363678226,1449,744,,,
 filtered_syn,1337,test,ap_small.head,0.43342704546253835,608,744,,,
 filtered_syn,1337,test,ap_small.person,0.002871714614470892,22,744,,,
 filtered_syn,1337,test,primary_map,0.485762836412317,3704,744,,,
-filtered_syn,1337,test,primary_map_small,0.36643404454966033,2057,744,,,
+filtered_syn,1337,test,primary_map_small,0.36643404454966033,2057,744,0.34264107626882245,0.3955865855118809,bootstrap ci=0.95 resamples=1000 seed=42
 filtered_syn,1337,test,instances.all,3817.0,3817,744,,,
 filtered_syn,1337,test,instances.small,2079.0,2079,744,,,
 filtered_syn,1337,test,instances.medium,1583.0,1583,744,,,
 filtered_syn,1337,test,instances.large,158.0,158,744,,,
-filtered_syn,1337,test,bare_head_recall,0.9886234357224118,879,744,,,iou=0.5
+filtered_syn,1337,test,bare_head_recall,0.9886234357224118,879,744,0.9807667525773196,0.9954133676846383,iou=0.5; bootstrap ci=0.95 resamples=1000 seed=42
 filtered_syn,1337,test,n_detections,223200.0,,744,,,
 filtered_syn,1337,test,real_image_exposures,24.91,,744,,,TRAIN-07 equal-step budget: times each real training image was seen. Not a Test-set quantity
 filtered_syn,1337,test,total_steps,10900.0,,744,,,"optimizer steps, from run_record.json"

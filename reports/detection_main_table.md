@@ -31,14 +31,14 @@ Resolution order: `<arm>/checkpoints.json` -> the newest `checkpoint-*/trainer_s
 
 `real image exposures` is a column and not a footnote on purpose: the arms share an optimizer-step budget (TRAIN-07), so the synthetic arms saw each real image roughly half as often as `real_only`. A gap in either direction is confounded with that difference.
 
-**No bootstrap intervals were computed for this run (`--bootstrap-resamples 0`), so EVAL-09 is NOT satisfied by it.**
+Intervals in brackets are percentile bootstraps over Test **images** (1000 resamples, EVAL-09).
 
 | Arm | Seed | Real-image exposures | AP_small (primary) | n small | bare-head recall | mAP50-95 (primary) | HN FP/image | Detections |
 |---|---:|---:|---|---:|---|---|---:|---:|
-| `real_only` | 1337 | 49.83 | 0.4511 | 2,057 | 0.9875 | 0.5341 | n/a | 223,200 |
-| `standard_aug` | 1337 | 49.83 | 0.4236 | 2,057 | 0.9875 | 0.4958 | n/a | 223,200 |
-| `unfiltered_syn` | 1337 | 24.91 | 0.3759 | 2,057 | 0.9898 | 0.4597 | n/a | 223,200 |
-| `filtered_syn` | 1337 | 24.91 | 0.3664 | 2,057 | 0.9886 | 0.4858 | n/a | 223,200 |
+| `real_only` | 1337 | 49.83 | 0.4511 [0.4307, 0.4753] | 2,057 | 0.9875 [0.9790, 0.9943] | 0.5341 | n/a | 223,200 |
+| `standard_aug` | 1337 | 49.83 | 0.4236 [0.3993, 0.4530] | 2,057 | 0.9875 [0.9775, 0.9957] | 0.4958 | n/a | 223,200 |
+| `unfiltered_syn` | 1337 | 24.91 | 0.3759 [0.3474, 0.4064] | 2,057 | 0.9898 [0.9789, 0.9977] | 0.4597 | n/a | 223,200 |
+| `filtered_syn` | 1337 | 24.91 | 0.3664 [0.3426, 0.3956] | 2,057 | 0.9886 [0.9808, 0.9954] | 0.4858 | n/a | 223,200 |
 
 Hard-negative subset: **0** Test images with no `helmet`/`head` ground truth. A false positive there can only move precision, so it gets its own column instead of being diluted into mAP.
 

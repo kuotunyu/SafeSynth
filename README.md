@@ -135,6 +135,36 @@ Two independent implementations computed this table and agree to 8.8e-07.
 it is the badly annotated class. **Synthetic data did not help.** Both synthetic
 arms sit below the real-only baseline on both headline metrics.
 
+### Which of those gaps survive a confidence interval
+
+EVAL-09, 1,000 percentile bootstrap resamples over Test **images** (not
+instances — twenty heads in one crowded photo are not independent observations):
+
+Each cell is the point estimate with its interval in brackets.
+
+| Arm | primary_map_small <!--split: test--> | bare_head_recall <!--split: test--> | ap.person <!--split: test--> |
+|---|---|---|---|
+| `real_only` | 0.4511 [0.4307, 0.4753] | 0.9875 [0.9790, 0.9943] | 0.0019 [0.0010, 0.0048] |
+| `standard_aug` | 0.4236 [0.3993, 0.4530] | 0.9875 [0.9775, 0.9957] | 0.0152 [0.0028, 0.0463] |
+| `unfiltered_syn` | 0.3759 [0.3474, 0.4064] | 0.9898 [0.9789, 0.9977] | 0.0080 [0.0034, 0.0191] |
+| `filtered_syn` | 0.3664 [0.3426, 0.3956] | 0.9886 [0.9808, 0.9954] | 0.0074 [0.0024, 0.0242] |
+
+Reading them changes three claims, and only one of the changes is in this
+project's favour:
+
+- **`real_only` beats both synthetic arms: supported.** The intervals are
+  disjoint on `primary_map_small`. The headline result is not a one-seed
+  accident.
+- **`real_only` beats `standard_aug`: NOT supported.** Those intervals overlap.
+  The 0.0275 point gap is inside the noise, and this README previously read it
+  as a ranking. It is not one.
+- **`filtered_syn` beats `unfiltered_syn` on detection: NOT supported.** The
+  intervals overlap on all three metrics. Filtering's measurable effect is at
+  the compliance operating point, not here — see below.
+
+An interval is not a seed. These are still single-seed runs, and the bootstrap
+quantifies sampling noise in the 744-image Test split, not run-to-run variance.
+
 Two columns need reading carefully rather than at face value.
 
 **Real-image exposures is a confound, not a footnote.** Fixing optimizer steps
