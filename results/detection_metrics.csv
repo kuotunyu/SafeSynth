@@ -423,3 +423,20 @@ filtered_syn,1337,test/small_object,instances.medium,891.0,891,441,,,
 filtered_syn,1337,test/small_object,instances.large,25.0,25,441,,,
 filtered_syn,1337,test/small_object,bare_head_recall,0.9881516587677726,844,441,,,iou=0.5
 filtered_syn,1337,test/small_object,n_detections,132300.0,,441,,,
+real_only,1337,test,bare_head_recall_at_op,0.8930602957906713,879,744,,,"IoU 0.50 at the frozen compliance threshold 0.07 (EVAL-05b); the value at threshold 0 is a ceiling, not a result"
+real_only,1337,val,op_usable,1.0,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+real_only,1337,val,operating_point,0.07,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+real_only,1337,val,op_bare_head_recall,0.8574850299401198,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+real_only,1337,val,op_compliance_precision,0.8507021433850702,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+standard_aug,1337,test,bare_head_recall_at_op,0.46871444823663255,879,744,,,"IoU 0.50 at the frozen compliance threshold 0.07 (EVAL-05b); the value at threshold 0 is a ceiling, not a result"
+standard_aug,1337,val,op_usable,1.0,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+standard_aug,1337,val,operating_point,0.04,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+standard_aug,1337,val,op_bare_head_recall,0.8431137724550898,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+standard_aug,1337,val,op_compliance_precision,0.8203463203463204,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+unfiltered_syn,1337,test,bare_head_recall_at_op,0.3572241183162685,879,744,,,"IoU 0.50 at the frozen compliance threshold 0.07 (EVAL-05b); the value at threshold 0 is a ceiling, not a result"
+unfiltered_syn,1337,val,op_usable,0.0,,756,,,no threshold reaches the 0.80 precision floor while still detecting anything; this arm has no usable operating point
+filtered_syn,1337,test,bare_head_recall_at_op,0.5574516496018203,879,744,,,"IoU 0.50 at the frozen compliance threshold 0.07 (EVAL-05b); the value at threshold 0 is a ceiling, not a result"
+filtered_syn,1337,val,op_usable,1.0,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+filtered_syn,1337,val,operating_point,0.065,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+filtered_syn,1337,val,op_bare_head_recall,0.6395209580838324,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor
+filtered_syn,1337,val,op_compliance_precision,0.8075530263838593,,756,,,EVAL-04 selected on VALIDATION against a 0.80 precision floor

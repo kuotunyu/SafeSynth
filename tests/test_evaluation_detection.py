@@ -737,7 +737,30 @@ def _hard_negative_case() -> tuple[dict, list[dict]]:
 
 
 def test_hard_negative_false_positives_per_image() -> None:
-    """One counted false positive spread over two empty images -> 0.5 per image."""
+    """One counted false positive spread over two empty images -> 0.5 per image.
+
+    The threshold is passed explicitly. Leaving it to the config made this test
+    depend on `compliance.score_threshold`, which is a VALIDATION-SELECTED value
+    (EVAL-04) and legitimately moved from 0.50 to 0.07 once the real sweep ran -
+    at which point the 0.10 detection crossed it and the expectation broke. A
+    fixture built around a number that is meant to change is a fixture that
+    fails for the wrong reason.
+    """
+
+    ground_truth, detections = _hard_negative_case()
+
+    report = hard_negative_false_positives_per_image(
+        ground_truth, detections, [1, 2], config=CONFIG, score_threshold=0.50
+    )
+
+    assert report.score_threshold == pytest.approx(0.50)
+    assert report.n_false_positives == 1
+    assert report.n_images == 2
+    assert report.false_positives_per_image == pytest.approx(0.5)
+
+
+def test_the_hard_negative_threshold_defaults_to_the_configured_operating_point() -> None:
+    """The default still comes from config; it just is not what the case above pins."""
 
     ground_truth, detections = _hard_negative_case()
 
@@ -745,10 +768,9 @@ def test_hard_negative_false_positives_per_image() -> None:
         ground_truth, detections, [1, 2], config=CONFIG
     )
 
-    assert report.score_threshold == CONFIG["compliance"]["score_threshold"]
-    assert report.n_false_positives == 1
-    assert report.n_images == 2
-    assert report.false_positives_per_image == pytest.approx(0.5)
+    assert report.score_threshold == pytest.approx(
+        float(_raw_config()["compliance"]["score_threshold"])
+    )
 
 
 def test_hard_negative_threshold_can_be_overridden() -> None:
@@ -857,8 +879,10 @@ def test_hard_negative_ignores_a_detection_outside_the_subset() -> None:
     ground_truth, detections = _hard_negative_case()
     detections = [*detections, _detection(3, 7, (0, 0, 10, 10), 0.99)]
 
+    # Explicit threshold for the same reason as the case above: the configured
+    # one is validation-selected and moves.
     report = hard_negative_false_positives_per_image(
-        ground_truth, detections, [1, 2], config=CONFIG
+        ground_truth, detections, [1, 2], config=CONFIG, score_threshold=0.50
     )
 
     assert report.n_false_positives == 1

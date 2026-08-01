@@ -8,7 +8,10 @@ those cases is expensive.
 
 **This project generates the hard cases instead — with bounding-box labels
 produced automatically by the generator, at zero annotation cost — and then
-measures, under a controlled five-arm protocol, whether that actually helps.**
+measures, under a controlled four-arm protocol, whether that actually helps.**
+
+The answer, on this dataset, is **no** — and the interesting part is where the
+"no" stops being true. [Results](#results) has the numbers.
 
 This is not a "train a detector on a public dataset" tutorial. The subject of
 the experiment is the *data*, not the model:
@@ -104,6 +107,129 @@ Validation and Test reads remain at zero throughout.
 
 See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
 each milestone is implemented against.
+
+## Results
+
+Four arms, one seed each, RT-DETRv2-R18, an equal optimizer-step budget of
+10,900 steps, every arm scored at its own best-validation checkpoint on the
+**frozen 744-image real Test split**. Every number below is re-aggregatable from
+[`results/detection_metrics.csv`](results/detection_metrics.csv), and
+`scripts/verify_readme.py` fails the build if one of them is not.
+
+Two independent implementations computed this table and agree to 8.8e-07.
+
+| Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real-image exposures |
+|---|---:|---:|---:|---:|
+| `real_only` | 0.4511 | 0.5341 | 0.9875 | 49.83 |
+| `standard_aug` | 0.4236 | 0.4958 | 0.9875 | 49.83 |
+| `unfiltered_syn` | 0.3759 | 0.4597 | 0.9898 | 24.91 |
+| `filtered_syn` | 0.3664 | 0.4858 | 0.9886 | 24.91 |
+
+`primary_*` covers `helmet` and `head`; `person` is reported separately because
+it is the badly annotated class. **Synthetic data did not help.** Both synthetic
+arms sit below the real-only baseline on both headline metrics.
+
+Two columns need reading carefully rather than at face value.
+
+**Real-image exposures is a confound, not a footnote.** Fixing optimizer steps
+(TRAIN-07) means the arms carrying twice the data see each real photograph half
+as often — 24.91 passes against 49.83. That is a real difference between the
+arms and it is in the table for that reason.
+
+**The bare-head recall column is a ceiling, not a result.** RT-DETRv2 emits a
+fixed 300 queries per image, so matched at IoU 0.50 with no score floor almost
+every bare head finds some box and all four arms score ~0.99. Read at the frozen
+operating point instead, the same metric separates them by half a point of
+recall:
+
+| Arm | bare_head_recall_at_op | bare_head_recall <!--split: test--> |
+|---|---:|---:|
+| `real_only` | 0.8931 | 0.9875 |
+| `filtered_syn` | 0.5575 | 0.9886 |
+| `standard_aug` | 0.4687 | 0.9875 |
+| `unfiltered_syn` | 0.3572 | 0.9898 |
+
+The right-hand column is the ceiling; the left is the same metric read at the
+frozen operating point. The spread goes from 0.0023 to 0.5359.
+
+### Where the synthetic data did work
+
+Annotation is the resource this method claims to save, so the arms are also
+compared at equal *annotation* budget rather than equal compute. Re-indexed onto
+passes over the real training set (validation, single seed):
+
+at one pass over the real training set `filtered_syn` scores 0.0904 validation
+mAP against `real_only`'s 0.0267; at two passes, 0.2768 against 0.1864; the
+baseline overtakes it between the fourth and fifth. The full curve, both
+metrics and all four arms are in
+[`reports/exposure_analysis.md`](reports/exposure_analysis.md) — those are
+validation learning-curve readings rather than final Test results, so they live
+in their own report and are not quoted as table rows here.
+
+The composites are worth up to **+0.090 mAP** while real labels are scarce, and
+that lead is gone by the fourth pass. This dataset supplies 5,000 labelled
+images, which is the regime where synthetic augmentation has least to offer.
+The caveat travels with the claim: matching real exposure *unmatches* compute,
+so each row is *same labels, more compute* — the trade synthetic data offers,
+but not *same conditions*.
+
+### The one thing filtering decided
+
+Each arm selected its own compliance operating point on Validation by the same
+rule (maximise bare-head recall subject to ≥0.80 compliance precision):
+
+| Arm | operating_point | op_bare_head_recall | op_compliance_precision |
+|---|---:|---:|---:|
+| `real_only` | 0.07 | 0.8575 | 0.8507 |
+| `standard_aug` | 0.04 | 0.8431 | 0.8203 |
+| `filtered_syn` | 0.07 | 0.6395 | 0.8076 |
+| `unfiltered_syn` | — | — | — |
+
+`unfiltered_syn` cannot reach the required precision at any threshold where it
+detects anything. Filtering is the difference between an arm that can be
+deployed as a compliance check and one that cannot — which is the clearest
+result the filtering pipeline produced, inside an otherwise negative outcome.
+
+### Why the result went the way it did
+
+**H4 predicted it.** The pre-registered artifact gate asked whether a classifier
+could tell a pasted patch from a real one, with a maximum of AUC 0.60. It
+measured **0.9053**. The composites carry a detectable domain gap, and the
+detection result is consistent with that warning. The gate was registered before
+the training run and is reported beside every number here.
+
+**The targeting did not land.** `small_distant` took the largest slice-isolable
+share of the synthetic budget at 21.7%, and `small_object` is the slice that
+moved *least* favourably: −0.0572 against −0.0412 for `crowded` and −0.0477 for
+`low_light`. Whatever the synthetic images did, they did not move the slice they
+were aimed at.
+
+**The regression is asymmetric.** Against the baseline, `filtered_syn` repairs
+73 false negatives and introduces 1,304 — eighteen broken for every one fixed —
+while fixing 715 false positives at the cost of 291 new ones. Figures for all
+four categories, including the new false positives, are in
+[`reports/figures/error_analysis/`](reports/figures/error_analysis/); the
+new-false-positive grid is not optional and is rendered by construction.
+
+### Why four arms and not five
+
+The general protocol these projects follow has a fifth arm: a full-real upper
+bound, showing what the model reaches with all the real data available. **This
+project has no such arm because Real-only already is it** — `real_only` trains
+on the entire real Train split, so there is no higher real-data ceiling left to
+add. Stating that is cheaper than letting a reader conclude an arm was dropped.
+
+### What would have to be true for this to work
+
+Every number above is a **single seed**, and EVAL-10 forbids reading a fraction
+of a point as a win. The gaps here are large enough to be directional, but the
+crossover point is not a measured constant.
+
+The experiment this points at is a **real-data-fraction ablation**: retrain on
+10%, 25% and 50% of the real training set with and without the same synthetic
+pool. If the exposure reading above is right, the gap should widen as the real
+fraction shrinks. It is also cheaper than the run already done, because every
+arm in it trains on less data.
 
 ## Dataset
 
