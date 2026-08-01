@@ -90,7 +90,14 @@ class Detector:
         """
 
         started = time.perf_counter()
-        encoded = self.processor(images=image, return_tensors="pt").to(self.device)
+        # dtype travels with the device. The processor always returns float32,
+        # so a float16 model raises "Input type (torch.cuda.FloatTensor) and
+        # weight type (torch.cuda.HalfTensor) should be the same". This went
+        # unnoticed because the demo defaults to CPU, where dtype is float32
+        # and the mismatch cannot arise - the CUDA path had never been run.
+        encoded = self.processor(images=image, return_tensors="pt").to(
+            device=self.device, dtype=self.dtype
+        )
         if self.device == "cuda":
             torch.cuda.synchronize()
         model_started = time.perf_counter()
@@ -101,11 +108,13 @@ class Detector:
         model_ms = (time.perf_counter() - model_started) * 1000.0
 
         height, width = image.shape[:2]
-        target = torch.tensor([[height, width]], dtype=torch.float32)
+        # `outputs` is a ModelOutput dataclass, not a tensor, so it has no .to()
+        # - the CUDA branch raised AttributeError the first time it ran. Post
+        # processing accepts it where it already lives, given a target_sizes on
+        # the same device.
+        target = torch.tensor([[height, width]], dtype=torch.float32, device=self.device)
         processed = self.processor.post_process_object_detection(
-            outputs.to("cpu") if self.device == "cuda" else outputs,
-            threshold=0.0,
-            target_sizes=target,
+            outputs, threshold=0.0, target_sizes=target
         )
         detections = predictions_to_coco(processed, [0])
         end_to_end_ms = (time.perf_counter() - started) * 1000.0

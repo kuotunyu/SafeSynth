@@ -58,6 +58,8 @@ INTERVIEW_PREP.md
 # reports/figures/ IS tracked — those are the small curated grids we cite in the README.
 /assets/*
 !/assets/.gitkeep
+# DEMO-04: the README's demo GIF is the one asset that ships.
+!/assets/demo.gif
 
 # --- Python ---
 __pycache__/

@@ -237,6 +237,32 @@ pool. If the exposure reading above is right, the gap should widen as the real
 fraction shrinks. It is also cheaper than the run already done, because every
 arm in it trains on less data.
 
+## Demo
+
+![compliance demo](assets/demo.gif)
+
+Eight validation frames, annotated by the shipped `real_only` weights at the
+EVAL-04 operating point of 0.07. Green is a helmeted head, red is a bare one,
+and the caption carries the frame's `compliant / total` and rate — the colour
+is the **compliance verdict**, not the class, so a red box means a person
+without a hard hat rather than a detection the model was unsure about.
+
+**This is a montage of still frames, not a video.** DEMO-04 asks for a recorded
+clip; there is no site footage here, and the dataset cannot stand in for one —
+its images are usually described as video-derived, but the frozen pHash
+grouping says 4,643 of 4,808 groups are a single image and the largest is 8
+frames, so no run of consecutive frames exists. What the dataset does have is
+501 images containing both a helmeted and a bare head, which is what DEMO-04
+actually asks the picture to show.
+
+Frames come from Validation, never Test, and are chosen by a stated rule:
+balance between the two verdicts first, then fewest drawn boxes. Run it with
+`uv run python -m scripts.make_demo_gif`. The live demo is `app.py`:
+
+```bash
+uv run python app.py --device cpu
+```
+
 ## Dataset
 
 [Hard Hat Workers](https://www.kaggle.com/datasets/andrewmvd/hard-hat-detection)
