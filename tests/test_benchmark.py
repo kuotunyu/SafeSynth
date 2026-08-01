@@ -205,6 +205,7 @@ def make_settings(**overrides) -> bench.BenchmarkSettings:
         "dtype": "float16",
         "input_size": 64,
         "max_p95_to_statistic_ratio": 1.5,
+        "max_clock_spread_ratio": 1.15,
     }
     base.update(overrides)
     return bench.BenchmarkSettings(**base)
@@ -1286,7 +1287,20 @@ def _fake_entry(**overrides):
         },
     }
     entry.update(overrides)
+    # Mirror production's default: with no --weights override the source IS the
+    # Hub checkpoint. Hard-coding "Fake/net" here would let a spec override and
+    # its weights drift apart in the fixture but never in the real script.
+    if "weights" not in overrides:
+        entry["weights"] = bl.WeightsProvenance(
+            source=entry["spec"].checkpoint, labels=tuple(str(i) for i in range(80))
+        )
     return entry
+
+
+FINE_TUNED = bl.WeightsProvenance(
+    source="D:/runs/real_only/seed_1337/checkpoint-1752",
+    labels=("helmet", "head", "person"),
+)
 
 
 def test_the_report_labels_the_numbers_provisional_and_states_the_context() -> None:
@@ -1308,6 +1322,472 @@ def test_the_report_labels_the_numbers_provisional_and_states_the_context() -> N
     assert "VALIDATION split, never Test" in markdown
     assert "`float16`" in markdown
     assert "(415x416)" in markdown, "the probe image is described as width x height"
+
+
+# --------------------------------------------------------------------------
+# The PROVISIONAL banner tracks the weights that loaded (it used to be a constant)
+# --------------------------------------------------------------------------
+
+
+def test_the_banner_disappears_once_every_row_is_on_fine_tuned_weights() -> None:
+    """The whole point of re-measuring. A stored banner would never clear."""
+
+    markdown = _render([_fake_entry(weights=FINE_TUNED)], [])
+
+    assert "PROVISIONAL" not in markdown
+    assert "Measured on this project's fine-tuned 3-class weights" in markdown
+    assert "checkpoint-1752" in markdown, "the exact weights must be named"
+
+
+def test_a_single_pretrained_row_keeps_the_banner_and_names_who_earned_it() -> None:
+    fine = _fake_entry(weights=FINE_TUNED)
+    stale = _fake_entry(
+        spec=SimpleNamespace(title="Other-Net", checkpoint="Other/net", role="baseline")
+    )
+
+    markdown = _render([fine, stale], [])
+
+    assert "PROVISIONAL" in markdown
+    assert "(1 of 2)" in markdown
+    assert "Other-Net (`Other/net`)" in markdown
+
+
+def test_the_banner_names_only_the_rows_that_are_still_pretrained() -> None:
+    """Asserted on the banner ALONE, because the fine-tuned checkpoint legitimately
+    appears elsewhere in the report - so `not in markdown` would be vacuous here
+    and a banner that accused every row would sail straight through it."""
+
+    fine = _fake_entry(weights=FINE_TUNED)
+    stale = _fake_entry(
+        spec=SimpleNamespace(title="Other-Net", checkpoint="Other/net", role="baseline")
+    )
+
+    banner = "\n".join(bl.weights_banner([fine, stale]))
+
+    assert "Other-Net" in banner
+    assert "Fake-Net" not in banner, "a fine-tuned row must not be accused"
+    assert "checkpoint-1752" not in banner
+
+
+def test_mixed_weights_are_declared_not_silently_compared() -> None:
+    """Timing a 3-class head against an 80-class one is not like-for-like."""
+
+    markdown = _render(
+        [_fake_entry(weights=FINE_TUNED),
+         _fake_entry(spec=SimpleNamespace(title="Other-Net", checkpoint="O/n", role="b"))],
+        [],
+    )
+
+    assert "not a like-for-like comparison" in markdown
+
+
+def test_a_uniform_report_does_not_claim_an_asymmetry_it_does_not_have() -> None:
+    both_fine = _render([_fake_entry(weights=FINE_TUNED), _fake_entry(weights=FINE_TUNED)], [])
+    both_pretrained = _render([_fake_entry(), _fake_entry()], [])
+
+    assert "not a like-for-like comparison" not in both_fine
+    assert "not a like-for-like comparison" not in both_pretrained
+
+
+def test_section_six_drops_its_caveat_only_when_the_caveat_stops_being_true() -> None:
+    stale = _render([_fake_entry()], [])
+    fine = _render([_fake_entry(weights=FINE_TUNED)], [])
+
+    assert "must be re-measured on fine-tuned 3-class weights" in stale
+    assert "must be re-measured on fine-tuned 3-class weights" not in fine
+
+
+def test_fine_tuned_is_read_off_the_head_not_off_the_operator_s_intent() -> None:
+    """Pointing --weights at a COCO checkpoint must not clear the banner."""
+
+    local_but_coco = bl.WeightsProvenance(
+        source="D:/somewhere/local", labels=tuple(str(i) for i in range(80))
+    )
+
+    assert not local_but_coco.fine_tuned
+    assert "PROVISIONAL" in _render([_fake_entry(weights=local_but_coco)], [])
+
+
+def test_a_head_with_the_right_size_but_the_wrong_classes_is_not_fine_tuned() -> None:
+    """Three classes is necessary, not sufficient - the names have to be ours."""
+
+    assert not bl.WeightsProvenance(source="x", labels=("cat", "dog", "bird")).fine_tuned
+    assert bl.WeightsProvenance(source="x", labels=("head", "person", "helmet")).fine_tuned
+
+
+# --------------------------------------------------------------------------
+# --weights parsing: a typo must not quietly leave the report provisional
+# --------------------------------------------------------------------------
+
+
+def test_a_weights_override_resolves_to_the_directory_it_names(tmp_path) -> None:
+    target = tmp_path / "checkpoint-1752"
+    target.mkdir()
+
+    assert bl.parse_weight_overrides([f"rtdetrv2_r18={target}"]) == {
+        "rtdetrv2_r18": str(target)
+    }
+    assert bl.parse_weight_overrides([]) == {}
+
+
+@pytest.mark.parametrize(
+    "argument",
+    ["rtdetrv2_r18", "=path", "rtdetrv2_r18=", "typo_key=."],
+)
+def test_a_malformed_or_unknown_override_stops_the_run(argument: str) -> None:
+    with pytest.raises(SystemExit):
+        bl.parse_weight_overrides([argument])
+
+
+def test_an_override_pointing_nowhere_stops_the_run(tmp_path) -> None:
+    with pytest.raises(SystemExit, match="not a directory"):
+        bl.parse_weight_overrides([f"rtdetrv2_r18={tmp_path / 'absent'}"])
+
+
+# --------------------------------------------------------------------------
+# K-22: the between-row GPU clock check
+# --------------------------------------------------------------------------
+
+
+def _clocked(label: str, mhz):
+    return make_result(label=label, sm_clock_mhz=mhz)
+
+
+def test_two_rows_clocked_far_apart_are_not_a_comparison() -> None:
+    """The real numbers: 2520 MHz against 1215 MHz produced a 2.26x latency gap."""
+
+    verdict = bench.evaluate_clock_spread(
+        [_clocked("fast", 2520), _clocked("slow", 1215)], max_ratio=1.15
+    )
+
+    assert not verdict["passed"]
+    assert verdict["lowest"] == 1215
+    assert verdict["highest"] == 2520
+    assert verdict["spread"] == pytest.approx(2520 / 1215)
+
+
+def test_ordinary_boost_drift_is_not_condemned() -> None:
+    verdict = bench.evaluate_clock_spread(
+        [_clocked("a", 2520), _clocked("b", 2400)], max_ratio=1.15
+    )
+
+    assert verdict["passed"]
+    assert verdict["spread"] == pytest.approx(2520 / 2400)
+
+
+def test_the_limit_is_a_boundary_not_a_suggestion() -> None:
+    """Exactly at the limit passes; a hair over does not."""
+
+    assert bench.evaluate_clock_spread(
+        [_clocked("a", 2300), _clocked("b", 2000)], max_ratio=1.15
+    )["passed"]
+    assert not bench.evaluate_clock_spread(
+        [_clocked("a", 2301), _clocked("b", 2000)], max_ratio=1.15
+    )["passed"]
+
+
+def test_a_device_with_no_readable_clock_does_not_fail_the_run() -> None:
+    """An unreadable clock must degrade to `n/a`, never discard a measurement."""
+
+    verdict = bench.evaluate_clock_spread(
+        [_clocked("a", None), _clocked("b", None)], max_ratio=1.15
+    )
+
+    assert verdict["passed"]
+    assert verdict["spread"] is None
+    assert verdict["unchecked"] == ["a", "b"]
+
+
+def test_rows_without_a_clock_are_named_rather_than_counted_as_agreeing() -> None:
+    verdict = bench.evaluate_clock_spread(
+        [_clocked("has", 2500), _clocked("lacks", None)], max_ratio=1.15
+    )
+
+    assert verdict["passed"]
+    assert verdict["unchecked"] == ["lacks"]
+    assert verdict["spread"] == pytest.approx(1.0)
+
+
+def test_the_clock_is_a_column_of_the_results_table() -> None:
+    table = bench.format_results_table([_clocked("row", 2520), _clocked("cpu", None)])
+
+    assert "SM clock (MHz)" in table
+    assert "| 2520 |" in table
+    assert "| n/a |" in table
+
+
+def test_the_report_prints_the_clock_verdict_rather_than_the_reader_computing_it() -> None:
+    markdown = _render(
+        [
+            _fake_entry(
+                report=bench.BenchmarkReport(
+                    label="Fake-Net",
+                    device="cuda",
+                    dtype="float16",
+                    model_only=_clocked("Fake-Net [model-only]", 2520),
+                    end_to_end=_clocked("Fake-Net [end-to-end]", 1215),
+                    peak_vram_mb=1.0,
+                )
+            )
+        ],
+        [],
+    )
+
+    assert "GPU clock check" in markdown
+    assert "| 1215 | 2520 | 2.07 | 1.15 | FAIL - re-measure |" in markdown
+
+
+def test_a_clean_clock_spread_says_pass(monkeypatch) -> None:
+    markdown = _render(
+        [
+            _fake_entry(
+                report=bench.BenchmarkReport(
+                    label="Fake-Net",
+                    device="cuda",
+                    dtype="float16",
+                    model_only=_clocked("Fake-Net [model-only]", 2520),
+                    end_to_end=_clocked("Fake-Net [end-to-end]", 2500),
+                    peak_vram_mb=1.0,
+                )
+            )
+        ],
+        [],
+    )
+
+    assert "| 2500 | 2520 | 1.01 | 1.15 | PASS |" in markdown
+
+
+def test_the_clock_sampler_parses_what_nvidia_smi_prints() -> None:
+    sample = bench.make_clock_sampler("cuda", query=lambda: "2520\n")
+
+    assert sample() == 2520
+
+
+@pytest.mark.parametrize("output", ["", "N/A", "not a number", "\n\n"])
+def test_an_unparseable_clock_reading_becomes_none_rather_than_an_exception(output) -> None:
+    assert bench.make_clock_sampler("cuda", query=lambda: output)() is None
+
+
+def test_a_sampler_whose_query_raises_still_returns_none() -> None:
+    def explode() -> str:
+        raise OSError("nvidia-smi is not installed")
+
+    assert bench.make_clock_sampler("cuda", query=explode)() is None
+
+
+def test_no_clock_is_sampled_off_cuda() -> None:
+    """A CPU run must not shell out to nvidia-smi 9 times for nothing."""
+
+    calls = []
+
+    def query() -> str:
+        calls.append(1)
+        return "2520"
+
+    assert bench.make_clock_sampler("cpu", query=query)() is None
+    assert calls == []
+
+
+def test_the_clock_is_sampled_while_the_workload_is_still_running() -> None:
+    """The whole point. Sampling after the loop read a decaying clock, and read
+    it differently for model-only than for end-to-end, which is how a 1.50x
+    spread appeared between four rows measured back to back (K-22)."""
+
+    log: list[str] = []
+    clock = RecordingClock(log)
+    workload = ClockDrivenWorkload(
+        clock, warmup_iterations=1, warmup_cost_s=0.01, timed_costs_s=[0.01] * 5, log=log
+    )
+
+    bench.time_callable_with_clock(
+        workload,
+        warmup_iterations=1,
+        timed_iterations=5,
+        timer=clock,
+        clock_sampler=lambda: log.append("sample") or 2520,
+    )
+
+    # 1 warmup call, then timed calls; the sample must land BETWEEN two of them,
+    # never after the last one.
+    assert "sample" in log
+    assert log.index("sample") < len(log) - 1, "the sample was taken after the last call"
+    assert log.count("call") == 6  # 1 warmup + 5 timed, none skipped
+
+
+def test_the_interrupted_iteration_is_discarded_rather_than_timed() -> None:
+    """It would carry the subprocess cost, and a 100 ms outlier moves the p95."""
+
+    clock = FakeClock()
+    workload = ClockDrivenWorkload(
+        clock,
+        warmup_iterations=0,
+        warmup_cost_s=0.0,
+        # The middle iteration is made enormous: if it survives into the
+        # returned list, both the count and the maximum give it away.
+        timed_costs_s=[0.01, 0.01, 5.0, 0.01, 0.01],
+    )
+
+    durations, sampled = bench.time_callable_with_clock(
+        workload,
+        warmup_iterations=0,
+        timed_iterations=5,
+        timer=clock,
+        clock_sampler=lambda: 2520,
+    )
+
+    assert sampled == 2520
+    assert len(durations) == 4, "the interrupted iteration must not be reported"
+    assert max(durations) < 100.0, "the 5 s iteration leaked into the statistics"
+
+
+def test_without_a_sampler_no_iteration_is_discarded() -> None:
+    clock = FakeClock()
+    workload = ClockDrivenWorkload(
+        clock, warmup_iterations=0, warmup_cost_s=0.0, timed_costs_s=[0.01] * 5
+    )
+
+    durations, sampled = bench.time_callable_with_clock(
+        workload, warmup_iterations=0, timed_iterations=5, timer=clock
+    )
+
+    assert sampled is None
+    assert len(durations) == 5
+
+
+def test_sampling_refuses_a_run_too_short_to_spare_an_iteration() -> None:
+    with pytest.raises(ValueError, match="at least 2 timed iterations"):
+        bench.time_callable_with_clock(
+            lambda: None, warmup_iterations=0, timed_iterations=1, clock_sampler=lambda: 1
+        )
+
+
+def test_run_benchmark_stamps_each_row_with_the_clock_it_was_timed_at() -> None:
+    settings = make_settings(warmup_iterations=1, timed_iterations=3)
+    clock = FakeClock()
+    readings = iter([2520, 1215])
+
+    report = bench.run_benchmark(
+        label="Fake",
+        end_to_end=ClockDrivenWorkload(
+            clock, warmup_iterations=1, warmup_cost_s=0.01, timed_costs_s=[0.02] * 3
+        ),
+        model_only=ClockDrivenWorkload(
+            clock, warmup_iterations=1, warmup_cost_s=0.01, timed_costs_s=[0.01] * 3
+        ),
+        settings=settings,
+        device="cpu",
+        timer=clock,
+        clock_sampler=lambda: next(readings),
+    )
+
+    # Order matters: model-only is timed first, so it gets the first reading.
+    assert report.model_only.sm_clock_mhz == 2520
+    assert report.end_to_end.sm_clock_mhz == 1215
+
+
+def test_the_config_rejects_a_clock_spread_limit_below_one() -> None:
+    with pytest.raises(bench.BenchmarkConfigError, match="max_clock_spread_ratio"):
+        make_settings(max_clock_spread_ratio=0.9)
+
+
+def test_the_project_config_carries_the_clock_limit() -> None:
+    settings = bench.load_benchmark_settings(EVALUATION_CONFIG)
+
+    assert settings.max_clock_spread_ratio >= 1.0
+    # It must reject the 2.07x that actually happened, or it protects nothing.
+    assert settings.max_clock_spread_ratio < 2520 / 1215
+
+
+def test_load_detector_takes_weights_from_the_override_and_the_processor_from_the_hub(
+    monkeypatch,
+) -> None:
+    """The asymmetry is deliberate: Trainer output dirs carry no processor config.
+
+    Asserted on the arguments the two Auto classes RECEIVE, because that is the
+    wire. A version that read the override and then loaded the Hub weights anyway
+    would satisfy any assertion made on the returned provenance alone.
+    """
+
+    import transformers
+
+    seen: dict[str, str] = {}
+
+    def fake_processor(name, **kw):
+        seen["processor"] = str(name)
+        return SimpleNamespace(size={"width": 640, "height": 640})
+
+    def fake_model(name, **kw):
+        seen["model"] = str(name)
+        seen["dtype"] = str(kw.get("dtype"))
+        return SimpleNamespace(
+            config=SimpleNamespace(id2label={0: "helmet", 1: "head", 2: "person"}),
+            to=lambda device: None,
+            eval=lambda: None,
+        )
+
+    monkeypatch.setattr(
+        transformers.AutoImageProcessor, "from_pretrained", staticmethod(fake_processor)
+    )
+    monkeypatch.setattr(
+        transformers.AutoModelForObjectDetection, "from_pretrained", staticmethod(fake_model)
+    )
+
+    _, _, provenance = bl.load_detector(
+        "Hub/base", weights="D:/runs/checkpoint-1752", device="cpu", dtype_name="float32"
+    )
+
+    assert seen["processor"] == "Hub/base"
+    assert seen["model"] == "D:/runs/checkpoint-1752"
+    assert seen["dtype"] != "None", "ADR-014: v5 defaults dtype to 'auto', so pass it"
+    assert provenance.source == "D:/runs/checkpoint-1752"
+    assert provenance.fine_tuned
+
+
+def test_load_detector_falls_back_to_the_hub_checkpoint_when_no_override_is_given(
+    monkeypatch,
+) -> None:
+    import transformers
+
+    seen: dict[str, str] = {}
+
+    def fake_processor(name, **kw):
+        return SimpleNamespace(size={"width": 640, "height": 640})
+
+    def fake_model(name, **kw):
+        seen["model"] = str(name)
+        return SimpleNamespace(
+            config=SimpleNamespace(id2label=dict(enumerate("abc" * 27))),
+            to=lambda device: None,
+            eval=lambda: None,
+        )
+
+    monkeypatch.setattr(
+        transformers.AutoImageProcessor, "from_pretrained", staticmethod(fake_processor)
+    )
+    monkeypatch.setattr(
+        transformers.AutoModelForObjectDetection, "from_pretrained", staticmethod(fake_model)
+    )
+
+    _, _, provenance = bl.load_detector("Hub/base", device="cpu", dtype_name="float32")
+
+    assert seen["model"] == "Hub/base"
+    assert not provenance.fine_tuned
+
+
+def test_the_weights_flag_reaches_load_detector_through_main(tmp_path, monkeypatch) -> None:
+    """argv -> parse -> main -> load_detector. Parsing it correctly and then not
+    passing it on would leave the report provisional with no visible cause."""
+
+    checkpoint = tmp_path / "checkpoint-1752"
+    checkpoint.mkdir()
+    fakes = _install_main_fakes(
+        tmp_path, monkeypatch, weights_argument=f"rtdetrv2_r18={checkpoint}"
+    )
+
+    bl.main()
+
+    markdown = (fakes.reports / "speed_baseline_probe.md").read_text(encoding="utf-8")
+    assert str(checkpoint) in markdown
 
 
 def test_the_report_prints_the_contention_ratio_instead_of_asking_the_reader() -> None:
@@ -1460,7 +1940,14 @@ CLEAN_TREE = {
 
 
 def _install_main_fakes(
-    tmp_path, monkeypatch, *, scan_tree=None, native=48, models="rtdetrv2_r18", **setting_overrides
+    tmp_path,
+    monkeypatch,
+    *,
+    scan_tree=None,
+    native=48,
+    models="rtdetrv2_r18",
+    weights_argument=None,
+    **setting_overrides,
 ):
     """Wire main() to fakes and a tmp filesystem; return the pieces to assert on.
 
@@ -1497,7 +1984,10 @@ def _install_main_fakes(
         warmup_iterations=1, timed_iterations=2, input_size=64, **setting_overrides
     )
 
-    monkeypatch.setattr(sys, "argv", ["benchmark_latency.py", "--models", models])
+    argv = ["benchmark_latency.py", "--models", models]
+    if weights_argument is not None:
+        argv += ["--weights", weights_argument]
+    monkeypatch.setattr(sys, "argv", argv)
     monkeypatch.setattr(
         bl,
         "load_project_paths",
@@ -1506,7 +1996,18 @@ def _install_main_fakes(
     monkeypatch.setattr(bl, "load_benchmark_settings", lambda: settings)
     monkeypatch.setattr(bl, "read_score_threshold", lambda path: 0.5)
     monkeypatch.setattr(bl, "resolve_device", lambda: "cpu")
-    monkeypatch.setattr(bl, "load_detector", lambda checkpoint, **kw: (model, processor))
+    monkeypatch.setattr(
+        bl,
+        "load_detector",
+        lambda checkpoint, **kw: (
+            model,
+            processor,
+            bl.WeightsProvenance(
+                source=str(kw.get("weights") or checkpoint),
+                labels=tuple(str(i) for i in range(80)),
+            ),
+        ),
+    )
 
     class FakeHfApi:
         def model_info(self, model_id):
@@ -1531,6 +2032,24 @@ def _row(markdown: str, label: str) -> list[str]:
     raise AssertionError(f"no table row for {label!r} in the report")
 
 
+def _cell(markdown: str, label: str, column: str) -> str:
+    """A table cell selected BY HEADER NAME, never by position.
+
+    Positional indexing silently reads the wrong column the moment one is
+    inserted, which is exactly what happened when the SM clock column landed
+    between dtype and the statistic.
+    """
+
+    header = next(
+        (line for line in markdown.splitlines() if line.startswith("| Measurement |")),
+        None,
+    )
+    assert header is not None, "the results table is missing its header row"
+    names = [cell.strip() for cell in header.split("|")]
+    assert column in names, f"{column!r} is not a column of {names}"
+    return _row(markdown, label)[names.index(column)]
+
+
 def test_main_writes_a_report_whose_baseline_is_the_model_only_row(tmp_path, monkeypatch) -> None:
     """M5 / M6 end to end: nothing used to execute main(), so nothing checked either.
 
@@ -1544,8 +2063,8 @@ def test_main_writes_a_report_whose_baseline_is_the_model_only_row(tmp_path, mon
     bl.main()
 
     markdown = (fakes.reports / "speed_baseline_probe.md").read_text(encoding="utf-8")
-    model_only_ms = _row(markdown, "RT-DETRv2-R18 [model-only]")[6]
-    end_to_end_ms = _row(markdown, "RT-DETRv2-R18 [end-to-end]")[6]
+    model_only_ms = _cell(markdown, "RT-DETRv2-R18 [model-only]", "Median (ms)")
+    end_to_end_ms = _cell(markdown, "RT-DETRv2-R18 [end-to-end]", "Median (ms)")
     assert float(model_only_ms) < float(end_to_end_ms), (
         "fixture degenerated: the two rows must differ or this test discriminates nothing"
     )

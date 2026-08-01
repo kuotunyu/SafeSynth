@@ -3,13 +3,14 @@ permissively-licensed speed baseline, written to reports/speed_baseline_probe.md
 
 Three honesty constraints are baked into this script.
 
-PROVISIONAL NUMBERS. Both models are benchmarked from their PUBLIC PRETRAINED
-checkpoints (91-class COCO heads), not from this project's fine-tuned 3-class
-weights, which do not exist yet. Latency is architecture-bound - swapping a 91-way
-classifier head for a 3-way one changes one linear layer applied to 300 queries -
-so the numbers are representative, but they are NOT final. Every table in the
-generated report carries the PROVISIONAL label and says they must be re-measured
-on the final weights.
+THE PROVISIONAL LABEL IS DERIVED, NOT STORED. A model benchmarked from its public
+pretrained COCO head is not measuring the weights this project ships, and the
+report has to say so. It used to say so via a hard-coded banner - the same shape
+of mistake as the licence-scan constant described below, and with the same failure
+mode: the sentence would have kept printing after the condition it describes
+stopped being true. The banner is now computed from the label set of each model
+that actually loaded, so passing `--weights key=path` for every model is the only
+way to make it disappear, and pointing that flag at a COCO checkpoint does not.
 
 LICENCE. ADR-005 selected `Roboflow/rf-detr-nano` as the speed baseline because
 its code and weights are Apache-2.0 and therefore compatible with an MIT repo.
@@ -47,19 +48,22 @@ from src.evaluation.benchmark import (
     BenchmarkReport,
     BenchmarkSettings,
     LatencyResult,
+    evaluate_clock_spread,
     evaluate_contention,
     format_results_table,
     load_benchmark_settings,
+    make_clock_sampler,
     make_synchronizer,
     resolve_device,
     resolve_dtype_name,
     run_benchmark,
-    time_callable,
+    time_callable_with_clock,
     torch_dtype,
 )
 
 REPORT_NAME = "speed_baseline_probe.md"
 PROBE_SPLIT = "val"
+PROJECT_CLASSES = frozenset({"helmet", "head", "person"})
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,29 @@ class ModelSpec:
     checkpoint: str
     title: str
     role: str
+
+
+@dataclass(frozen=True)
+class WeightsProvenance:
+    """Which weights produced the numbers, decided by reading the loaded model.
+
+    `fine_tuned` is NOT "did the caller pass --weights". It is "does this head
+    predict this project's three classes", read off `config.id2label` after the
+    checkpoint is on the device. A caller who points the flag at a COCO
+    checkpoint still gets a PROVISIONAL report, which is the point: the label
+    has to track the thing it describes, not the intent of whoever ran it.
+    """
+
+    source: str
+    labels: tuple[str, ...]
+
+    @property
+    def fine_tuned(self) -> bool:
+        return set(self.labels) == PROJECT_CLASSES
+
+    def describe(self) -> str:
+        kind = "fine-tuned" if self.fine_tuned else "pretrained"
+        return f"{kind}, {len(self.labels)} classes"
 
 
 MODEL_SPECS = (
@@ -132,18 +159,27 @@ def fetch_licence_evidence(model_id: str, *, api: Any) -> dict[str, Any]:
     }
 
 
-def load_detector(checkpoint: str, *, device: str, dtype_name: str):
-    """Auto classes only (ADR-014); dtype is explicit because v5 defaults it to "auto"."""
+def load_detector(checkpoint: str, *, weights: str | None = None, device: str, dtype_name: str):
+    """Auto classes only (ADR-014); dtype is explicit because v5 defaults it to "auto".
+
+    The processor always comes from the Hub id, never from `weights`: this
+    project's fine-tuned checkpoints are Trainer output directories and carry no
+    `preprocessor_config.json`, which is also why `app.py` names the base
+    processor separately. Preprocessing is therefore identical across both, and
+    the only thing `weights` changes is the network.
+    """
 
     from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
     processor = AutoImageProcessor.from_pretrained(checkpoint)
-    # No num_labels override on purpose: this is the public pretrained head, which
-    # is exactly what makes the resulting numbers PROVISIONAL.
-    model = AutoModelForObjectDetection.from_pretrained(checkpoint, dtype=torch_dtype(dtype_name))
+    # No num_labels override: whatever head the checkpoint carries is the head
+    # that gets timed, and the report reads the class list back off it.
+    source = checkpoint if weights is None else weights
+    model = AutoModelForObjectDetection.from_pretrained(source, dtype=torch_dtype(dtype_name))
     model.to(device)
     model.eval()
-    return model, processor
+    labels = tuple(str(name) for name in model.config.id2label.values())
+    return model, processor, WeightsProvenance(source=str(source), labels=labels)
 
 
 # spec: DEMO-03
@@ -256,6 +292,7 @@ def measure_at_resolution(
     device: str,
     dtype_name: str,
     label: str,
+    clock_sampler: Any | None = None,
 ) -> LatencyResult:
     """A model-only measurement at an input size other than the configured one."""
 
@@ -266,18 +303,21 @@ def measure_at_resolution(
         device=device,
         dtype_name=dtype_name,
     )
+    durations, sm_clock = time_callable_with_clock(
+        run,
+        warmup_iterations=settings.warmup_iterations,
+        timed_iterations=settings.timed_iterations,
+        synchronize=make_synchronizer(device),
+        clock_sampler=clock_sampler,
+    )
     return LatencyResult.from_durations(
-        time_callable(
-            run,
-            warmup_iterations=settings.warmup_iterations,
-            timed_iterations=settings.timed_iterations,
-            synchronize=make_synchronizer(device),
-        ),
+        durations,
         label=label,
         settings=settings,
         device=device,
         dtype=dtype_name,
         input_size=size,
+        sm_clock_mhz=sm_clock,
     )
 
 
@@ -398,6 +438,112 @@ def format_forbidden_scan(scan: Mapping[str, Any]) -> list[str]:
 
 
 # spec: DEMO-03
+def weights_banner(entries: Sequence[Mapping[str, Any]]) -> list[str]:
+    """The PROVISIONAL header, or its absence, decided by what actually loaded."""
+
+    stale = [entry for entry in entries if not entry["weights"].fine_tuned]
+    if not stale:
+        return [
+            "> **Measured on this project's fine-tuned 3-class weights.**",
+            "> Every model below predicts `helmet` / `head` / `person`; no row is a public",
+            "> COCO checkpoint standing in for one. The weights are named in section 3.",
+        ]
+    named = ", ".join(f"{entry['spec'].title} (`{entry['weights'].source}`)" for entry in stale)
+    return [
+        "> **PROVISIONAL - NOT A FINAL RESULT.**",
+        "> Still measured from a PUBLIC PRETRAINED COCO checkpoint rather than this",
+        f"> project's fine-tuned 3-class weights ({len(stale)} of {len(entries)}): {named}.",
+        "> Fine-tuning changes one linear layer at the end of the network - 80 or 91 class",
+        "> logits per query become 3 - and nothing else, so those numbers should carry over",
+        "> closely. They MUST still be re-measured before any of them reaches the README.",
+    ]
+
+
+# spec: DEMO-03
+def format_clock_check(clocks: Mapping[str, Any]) -> list[str]:
+    """Render the between-row GPU clock check (K-22).
+
+    Section 1's p95 check is within-row and cannot see the failure this
+    addresses: a whole run taken at a low power state, where every number is
+    twice what it should be and every ratio still looks fine.
+    """
+
+    lines = [
+        "### GPU clock check (the failure the p95 ratio cannot see)",
+        "",
+        (
+            "The p95 / statistic ratio is a WITHIN-row test. On 2026-08-01 two runs of "
+            "this harness, minutes apart and with no code change, reported `11.81` ms "
+            "and `26.74` ms for the same model - a 2.26x move in which every row "
+            "scaled together, so the ratios above stayed unremarkable. The SM clocks "
+            "during those runs were 2520 MHz and 1215 MHz (2.07x). The clock is "
+            "therefore recorded per row above, and the spread between rows is checked "
+            "here: rows timed at clocks this far apart are comparing power states "
+            "rather than networks."
+        ),
+        "",
+    ]
+    if not clocks["observed"]:
+        lines += ["No SM clock was readable on this device, so the rows carry `n/a`.", ""]
+        return lines
+    lines += [
+        "| Lowest (MHz) | Highest (MHz) | Spread | Limit | Verdict |",
+        "|---:|---:|---:|---:|---|",
+        (
+            f"| {clocks['lowest']} | {clocks['highest']} | {clocks['spread']:.2f} | "
+            f"{clocks['max_ratio']} | {'PASS' if clocks['passed'] else 'FAIL - re-measure'} |"
+        ),
+        "",
+    ]
+    if clocks["unchecked"]:
+        lines += [
+            f"{len(clocks['unchecked'])} row(s) had no readable clock: "
+            + ", ".join(f"`{label}`" for label in clocks["unchecked"]),
+            "",
+        ]
+    return lines
+
+
+# spec: DEMO-03
+def pretrained_caveat(entries: Sequence[Mapping[str, Any]]) -> list[str]:
+    """The section-6 bullet, present only while some row still needs re-measuring."""
+
+    stale = [entry["spec"].title for entry in entries if not entry["weights"].fine_tuned]
+    if not stale:
+        return []
+    return [
+        (
+            f"- These are pretrained-checkpoint numbers for {', '.join(stale)}. Those "
+            "rows must be re-measured on fine-tuned 3-class weights, and until they "
+            "are, no number from them may appear in the README without the PROVISIONAL "
+            "label."
+        )
+    ]
+
+
+# spec: DEMO-03
+def weights_asymmetry_note(entries: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Say it plainly when the section-1 rows are not on equal footing."""
+
+    kinds = {entry["weights"].fine_tuned for entry in entries}
+    if len(kinds) < 2:
+        return []
+    fine = [e["spec"].title for e in entries if e["weights"].fine_tuned]
+    pre = [e["spec"].title for e in entries if not e["weights"].fine_tuned]
+    return [
+        (
+            f"**The rows above are not a like-for-like comparison.** "
+            f"{', '.join(fine)} ran on fine-tuned 3-class weights while "
+            f"{', '.join(pre)} ran on a public pretrained head. The difference is one "
+            "linear layer over 300 queries, so it is small - but it is not zero, and "
+            "section 4 already withdraws any claim that these two models can be "
+            "separated on this measurement at all."
+        ),
+        "",
+    ]
+
+
+# spec: DEMO-03
 def render_report(
     *,
     generated_at: str,
@@ -423,17 +569,15 @@ def render_report(
     contention = evaluate_contention(
         [*all_results, *resolution_results], max_ratio=settings.max_p95_to_statistic_ratio
     )
+    # Section 1 only, deliberately: the resolution probes in section 4 are meant
+    # to run at other input sizes and a clock difference there is not a defect
+    # in the head-to-head comparison this check protects.
+    clocks = evaluate_clock_spread(all_results, max_ratio=settings.max_clock_spread_ratio)
 
     lines = [
         "# Speed baseline probe (DEMO-03 / DEMO-05)",
         "",
-        "> **PROVISIONAL - NOT A FINAL RESULT.**",
-        "> Both models are measured from their PUBLIC PRETRAINED COCO checkpoints, not",
-        "> from this project's fine-tuned 3-class weights, which do not exist yet (the",
-        "> four-arm run is still executing). Fine-tuning changes one linear layer at the",
-        "> end of the network - 91 or 80 class logits per query become 3 - and nothing",
-        "> else, so these numbers should carry over closely. They MUST still be",
-        "> re-measured on the final weights before any of them reaches the README.",
+        *weights_banner(entries),
         "",
         f"- Generated: `{generated_at}`",
         f"- Device: `{device_name}`",
@@ -472,6 +616,7 @@ def render_report(
             "it the timer would measure how fast Python enqueues work."
         ),
         "",
+        *weights_asymmetry_note(entries),
         "### Contention check (performed, not asserted)",
         "",
         (
@@ -501,6 +646,7 @@ def render_report(
             "rows exceeded the threshold."
         ),
         "",
+        *format_clock_check(clocks),
         "## 2. Peak VRAM",
         "",
         "| Model | Peak allocated VRAM (MiB) |",
@@ -527,15 +673,16 @@ def render_report(
         "## 3. Landing check",
         "",
         (
-            "| Model | Role | Checkpoint | Model class | Params (M) | Native input | "
-            "Logits | Boxes | Detections |"
+            "| Model | Role | Weights measured | Head | Model class | Params (M) | "
+            "Native input | Logits | Boxes | Detections |"
         ),
-        "|---|---|---|---|---:|---:|---|---|---:|",
+        "|---|---|---|---|---|---:|---:|---|---|---:|",
     ]
     for entry in entries:
-        spec, landing = entry["spec"], entry["landing"]
+        spec, landing, weights = entry["spec"], entry["landing"], entry["weights"]
         lines.append(
-            f"| {spec.title} | {spec.role} | `{spec.checkpoint}` | "
+            f"| {spec.title} | {spec.role} | `{weights.source}` | "
+            f"{weights.describe()} | "
             f"`{landing['model_class']}` | {landing['parameters_m']:.2f} | "
             f"{landing['native_input_size']} | `{landing['logits_shape']}` | "
             f"`{landing['boxes_shape']}` | {landing['n_detections']} |"
@@ -545,9 +692,11 @@ def render_report(
         "",
         (
             "Every model above completed a real forward pass on a real project image; "
-            "the shapes are read off the returned tensors, not assumed. `Detections` is "
-            "the count surviving the post-processing threshold with the pretrained COCO "
-            "head, and carries no meaning for this project's classes."
+            "the shapes are read off the returned tensors, not assumed. `Head` is the "
+            "class list read back off `config.id2label` after loading, and it is what "
+            "decides the banner at the top of this report. `Detections` counts what "
+            "survives the post-processing threshold, and carries meaning for this "
+            "project's classes only on a fine-tuned row."
         ),
         "",
         "## 4. Resolution sensitivity: compute-bound or dispatch-bound?",
@@ -636,11 +785,7 @@ def render_report(
         "",
         "## 6. What this probe does NOT establish",
         "",
-        (
-            "- These are pretrained-checkpoint numbers. They must be re-measured on the "
-            "fine-tuned 3-class weights and section 1 replaced wholesale. Until then no "
-            "number here may appear in the README without the PROVISIONAL label."
-        ),
+        *pretrained_caveat(entries),
         (
             "- The accuracy half of DEMO-05 (RF-DETR-Nano trained on the same four "
             "arms) is out of scope: this is a latency-only probe."
@@ -682,7 +827,41 @@ def parse_args() -> argparse.Namespace:
         help="subset of model keys to benchmark",
     )
     parser.add_argument("--device", default=None, help="override the auto-detected device")
+    parser.add_argument(
+        "--weights",
+        nargs="*",
+        default=[],
+        metavar="KEY=PATH",
+        help=(
+            "benchmark a model from local fine-tuned weights instead of its Hub "
+            "checkpoint, e.g. rtdetrv2_r18=D:/.../checkpoint-1752. The processor and "
+            "the licence evidence still come from the Hub id."
+        ),
+    )
     return parser.parse_args()
+
+
+def parse_weight_overrides(pairs: Sequence[str]) -> dict[str, str]:
+    """`KEY=PATH` into a mapping, refusing anything this run cannot honour.
+
+    An unknown key is a hard error rather than a silent no-op: the whole purpose
+    of the flag is to remove the PROVISIONAL banner, and a typo that quietly did
+    nothing would produce a report labelled provisional for a reason the operator
+    believes they just fixed.
+    """
+
+    known = {spec.key for spec in MODEL_SPECS}
+    overrides: dict[str, str] = {}
+    for pair in pairs:
+        key, separator, path = pair.partition("=")
+        if not separator or not key or not path:
+            raise SystemExit(f"--weights expects KEY=PATH, got {pair!r}")
+        if key not in known:
+            raise SystemExit(f"--weights key {key!r} is not one of {sorted(known)}")
+        if not Path(path).is_dir():
+            raise SystemExit(f"--weights path for {key} is not a directory: {path}")
+        overrides[key] = path
+    return overrides
 
 
 def main() -> None:
@@ -716,13 +895,21 @@ def main() -> None:
     selected = [spec for spec in MODEL_SPECS if spec.key in wanted]
     if not selected:
         raise SystemExit(f"no known model keys in {args.models}")
+    overrides = parse_weight_overrides(args.weights)
+    clock_sampler = make_clock_sampler(device)
 
     entries: list[dict[str, Any]] = []
     resolution_results: list[LatencyResult] = []
     resolution_probes: list[ResolutionProbe] = []
     for spec in selected:
         print(f"\n=== {spec.title} ({spec.checkpoint}) ===")
-        model, processor = load_detector(spec.checkpoint, device=device, dtype_name=dtype_name)
+        model, processor, weights = load_detector(
+            spec.checkpoint,
+            weights=overrides.get(spec.key),
+            device=device,
+            dtype_name=dtype_name,
+        )
+        print(f"    weights: {weights.source} ({weights.describe()})")
 
         end_to_end = build_end_to_end_callable(
             model,
@@ -759,6 +946,7 @@ def main() -> None:
             settings=settings,
             device=device,
             dtype=dtype_name,
+            clock_sampler=clock_sampler,
         )
         for result in report.results():
             p95 = "n/a" if result.p95_ms is None else f"{result.p95_ms:.2f}"
@@ -788,6 +976,7 @@ def main() -> None:
                 device=device,
                 dtype_name=dtype_name,
                 label=f"{spec.title} [model-only @ {probe_size}]",
+                clock_sampler=clock_sampler,
             )
             resolution_results.append(probe)
             resolution_probes.append(
@@ -813,6 +1002,7 @@ def main() -> None:
                     device=device,
                     dtype_name=dtype_name,
                     label=f"{spec.title} [model-only @ {native}, native preset]",
+                    clock_sampler=clock_sampler,
                 )
             )
             print(
@@ -826,6 +1016,7 @@ def main() -> None:
                 "spec": spec,
                 "landing": landing,
                 "report": report,
+                "weights": weights,
                 "licence": fetch_licence_evidence(spec.checkpoint, api=hub_api),
             }
         )

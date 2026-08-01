@@ -70,6 +70,7 @@ BENCHMARK_KEYS = (
     "dtype",
     "input_size",
     "max_p95_to_statistic_ratio",
+    "max_clock_spread_ratio",
 )
 
 
@@ -90,8 +91,14 @@ class BenchmarkSettings:
     dtype: str
     input_size: int
     max_p95_to_statistic_ratio: float
+    max_clock_spread_ratio: float
 
     def __post_init__(self) -> None:
+        if self.max_clock_spread_ratio < 1.0:
+            raise BenchmarkConfigError(
+                f"benchmark.max_clock_spread_ratio must be >= 1.0, got "
+                f"{self.max_clock_spread_ratio}"
+            )
         if self.warmup_iterations < 0:
             raise BenchmarkConfigError(
                 f"benchmark.warmup_iterations must be >= 0, got {self.warmup_iterations}"
@@ -159,6 +166,7 @@ def load_benchmark_settings(config_path: Path | None = None) -> BenchmarkSetting
             dtype=str(block["dtype"]),
             input_size=int(block["input_size"]),
             max_p95_to_statistic_ratio=float(block["max_p95_to_statistic_ratio"]),
+            max_clock_spread_ratio=float(block["max_clock_spread_ratio"]),
         )
     except BenchmarkConfigError:
         raise
@@ -174,6 +182,42 @@ def default_cuda_api() -> Any:
     import torch
 
     return torch.cuda
+
+
+# spec: DEMO-03
+def make_clock_sampler(device: str, *, query: Callable[[], str] | None = None):
+    """A callable returning the current SM clock in MHz, or None off CUDA.
+
+    `query` is injectable so the parsing and the failure handling are testable
+    without an NVIDIA driver. A machine that cannot answer yields None rather
+    than raising: an unreadable clock must degrade the report to "n/a", never
+    lose the latency measurement that was already taken.
+    """
+
+    if device != "cuda":
+        return lambda: None
+
+    def read_nvidia_smi() -> str:
+        import subprocess
+
+        return subprocess.run(
+            ["nvidia-smi", "--query-gpu=clocks.sm", "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            shell=True,
+            timeout=10,
+            check=False,  # a non-zero exit means "unknown clock", handled below
+        ).stdout
+
+    source = read_nvidia_smi if query is None else query
+
+    def sample() -> int | None:
+        try:
+            return int(source().strip().splitlines()[0].strip())
+        except Exception:  # noqa: BLE001 - any failure means "unknown", not "crash"
+            return None
+
+    return sample
 
 
 # spec: DEMO-03
@@ -288,6 +332,72 @@ def time_callable(
     return durations_ms
 
 
+# spec: DEMO-03
+def time_callable_with_clock(
+    fn: Callable[[], Any],
+    *,
+    warmup_iterations: int,
+    timed_iterations: int,
+    synchronize: Callable[[], None] | None = None,
+    timer: Callable[[], float] | None = None,
+    clock_sampler: Callable[[], int | None] | None = None,
+) -> tuple[list[float], int | None]:
+    """`time_callable`, plus the SM clock read from INSIDE the timed region.
+
+    Sampling after the loop instead looks correct and is not: an `nvidia-smi`
+    call costs around 100 ms, and by the time it answers the device has begun
+    dropping out of its boost state. Worse, the error is not even constant
+    across rows - an end-to-end iteration finishes with CPU-side
+    post-processing, so its GPU has idled longer than a model-only one had. The
+    first version of this check read 2520 / 1770 / 2340 / 1680 MHz for four rows
+    measured back to back and declared a 1.50x spread that was an artefact of
+    where the thermometer was held (K-22).
+
+    So the sample is taken at the midpoint of the timed loop, while the device
+    is under exactly the load being measured, and the iteration it interrupts is
+    DISCARDED rather than timed - one of `timed_iterations`, and its duration
+    would otherwise include the subprocess.
+    """
+
+    if clock_sampler is None:
+        return (
+            time_callable(
+                fn,
+                warmup_iterations=warmup_iterations,
+                timed_iterations=timed_iterations,
+                synchronize=synchronize,
+                timer=timer,
+            ),
+            None,
+        )
+    if timed_iterations < 2:
+        raise ValueError(
+            "clock sampling discards the interrupted iteration, so it needs at "
+            f"least 2 timed iterations, got {timed_iterations}"
+        )
+
+    clock = time.perf_counter if timer is None else timer
+    sync = (lambda: None) if synchronize is None else synchronize
+
+    for _ in range(warmup_iterations):
+        fn()
+    sync()
+
+    midpoint = timed_iterations // 2
+    durations_ms: list[float] = []
+    sm_clock: int | None = None
+    for index in range(timed_iterations):
+        start = clock()
+        fn()
+        sync()
+        elapsed = (clock() - start) * _MS_PER_SECOND
+        if index == midpoint:
+            sm_clock = clock_sampler()
+            continue
+        durations_ms.append(elapsed)
+    return durations_ms, sm_clock
+
+
 @dataclass(frozen=True, kw_only=True)
 class LatencyResult:
     """One measurement.
@@ -308,6 +418,13 @@ class LatencyResult:
     latency_ms: float
     p95_ms: float | None
     fps: float
+    # The SM clock observed around the timed region, or None off CUDA. Measured
+    # because on this desktop GPU it is not a constant: two runs of the identical
+    # harness came out 2.3x apart, and the clocks during them were 2520 MHz and
+    # 1215 MHz - a 2.07x ratio against a 2.16x latency ratio. Without this
+    # column a reader cannot tell a boost-clock number from a downclocked one,
+    # and neither can a comparison between two rows (K-22).
+    sm_clock_mhz: int | None = None
 
     # spec: DEMO-03
     @classmethod
@@ -320,6 +437,7 @@ class LatencyResult:
         device: str,
         dtype: str,
         input_size: int | None = None,
+        sm_clock_mhz: int | None = None,
     ) -> LatencyResult:
         """Reduce raw per-iteration durations to the statistics DEMO-03 asks for."""
 
@@ -344,6 +462,7 @@ class LatencyResult:
             latency_ms=statistic,
             p95_ms=p95,
             fps=settings.batch_size * _MS_PER_SECOND / statistic,
+            sm_clock_mhz=sm_clock_mhz,
         )
 
     # spec: DEMO-03
@@ -372,6 +491,7 @@ class LatencyResult:
             "latency_ms": self.latency_ms,
             "p95_ms": self.p95_ms,
             "fps": self.fps,
+            "sm_clock_mhz": self.sm_clock_mhz,
         }
 
 
@@ -420,8 +540,15 @@ def run_benchmark(
     input_size: int | None = None,
     cuda_api: Any | None = None,
     timer: Callable[[], float] | None = None,
+    clock_sampler: Callable[[], int | None] | None = None,
 ) -> BenchmarkReport:
-    """Measure one model both ways and read peak VRAM across the whole run."""
+    """Measure one model both ways and read peak VRAM across the whole run.
+
+    `clock_sampler` is read once per timed region, immediately after it ends,
+    while the device is still under the load that produced the number. Sampling
+    it before the warmup instead would report the idle clock and describe a
+    different machine state than the one that was timed (K-22).
+    """
 
     if settings.separate_model_and_e2e and model_only is None:
         raise ValueError(
@@ -437,34 +564,40 @@ def run_benchmark(
     model_result: LatencyResult | None = None
     if settings.separate_model_and_e2e:
         assert model_only is not None  # guarded above; narrows the type
+        durations, model_clock = time_callable_with_clock(
+            model_only,
+            warmup_iterations=settings.warmup_iterations,
+            timed_iterations=settings.timed_iterations,
+            synchronize=synchronize,
+            timer=timer,
+            clock_sampler=clock_sampler,
+        )
         model_result = LatencyResult.from_durations(
-            time_callable(
-                model_only,
-                warmup_iterations=settings.warmup_iterations,
-                timed_iterations=settings.timed_iterations,
-                synchronize=synchronize,
-                timer=timer,
-            ),
+            durations,
             label=f"{label} [model-only]",
             settings=settings,
             device=device,
             dtype=dtype_name,
             input_size=input_size,
+            sm_clock_mhz=model_clock,
         )
 
+    e2e_durations, e2e_clock = time_callable_with_clock(
+        end_to_end,
+        warmup_iterations=settings.warmup_iterations,
+        timed_iterations=settings.timed_iterations,
+        synchronize=synchronize,
+        timer=timer,
+        clock_sampler=clock_sampler,
+    )
     e2e_result = LatencyResult.from_durations(
-        time_callable(
-            end_to_end,
-            warmup_iterations=settings.warmup_iterations,
-            timed_iterations=settings.timed_iterations,
-            synchronize=synchronize,
-            timer=timer,
-        ),
+        e2e_durations,
         label=f"{label} [end-to-end]",
         settings=settings,
         device=device,
         dtype=dtype_name,
         input_size=input_size,
+        sm_clock_mhz=e2e_clock,
     )
 
     return BenchmarkReport(
@@ -533,19 +666,67 @@ def evaluate_contention(
 
 
 # spec: DEMO-03
+def evaluate_clock_spread(
+    results: Sequence[LatencyResult], *, max_ratio: float
+) -> dict[str, Any]:
+    """Were all rows measured at comparable GPU clocks? (K-22)
+
+    The p95 check is a WITHIN-row test: it catches a run whose tail blew out. It
+    is blind to the failure that actually occurred here, where every row scaled
+    together because the device was clocked lower for the whole run - the
+    ratios stay unremarkable while the numbers move by a factor of two.
+
+    This is the BETWEEN-row test. If two models are timed at clocks that differ
+    by more than `max_ratio`, the head-to-head comparison in section 1 is
+    measuring the power state, not the networks, and must not be published.
+    """
+
+    observed = [(r.label, r.sm_clock_mhz) for r in results if r.sm_clock_mhz is not None]
+    unchecked = [r.label for r in results if r.sm_clock_mhz is None]
+    if not observed:
+        return {
+            "max_ratio": max_ratio,
+            "observed": [],
+            "unchecked": unchecked,
+            "spread": None,
+            "lowest": None,
+            "highest": None,
+            "passed": True,
+        }
+    clocks = [clock for _, clock in observed]
+    lowest, highest = min(clocks), max(clocks)
+    spread = highest / lowest
+    return {
+        "max_ratio": max_ratio,
+        "observed": observed,
+        "unchecked": unchecked,
+        "spread": spread,
+        "lowest": lowest,
+        "highest": highest,
+        "passed": spread <= max_ratio,
+    }
+
+
+# spec: DEMO-03
 def format_results_table(results: Sequence[LatencyResult]) -> str:
-    """Markdown table. Batch, input size and dtype are columns, never a footnote."""
+    """Markdown table. Batch, input size, dtype and SM clock are columns.
+
+    The clock is a column and not a footnote for the same reason as the other
+    three: on a desktop GPU the same measurement is worth 12 ms or 27 ms
+    depending on it, so an FPS reported without it is not reproducible.
+    """
 
     header = (
-        "| Measurement | Device | Batch | Input | dtype | "
+        "| Measurement | Device | Batch | Input | dtype | SM clock (MHz) | "
         f"{statistic_column_header(results)} | p95 (ms) | FPS | Iters (warmup+timed) |"
     )
-    divider = "|---|---|---:|---:|---|---:|---:|---:|---|"
+    divider = "|---|---|---:|---:|---|---:|---:|---:|---:|---|"
     lines = [header, divider]
     for result in results:
+        clock = "n/a" if result.sm_clock_mhz is None else str(result.sm_clock_mhz)
         lines.append(
             f"| {result.label} | {result.device} | {result.batch_size} | "
-            f"{result.input_size} | {result.dtype} | {result.latency_ms:.2f} | "
+            f"{result.input_size} | {result.dtype} | {clock} | {result.latency_ms:.2f} | "
             f"{_format_optional(result.p95_ms, 2)} | {result.fps:.1f} | "
             f"{result.warmup_iterations}+{result.timed_iterations} |"
         )
