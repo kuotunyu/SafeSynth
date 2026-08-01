@@ -8,15 +8,18 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-01 晚（M20 ① 的程式完成，但數字量不出來——見下）
-- **最後驗證 commit**：`00a3da9` docs(worklog): the afternoon, including the mistake and the two things measured then declined
+- **更新時間**：2026-08-02 凌晨（EVAL-09 完成、DEMO-04 GIF 產出、M23 誠實降級）
+- **最後驗證 commit**：`4f33a3f` feat(eval): EVAL-09 satisfied, and two claims it takes away
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19` 完成**，
   **`M20` 與 `M22` 進行中**（都只差需要 GPU 或需要你選素材的那一半），
   **`M23` 實質完成**（README 有結果與圖、`verify_readme` PASS、CI 已加兩道關卡），
   `M21` 依前置判斷暫緩，`M24` 未開始。
 - **⚠️ 未 commit 的改動**：無（收工時工作樹乾淨）。
-- **最重要的一句話**：**合成資料在這個資料集上沒有提升，四組主表已在凍結 Test 上算完並交叉驗證。**
-  但它在真實標註稀少時確實有效——交叉點約在 4 輪真實資料。
+- **最重要的一句話**：**合成資料在這個資料集上沒有提升，而且現在有信賴區間撐著這句話**——
+  `real_only` 與兩個合成組的 95% CI **不重疊**。
+  但同一批區間也**收回了兩個主張**：`real_only` 勝過 `standard_aug`（重疊，不成立）、
+  `filtered_syn` 在偵測指標上勝過 `unfiltered_syn`（三個指標全部重疊，不成立）。
+  過濾可量測的效果在合規操作點，不在 AP。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`（SHA256
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`）；
@@ -31,10 +34,10 @@ uns\<arm>\seed_1337\`
 - **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
   GPU 於本輪後段空出並用於 M20 ①（延遲重測），其餘評測與分析在 CPU 上。
 - **下一個動作（一句話、可直接動手）**：等使用者對 `instructions_for_me.md` 裡的 repo 體積問題（437 MB，其中 362.9 MB 是孤兒圖）做決定，那件事在第一次 push 之前處理才便宜。
-- **卡住的事**：**M20 ① 卡在機器本身**。`reports/speed_baseline_probe.md` 目前是
-  **FAIL** 狀態且這是正確的——這台 4090 在使用中，同一次執行內 SM clock 從 690 盪到 2520 MHz。
-  要取得可發佈的延遲數字需要 `nvidia-smi -lgc 2520,2520`（**管理員權限，使用者親自執行**），
-  量完再 `nvidia-smi -rgc`。詳見 [K-22](troubleshooting.md)。
+- **卡住的事**：**只剩 M20 ① 的最後一哩**。鎖時脈確實有效——clock check
+  從 spread 3.65 變成 **1.00（PASS）**，延遲回到 13.26 ms 那個區間。
+  但 p95 尾巴（1.40 vs 門檻 1.30）還在，那是機器有人在用。
+  需要的是「鎖住時脈 ＋ 4 分鐘沒人碰機器」，兩者同時成立。詳見 [K-22](troubleshooting.md)。
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
      這是預先登記的閘門確實有預測力，不是事後找的藉口
@@ -60,6 +63,36 @@ uns\<arm>\seed_1337\`
 ---
 
 ## 工作日誌
+
+### 2026-08-02（凌晨）— EVAL-09 補上了，代價是收回兩個主張
+
+- **對應規格**：EVAL-09、DEMO-04、PUB-01
+- **EVAL-09 完成**。1,000 次重抽 × 3 指標 × 4 組，單位是 Test **影像**。
+  16 workers 實測 **2 小時 20 分**（單執行緒 9.3 小時）。
+  平行化的關鍵不是加 process pool，而是**讓區間與 worker 數無關**——
+  改用 `SeedSequence(seed)` 的獨立子種子，`(seed, k)` 唯一決定第 k 次抽樣。
+  在真實的 223,200 筆偵測上驗過 1/8/12/16/20 workers，`BootstrapCI` 逐欄相等。
+- **對帳結果比預期好**：重跑的 424 個點估計與已 commit 的主表**零不一致**。
+  這也第一次證實了 [K-23](troubleshooting.md)：`--device cpu` 才重現得了已發佈的數字。
+- **它收回了兩個主張，這是這一輪最重要的產出**：
+  `real_only` vs `standard_aug` 區間重疊——0.0275 的點差在雜訊內，
+  README 原本把它當排序；`filtered_syn` vs `unfiltered_syn` 三個偵測指標區間全部重疊。
+  **只有「real_only 勝過兩個合成組」是區間不重疊、成立的。**
+- **DEMO-04 的 GIF 產出**，而且不需要工地素材：資料集有 501 張同時含戴帽與裸頭。
+  改成靜態幀蒙太奇（pHash 分群顯示 4,643/4,808 是單張，沒有連續影格可用），README 明說。
+- **順手發現 demo 的 CUDA 路徑從來沒被執行過，而且是壞的**：processor 輸出 float32
+  對上 float16 模型、`outputs.to("cpu")` 而 `ModelOutput` 沒有 `.to()`。都已修。
+- **選圖錯兩次，都是打開圖才發現的**（詳見 PLAN M22）。第二次的教訓是
+  「濾標註數」不等於「濾畫出來的框」——0.07 操作點下模型框數遠多於物件數。
+- **M23 從 `[ ]` 改成 `[~]`**：四條本機條件全綠，但「CI 為綠」需要 workflow
+  真的在 GitHub 跑過，而 `git remote -v` 是空的。勾 `[x]` 就是宣稱沒發生的事。
+- **驗證**：`1453 passed, 42 skipped`；ruff clean；`verify_readme` PASS；
+  變異測試 13/13（GIF 選圖）、14/14（時脈檢查）、10/10（PROVISIONAL 推導）。
+- **verify_readme 這一輪抓到我兩次**：CI 欄位不是 CSV 裡的指標名（改成「點估計＋區間同格」
+  它就驗得動了），以及我把 `unfiltered_syn` 的區間貼到 `filtered_syn` 那列。
+- **刻意不做**：沒有為了讓 speed probe 變綠而放寬 `max_clock_spread_ratio`，
+  也沒有從三次 FAIL 的執行裡挑好看的數字。
+
 
 ### 2026-08-01（晚）— M20 ①：微調權重重測，以及一個會幫忙背書的驗收條件
 
