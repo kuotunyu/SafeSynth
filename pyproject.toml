@@ -43,6 +43,7 @@ dependencies = [
     "pycocotools>=2.0.11",    # 2.0.11 ships cp312-abi3 win_amd64 wheels, no MSVC needed
     # reporting
     "matplotlib",
+    "gradio>=6.22.0",
 ]
 
 [dependency-groups]
