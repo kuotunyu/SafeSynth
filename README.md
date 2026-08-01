@@ -116,6 +116,12 @@ Four arms, one seed each, RT-DETRv2-R18, an equal optimizer-step budget of
 [`results/detection_metrics.csv`](results/detection_metrics.csv), and
 `scripts/verify_readme.py` fails the build if one of them is not.
 
+![headline result](reports/figures/headline.png)
+
+Both panels are the result. The left one alone says the method does not work;
+the right one alone says it does. Reporting either without the other would be
+the selective presentation this project's rules forbid.
+
 Two independent implementations computed this table and agree to 8.8e-07.
 
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real-image exposures |
