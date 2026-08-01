@@ -686,3 +686,35 @@ nvidia-smi -rgc
 `11.81 ms` 那個數字當初是「通過」的——p95 檢查給了 PASS。
 一個只會檢查自己想得到的失敗模式的驗收條件，
 在遇到沒想到的那一種時，會**主動幫忙背書**。
+
+---
+
+### K-23 — 重跑 `scripts/eval.py` 會得到「幾乎一樣但不完全一樣」的主表
+
+**症狀**
+用 `--bootstrap-resamples 2` 做煙霧測試，順手把 `results/detection_metrics.csv`
+覆蓋掉了。比對之後發現**共同的 424 個鍵裡有 295 個數值不同**，
+抽看的五個差在 5e-5 ~ 7e-4 之間。
+
+**原因兩個，都不是 bug**
+
+1. **裝置不同。** 已 commit 的主表是在 **CPU** 上算的
+   （當時 GPU 被另一個專案佔用）。`scripts/eval.py` 沒指定 `--device` 時會自動選 CUDA，
+   fp16 與 fp32 的捨入不同，偵測分數就會在小數第四位分家。
+   **要重現已發佈的數字，必須 `--device cpu`。**
+2. **少了 17 列。** `bare_head_recall_at_op`、`operating_point`、`op_*` 這幾列
+   不是 `eval.py` 產的，是 `scripts/append_derived_metrics.py` 事後補上去的。
+   重跑 `eval.py` 會把它們沖掉，**必須接著再跑一次那支腳本**。
+
+**處置**
+重跑主表的正確指令是兩步，不是一步：
+
+```
+uv run python -m scripts.eval --device cpu --bootstrap-resamples 1000 --bootstrap-workers 16
+uv run python scripts/append_derived_metrics.py
+```
+
+**教訓**
+「煙霧測試」用了正式的輸出路徑，就不是煙霧測試了。
+這次靠 `git checkout --` 就救回來，是因為那份 CSV 已經進 git；
+如果它還在工作樹裡沒 commit，我就把四組跑出來的結果洗掉了。
