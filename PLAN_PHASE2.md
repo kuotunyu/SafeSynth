@@ -32,7 +32,7 @@
 
 ## M15 — 訓練 notebook 備妥（本機，**做完停下來交接**）
 
-- [ ] **M15** `notebooks/01_train_rtdetrv2.ipynb` ＋ 本機 smoke test ＋ 更新 `instructions_for_me.md`
+- [x] **M15** `notebooks/01_train_rtdetrv2.ipynb` ＋ 本機 smoke test ＋ 更新 `instructions_for_me.md`
   - **對應規格**：TRAIN-01 ~ TRAIN-14
   - **驗證**：本機以最小步數（1 step）跑通並存出 checkpoint，且能被重新載回；
     **斷點續跑分支實測**——刪 checkpoint／保留 checkpoint 各跑一次，行為符合預期；
@@ -41,7 +41,14 @@
     資料流程是「解壓到 `/content/data` 再訓練」而非直接從掛載的 Drive 讀圖；
     `instructions_for_me.md` 已寫到照做就行（Drive 路徑、Runtime 選型、Secrets 名稱、
     預估時數與 compute units、跑完要下載哪些檔案放回 `results/colab/` 的哪個路徑）
-  - **驗證於**：（未完成）
+  - **驗證於**：`5b0a1a0` @ 2026-08-01
+  - **實際結果**：本機 smoke test 冷啟動／熱啟動皆通過並回傳真實 COCO 指標
+    （`eval_map` / `eval_map_small` 有值，不是 0）；Colab 上四組**完整跑完**，
+    最後一格印出 `寫到 Drive: .../results_colab.zip`。
+    實測 L4 約 1.7–1.9 it/s，`real_only` 組 `train_runtime_seconds` 6356.6（約 1.77 小時）。
+  - **踩到的坑**：第一次 Colab 四組**全數陣亡**（[K-18](docs/troubleshooting.md)）。
+    smoke test 當初設 `eval_strategy="no"`，於是 `compute_metrics` 本機零覆蓋。
+    現在 smoke test 一定跑 eval（val 的 16 張切片）。
 
 > **這裡是本 phase 的第一個交接點。** M15 做完先停，等使用者跑完 Colab
 > 把產出放回 `results/colab/` 之後才繼續 M16。
