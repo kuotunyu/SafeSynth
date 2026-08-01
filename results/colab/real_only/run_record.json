@@ -1,0 +1,33 @@
+{
+  "arm": "real_only",
+  "bf16": true,
+  "composition": {
+    "arm": "real_only",
+    "augmentation_profile": "real_only",
+    "n_real_train": 3500,
+    "n_real_val": 756,
+    "n_synthetic": 0,
+    "n_train_total": 3500,
+    "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+  },
+  "eval_metrics": {
+    "eval_loss": 6.046206951141357,
+    "eval_map": 0.33117704239127627,
+    "eval_map_50": 0.5428132356273437,
+    "eval_map_75": 0.37228614960392353,
+    "eval_map_large": 0.24092213562751083,
+    "eval_map_medium": 0.4052436860203257,
+    "eval_map_small": 0.28316269490378554,
+    "eval_mar_1": 0.11396355478245956,
+    "eval_mar_10": 0.473631618242439,
+    "eval_mar_100": 0.6241539889093903,
+    "eval_mar_large": 0.7587782684330256,
+    "eval_mar_medium": 0.6473484739197536,
+    "eval_mar_small": 0.5305718389670468
+  },
+  "resumed_from": null,
+  "seed": 1337,
+  "total_steps": 10900,
+  "train_loss": 7.079114423279369,
+  "train_runtime_seconds": 6356.6495
+}

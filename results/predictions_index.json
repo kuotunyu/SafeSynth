@@ -1,0 +1,90 @@
+{
+  "filtered_syn/test/seed_1337": {
+    "arm": "filtered_syn",
+    "checkpoint": "checkpoint-3066",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 223200,
+    "n_images": 744,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/filtered_syn_test_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "test"
+  },
+  "filtered_syn/val/seed_1337": {
+    "arm": "filtered_syn",
+    "checkpoint": "checkpoint-3066",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 226800,
+    "n_images": 756,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/filtered_syn_val_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "val"
+  },
+  "real_only/test/seed_1337": {
+    "arm": "real_only",
+    "checkpoint": "checkpoint-1752",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 223200,
+    "n_images": 744,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/real_only_test_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "test"
+  },
+  "real_only/val/seed_1337": {
+    "arm": "real_only",
+    "checkpoint": "checkpoint-1752",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 226800,
+    "n_images": 756,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/real_only_val_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "val"
+  },
+  "standard_aug/test/seed_1337": {
+    "arm": "standard_aug",
+    "checkpoint": "checkpoint-3504",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 223200,
+    "n_images": 744,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/standard_aug_test_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "test"
+  },
+  "standard_aug/val/seed_1337": {
+    "arm": "standard_aug",
+    "checkpoint": "checkpoint-3504",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 226800,
+    "n_images": 756,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/standard_aug_val_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "val"
+  },
+  "unfiltered_syn/test/seed_1337": {
+    "arm": "unfiltered_syn",
+    "checkpoint": "checkpoint-3942",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 223200,
+    "n_images": 744,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/unfiltered_syn_test_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "test"
+  },
+  "unfiltered_syn/val/seed_1337": {
+    "arm": "unfiltered_syn",
+    "checkpoint": "checkpoint-3942",
+    "coordinates": "original per-image annotation space (DATA-25)",
+    "n_detections": 226800,
+    "n_images": 756,
+    "path": "D:/sdg-data/02-safesynth/runs/predictions/unfiltered_syn_val_seed1337.json",
+    "score_threshold": 0.0,
+    "seed": 1337,
+    "split": "val"
+  }
+}

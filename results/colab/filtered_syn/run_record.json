@@ -1,0 +1,33 @@
+{
+  "arm": "filtered_syn",
+  "bf16": true,
+  "composition": {
+    "arm": "filtered_syn",
+    "augmentation_profile": "standard_aug",
+    "n_real_train": 3500,
+    "n_real_val": 756,
+    "n_synthetic": 3500,
+    "n_train_total": 7000,
+    "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3"
+  },
+  "eval_metrics": {
+    "eval_loss": 6.009129524230957,
+    "eval_map": 0.3181164156799178,
+    "eval_map_50": 0.5138825576410171,
+    "eval_map_75": 0.35265074410765596,
+    "eval_map_large": 0.44080016418273726,
+    "eval_map_medium": 0.4105384730661111,
+    "eval_map_small": 0.23492155191252193,
+    "eval_mar_1": 0.11656773325596569,
+    "eval_mar_10": 0.4775078306132975,
+    "eval_mar_100": 0.6283712648358739,
+    "eval_mar_large": 0.7931308265310674,
+    "eval_mar_medium": 0.6499867661705118,
+    "eval_mar_small": 0.5181132531302063
+  },
+  "resumed_from": null,
+  "seed": 1337,
+  "total_steps": 10900,
+  "train_loss": 8.846435479680332,
+  "train_runtime_seconds": 5744.4443
+}

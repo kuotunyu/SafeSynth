@@ -1,0 +1,1267 @@
+{
+  "budget_shares": {
+    "crowded": 0.14142857142857143,
+    "hard_negative": 0.13257142857142856,
+    "head_no_helmet": 0.22142857142857142,
+    "low_light_blur": 0.10371428571428572,
+    "partial_occlusion": 0.18371428571428572,
+    "small_distant": 0.21714285714285714
+  },
+  "config": {
+    "baseline_arm": "real_only",
+    "best_arm": "filtered_syn",
+    "categories": [
+      "fixed_false_negative",
+      "fixed_false_positive",
+      "new_false_positive",
+      "both_wrong"
+    ],
+    "samples_per_category": 12
+  },
+  "counts": {
+    "both_wrong": 849,
+    "fixed_false_negative": 73,
+    "fixed_false_positive": 715,
+    "new_false_negative": 1304,
+    "new_false_positive": 291
+  },
+  "counts_by_class": {
+    "both_wrong": {
+      "head": 124,
+      "helmet": 610,
+      "person": 115
+    },
+    "fixed_false_negative": {
+      "head": 5,
+      "helmet": 65,
+      "person": 3
+    },
+    "fixed_false_positive": {
+      "head": 201,
+      "helmet": 426,
+      "person": 88
+    },
+    "new_false_negative": {
+      "head": 300,
+      "helmet": 1003,
+      "person": 1
+    },
+    "new_false_positive": {
+      "head": 29,
+      "helmet": 201,
+      "person": 61
+    }
+  },
+  "exposure": {
+    "batch_size": 16,
+    "exposures": {
+      "filtered_syn": 24.91,
+      "real_only": 49.83,
+      "standard_aug": 49.83,
+      "unfiltered_syn": 24.91
+    },
+    "reference_arm": "real_only",
+    "reference_epochs": 50,
+    "total_steps": 10900
+  },
+  "figures": {
+    "both_wrong": "reports/figures/error_analysis/both_wrong.png",
+    "fixed_false_negative": "reports/figures/error_analysis/fixed_false_negative.png",
+    "fixed_false_positive": "reports/figures/error_analysis/fixed_false_positive.png",
+    "new_false_positive": "reports/figures/error_analysis/new_false_positive.png"
+  },
+  "hard_negatives": [],
+  "iou_threshold": 0.5,
+  "negative_result": {
+    "arm_values": {
+      "filtered_syn": 0.320036382311053,
+      "real_only": 0.3564465659160052,
+      "standard_aug": 0.32812255380714167,
+      "unfiltered_syn": 0.2987614630939509
+    },
+    "baseline_arm": "real_only",
+    "baseline_value": 0.3564465659160052,
+    "is_negative": true,
+    "metric": "eval_map",
+    "synthetic_arms": [
+      "filtered_syn",
+      "unfiltered_syn"
+    ],
+    "winners": []
+  },
+  "samples": {
+    "both_wrong": [
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          97.0,
+          414.0,
+          5.0,
+          1.0
+        ],
+        "area": 5.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          97.0,
+          67.0,
+          4.0,
+          5.0
+        ],
+        "area": 20.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          97.0,
+          169.0,
+          4.0,
+          5.0
+        ],
+        "area": 20.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          103.0,
+          69.0,
+          4.0,
+          6.0
+        ],
+        "area": 24.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          103.0,
+          165.0,
+          4.0,
+          6.0
+        ],
+        "area": 24.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          306.0,
+          0.0,
+          12.0,
+          3.0
+        ],
+        "area": 36.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 559
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          273.0,
+          402.0,
+          6.0,
+          6.0
+        ],
+        "area": 36.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          278.0,
+          51.0,
+          6.0,
+          6.0
+        ],
+        "area": 36.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          278.0,
+          183.0,
+          6.0,
+          6.0
+        ],
+        "area": 36.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          278.0,
+          399.0,
+          6.0,
+          6.0
+        ],
+        "area": 36.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 3150
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          205.0,
+          196.0,
+          7.0,
+          7.0
+        ],
+        "area": 49.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 2763
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          244.0,
+          0.0,
+          13.0,
+          4.0
+        ],
+        "area": 52.0,
+        "baseline": null,
+        "best": null,
+        "category": "both_wrong",
+        "class_name": "helmet",
+        "image_id": 2184
+      }
+    ],
+    "fixed_false_negative": [
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          123.0,
+          133.0,
+          12.0,
+          17.0
+        ],
+        "area": 204.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            121.84530639648438,
+            132.47218322753906,
+            13.139816284179688,
+            18.665863037109375
+          ],
+          "class_name": "helmet",
+          "score": 0.07282672822475433
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 2184
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          292.0,
+          189.0,
+          15.0,
+          20.0
+        ],
+        "area": 300.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            292.2790222167969,
+            189.8701629638672,
+            15.072662353515625,
+            20.335800170898438
+          ],
+          "class_name": "helmet",
+          "score": 0.07689277827739716
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 3979
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          310.0,
+          239.0,
+          18.0,
+          20.0
+        ],
+        "area": 360.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            310.92987060546875,
+            240.513427734375,
+            16.61163330078125,
+            18.567779541015625
+          ],
+          "class_name": "head",
+          "score": 0.07317584753036499
+        },
+        "category": "fixed_false_negative",
+        "class_name": "head",
+        "image_id": 3826
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          397.0,
+          176.0,
+          18.0,
+          23.0
+        ],
+        "area": 414.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            398.68212890625,
+            177.6547393798828,
+            16.513336181640625,
+            23.917221069335938
+          ],
+          "class_name": "helmet",
+          "score": 0.09096309542655945
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 3350
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          106.0,
+          0.0,
+          23.0,
+          19.0
+        ],
+        "area": 437.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            108.64130401611328,
+            -0.09333348274230957,
+            19.89647674560547,
+            17.95143437385559
+          ],
+          "class_name": "helmet",
+          "score": 0.07258367538452148
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 441
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          380.0,
+          0.0,
+          35.0,
+          13.0
+        ],
+        "area": 455.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            373.9686584472656,
+            0.007976412773132324,
+            41.71728515625,
+            21.329769253730774
+          ],
+          "class_name": "helmet",
+          "score": 0.07396180927753448
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 4840
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          104.0,
+          159.0,
+          19.0,
+          24.0
+        ],
+        "area": 456.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            104.2364273071289,
+            159.29953002929688,
+            17.527984619140625,
+            24.09649658203125
+          ],
+          "class_name": "helmet",
+          "score": 0.08518480509519577
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 1457
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          21.0,
+          400.0,
+          33.0,
+          14.0
+        ],
+        "area": 462.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            23.364116668701172,
+            393.8812255859375,
+            31.806427001953125,
+            20.09423828125
+          ],
+          "class_name": "head",
+          "score": 0.07615290582180023
+        },
+        "category": "fixed_false_negative",
+        "class_name": "head",
+        "image_id": 4919
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          55.0,
+          0.0,
+          51.0,
+          11.0
+        ],
+        "area": 561.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            67.97090911865234,
+            -0.07248283922672272,
+            32.84729766845703,
+            10.80659843981266
+          ],
+          "class_name": "head",
+          "score": 0.0829680785536766
+        },
+        "category": "fixed_false_negative",
+        "class_name": "head",
+        "image_id": 1698
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          130.0,
+          177.0,
+          20.0,
+          31.0
+        ],
+        "area": 620.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            133.49266052246094,
+            176.16636657714844,
+            16.565567016601562,
+            27.58795166015625
+          ],
+          "class_name": "helmet",
+          "score": 0.08018858730792999
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 3858
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          267.0,
+          187.0,
+          24.0,
+          33.0
+        ],
+        "area": 792.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            269.4661865234375,
+            186.22235107421875,
+            22.436248779296875,
+            30.995559692382812
+          ],
+          "class_name": "helmet",
+          "score": 0.08746740967035294
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 2319
+      },
+      {
+        "anchor": "ground_truth",
+        "anchor_box": [
+          98.0,
+          0.0,
+          63.0,
+          13.0
+        ],
+        "area": 819.0,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            97.91815948486328,
+            0.005419373512268066,
+            55.15953826904297,
+            16.28372323513031
+          ],
+          "class_name": "helmet",
+          "score": 0.0786377340555191
+        },
+        "category": "fixed_false_negative",
+        "class_name": "helmet",
+        "image_id": 2419
+      }
+    ],
+    "fixed_false_positive": [
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          326.9046936035156,
+          121.34827423095703,
+          13.20684814453125,
+          19.89684295654297
+        ],
+        "area": 262.7745834826492,
+        "baseline": {
+          "bbox": [
+            326.9046936035156,
+            121.34827423095703,
+            13.20684814453125,
+            19.89684295654297
+          ],
+          "class_name": "head",
+          "score": 0.17944028973579407
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 2786
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          103.38091278076172,
+          0.09834043681621552,
+          25.750709533691406,
+          5.957705095410347
+        ],
+        "area": 153.4151333993051,
+        "baseline": {
+          "bbox": [
+            103.38091278076172,
+            0.09834043681621552,
+            25.750709533691406,
+            5.957705095410347
+          ],
+          "class_name": "helmet",
+          "score": 0.173862025141716
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "helmet",
+        "image_id": 3163
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          378.9380187988281,
+          129.13182067871094,
+          27.063720703125,
+          38.19157409667969
+        ],
+        "area": 1033.6060945652425,
+        "baseline": {
+          "bbox": [
+            378.9380187988281,
+            129.13182067871094,
+            27.063720703125,
+            38.19157409667969
+          ],
+          "class_name": "head",
+          "score": 0.16292737424373627
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 2773
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          188.0113067626953,
+          369.5759582519531,
+          44.63423156738281,
+          43.8731689453125
+        ],
+        "area": 1958.2451822999865,
+        "baseline": {
+          "bbox": [
+            188.0113067626953,
+            369.5759582519531,
+            44.63423156738281,
+            43.8731689453125
+          ],
+          "class_name": "helmet",
+          "score": 0.15526056289672852
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "helmet",
+        "image_id": 2779
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          111.72557830810547,
+          183.82398986816406,
+          27.44017791748047,
+          36.901123046875
+        ],
+        "area": 1012.573381761089,
+        "baseline": {
+          "bbox": [
+            111.72557830810547,
+            183.82398986816406,
+            27.44017791748047,
+            36.901123046875
+          ],
+          "class_name": "head",
+          "score": 0.15352407097816467
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 2383
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          251.90237426757812,
+          -0.02448830008506775,
+          24.351837158203125,
+          9.427543491125107
+        ],
+        "area": 229.5780038977564,
+        "baseline": {
+          "bbox": [
+            251.90237426757812,
+            -0.02448830008506775,
+            24.351837158203125,
+            9.427543491125107
+          ],
+          "class_name": "helmet",
+          "score": 0.15115897357463837
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "helmet",
+        "image_id": 4080
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          146.54420471191406,
+          143.92185974121094,
+          15.72216796875,
+          18.610671997070312
+        ],
+        "area": 292.60011114925146,
+        "baseline": {
+          "bbox": [
+            146.54420471191406,
+            143.92185974121094,
+            15.72216796875,
+            18.610671997070312
+          ],
+          "class_name": "head",
+          "score": 0.14689332246780396
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 3671
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          288.1741943359375,
+          301.96502685546875,
+          47.17919921875,
+          44.10247802734375
+        ],
+        "area": 2080.7195968925953,
+        "baseline": {
+          "bbox": [
+            288.1741943359375,
+            301.96502685546875,
+            47.17919921875,
+            44.10247802734375
+          ],
+          "class_name": "helmet",
+          "score": 0.13609202206134796
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "helmet",
+        "image_id": 4600
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          258.0400695800781,
+          0.8751614093780518,
+          28.2330322265625,
+          37.76433062553406
+        ],
+        "area": 1066.2015635652642,
+        "baseline": {
+          "bbox": [
+            258.0400695800781,
+            0.8751614093780518,
+            28.2330322265625,
+            37.76433062553406
+          ],
+          "class_name": "head",
+          "score": 0.13459280133247375
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 2940
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          368.5740051269531,
+          183.05201721191406,
+          8.3414306640625,
+          11.650665283203125
+        ],
+        "area": 97.18321665003896,
+        "baseline": {
+          "bbox": [
+            368.5740051269531,
+            183.05201721191406,
+            8.3414306640625,
+            11.650665283203125
+          ],
+          "class_name": "head",
+          "score": 0.13309167325496674
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 16
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          177.56748962402344,
+          141.833984375,
+          12.829727172851562,
+          16.416885375976562
+        ],
+        "area": 210.62416040175594,
+        "baseline": {
+          "bbox": [
+            177.56748962402344,
+            141.833984375,
+            12.829727172851562,
+            16.416885375976562
+          ],
+          "class_name": "head",
+          "score": 0.13248558342456818
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "head",
+        "image_id": 105
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          4.074042320251465,
+          -7.646790504455566,
+          343.8532953262329,
+          376.15725803375244
+        ],
+        "area": 129342.91273578588,
+        "baseline": {
+          "bbox": [
+            4.074042320251465,
+            -7.646790504455566,
+            343.8532953262329,
+            376.15725803375244
+          ],
+          "class_name": "person",
+          "score": 0.13040336966514587
+        },
+        "best": null,
+        "category": "fixed_false_positive",
+        "class_name": "person",
+        "image_id": 4600
+      }
+    ],
+    "new_false_positive": [
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          96.25980377197266,
+          113.77424621582031,
+          116.20977020263672,
+          179.98020935058594
+        ],
+        "area": 20915.45876965404,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            96.25980377197266,
+            113.77424621582031,
+            116.20977020263672,
+            179.98020935058594
+          ],
+          "class_name": "person",
+          "score": 0.1472383290529251
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 3837
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          76.9706802368164,
+          123.06868743896484,
+          155.96472930908203,
+          272.9006118774414
+        ],
+        "area": 42562.870059748006,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            76.9706802368164,
+            123.06868743896484,
+            155.96472930908203,
+            272.9006118774414
+          ],
+          "class_name": "person",
+          "score": 0.1436307281255722
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 22
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          75.47186279296875,
+          -0.3649747371673584,
+          183.583984375,
+          21.406448125839233
+        ],
+        "area": 3929.881038258318,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            75.47186279296875,
+            -0.3649747371673584,
+            183.583984375,
+            21.406448125839233
+          ],
+          "class_name": "helmet",
+          "score": 0.12872211635112762
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 1751
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          373.02197265625,
+          62.74421310424805,
+          42.20245361328125,
+          33.00937271118164
+        ],
+        "area": 1393.0765206471551,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            373.02197265625,
+            62.74421310424805,
+            42.20245361328125,
+            33.00937271118164
+          ],
+          "class_name": "helmet",
+          "score": 0.12317945808172226
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 1940
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          95.13624572753906,
+          1.9269367456436157,
+          190.47019958496094,
+          15.874315619468689
+        ],
+        "area": 3023.584064314864,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            95.13624572753906,
+            1.9269367456436157,
+            190.47019958496094,
+            15.874315619468689
+          ],
+          "class_name": "helmet",
+          "score": 0.12226446717977524
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 1751
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          105.85609436035156,
+          0.3054392337799072,
+          64.90150451660156,
+          20.447648763656616
+        ],
+        "area": 1327.0831685883422,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            105.85609436035156,
+            0.3054392337799072,
+            64.90150451660156,
+            20.447648763656616
+          ],
+          "class_name": "helmet",
+          "score": 0.11998506635427475
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 1637
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          65.809326171875,
+          225.73594665527344,
+          140.5166778564453,
+          187.79075622558594
+        ],
+        "area": 26387.73319696891,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            65.809326171875,
+            225.73594665527344,
+            140.5166778564453,
+            187.79075622558594
+          ],
+          "class_name": "person",
+          "score": 0.11799344420433044
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 1630
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          345.0029296875,
+          -1.206519603729248,
+          70.80642700195312,
+          206.5926432609558
+        ],
+        "area": 14628.08691419741,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            345.0029296875,
+            -1.206519603729248,
+            70.80642700195312,
+            206.5926432609558
+          ],
+          "class_name": "person",
+          "score": 0.11694993078708649
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 4202
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          147.26605224609375,
+          115.05026245117188,
+          132.75552368164062,
+          210.1207275390625
+        ],
+        "area": 27894.68722081557,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            147.26605224609375,
+            115.05026245117188,
+            132.75552368164062,
+            210.1207275390625
+          ],
+          "class_name": "person",
+          "score": 0.11533928662538528
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 1940
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          108.72392272949219,
+          404.127197265625,
+          13.691146850585938,
+          11.337615966796875
+        ],
+        "area": 155.22496513696387,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            108.72392272949219,
+            404.127197265625,
+            13.691146850585938,
+            11.337615966796875
+          ],
+          "class_name": "helmet",
+          "score": 0.11436708271503448
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 3233
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          28.063810348510742,
+          206.09275817871094,
+          15.432584762573242,
+          19.435333251953125
+        ],
+        "area": 299.93742779962486,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            28.063810348510742,
+            206.09275817871094,
+            15.432584762573242,
+            19.435333251953125
+          ],
+          "class_name": "helmet",
+          "score": 0.11348668485879898
+        },
+        "category": "new_false_positive",
+        "class_name": "helmet",
+        "image_id": 1677
+      },
+      {
+        "anchor": "detection",
+        "anchor_box": [
+          378.1374816894531,
+          46.64229202270508,
+          37.521148681640625,
+          105.06585311889648
+        ],
+        "area": 3942.1914962375304,
+        "baseline": null,
+        "best": {
+          "bbox": [
+            378.1374816894531,
+            46.64229202270508,
+            37.521148681640625,
+            105.06585311889648
+          ],
+          "class_name": "person",
+          "score": 0.11201782524585724
+        },
+        "category": "new_false_positive",
+        "class_name": "person",
+        "image_id": 2688
+      }
+    ]
+  },
+  "score_threshold": 0.07,
+  "slice_deltas": {
+    "crowded": -0.041184808496027736,
+    "low_light": -0.0477169405092972,
+    "small_object": -0.05724577271072623
+  },
+  "slice_metrics": [
+    {
+      "arm": "filtered_syn",
+      "metric": "primary_map",
+      "n_images": 152,
+      "n_instances": 1872,
+      "slice": "crowded",
+      "value": 0.48054754181019416
+    },
+    {
+      "arm": "real_only",
+      "metric": "primary_map",
+      "n_images": 152,
+      "n_instances": 1872,
+      "slice": "crowded",
+      "value": 0.5217323503062219
+    },
+    {
+      "arm": "standard_aug",
+      "metric": "primary_map",
+      "n_images": 152,
+      "n_instances": 1872,
+      "slice": "crowded",
+      "value": 0.49264878908811705
+    },
+    {
+      "arm": "unfiltered_syn",
+      "metric": "primary_map",
+      "n_images": 152,
+      "n_instances": 1872,
+      "slice": "crowded",
+      "value": 0.48327905588298575
+    },
+    {
+      "arm": "filtered_syn",
+      "metric": "primary_map",
+      "n_images": 186,
+      "n_instances": 856,
+      "slice": "low_light",
+      "value": 0.5020948297661083
+    },
+    {
+      "arm": "real_only",
+      "metric": "primary_map",
+      "n_images": 186,
+      "n_instances": 856,
+      "slice": "low_light",
+      "value": 0.5498117702754055
+    },
+    {
+      "arm": "standard_aug",
+      "metric": "primary_map",
+      "n_images": 186,
+      "n_instances": 856,
+      "slice": "low_light",
+      "value": 0.49978783415534156
+    },
+    {
+      "arm": "unfiltered_syn",
+      "metric": "primary_map",
+      "n_images": 186,
+      "n_instances": 856,
+      "slice": "low_light",
+      "value": 0.46628687587010653
+    },
+    {
+      "arm": "filtered_syn",
+      "metric": "primary_map",
+      "n_images": 441,
+      "n_instances": 2992,
+      "slice": "small_object",
+      "value": 0.46615483841473787
+    },
+    {
+      "arm": "real_only",
+      "metric": "primary_map",
+      "n_images": 441,
+      "n_instances": 2992,
+      "slice": "small_object",
+      "value": 0.5234006111254641
+    },
+    {
+      "arm": "standard_aug",
+      "metric": "primary_map",
+      "n_images": 441,
+      "n_instances": 2992,
+      "slice": "small_object",
+      "value": 0.4890036198275219
+    },
+    {
+      "arm": "unfiltered_syn",
+      "metric": "primary_map",
+      "n_images": 441,
+      "n_instances": 2992,
+      "slice": "small_object",
+      "value": 0.4565814259717951
+    }
+  ],
+  "targeting": {
+    "budget_leader": "head_no_helmet",
+    "budget_leader_share": 0.22142857142857142,
+    "max_other_delta": -0.041184808496027736,
+    "metric": "primary_map",
+    "other_deltas": {
+      "crowded": -0.041184808496027736,
+      "low_light": -0.0477169405092972
+    },
+    "sentence": "The largest share overall went to `head_no_helmet` (22.1%), which no EVAL-17 slice isolates. The largest share that a slice DOES isolate is `small_distant` (21.7%), whose slice is `small_object`, and that is what is tested here. On `primary_map`, the best arm moves that slice by -0.0572; the best any other slice moved is -0.0412 (`crowded` -0.0412, `low_light` -0.0477). The slice the budget was aimed at did not improve at all, so the targeting claim fails on its own terms: whatever the synthetic images did, they did not move `small_object`.",
+    "target_delta": -0.05724577271072623,
+    "target_slice": "small_object",
+    "tested_scenario": "small_distant",
+    "tested_share": 0.21714285714285714,
+    "tested_the_budget_leader": false,
+    "verdict": "target_slice_did_not_improve"
+  }
+}

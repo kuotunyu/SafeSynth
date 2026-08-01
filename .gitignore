@@ -26,6 +26,20 @@ INTERVIEW_PREP.md
 # ignore its CONTENTS, not the directory itself.
 /results/*
 !/results/.gitkeep
+# ...except the small artefacts the reports are checked against. EVAL-12 says
+# every number in a report must be re-aggregatable from detection_metrics.csv,
+# and scripts/verify_readme.py enforces that against this file - so a clone
+# without it cannot verify the README at all. These are kilobytes.
+!/results/detection_metrics.csv
+!/results/predictions_index.json
+!/results/colab/
+/results/colab/**/*.safetensors
+/results/colab/**/*.pt
+/results/colab/**/*.bin
+# The raw per-arm detection dumps are ~32 MB each and belong on the data drive
+# (D:/sdg-data/...); scripts/dump_predictions.py writes them there and
+# results/predictions/ only ever holds working copies.
+/results/predictions/
 
 *.tar
 *.tar.gz
