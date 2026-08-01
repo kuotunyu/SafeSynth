@@ -545,3 +545,40 @@ assert result.ap_medium == pytest.approx(0.0)
 **預防**：任何實作編號需求（`EVAL-*`／`FILT-*`／`TRAIN-*`）的函式，
 新增測試時要先問一句「**如果我把這行改壞，這條測試會紅嗎？**」，
 不確定就當場改壞試一次。這比再寫三條測試有用。
+
+---
+
+### K-20 — `run_record.json` 的 `eval_metrics` 對不上任何一個 checkpoint
+
+**症狀**：`run_arm` 結尾那次 `trainer.evaluate()` 寫進 `run_record.json` 的
+`eval_map` 是 **0.3312**，但這個值**既不是最佳也不是最後**：
+
+| 來源 | `eval_map` | 本機獨立重算（CPU、fp32） |
+|---|---:|---:|
+| `checkpoint-1752`（`best_model_checkpoint`） | 0.3564 | **0.3597** ✓ |
+| `checkpoint-10900`（最後） | 0.2657 | **0.2621** ✓ |
+| `run_record.json` 的最終 `evaluate()` | **0.3312** | — ✗ |
+
+兩個 checkpoint 檔案各自都對得上（差約 0.004，屬 bf16 訓練 vs fp32 重算的正常誤差），
+**唯獨最終那次 evaluate 落在兩者之間、誰都不是**。
+
+**判斷**：checkpoint 檔案本身忠實，問題出在 `load_best_model_at_end` 之後
+在記憶體裡的那個模型。最可能是載入時部分權重沒被覆蓋——
+[K-17](#k-17--rt-detrv2-載入時噴一大串-missing--unexpected-keys是良性的)
+已經記錄過這個模型在載入時會出現 missing／unexpected keys，
+`strict=False` 的載入會安靜地把沒對上的參數留在原值，
+結果就是「最佳的骨幹 ＋ 最後的某些層」這種混合體，分數自然夾在中間。
+
+**沒有繼續往 HF 內部追**，因為可執行的結論已經足夠明確且已驗證。
+
+**解法（規則）**：
+1. **一律從 checkpoint 目錄評測**，不要用訓練進程留下的記憶體狀態
+2. **`run_record.json` 的 `eval_metrics` 只能當「這一組確實跑完評測」的存在性證明**
+   （[K-18](#k-18--smoke-test-跳過-eval四組-colab-訓練全部陣亡) 的守衛用途），
+   **不可用於任何報告數字**
+3. 這條與 [EVAL-12](evaluation_spec.md) 本來就一致——主表所有數字都要由
+   `scripts/eval.py` 在凍結 Test 上重算。K-20 是它為什麼不只是形式主義的實證
+
+**這個坑的普遍形式**：**當你有兩條路可以得到同一個數字，就去比對它們。**
+本例只花了兩趟各約 200 秒的 CPU 推論，就把「權重壞了」和「記錄壞了」分開——
+而這兩者的後續處置完全不同（前者要重跑訓練，後者只要改讀取來源）。

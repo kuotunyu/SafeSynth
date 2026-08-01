@@ -188,6 +188,13 @@ def run_arm(
     result = trainer.train(resume_from_checkpoint=checkpoint)
     # Evaluate explicitly at the end so the record always carries metrics, even
     # when eval_strategy would not have fired on the final step.
+    #
+    # K-20: treat what this returns as EXISTENCE EVIDENCE, not as a measurement.
+    # Measured against the checkpoints on disk, it matches neither the best nor
+    # the last one, so it describes an in-memory model that was never saved -
+    # load_best_model_at_end seems to leave some weights behind on this
+    # architecture (see also K-17 on its missing/unexpected keys). Report numbers
+    # only from scripts/eval.py, which loads a checkpoint directory (EVAL-12).
     final_metrics = trainer.evaluate()
 
     record = {

@@ -398,7 +398,14 @@ def _check_photometric_augmentation(augmentation_config: Mapping[str, Any]) -> l
 
 # spec: TRAIN-15
 def _check_evaluation_actually_ran(records: Mapping[str, Any]) -> list[Finding]:
-    """K-18 left a scar: a run can look complete and have evaluated nothing."""
+    """K-18 left a scar: a run can look complete and have evaluated nothing.
+
+    This reads eval_metrics for EXISTENCE ONLY. K-20 measured the values against
+    the checkpoints they supposedly describe and they match neither the best nor
+    the last one - load_best_model_at_end appears to leave some weights behind,
+    so the number describes a model that was never saved. Never report from it;
+    EVAL-12 requires recomputing on the frozen Test from the checkpoint files.
+    """
 
     findings: list[Finding] = []
     for arm, record in records.items():
