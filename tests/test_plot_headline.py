@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts import plot_headline
 from scripts.plot_headline import HeadlineError, read_test_metrics
 from src.training.arms import ARMS
 
@@ -115,3 +116,93 @@ def test_validation_rows_do_not_reach_the_test_panel(tmp_path: Path) -> None:
     values = read_test_metrics(_csv(tmp_path / "m.csv", rows))
 
     assert values["real_only"]["primary_map_small"] == pytest.approx(0.40)
+
+
+# --------------------------------------------------------------------------
+# EVAL-09 whiskers: a sorted bar chart asserts a ranking, so it must say
+# which steps of that ranking the intervals actually support
+# --------------------------------------------------------------------------
+
+
+def test_two_intervals_that_do_not_touch_are_separable() -> None:
+    """real_only [0.4307, 0.4753] against filtered_syn [0.3426, 0.3956]."""
+
+    assert plot_headline.separable((0.4307, 0.4753), (0.3426, 0.3956))
+    # Order of arguments must not matter - the caller iterates pairs in sorted
+    # order, and a one-sided test would call half of them separable by accident.
+    assert plot_headline.separable((0.3426, 0.3956), (0.4307, 0.4753))
+
+
+def test_two_overlapping_intervals_are_not_separable() -> None:
+    """real_only against standard_aug [0.3993, 0.4530] - the real overlap."""
+
+    assert not plot_headline.separable((0.4307, 0.4753), (0.3993, 0.4530))
+    assert not plot_headline.separable((0.3993, 0.4530), (0.4307, 0.4753))
+
+
+def test_intervals_that_merely_touch_are_not_separable() -> None:
+    """Equal bounds are not evidence of a difference; the test is strict."""
+
+    assert not plot_headline.separable((0.40, 0.50), (0.30, 0.40))
+    assert plot_headline.separable((0.4001, 0.50), (0.30, 0.40))
+
+
+def test_a_contained_interval_is_not_separable() -> None:
+    assert not plot_headline.separable((0.30, 0.60), (0.40, 0.50))
+
+
+def test_intervals_are_read_only_for_the_named_metric_and_whole_test(tmp_path) -> None:
+    """A slice row or another metric must not become a whisker on this bar."""
+
+    csv_path = tmp_path / "metrics.csv"
+    csv_path.write_text(
+        "arm,seed,split,metric,value,n_instances,n_images,ci_low,ci_high,notes\n"
+        "real_only,1337,test,primary_map_small,0.4511,,,0.4307,0.4753,\n"
+        "real_only,1337,test/small_object,primary_map_small,0.3060,,,0.20,0.40,\n"
+        "real_only,1337,test,primary_map,0.5341,,,0.50,0.56,\n"
+        "standard_aug,1337,test,primary_map_small,0.4236,,,,,\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    intervals = plot_headline.read_test_intervals(csv_path, "primary_map_small")
+
+    assert intervals == {"real_only": (0.4307, 0.4753)}
+    assert "standard_aug" not in intervals, "a row with no CI must not get a whisker"
+
+
+def test_a_csv_with_no_intervals_at_all_yields_no_whiskers(tmp_path) -> None:
+    """The pre-EVAL-09 state. The figure must still draw, without whiskers."""
+
+    csv_path = tmp_path / "metrics.csv"
+    csv_path.write_text(
+        "arm,seed,split,metric,value,n_instances,n_images,ci_low,ci_high,notes\n"
+        "real_only,1337,test,primary_map_small,0.4511,,,,,\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    assert plot_headline.read_test_intervals(csv_path, "primary_map_small") == {}
+
+
+def test_a_half_filled_interval_is_skipped_rather_than_half_drawn(tmp_path) -> None:
+    """One bound without the other is a malformed row, not an interval.
+
+    Reading it would either draw a whisker with a fabricated end or die on
+    float(""). Both fixtures here have exactly one bound, in each direction,
+    because a check written with `and` instead of `or` passes them through.
+    """
+
+    csv_path = tmp_path / "metrics.csv"
+    csv_path.write_text(
+        "arm,seed,split,metric,value,n_instances,n_images,ci_low,ci_high,notes\n"
+        "real_only,1337,test,primary_map_small,0.4511,,,0.4307,,\n"
+        "standard_aug,1337,test,primary_map_small,0.4236,,,,0.4530,\n"
+        "filtered_syn,1337,test,primary_map_small,0.3664,,,0.3426,0.3956,\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    intervals = plot_headline.read_test_intervals(csv_path, "primary_map_small")
+
+    assert intervals == {"filtered_syn": (0.3426, 0.3956)}

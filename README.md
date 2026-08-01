@@ -122,6 +122,12 @@ Both panels are the result. The left one alone says the method does not work;
 the right one alone says it does. Reporting either without the other would be
 the selective presentation this project's rules forbid.
 
+The orange whiskers on the left panel are the EVAL-09 intervals, and they are
+there because sorted bars assert a ranking whether or not the data supports
+one. On this figure **none of the three adjacent pairs separates at 95%** — the
+supported statement is the non-adjacent one, `real_only` against either
+synthetic arm.
+
 Two independent implementations computed this table and agree to 8.8e-07.
 
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real-image exposures |

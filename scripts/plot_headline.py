@@ -24,6 +24,7 @@ import argparse
 import csv
 import json
 import sys
+from itertools import pairwise
 from pathlib import Path
 
 import matplotlib
@@ -77,6 +78,34 @@ def read_test_metrics(path: Path) -> dict[str, dict[str, float]]:
     return values
 
 
+# spec: EVAL-09
+def read_test_intervals(path: Path, metric: str) -> dict[str, tuple[float, float]]:
+    """arm -> (ci_low, ci_high) for whole-Test rows that carry an interval.
+
+    Returns only the arms that have one. A bar chart sorted by value asserts a
+    ranking to anyone who looks at it, and before EVAL-09 ran there was nothing
+    on this figure to say which steps of that ranking the data supports. Two of
+    them turn out not to be supported at all.
+    """
+
+    intervals: dict[str, tuple[float, float]] = {}
+    with path.open(encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            if row["split"] != "test" or row["metric"] != metric:
+                continue
+            if not row.get("ci_low") or not row.get("ci_high"):
+                continue
+            intervals[row["arm"]] = (float(row["ci_low"]), float(row["ci_high"]))
+    return intervals
+
+
+# spec: EVAL-09
+def separable(a: tuple[float, float], b: tuple[float, float]) -> bool:
+    """Do two intervals fail to overlap? The only ranking claim this figure may make."""
+
+    return a[1] < b[0] or b[1] < a[0]
+
+
 def read_exposure_curves(runs_root: Path, seed: int, batch_size: int) -> dict:
     curves = {}
     for arm in (BASELINE_ARM, CHALLENGER_ARM):
@@ -99,9 +128,12 @@ def read_exposure_curves(runs_root: Path, seed: int, batch_size: int) -> dict:
     return curves
 
 
-def draw(values: dict, curves: dict, destination: Path) -> tuple[Path, str]:
+def draw(
+    values: dict, curves: dict, destination: Path, intervals: dict | None = None
+) -> tuple[Path, str]:
     figure, (left, right) = plt.subplots(1, 2, figsize=(13, 4.8))
 
+    intervals = {} if intervals is None else intervals
     order = sorted(ARMS, key=lambda arm: -values[arm]["primary_map_small"])
     width = 0.38
     positions = range(len(order))
@@ -114,6 +146,25 @@ def draw(values: dict, curves: dict, destination: Path) -> tuple[Path, str]:
             color=["#4a4a4a" if offset < 0 else "#a8a8a8"] * len(order),
             edgecolor="white",
         )
+        # EVAL-09 whiskers on AP_small only. Sorting the bars by height asserts
+        # a four-way ranking; without these a reader has no way to see that two
+        # of its three steps are inside the noise.
+        if metric == "primary_map_small" and intervals:
+            drawn = [(i, arm) for i, arm in enumerate(order) if arm in intervals]
+            left.errorbar(
+                [i + offset for i, _ in drawn],
+                [values[arm][metric] for _, arm in drawn],
+                yerr=[
+                    [values[arm][metric] - intervals[arm][0] for _, arm in drawn],
+                    [intervals[arm][1] - values[arm][metric] for _, arm in drawn],
+                ],
+                fmt="none",
+                ecolor="#d94801",
+                elinewidth=1.6,
+                capsize=4,
+                capthick=1.6,
+                zorder=5,
+            )
     for position, arm in zip(positions, order, strict=True):
         # The colour swatch is a cross-reference to the right-hand panel, so it
         # is drawn ONLY for the arms that appear there. A swatch under an arm
@@ -122,19 +173,52 @@ def draw(values: dict, curves: dict, destination: Path) -> tuple[Path, str]:
             left.plot(
                 [position], [-0.012], marker="s", markersize=9, color=ARM_COLOUR[arm]
             )
+        # Clear of the whisker, not on top of it: the label used to sit at
+        # value + 0.008, which is inside the interval now that one is drawn.
+        top = values[arm]["primary_map_small"]
+        if arm in intervals:
+            top = max(top, intervals[arm][1])
         left.text(
             position - width / 2,
-            values[arm]["primary_map_small"] + 0.008,
+            top + 0.012,
             f"{values[arm]['primary_map_small']:.3f}",
             ha="center",
             fontsize=8,
         )
     left.set_xticks(list(positions))
-    left.set_xticklabels(order, fontsize=8.5)
+    # 8.5 pt ran "standard_aug" into "unfiltered_syn" at this figure width.
+    left.set_xticklabels(order, fontsize=7.6, rotation=12, ha="right")
     left.set_ylabel("score")
     left.set_ylim(-0.03, max(values[arm]["primary_map"] for arm in order) * 1.18)
     left.set_title("Frozen Test, helmet + head — synthetic lost")
     left.legend(fontsize=9, loc="upper right")
+    if intervals:
+        # Which steps of the sorted order the intervals actually support. Named
+        # in the figure rather than left to the caption, because the bars are
+        # sorted and a reader takes that as the claim.
+        pairs = [
+            (a, b)
+            for a, b in pairwise(order)
+            if a in intervals and b in intervals
+        ]
+        unsupported = [f"{a} vs {b}" for a, b in pairs if not separable(intervals[a], intervals[b])]
+        note = (
+            "bars are sorted, but not every step is a result. "
+            + (
+                "overlapping 95% CI: " + "; ".join(unsupported)
+                if unsupported
+                else "every adjacent pair separates at 95%"
+            )
+        )
+        left.text(
+            0.0,
+            -0.185,
+            note,
+            transform=left.transAxes,
+            fontsize=7.6,
+            color="#d94801",
+            va="top",
+        )
     left.grid(axis="y", alpha=0.25, linewidth=0.6)
 
     grid = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 24]
@@ -203,7 +287,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"cannot draw: {error}")
         return 2
 
-    destination, verdict = draw(values, curves, args.figure)
+    intervals = read_test_intervals(args.metrics_csv, "primary_map_small")
+    destination, verdict = draw(values, curves, args.figure, intervals)
     print(f"wrote {destination}")
     print(f"  crossover: {verdict}")
     for arm in sorted(ARMS, key=lambda a: -values[a]["primary_map_small"]):
