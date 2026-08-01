@@ -195,7 +195,7 @@
     ② 峰值 VRAM 那一項只有 CPU 路徑被實跑過，CUDA 分支要等 GPU 空出來。
   - **驗證於**：（未完成）
 
-- [ ] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
+- [~] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
   - **對應規格**：PUB-01 ~ PUB-05、PUB-10
   - **驗證**：`uv run python scripts/verify_readme.py` 通過——
     README 每張表的數字都能從 `results/` 的原始檔重算；
@@ -205,6 +205,17 @@
     `grep -n "shields.io" README.md` → 零命中（不放靜態假 badge）；
     `.github/workflows/ci.yml` 至少做 `uv sync --locked` → `pytest` 且為綠；
     `uv.lock` 已提交
+  - **本機可驗的四條全部實跑通過**（2026-08-01）：
+    `verify_readme` → `PASS: every README number has a source and every disclosure is present`；
+    `grep -c shields.io README.md` → `0`；
+    `uv lock --check` → `Resolved 120 packages`（exit 0）；
+    `git ls-files uv.lock` → 已追蹤。
+    `ci.yml` 的四個步驟是 `uv sync --locked`、`pytest -q`、
+    `verify_readme`、`check_forbidden_licences`。
+  - **這個 `[~]` 只差一件，而且現在無法驗**：「CI 為綠」需要 workflow 真的在
+    GitHub 上跑過一次，而 `git remote -v` 是空的——**這個 repo 還沒有 remote，
+    CI 一次都沒執行過**。第一次 push 之後這條才驗得到。
+    在那之前把它勾成 `[x]` 就是宣稱一件沒發生的事。
   - **驗證於**：（未完成）
 
 - [ ] **M24** Hugging Face 上傳 ＋ 發佈總驗收
