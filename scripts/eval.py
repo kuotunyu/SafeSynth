@@ -798,6 +798,7 @@ def evaluate_arm(
     dtype_name: str,
     batch_size: int,
     bootstrap_resamples: int,
+    bootstrap_workers: int | None,
     bootstrap_seed: int,
     exposures: float | None,
     total_steps: int | None,
@@ -852,6 +853,7 @@ def evaluate_arm(
             seed=bootstrap_seed,
             config=config,
             resamples=bootstrap_resamples,
+            workers=bootstrap_workers,
         )
 
     hard_negative = None
@@ -1171,6 +1173,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "report says so; a full run is one COCOeval per resample per metric per arm"
         ),
     )
+    parser.add_argument(
+        "--bootstrap-workers",
+        type=int,
+        default=None,
+        help=(
+            "processes for the resample loop (default: metrics.bootstrap_workers). "
+            "Wall clock only - the interval is identical at any worker count "
+            "because each resample draws from its own SeedSequence child"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -1262,6 +1274,11 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
         if args.bootstrap_resamples is None
         else int(args.bootstrap_resamples)
     )
+    workers = (
+        int(config["metrics"].get("bootstrap_workers", 1))
+        if args.bootstrap_workers is None
+        else int(args.bootstrap_workers)
+    )
     batch_size = (
         int(training_config["run"]["per_device_eval_batch_size"])
         if args.batch_size is None
@@ -1288,6 +1305,7 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
                 dtype_name=dtype_name,
                 batch_size=batch_size,
                 bootstrap_resamples=resamples,
+                bootstrap_workers=workers,
                 bootstrap_seed=project_paths.seed,
                 exposures=entry.get("real_image_exposures"),
                 total_steps=records.get(item.arm, {}).get("total_steps"),

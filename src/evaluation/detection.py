@@ -633,6 +633,116 @@ def _reject_unpoolable(value: float, what: str) -> None:
 
 
 # spec: EVAL-09
+# Per-process state for the parallel bootstrap. Populated once per worker by
+# the initializer, because the alternative - shipping 223,200 detections with
+# every one of a thousand tasks - costs more in pickling than the evaluation it
+# is trying to speed up.
+_BOOTSTRAP_STATE: dict[str, Any] = {}
+
+
+def _bootstrap_worker_init(
+    ground_truth: Mapping[str, Any],
+    detections: Sequence[Mapping[str, Any]],
+    metric_name: str,
+    config: Mapping[str, Any],
+) -> None:
+    """Rebuild the worker's metric from its NAME, not from a pickled closure.
+
+    `_row_metric` returns a closure over the config, and closures do not survive
+    the spawn start method Windows uses. The name plus the config does.
+    """
+
+    _BOOTSTRAP_STATE["ground_truth"] = ground_truth
+    _BOOTSTRAP_STATE["detections"] = detections
+    _BOOTSTRAP_STATE["metric"] = _row_metric(metric_name, config)
+    _BOOTSTRAP_STATE["image_ids"] = [int(image["id"]) for image in ground_truth["images"]]
+
+
+def _one_resample(
+    ground_truth: Mapping[str, Any],
+    detections: Sequence[Mapping[str, Any]],
+    metric: Callable[[Mapping[str, Any], Sequence[Mapping[str, Any]]], float],
+    *,
+    image_ids: Sequence[int],
+    child: Any,
+) -> float:
+    """Draw one bootstrap sample and evaluate it. The ONLY place a draw happens.
+
+    Both the sequential and the parallel path call this, so the two cannot
+    produce different numbers - which is the property the tests pin.
+    """
+
+    generator = np.random.default_rng(child)
+    drawn = generator.integers(0, len(image_ids), size=len(image_ids))
+    sampled = [image_ids[position] for position in drawn]
+    resampled_gt, resampled_dt = _resample_by_image(ground_truth, detections, sampled)
+    return float(metric(resampled_gt, resampled_dt))
+
+
+def _bootstrap_worker(child: Any) -> float:
+    state = _BOOTSTRAP_STATE
+    return _one_resample(
+        state["ground_truth"],
+        state["detections"],
+        state["metric"],
+        image_ids=state["image_ids"],
+        child=child,
+    )
+
+
+def _run_resamples(
+    ground_truth: Mapping[str, Any],
+    detections: Sequence[Mapping[str, Any]],
+    metric: Callable[[Mapping[str, Any], Sequence[Mapping[str, Any]]], float],
+    *,
+    image_ids: Sequence[int],
+    children: Sequence[Any],
+    workers: int,
+    metric_name: str | None,
+    config: Mapping[str, Any],
+) -> tuple[list[float], int]:
+    """Evaluate every resample, on one core or many, and pool the results."""
+
+    if workers > 1 and metric_name is None:
+        raise BootstrapError(
+            "workers > 1 needs metric_name: the worker rebuilds the metric from "
+            "its name because a closure cannot be sent to a spawned process"
+        )
+    if workers > 1:
+        from concurrent.futures import ProcessPoolExecutor
+
+        with ProcessPoolExecutor(
+            max_workers=workers,
+            initializer=_bootstrap_worker_init,
+            initargs=(ground_truth, detections, metric_name, config),
+        ) as pool:
+            # `map` preserves input order, so the pooled values are identical to
+            # the sequential ones rather than merely equivalent as a multiset -
+            # percentiles would not care, but a diff of two runs would.
+            raw = list(pool.map(_bootstrap_worker, children, chunksize=1))
+    else:
+        raw = [
+            _one_resample(
+                ground_truth, detections, metric, image_ids=image_ids, child=child
+            )
+            for child in children
+        ]
+
+    values: list[float] = []
+    n_undefined = 0
+    for index, value in enumerate(raw):
+        if not np.isfinite(value):
+            raise BootstrapError(
+                f"Bootstrap resample {index} produced {value!r}; a non-finite value "
+                "cannot be pooled into a percentile interval"
+            )
+        if value <= UNDEFINED:
+            n_undefined += 1
+            continue
+        values.append(value)
+    return values, n_undefined
+
+
 def bootstrap_metric_ci(
     ground_truth: Mapping[str, Any],
     detections: Sequence[Mapping[str, Any]],
@@ -642,6 +752,8 @@ def bootstrap_metric_ci(
     config: Mapping[str, Any] | None = None,
     resamples: int | None = None,
     confidence: float | None = None,
+    workers: int | None = None,
+    metric_name: str | None = None,
 ) -> BootstrapCI:
     """Percentile bootstrap over test IMAGES, not instances.
 
@@ -686,23 +798,25 @@ def bootstrap_metric_ci(
     point = float(metric(ground_truth, detections))
     _reject_unpoolable(point, "The point estimate")
 
-    generator = np.random.default_rng(seed)
-    values: list[float] = []
-    n_undefined = 0
-    for index in range(resamples):
-        drawn = generator.integers(0, len(image_ids), size=len(image_ids))
-        sampled = [image_ids[position] for position in drawn]
-        resampled_gt, resampled_dt = _resample_by_image(ground_truth, detections, sampled)
-        value = float(metric(resampled_gt, resampled_dt))
-        if not np.isfinite(value):
-            raise BootstrapError(
-                f"Bootstrap resample {index} produced {value!r}; a non-finite value "
-                "cannot be pooled into a percentile interval"
-            )
-        if value <= UNDEFINED:
-            n_undefined += 1
-            continue
-        values.append(value)
+    # One independent child seed per resample, rather than one generator advanced
+    # in a loop. This is what makes the interval INDEPENDENT OF WORKER COUNT: a
+    # sequentially-advanced generator gives resample k a state that depends on
+    # every draw before it, so splitting the loop across processes would silently
+    # change the published bounds whenever the machine had a different number of
+    # cores. `resamples` and `seed` alone must determine the answer.
+    children = np.random.SeedSequence(seed).spawn(resamples)
+    if workers is None:
+        workers = int(config["metrics"].get("bootstrap_workers", 1))
+    values, n_undefined = _run_resamples(
+        ground_truth,
+        detections,
+        metric,
+        image_ids=image_ids,
+        children=children,
+        workers=workers,
+        metric_name=metric_name,
+        config=config,
+    )
 
     if not values:
         raise BootstrapError(
@@ -1051,6 +1165,7 @@ def attach_bootstrap_cis(
     config: Mapping[str, Any] | None = None,
     resamples: int | None = None,
     metric_names: Sequence[str] | None = None,
+    workers: int | None = None,
 ) -> list[MetricRow]:
     """Fill ci_low/ci_high on the rows EVAL-09 requires an interval on.
 
@@ -1088,6 +1203,8 @@ def attach_bootstrap_cis(
             seed=seed,
             config=config,
             resamples=resamples,
+            workers=workers,
+            metric_name=name,
         )
         for name in sorted(
             {row.metric for row in rows if row.metric in wanted and row.value > UNDEFINED}

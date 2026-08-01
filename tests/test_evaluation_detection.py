@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -1444,7 +1445,17 @@ def test_rows_carry_the_bootstrap_interval_eval09_requires(tmp_path: Path) -> No
     # `person` is in 2 of the 6 images, so some draws contain none of it and the
     # metric does not exist on them. Those are excluded from the percentile, and
     # the count rides along in the notes instead of vanishing.
-    assert "1 resample(s) undefined and excluded" in by_metric["ap.person"].notes
+    #
+    # The COUNT is not pinned. Which particular draws come out undefined is a
+    # function of the seeding scheme, and pinning it made this test fail when
+    # EVAL-09 moved to independent per-resample seeds - a change that altered
+    # nothing about the behaviour under test. What must hold is that the number
+    # is real, positive, and disclosed.
+    undefined = re.search(
+        r"(\d+) resample\(s\) undefined and excluded", by_metric["ap.person"].notes
+    )
+    assert undefined is not None, by_metric["ap.person"].notes
+    assert 0 < int(undefined.group(1)) < 16
     # At least one is a real interval rather than a degenerate point, otherwise
     # "it has a CI" would be satisfied by writing the point estimate twice.
     assert any(by_metric[name].ci_low < by_metric[name].ci_high for name in named)
@@ -1646,3 +1657,106 @@ def test_pycocotools_and_faster_coco_eval_agree_on_the_same_input() -> None:
 
     assert set(compared) == set(COCO_STAT_NAMES)
     assert all(left == right for left, right in compared.values())
+
+
+# --------------------------------------------------------------------------
+# EVAL-09: the interval must not depend on how many cores the machine has
+# --------------------------------------------------------------------------
+
+
+def _tiny_split(n_images: int = 6):
+    """A split small enough to bootstrap in-process, with a metric that varies."""
+
+    images = [{"id": i, "file_name": f"{i}.png", "width": 100, "height": 100}
+              for i in range(1, n_images + 1)]
+    annotations = [
+        {"id": i, "image_id": i, "category_id": 1, "bbox": [10, 10, 20, 20],
+         "area": 400.0, "iscrowd": 0}
+        for i in range(1, n_images + 1)
+    ]
+    ground_truth = {
+        "images": images,
+        "annotations": annotations,
+        "categories": [{"id": 1, "name": "helmet"}],
+    }
+    # Half the images are detected perfectly and half not at all, so which
+    # images a resample draws actually changes the metric.
+    detections = [
+        {"image_id": i, "category_id": 1, "bbox": [10, 10, 20, 20], "score": 0.9}
+        for i in range(1, n_images // 2 + 1)
+    ]
+    return ground_truth, detections
+
+
+def _counting_metric(seen):
+    """Records WHICH images each draw contained, by file name.
+
+    Not by id: `_resample_by_image` renumbers ids 1..N, so the id tuple is
+    identical for every draw and an assertion on it would pass no matter what
+    the sampler did. The file name is what survives renumbering.
+    """
+
+    def metric(ground_truth, detections):
+        drawn = tuple(sorted(image["file_name"] for image in ground_truth["images"]))
+        seen.append(drawn)
+        return len(detections) / max(len(ground_truth["images"]), 1)
+
+    return metric
+
+
+def test_the_same_seed_draws_the_same_resamples_every_time() -> None:
+    ground_truth, detections = _tiny_split()
+    first, second = [], []
+
+    detection.bootstrap_metric_ci(
+        ground_truth, detections, _counting_metric(first), seed=42, resamples=8,
+        config=detection.load_evaluation_config(),
+    )
+    detection.bootstrap_metric_ci(
+        ground_truth, detections, _counting_metric(second), seed=42, resamples=8,
+        config=detection.load_evaluation_config(),
+    )
+
+    assert first == second
+    assert len(set(first)) > 1, "fixture degenerated: every draw was identical"
+
+
+def test_a_different_seed_draws_different_resamples() -> None:
+    ground_truth, detections = _tiny_split()
+    first, second = [], []
+
+    for seed, sink in ((42, first), (43, second)):
+        detection.bootstrap_metric_ci(
+            ground_truth, detections, _counting_metric(sink), seed=seed, resamples=8,
+            config=detection.load_evaluation_config(),
+        )
+
+    assert first != second
+
+
+def test_resample_k_does_not_depend_on_resamples_1_through_k_minus_1() -> None:
+    """The property that makes parallelism safe, tested WITHOUT a process pool.
+
+    A generator advanced in a loop gives resample k a state inherited from every
+    draw before it. Under that scheme a 4-resample run and an 8-resample run
+    share a prefix but nothing more - and splitting the loop across processes
+    would silently change the published bounds with the core count. Independent
+    SeedSequence children make draw k a function of (seed, k) alone.
+    """
+
+    short, long = [], []
+    ground_truth, detections = _tiny_split()
+
+    detection.bootstrap_metric_ci(
+        ground_truth, detections, _counting_metric(short), seed=42, resamples=4,
+        config=detection.load_evaluation_config(),
+    )
+    detection.bootstrap_metric_ci(
+        ground_truth, detections, _counting_metric(long), seed=42, resamples=8,
+        config=detection.load_evaluation_config(),
+    )
+
+    # `short` is 1 point estimate + 4 draws; the point estimate is recorded too.
+    assert len(short) == 5 and len(long) == 9
+    assert long[: len(short)] == short
+    assert len(set(long)) > 1, "fixture degenerated: every draw was identical"

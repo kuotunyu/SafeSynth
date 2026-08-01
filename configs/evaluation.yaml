@@ -66,6 +66,15 @@ metrics:
   bootstrap_resamples: 1000                  # source: fixed   (over test IMAGES, not instances)
   bootstrap_ci: 0.95                         # source: fixed
 
+  # Processes used for the resample loop. NOT a statistical parameter: each
+  # resample draws from its own child of SeedSequence(seed), so the interval is
+  # identical at any worker count and this key only buys wall clock. Measured on
+  # the frozen Test split: 8.38 s per resample across the three metrics EVAL-09
+  # requires, which is 9.3 h for four arms on one core.
+  # 1 keeps the default single-process behaviour for anything that imports the
+  # module; scripts/eval.py overrides it with --bootstrap-workers.
+  bootstrap_workers: 1                       # source: fixed
+
   # EVAL-08 verdict: the ABSOLUTE floor below which the smallest size bucket
   # cannot carry the headline claim, however large its relative share is.
   # A share test alone is not sufficient — a bucket holding 20 instances is
