@@ -146,10 +146,31 @@
     而且 wall clock 與 SM clock 近乎成反比——時間花在 GPU 上、隨時脈縮放，
     但**不隨像素量縮放**。「不隨解析度變化」這個觀察不變，
     「所以兩個模型不能靠這個數字分高下」這個結論也不變。
-  - **② 這個 `[~]` 的另一半**：ADR-005 範圍裡的「RF-DETR 用同樣四組各訓練一次」。
-    需要為 RF-DETR 另寫一份訓練設定（`configs/training.yaml` 的
-    `do_normalize: false`、backbone LR 分組都是 RT-DETR 專屬），
-    且**本機 4090 沒有任何訓練速度實測**（四組都跑在 Colab L4），時數未知。
+  - **② 訓練設定已備妥**（`configs/training_rfdetr.yaml`，`35b2394`）。
+    **不是複製 `training.yaml` 換 checkpoint**——2026-08-02 逐項讀取
+    `Roboflow/rf-detr-nano` 之後發現兩者在每一個關鍵預處理鍵上都不同：
+
+    | 鍵 | RT-DETRv2-R18 | RF-DETR-Nano |
+    |---|---|---|
+    | `do_normalize` | false | **true**（ImageNet mean/std） |
+    | 輸入 | 640×640 | **384×384** |
+    | `do_pad` | false | **true** |
+    | 預訓練類別 | 80 | **91** |
+    | backbone | ResNet-18 | **DINOv2** |
+
+    第一列的方向**與 `training.yaml` 裡的警告相反**：RT-DETR 只除以 255，
+    自己加 ImageNet 正規化會壞；RF-DETR 需要那個正規化，把
+    `do_normalize: false` 抄過來會壞掉另一邊。**兩種都不會報錯。**
+    唯一原封不動可用的是 backbone LR 分組——`trainer.py` 以
+    `"backbone" in name` 選取，RF-DETR 命名為 `model.backbone.backbone.*`，
+    473 個參數中 249 個命中。
+    `optimizer:` 底下**每一個值都標 `source: guess`**（把 CNN 的 recipe 套到 ViT），
+    且有測試強制這個標記存在。
+    **範圍從四組縮成兩組**（`real_only` 與 `filtered_syn`），理由寫進 config：
+    那是主實驗裡 95% 區間唯一不重疊的一對。
+  - **② 還沒做的**：實際訓練。**本機 4090 沒有任何訓練速度實測**
+    （四組 RT-DETRv2 都跑在 Colab L4），時數未知，
+    要先跑 200 步量實測 it/s 才能報。config 裡已標 `UNMEASURED`。
   - **驗證於**：（未完成）
 
 ---
