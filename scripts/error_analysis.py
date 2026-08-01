@@ -104,13 +104,21 @@ def budget_inputs(training_config_path: Path) -> tuple[str, int, int]:
     )
 
 
-def read_exposure(summary_path: Path, training_config_path: Path) -> ExposureConfound:
+def read_exposure(
+    summary_path: Path, training_config_path: Path
+) -> tuple[ExposureConfound, str | None]:
     """Recompute real-image exposures, then check them against the run log.
 
     `equal_step_budget` is the source of truth (EVAL-18 says compute it, do not
     hardcode it), but the Colab run already recorded its own plan. If the two
     disagree, one of them is describing a different run and the report must not
     pick a side silently.
+
+    Returns `(confound, note)`. The note is not decoration: a summary with no
+    `plan` block, or a plan that omits an arm, makes this function's whole
+    cross-check a no-op, and a cross-check that quietly did nothing is worse
+    than none at all because the caller believes it ran. The caller prints the
+    note; only a real DISAGREEMENT raises.
     """
 
     summary = json.loads(Path(summary_path).read_text(encoding="utf-8"))
@@ -142,7 +150,19 @@ def read_exposure(summary_path: Path, training_config_path: Path) -> ExposureCon
             f"{disagreements} (recomputed, recorded). One of them describes a different "
             "run; refusing to publish either."
         )
-    return confound
+    if not recorded:
+        return confound, (
+            f"{summary_path} carries no `plan` block, so the recomputed real-image "
+            "exposures in the report were NOT cross-checked against what the run "
+            "actually did."
+        )
+    unchecked = sorted(set(confound.exposures) - set(recorded))
+    if unchecked:
+        return confound, (
+            f"{summary_path} records no plan for {unchecked}, so their recomputed "
+            "real-image exposures were not cross-checked."
+        )
+    return confound, None
 
 
 def read_best_checkpoint_values(
@@ -409,9 +429,14 @@ def main(argv: list[str] | None = None) -> int:
     exposure = None
     if Path(args.summary).is_file():
         try:
-            exposure = read_exposure(Path(args.summary), Path(args.training_config))
+            exposure, unchecked = read_exposure(
+                Path(args.summary), Path(args.training_config)
+            )
         except (DriverError, ErrorAnalysisConfigError) as error:
             print("MISSING:", error)
+        else:
+            if unchecked:
+                print("UNCHECKED:", unchecked)
 
     analysis = build_analysis(
         ground_truth,

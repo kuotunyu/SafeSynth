@@ -955,7 +955,13 @@ def select_samples(
 def _crop_window(
     bbox: Sequence[float], image_size: tuple[int, int]
 ) -> tuple[int, int, int]:
-    """A square window around a box, clamped inside the image. Returns (x, y, side)."""
+    """A square window around a box, clamped inside the image. Returns (x, y, side).
+
+    `image_size` is (WIDTH, HEIGHT), in that order. The frozen Test split is not
+    square — DATA-25 records 416x415, 415x416 and 415x415 images in it — so a
+    transposed argument shifts the window by the difference on most of the split
+    while remaining invisible on any square example.
+    """
 
     x, y, width, height = (float(value) for value in bbox)
     image_width, image_height = image_size
@@ -971,19 +977,176 @@ def _crop_window(
     return left, top, span
 
 
-def _draw_panel(
-    axis,
-    image: np.ndarray,
-    item: ComparisonItem,
-    *,
-    side: str,
-    arm: str,
-    context_boxes: Sequence[Box],
-) -> None:
-    """One cell: the crop, the boxes, and the label EVAL-15 asks for."""
+def _array_size(image: np.ndarray) -> tuple[int, int]:
+    """(width, height) of a decoded image, from its (rows, columns, channels) shape.
 
-    height, width = image.shape[0], image.shape[1]
-    left, top, span = _crop_window(item.anchor_box, (width, height))
+    One line, one function, because it is the only place the two orders meet and
+    a swap here is undetectable on a square fixture (see `_crop_window`).
+    """
+
+    return int(image.shape[1]), int(image.shape[0])
+
+
+def _visible_context_boxes(
+    boxes: Sequence[Box], crop: tuple[int, int, int]
+) -> tuple[Box, ...]:
+    """The ground-truth boxes that intersect the crop window, in image coordinates."""
+
+    left, top, span = crop
+    visible: list[Box] = []
+    for box in boxes:
+        bx, by, bw, bh = box.xywh
+        if bx + bw <= left or bx >= left + span or by + bh <= top or by >= top + span:
+            continue
+        visible.append(box)
+    return tuple(visible)
+
+
+def _panel_label(item: ComparisonItem, arm: str, drawn: Box | None) -> str:
+    """The caption of one cell.
+
+    Three short lines rather than two long ones: EVAL-15 wants the arm, the image
+    id, the class, the score AND the category on every cell, and that does not
+    fit across a thumbnail on one or two lines.
+    """
+
+    score = None if drawn is None else drawn.score
+    score_text = "no detection" if score is None else f"score {score:.2f}"
+    return f"{arm}\nimg {item.image_id} · {item.class_name}\n{score_text} · {item.category}"
+
+
+def _grid_subtitle(
+    category: str, *, shown: int, total: int, baseline_arm: str, best_arm: str
+) -> str:
+    """The heading under the category name: how many of how many, and which side."""
+
+    subtitle = f"{shown} of {total} shown · left: {baseline_arm} · right: {best_arm}"
+    if category in MANDATORY_CATEGORIES:
+        subtitle += " · this category is the COST of synthetic data and is never optional"
+    return subtitle
+
+
+@dataclass(frozen=True)
+class PanelPlan:
+    """Every drawing decision for ONE cell, taken before anything is drawn.
+
+    This exists because of K-19. The renderer used to decide the arm, the crop
+    window, which box to outline, in which colour, and what to write underneath
+    it, all inside the loop that talked to matplotlib — so the only thing a test
+    could reach afterwards was the PNG's byte count, and six one-token bugs
+    (wrong arm in both columns, crop pinned to the top-left corner, empty label,
+    the other arm's box, no ground truth, inverted legend) all passed a green
+    suite. The decisions are data now, and the tests assert on them.
+    """
+
+    side: str
+    arm: str
+    row: int
+    column: int
+    image_id: int
+    crop: tuple[int, int, int]
+    detection: Box | None
+    detection_colour: str
+    context_boxes: tuple[Box, ...]
+    context_colour: str
+    label: str
+
+
+@dataclass(frozen=True)
+class GridPlan:
+    """One whole figure as data: geometry, heading, and one entry per cell."""
+
+    category: str
+    rows: int
+    columns: int
+    subtitle: str
+    title: str
+    panels: tuple[PanelPlan, ...]
+
+
+# spec: EVAL-15
+def plan_comparison_grid(
+    category: str,
+    items: Sequence[ComparisonItem],
+    *,
+    image_sizes: Mapping[int, tuple[int, int]],
+    baseline_arm: str,
+    best_arm: str,
+    ground_truth_boxes: Mapping[int, Sequence[Box]] | None = None,
+    total_in_category: int | None = None,
+) -> GridPlan:
+    """Decide the entire figure without drawing any of it.
+
+    `image_sizes` maps image id to (width, height). Nothing here opens a file or
+    touches matplotlib, so every decision the grid makes is reachable by a test
+    that never has to look at a pixel.
+    """
+
+    if not items:
+        raise FigureInputError(
+            f"No items to draw for category {category!r}. Call this only for categories "
+            "that actually occurred; an empty grid is indistinguishable from a grid "
+            "that failed to render."
+        )
+    unsized = sorted({item.image_id for item in items} - set(image_sizes))
+    if unsized:
+        raise FigureInputError(
+            f"No image size for image id(s) {unsized}; the crop window cannot be "
+            "clamped inside an image whose dimensions are unknown."
+        )
+
+    per_row = min(ITEMS_PER_ROW, len(items))
+    rows = -(-len(items) // per_row)
+    panels: list[PanelPlan] = []
+    for position, item in enumerate(items):
+        crop = _crop_window(item.anchor_box, image_sizes[item.image_id])
+        context = _visible_context_boxes(
+            list((ground_truth_boxes or {}).get(item.image_id, ())), crop
+        )
+        row, column = divmod(position, per_row)
+        for offset, (side, arm) in enumerate(
+            (("baseline", baseline_arm), ("best", best_arm))
+        ):
+            drawn = item.baseline if side == "baseline" else item.best
+            panels.append(
+                PanelPlan(
+                    side=side,
+                    arm=arm,
+                    row=row,
+                    column=2 * column + offset,
+                    image_id=item.image_id,
+                    crop=crop,
+                    detection=drawn,
+                    detection_colour=DETECTION_COLOUR,
+                    context_boxes=context,
+                    context_colour=GT_COLOUR,
+                    label=_panel_label(item, arm, drawn),
+                )
+            )
+
+    shown = len(items)
+    total = shown if total_in_category is None else total_in_category
+    subtitle = _grid_subtitle(
+        category,
+        shown=shown,
+        total=int(total),
+        baseline_arm=baseline_arm,
+        best_arm=best_arm,
+    )
+    return GridPlan(
+        category=category,
+        rows=rows,
+        columns=2 * per_row,
+        subtitle=subtitle,
+        title=f"{category} — {subtitle}",
+        panels=tuple(panels),
+    )
+
+
+def _draw_panel(axis, image: np.ndarray, panel: PanelPlan) -> None:
+    """Execute one PanelPlan. Every choice was already made in the plan."""
+
+    left, top, span = panel.crop
     axis.imshow(
         image[top : top + span, left : left + span],
         interpolation=IMSHOW_INTERPOLATION,
@@ -991,45 +1154,33 @@ def _draw_panel(
     axis.set_xticks([])
     axis.set_yticks([])
 
-    for box in context_boxes:
+    for box in panel.context_boxes:
         bx, by, bw, bh = box.xywh
-        if bx + bw <= left or bx >= left + span or by + bh <= top or by >= top + span:
-            continue
         axis.add_patch(
             mpatches.Rectangle(
                 (bx - left, by - top),
                 bw,
                 bh,
                 fill=False,
-                edgecolor=GT_COLOUR,
+                edgecolor=panel.context_colour,
                 linewidth=1.0,
                 linestyle=(0, (3, 2)),
             )
         )
 
-    drawn = item.baseline if side == "baseline" else item.best
-    if drawn is not None:
-        bx, by, bw, bh = drawn.xywh
+    if panel.detection is not None:
+        bx, by, bw, bh = panel.detection.xywh
         axis.add_patch(
             mpatches.Rectangle(
                 (bx - left, by - top),
                 bw,
                 bh,
                 fill=False,
-                edgecolor=DETECTION_COLOUR,
+                edgecolor=panel.detection_colour,
                 linewidth=1.4,
             )
         )
-    score = None if drawn is None else drawn.score
-    score_text = "no detection" if score is None else f"score {score:.2f}"
-    # Three short lines rather than two long ones: EVAL-15 wants the image id,
-    # the class, the score AND the category on every cell, and that does not fit
-    # across a thumbnail on one or two lines.
-    axis.set_title(
-        f"{arm}\nimg {item.image_id} · {item.class_name}\n{score_text} · {item.category}",
-        fontsize=LABEL_FONT_SIZE,
-        pad=2.0,
-    )
+    axis.set_title(panel.label, fontsize=LABEL_FONT_SIZE, pad=2.0)
 
 
 # spec: EVAL-15
@@ -1044,14 +1195,12 @@ def render_comparison_grid(
     ground_truth_boxes: Mapping[int, Sequence[Box]] | None = None,
     total_in_category: int | None = None,
 ) -> Path:
-    """One PNG per category: baseline and best side by side, one pair per item."""
+    """One PNG per category: baseline and best side by side, one pair per item.
 
-    if not items:
-        raise FigureInputError(
-            f"No items to draw for category {category!r}. Call this only for categories "
-            "that actually occurred; an empty grid is indistinguishable from a grid "
-            "that failed to render."
-        )
+    Nothing is decided here. The figure is a transcription of the `GridPlan`
+    `plan_comparison_grid` returned, which is what makes the decisions testable.
+    """
+
     missing = sorted({item.image_id for item in items} - set(image_paths))
     if missing:
         raise FigureInputError(
@@ -1059,38 +1208,38 @@ def render_comparison_grid(
             "'the model saw nothing there', so this raises instead."
         )
 
-    per_row = min(ITEMS_PER_ROW, len(items))
-    rows = -(-len(items) // per_row)
+    cache: dict[int, np.ndarray] = {}
+    for item in items:
+        if item.image_id not in cache:
+            with Image.open(image_paths[item.image_id]) as handle:
+                cache[item.image_id] = np.asarray(handle.convert("RGB"))
+
+    plan = plan_comparison_grid(
+        category,
+        items,
+        image_sizes={
+            image_id: _array_size(image) for image_id, image in cache.items()
+        },
+        baseline_arm=baseline_arm,
+        best_arm=best_arm,
+        ground_truth_boxes=ground_truth_boxes,
+        total_in_category=total_in_category,
+    )
+
     figure, axes = plt.subplots(
-        rows,
-        2 * per_row,
-        figsize=(CELL_INCHES * 2 * per_row, CELL_INCHES * 1.38 * rows),
+        plan.rows,
+        plan.columns,
+        figsize=(CELL_INCHES * plan.columns, CELL_INCHES * 1.38 * plan.rows),
         squeeze=False,
     )
     for axis in axes.ravel():
         axis.axis("off")
+    for panel in plan.panels:
+        axis = axes[panel.row][panel.column]
+        axis.axis("on")
+        _draw_panel(axis, cache[panel.image_id], panel)
 
-    cache: dict[int, np.ndarray] = {}
-    for position, item in enumerate(items):
-        if item.image_id not in cache:
-            with Image.open(image_paths[item.image_id]) as handle:
-                cache[item.image_id] = np.asarray(handle.convert("RGB"))
-        image = cache[item.image_id]
-        context = list((ground_truth_boxes or {}).get(item.image_id, ()))
-        row, column = divmod(position, per_row)
-        for offset, (side, arm) in enumerate(
-            (("baseline", baseline_arm), ("best", best_arm))
-        ):
-            axis = axes[row][2 * column + offset]
-            axis.axis("on")
-            _draw_panel(axis, image, item, side=side, arm=arm, context_boxes=context)
-
-    shown = len(items)
-    total = shown if total_in_category is None else total_in_category
-    subtitle = f"{shown} of {total} shown · left: {baseline_arm} · right: {best_arm}"
-    if category in MANDATORY_CATEGORIES:
-        subtitle += " · this category is the COST of synthetic data and is never optional"
-    figure.suptitle(f"{category} — {subtitle}", fontsize=9)
+    figure.suptitle(plan.title, fontsize=9)
     figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
