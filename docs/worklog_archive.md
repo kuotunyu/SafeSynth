@@ -6,6 +6,39 @@
 
 ---
 
+### 2026-07-31 · M11 結案為 failed-and-accepted；退回 v23 labeler
+
+- **接手時發現快照落後 128 筆 commit**（停在 `355fbd2` / 07-28，
+  HEAD 已是 `d83d4cf`），期間跑完 v6→v23 共 18 輪 labeler 迭代。
+  這是證偽步驟抓到的，快照已重寫。舊日誌移到 `worklog_archive.md`
+  以維持本檔在 20 KB 門檻下（20,401 → 4,978 bytes）。
+- **v23 數值獨立重算驗證通過**：用 `audit_evidence.json` 的原始 box
+  以 IoU≥0.5 貪婪配對重算，得 `TP=91 / FP=13 / FN=19`、
+  precision 0.8750、recall 0.8273、median IoU 0.8303——與 Codex 回報**逐位相同**。
+- **但 v23 退回，理由不是目視格數**：`best epoch 3`、48 圖 audit 最高信心僅 **0.1396**、
+  且 **TP 與 FP 的分數分布幾乎完全重疊**（中位數 0.0583 vs 0.0481）。
+  這代表**不存在能分開兩者的門檻**，precision 0.875 是壓到 0.035 門檻換來的假象。
+  診斷是**嚴重欠訓練**，不是標註品質問題，再跑一輪同型迭代不會改善。
+- **自我更正**：初次目視我判斷格 11／29 是「GT 框了未佩戴安全帽、模型正確略過」，
+  查原始 box 後確認**錯誤**——模型有框，只是洋紅與綠框幾乎完全重合而在縮圖上分不出。
+  真實模式相反：**模型一致地會框未佩戴安全帽，是 GT 自己前後不一致**
+  （1629、3803 有框，4029 沒框），格 35 的 3 個 FP 由此而來。
+  審查表印的「未佩戴的孤立安全帽不應框」**不是 GT 的實際行為**。
+- **決策 [ADR-011](decisions.md#adr-011)**：H4 的技術判定維持不變（未通過、不宣稱通過、
+  未放寬 0.60、未換分類器），改變的是**判定的後果**。
+  9 條合成路線與 18 輪 labeler 迭代都無法翻轉，且 feature-family 診斷顯示
+  HOG-only 0.7792／HSV-only 0.6816 兩類訊號都超標，非單一參數可修。
+  因此把 H4 失敗當成本專案的一項公開發現，生成上限提高到 **1×**（禁止 2×），
+  帶著這個限制推進 Phase 2。
+- **whole-image v10 與 FLUX 路線一併停止**（ADR-010 標記為停止）。
+  相關腳本與報告全部保留在 repo 內作為失敗路線的證據，不刪除。
+- **驗證**：`uv run pytest -q` → **311 passed**；
+  `uv run python -m scripts.audit_phase1_handoff` → `integrity_passed: true`、
+  單一作者、零 `Co-Authored-By`、無 remote、
+  唯一 blocker 是 `M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum`（已由 ADR-011 處置）。
+  `uv run ruff check .` → 4 個 import 排序錯誤，已記入快照待修。
+- **刻意不做**：不修 v23、不跑 v24、不下載 FLUX 權重。
+
 ### 2026-07-28 · supervised labeler v6 人工審查拒絕
 
 - v6 數值 audit 為 precision 0.8995、recall 0.8584、median matched IoU

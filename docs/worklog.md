@@ -8,11 +8,12 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-01（Phase 2 的 M16–M19 完成，主表已出）
-- **最後驗證 commit**：`8c8a240` docs(plan): tick M16-M19 with real evidence, and gate CI on the two checks
+- **更新時間**：2026-08-01（M16–M19 完成、demo 上線、README 有結果）
+- **最後驗證 commit**：`38e5635` test(eval): make the error-analysis figures provable, not just green
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19` 完成**，
-  **`M20` 進行中**（延遲量測用的是預訓練權重、RF-DETR 訓練那半未做），
-  `M21`–`M24` 未開始。
+  **`M20` 與 `M22` 進行中**（都只差需要 GPU 或需要你選素材的那一半），
+  **`M23` 實質完成**（README 有結果與圖、`verify_readme` PASS、CI 已加兩道關卡），
+  `M21` 依前置判斷暫緩，`M24` 未開始。
 - **⚠️ 未 commit 的改動**：無（收工時工作樹乾淨）。
 - **最重要的一句話**：**合成資料在這個資料集上沒有提升，四組主表已在凍結 Test 上算完並交叉驗證。**
   但它在真實標註稀少時確實有效——交叉點約在 4 輪真實資料。
@@ -30,8 +31,7 @@ uns\<arm>\seed_1337\`
 - **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
   **本輪全程未使用 GPU**（另一個專案佔用中），評測與分析都在 CPU 上跑，
   744 張 × 4 組約 13 分鐘。
-- **下一個動作（一句話、可直接動手）**：等 `w9gisjtqo` workflow 收尾後跑全套測試，
-  然後決定 M21（補 seed）要不要做——主表顯示合成沒贏，補 seed 不會改變結論。
+- **下一個動作（一句話、可直接動手）**：等使用者對 `instructions_for_me.md` 裡的 repo 體積問題（437 MB，其中 362.9 MB 是孤兒圖）做決定，那件事在第一次 push 之前處理才便宜。
 - **卡住的事**：無阻擋。
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
@@ -42,6 +42,8 @@ uns\<arm>\seed_1337\`
      hard-negative 子集是空的，而候選區域 fallback 未實作
   4. 模型**校準很差**：223,200 個偵測的最高分只有 0.2495。排序good、絕對分數不可用
   5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
+  6. **repo 有 437 MB**，其中 362.9 MB 是 116 個沒有任何文件引用的 Phase 1 診斷圖。
+     從 HEAD 刪不會讓 clone 變小，要 `filter-repo`，而且**要在第一次 push 之前做**
 - **等使用者做的事**：見 [instructions_for_me.md](../instructions_for_me.md)。
   遠端 GitHub repo 仍未建立（發佈時才需要）。
 - **驗證本快照的指令**：
@@ -58,6 +60,36 @@ uns\<arm>\seed_1337\`
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-08-01（下午）· demo、README 結果、以及一個我自己造成的 main 污染
+
+- **對應規格**：DEMO-01~03、PUB-01~05、EVAL-15
+- **做了什麼**：Gradio demo（M22）、README 補上結果與 headline 圖、
+  CI 加上 README 驗證與授權掃描兩道關卡、error_analysis 渲染層的測試補強。
+- **驗證（實跑輸出）**：
+  - `uv run python -m scripts.verify_readme` → **PASS**（441 列 CSV、37 份文件）
+  - `uv run pytest -q` → **1389 passed, 42 skipped**；`ruff check .` 全清
+  - demo 對兩張真實 Test 影像跑完整路徑並**打開圖檢視**：
+    12/15 與 6/15 compliant，輸出在 `reports/figures/demo_examples/`
+  - error_analysis 的 27 條指定變異 ＋ 我自己補的 3 條，**全部killed**
+- **踩到的坑**：
+  - [K-21](troubleshooting.md)：**我用 `git add -A` 把背景 agent 注入的變異提交進 main。**
+    後果是 PUB-10 的洩漏掃描在這台機器上什麼都不搜尋卻照樣印 PASS
+    （`_IDENTIFIER_MIN_LENGTH = 4`，本機 USERNAME 長度正好 4，`>` 就收集到 0 個）。
+    不是我發現的，是變異驗證 agent 比對 HEAD 與工作樹時撞見的。
+  - 修好的掃描器**第一個真實命中就是 K-21 那篇文件自己**——我在裡面寫了字面的使用者名稱。
+  - 我補 A18 測試的第一版**仍然抓不到那條變異**：我另外呼叫 `plan_comparison_grid`
+    來斷言，那是測葉子不是測那條線。改成攔截協作者、斷言它收到什麼才killed。
+- **量過但決定不做的事**：
+  - **EVAL-09 的 bootstrap**。CPU 上一輪 COCOeval 12.0 秒，1000 次 × 4 組 = **14.1 小時**，
+    而且只是一個指標。試過截斷偵測（2.7× 加速）但**不是無損的**——
+    pycocotools 的 maxDets 逐類別套用，整圖取前 100 會砍掉該入榜的框，mAP 差 2.6e-04。
+    主表關鍵差距 0.085 遠大於雜訊下限 ±0.031，方向性不成疑問，不值得 14 小時。
+  - **M21 補 seed**：PLAN 的前置判斷已寫明，合成沒贏時補 seed 不改變結論。
+- **量到但還沒處理的事**：**repo 有 437.5 MB**，其中 116 個檔案、362.9 MB
+  沒有任何文件引用（Phase 1 已放棄路線的診斷圖）。刪除是不可逆的，
+  而且要真的瘦身得 `filter-repo`——依規矩是使用者的動作。已寫進交接文件。
+- **commit**：`71ac177`、`6f5a906`、`17e5153`、`8368cda`、`7f24640`、`fa1b327`、`38e5635`
 
 ### 2026-08-01 · Phase 2 主線：四組結果出爐，合成沒有提升
 
@@ -175,36 +207,3 @@ uns\<arm>\seed_1337\`
   #4 更進一步顯示「有規則」不等於「規則會執行」——FILT-08 需要 `person` 框，
   而全資料集只有 3.16% 的圖有。
 - **commit**：`974df2e`、`c96339f`
-
-### 2026-07-31 · M11 結案為 failed-and-accepted；退回 v23 labeler
-
-- **接手時發現快照落後 128 筆 commit**（停在 `355fbd2` / 07-28，
-  HEAD 已是 `d83d4cf`），期間跑完 v6→v23 共 18 輪 labeler 迭代。
-  這是證偽步驟抓到的，快照已重寫。舊日誌移到 `worklog_archive.md`
-  以維持本檔在 20 KB 門檻下（20,401 → 4,978 bytes）。
-- **v23 數值獨立重算驗證通過**：用 `audit_evidence.json` 的原始 box
-  以 IoU≥0.5 貪婪配對重算，得 `TP=91 / FP=13 / FN=19`、
-  precision 0.8750、recall 0.8273、median IoU 0.8303——與 Codex 回報**逐位相同**。
-- **但 v23 退回，理由不是目視格數**：`best epoch 3`、48 圖 audit 最高信心僅 **0.1396**、
-  且 **TP 與 FP 的分數分布幾乎完全重疊**（中位數 0.0583 vs 0.0481）。
-  這代表**不存在能分開兩者的門檻**，precision 0.875 是壓到 0.035 門檻換來的假象。
-  診斷是**嚴重欠訓練**，不是標註品質問題，再跑一輪同型迭代不會改善。
-- **自我更正**：初次目視我判斷格 11／29 是「GT 框了未佩戴安全帽、模型正確略過」，
-  查原始 box 後確認**錯誤**——模型有框，只是洋紅與綠框幾乎完全重合而在縮圖上分不出。
-  真實模式相反：**模型一致地會框未佩戴安全帽，是 GT 自己前後不一致**
-  （1629、3803 有框，4029 沒框），格 35 的 3 個 FP 由此而來。
-  審查表印的「未佩戴的孤立安全帽不應框」**不是 GT 的實際行為**。
-- **決策 [ADR-011](decisions.md#adr-011)**：H4 的技術判定維持不變（未通過、不宣稱通過、
-  未放寬 0.60、未換分類器），改變的是**判定的後果**。
-  9 條合成路線與 18 輪 labeler 迭代都無法翻轉，且 feature-family 診斷顯示
-  HOG-only 0.7792／HSV-only 0.6816 兩類訊號都超標，非單一參數可修。
-  因此把 H4 失敗當成本專案的一項公開發現，生成上限提高到 **1×**（禁止 2×），
-  帶著這個限制推進 Phase 2。
-- **whole-image v10 與 FLUX 路線一併停止**（ADR-010 標記為停止）。
-  相關腳本與報告全部保留在 repo 內作為失敗路線的證據，不刪除。
-- **驗證**：`uv run pytest -q` → **311 passed**；
-  `uv run python -m scripts.audit_phase1_handoff` → `integrity_passed: true`、
-  單一作者、零 `Co-Authored-By`、無 remote、
-  唯一 blocker 是 `M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum`（已由 ADR-011 處置）。
-  `uv run ruff check .` → 4 個 import 排序錯誤，已記入快照待修。
-- **刻意不做**：不修 v23、不跑 v24、不下載 FLUX 權重。
