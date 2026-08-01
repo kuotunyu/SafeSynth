@@ -2,36 +2,87 @@
 
 > 這份檔案只留**需要你親自判斷或執行外部動作**的事。
 > 本機可逆的實作、測試與 commit 已授權自動完成；不會自行建立 remote、push 或發佈。
-> 最後更新：2026-08-01（Colab 四組訓練進行中）
+> 最後更新：2026-08-01（Phase 2 的 M16–M19 做完，主表已出）
 
 ---
 
-## 🌅 醒來先看這裡
+## 🎯 一分鐘看懂現在的狀況
 
-Colab 的四組訓練是 2026-08-01 深夜開始跑的，需要約 **6.5 小時**（每組約 1.6 小時）。
-產出寫在 **Drive**，不是那台虛擬機，所以 runtime 被回收也不會掉。
+**四組訓練跑完了，數字算完了，結論是：合成資料在這個資料集上沒有提升。**
 
-**第一步：看 Drive 的 `sdg-portfolio/02-safesynth-ppe/` 有沒有 `results_colab.zip`。**
+| arm | primary AP_small | primary mAP |
+|---|---:|---:|
+| **real_only** | **0.4511** | **0.5341** |
+| standard_aug | 0.4236 | 0.4958 |
+| unfiltered_syn | 0.3759 | 0.4597 |
+| filtered_syn | 0.3664 | 0.4858 |
 
-| 情況 | 你要做的 |
-|---|---|
-| **有 zip** | 下載，然後在 repo 根目錄跑下面那行指令。不用手動解壓 |
-| **沒有 zip，Colab 還在跑** | 什麼都不用做，等它跑完 |
-| **沒有 zip，Colab 斷了** | 回 Colab 按「執行階段 → 全部執行」。**已完成的組不會重練**——它會從 Drive 抓回 checkpoint，Trainer 看到步數已達標就跳過，只重跑一次評測 |
+凍結 Test 744 張，各組取自己最佳 checkpoint。兩條獨立實作算出來一致到 8.8e-07。
 
-拿到 zip 之後，這行會自動解壓到 `results/colab/` 並做完整性稽核：
+**但這不是全部。** 改用「真實影像曝光次數」而不是 optimizer 步數當橫軸，
+`filtered_syn` 在**真實資料只看過 1–4 輪**時領先最多 **+0.090 mAP**，第 4–5 輪才被追過。
+合成資料在標註稀少時確實有效——只是這個資料集有 5,000 張標註，
+正好是它最沒用武之地的區間。
 
-```bash
-uv run python -m scripts.audit_colab_results --archive ~/Downloads/results_colab.zip
+一張圖把兩半都畫出來：`reports/figures/headline.png`（README 開頭也有）。
+
+**還有一個乾淨的勝利**：各組各選各的合規操作點後，
+**`unfiltered_syn` 在任何會偵測到東西的門檻上都達不到 0.80 精確度**，`filtered_syn` 可以。
+過濾決定了「能不能當合規檢查器部署」——這是過濾這條線最有力的證據。
+
+---
+
+## 你要做的事
+
+### 1️⃣ 看兩張圖，告訴我合不合理（10 分鐘，非必要但有價值）
+
+```
+reports/figures/headline.png                      主結果，兩個面板
+reports/figures/error_analysis/new_false_positive.png   合成資料的代價
 ```
 
-它會檢查四組是不是真的可比較——**四組吃的真實影像是否完全相同**（比對 SHA256 摘要）、
-optimizer 步數是否相等、filtered 與 unfiltered 是否等量、`+Standard Aug` 有沒有拿到
-光度增強（[EXP-01](docs/experiment_protocol.md)）、以及每組是不是真的評測過
-（[K-18](docs/troubleshooting.md) 的教訓）。
+第二張是「baseline 沒誤報、合成組誤報了」的並排對照，**12 張取自 291 個**。
+我已經逐張看過，但這種圖最需要第二雙眼睛。
+回饋範本：「第 3 排右邊那組，橘框框到的其實是……」
 
-有問題它會**列出完整清單**寫進 `reports/m16_colab_audit.md` 並回傳非零；
-**在清單清空之前，任何表格都不准建立在這批結果上**。跑完把結果貼給我就行。
+### 2️⃣ 決定要不要補 3 seeds（M21）
+
+PLAN 的前置判斷寫得很清楚：**若 Filtered 組沒有提升，補 seed 不會改變結論**。
+我**暫緩了**，理由記在 worklog。你可以推翻這個決定。
+
+### 3️⃣ GPU 空出來之後（你決定時機）
+
+三件事在等 GPU，都不急：
+- **RF-DETR-Nano 速度對照組的訓練那一半**（M20）。延遲數字已經量了，
+  但用的是預訓練權重，標著 PROVISIONAL
+- **EVAL-09 的 bootstrap**。CPU 上實測要 **14.1 小時**（一輪 COCOeval 12 秒 × 1000 × 4 組），
+  所以這輪沒跑。GPU 上會快很多
+- **demo 的 GIF**（DEMO-04）。需要一段工地短片，而且選材要「同時有戴帽與沒戴帽的人」，
+  這是需要你判斷的
+
+### 4️⃣ 想玩 demo 的話
+
+```bash
+uv run python app.py --device cpu
+```
+
+瀏覽器開 `http://127.0.0.1:7860`。圖片與影片兩個分頁都能用，CPU 上一張約 1.2 秒。
+綠框＝戴帽、紅框＝裸頭、灰框＝`person`（不帶判定）。
+
+---
+
+## ⚠️ 三件我必須讓你知道的事
+
+1. **`configs/evaluation.yaml` 的 `compliance.score_threshold: 0.07` 已凍結。**
+   EVAL-04 在 Validation 上選的。**看過 Test 之後再改就是在 Test 上調參**，不要動它。
+   它這麼低是因為這個模型校準很差——223,200 個偵測的最高分只有 0.2495。
+
+2. **我把一個變異提交進 main 又修回來了**（[K-21](docs/troubleshooting.md)）。
+   背景有 agent 在對 `verify_readme.py` 做變異測試，我用 `git add -A` 的那一刻
+   正好夾到它注入變異、還沒還原的窗口。後果是 PUB-10 的洩漏掃描
+   在這台機器上**什麼都不搜尋卻照樣印 PASS**。已修，並加了會抓到它的測試。
+
+3. **這一輪完全沒有使用 GPU**，照你交代的。評測與分析都在 CPU 上跑。
 
 ---
 
@@ -58,21 +109,24 @@ optimizer 步數是否相等、filtered 與 unfiltered 是否等量、`+Standard
 
 ## 接下來會輪到你的時機
 
-### ✅ 時機 1：Phase 2 的 Colab 往返 —— **進行中**，見本檔開頭的「醒來先看這裡」
+### ✅ 時機 1：Phase 2 的 Colab 往返 —— **已完成**
 
-實測數字（取代先前的估計）：L4 上約 **1.7–1.9 it/s**，每組 10,900 步約
-**1.6–1.75 小時**，四組約 **6.5 小時、約 27 CU**。
+四組各 10,900 步跑完，權重已解壓到 `D:\sdg-data-safesynthuns\`，
+盤點稽核 PASS（0 fatal），主表已算完。實測 L4 約 1.7–1.9 it/s、
+每組約 1.6–1.75 小時、四組約 6.5 小時。
 
 > ⚠️ 我原先估「4–5 小時」，那是用「L4 大概比 4090 慢 2–2.5 倍」**推算**的，
 > 實際慢約 3 倍。而且我沒有明講「這是過夜的工作」，害你熬夜盯著跑。
 > 規則已寫進 [CLAUDE.md](CLAUDE.md)【工作方式】：超過 1 小時的作業，
 > 時數必須來自實測，而且要明說「你現在應該去睡覺」。
 
-你的 Colab 是 **Pro+（500 CU/月，含 24 小時背景執行）**，額度很夠。
+**Drive 上的東西現在可以刪了**——權重與訓練狀態都已經在本機 D: 磁碟，
+`results/detection_metrics.csv` 也已經進 git。
 
-**已知限制**：checkpoint 是**每跑完一組**才同步回 Drive，
-所以中途斷線會損失「當下那一組」（最多約 1.6 小時），已完成的組全部安全。
-改成每存一次就同步是之後要做的改進——不在你睡覺、沒人盯著的時候動正在跑的 notebook。
+**notebook 的一個缺陷已修**：原本 checkpoint 是每跑完一組才同步回 Drive，
+而且打包時漏抓了全部四組的 `trainer_state.json`（HF 寫在 `checkpoint-N/` 裡，
+glob 只掃 `seed_*/`，`is_file()` 把「找不到」變成安靜跳過）。
+已移進被測模組並補了 6 條測試，M21 補 seed 時不會再漏。
 
 ### ⏳ 時機 2：發佈前 → **建 GitHub repo 與 push**（預計 20 分鐘）
 
