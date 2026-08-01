@@ -8,37 +8,47 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-07-31（M13 pool 重生成完畢）
-- **最後驗證 commit**：`7c8d9d3` feat(synthesis): deliver the M13 1x pool and close Phase 1 verification
-- **目前里程碑**：`M0`–`M10`、`M12` 完成，`M11` 結案為 failed-and-accepted
-  （[ADR-011](decisions.md#adr-011)：H4 未通過且不宣稱通過，後果改為「允許 1×、禁止 2×」）。
-  **`M13`、`M14` 已完成並驗收**（驗證於 `7c8d9d3`）。**Phase 1 全部完成。**
-- **⚠️ 未 commit 的改動**：`reports/` 的預覽圖與統計（等 M13 驗收一起提交）。
+- **更新時間**：2026-08-01（Phase 2 的 M16–M19 完成，主表已出）
+- **最後驗證 commit**：`8c8a240` docs(plan): tick M16-M19 with real evidence, and gate CI on the two checks
+- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19` 完成**，
+  **`M20` 進行中**（延遲量測用的是預訓練權重、RF-DETR 訓練那半未做），
+  `M21`–`M24` 未開始。
+- **⚠️ 未 commit 的改動**：無（收工時工作樹乾淨）。
+- **最重要的一句話**：**合成資料在這個資料集上沒有提升，四組主表已在凍結 Test 上算完並交叉驗證。**
+  但它在真實標註稀少時確實有效——交叉點約在 4 輪真實資料。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
-  `source_checksums.json`、`MANIFEST.sha256`；manifest SHA256 為
-  `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`。
-- **資料與素材落地**：Kaggle version 1、Pass-1 masks、7,255 個通過素材
-  （**compose 載入時再排除 102 個過暗素材**，見 CUT-14，實際可用 7,153）、
-  `m13_pool_1x`（14,000 候選 / 4,177 接受）與四份 COCO 子集都在 `D:\sdg-data\02-safesynth`；
-  Test 洩漏為 0，cutout 重現抽查 100/100。
-- **環境**：已安裝並驗證。Python 3.12.13、torch 2.13.0+cu130、
-  torchvision 0.28.0+cu130、transformers 5.14.1、diffusers 0.39.0。
-  `docs/environment.md §5` 驗證表十列全過（含 `cuda.is_available()==True` / RTX 4090）。
-- **下一個動作（一句話、可直接動手）**：H4 重跑結束後填回 AUC，
-  跑 `scripts.threshold_sensitivity` 與 `scripts.audit_phase1_handoff`，
-  勾 `PLAN.md` 的 M13／M14 並補 `驗證於`。
+  `source_checksums.json`、`MANIFEST.sha256`（SHA256
+  `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`）；
+  再加上 **`configs/evaluation.yaml` 的 `compliance.score_threshold: 0.07`**——
+  EVAL-04 在 Validation 上選定後即凍結，**看過 Test 之後再改就是在 Test 上調參**。
+- **資料與素材落地**：Colab 四組權重解壓在 `D:\sdg-data-safesynth
+uns\<arm>\seed_1337\`
+  （每組 best ＋ last 兩個 checkpoint）；八份偵測結果（4 arms × test/val）在
+  `runs/predictions/`，索引在 `results/predictions_index.json`。
+  **`results/detection_metrics.csv` 現在是被追蹤的**（441 列）——EVAL-12 要求所有報告數字
+  都能從它重算，`scripts/verify_readme.py` 與 CI 都以它為準。
+- **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
+  **本輪全程未使用 GPU**（另一個專案佔用中），評測與分析都在 CPU 上跑，
+  744 張 × 4 組約 13 分鐘。
+- **下一個動作（一句話、可直接動手）**：等 `w9gisjtqo` workflow 收尾後跑全套測試，
+  然後決定 M21（補 seed）要不要做——主表顯示合成沒贏，補 seed 不會改變結論。
 - **卡住的事**：無阻擋。
-- **⚠️ 已知限制（不阻擋，但必須寫進 README）**：
-  1. H4 未通過（貼上痕跡可偵測），依 ADR-011 帶著限制推進
-  2. **接受率隨 pool 變大而衰減**（2,000 張時 58.4%、14,000 張時 29.8%），
-     因為去重要跟所有已接受樣本比。這是 copy-paste 在 3,500 張背景上的天花板（K-13）
-  3. hard negative 的**貼上質感已修好**（表面紋理 52.4 → 503.3，真實安全帽 1350.9），
-     但**放置位置**仍可能落在半空中——這需要深度理解，而實測顯示本資料集
-     沒有深度—尺寸關係（R²=0.0001），沒有便宜的解法（K-11）
-- **等使用者做的事**：無。K-11 已裁決為接受。遠端 GitHub repo 仍未建立（發佈時才需要）。
+- **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
+  1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
+     這是預先登記的閘門確實有預測力，不是事後找的藉口
+  2. **這一輪沒有跑 bootstrap**（`--bootstrap-resamples 0`），所以它不滿足 EVAL-09，
+     報告已明載。全部單一 seed，EVAL-10 禁止用零點幾個點宣稱勝出
+  3. **EVAL-16 無法產生**：凍結 Test 的 744 張**全都**含 helmet 或 head，
+     hard-negative 子集是空的，而候選區域 fallback 未實作
+  4. 模型**校準很差**：223,200 個偵測的最高分只有 0.2495。排序good、絕對分數不可用
+  5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
+- **等使用者做的事**：見 [instructions_for_me.md](../instructions_for_me.md)。
+  遠端 GitHub repo 仍未建立（發佈時才需要）。
 - **驗證本快照的指令**：
   ```
-  uv run python -m scripts.audit_phase1_handoff
+  uv run python -m scripts.audit_colab_results
+  uv run python -m scripts.verify_readme
+  uv run python -m scripts.check_forbidden_licences
   uv run ruff check .
   uv run pytest -q
   ```
@@ -48,6 +58,56 @@
 ## 工作日誌
 
 *append-only，新的插在最上面。*
+
+### 2026-08-01 · Phase 2 主線：四組結果出爐，合成沒有提升
+
+- **對應規格**：TRAIN-15~18、EVAL-01~18、PUB-01~05
+- **做了什麼**：回收 Colab 四組產出並稽核（M16）、合規操作點（M17）、
+  凍結 Test 主表（M18）、四類錯誤分析（M19）、README 與 CI 關卡（M23 大部分）。
+  全程未使用 GPU。
+- **驗證（實跑輸出）**：
+  - 盤點：**PASS，0 fatal / 4 warning**。四組 `real_train_digest` 全同、步數皆 10,900、
+    filtered 與 unfiltered 皆 3,500。
+  - 主表（凍結 Test 744 張，各組取自己最佳 checkpoint），primary = helmet+head：
+
+    | arm | primary AP_small | primary mAP | 真實影像曝光 |
+    |---|---:|---:|---:|
+    | real_only | **0.4511** | **0.5341** | 49.83 |
+    | standard_aug | 0.4236 | 0.4958 | 49.83 |
+    | unfiltered_syn | 0.3759 | 0.4597 | 24.91 |
+    | filtered_syn | 0.3664 | 0.4858 | 24.91 |
+
+  - **兩條獨立實作一致到 8.8e-07**（`scripts/eval.py` vs 一支獨立的 scratchpad 腳本）。
+  - 防洩漏實跑：`assert_test_untouched()` 過 744 張；四組訓練 digest 皆等於凍結 train split。
+  - `uv run pytest -q` → **1292 passed, 41 skipped**；`ruff check .` 全清。
+- **結論與分析**：
+  - **合成沒有提升。** 依鐵律如實報告，不做選擇性呈現。
+  - **但它在標註稀少時有效**：改用「真實影像曝光」而不是 optimizer 步數當 x 軸，
+    `filtered_syn` 在 1–4 輪領先最多 **+0.090 mAP**，第 4–5 輪被追過。
+    本資料集有 5,000 張標註，正是合成增強最無用武之地的區間。
+    **注意**：對齊曝光就對不齊算力，每一列都是「相同標註、更多計算」。
+  - **過濾的價值在合規操作點上最清楚**：各組各選各的門檻後，
+    **`unfiltered_syn` 在任何會偵測到東西的門檻上都達不到 0.80 精確度**，
+    `filtered_syn` 可以（0.8076）。過濾決定了能不能部署。
+  - **針對性失敗，而且比無效更糟**：`small_object` 是**移動最不利**的切片（−0.0572）。
+  - **退步是不對稱的**：修好 73 個漏檢、新製造 1,304 個。
+- **決策**：無新 ADR。ADR-011 的預測（H4 未過 ⇒ 可能無提升）得到證實。
+- **踩到的坑**：
+  - [K-20](troubleshooting.md)：`run_record.json` 的 `eval_metrics` 與任何 checkpoint 都對不上。
+    兩趟各 200 秒的 CPU 推論就把「權重壞了」和「記錄壞了」分開——處置完全不同。
+  - 打包程式漏抓全部四組的 `trainer_state.json`，**完全沒報錯**：
+    HF 寫在 `checkpoint-N/` 裡，glob 只掃 `seed_*/`，`is_file()` 把「找不到」變成「跳過」。
+    這段邏輯當初寫在 notebook 字串裡，測不到。已移進 `src/training/ingest.py`。
+  - `compliance.score_threshold: 0.50` 這個佔位值對本模型是災難（最高分 0.2495）。
+  - `select_operating_point` 會選出「從不觸發」的退化解（precision 1.0、recall 0.0）。
+  - bare-head recall 在門檻 0 上四組差距只有 0.0023，**沒有鑑別力**；
+    改在操作點上讀，差距變成 0.54。已寫成 EVAL-05b。
+- **刻意不做**：
+  - **M21 補 seed 暫緩**。PLAN 的前置判斷寫得很清楚：若 Filtered 組沒有提升，
+    補 seed 不會改變結論。額度留給錯誤分析與後續的 real-fraction 消融。
+  - bootstrap 用 0 跑（因此這一輪不滿足 EVAL-09），因為 1000 次重抽 × 每次一輪 COCOeval
+    在 CPU 上是好幾小時，而它不改變方向性結論。這件事報告有寫。
+- **commit**：`7f2f0b3`、`bc44f3f`、`735111a`、`8c8a240`
 
 ### 2026-07-31 · K-11 裁決為「接受」；補寫 DATA-24 標註語意
 
@@ -148,46 +208,3 @@
   唯一 blocker 是 `M11/H4 AUC 0.7964 exceeds the 0.60 scale-up maximum`（已由 ADR-011 處置）。
   `uv run ruff check .` → 4 個 import 排序錯誤，已記入快照待修。
 - **刻意不做**：不修 v23、不跑 v24、不下載 FLUX 權重。
-
-### 2026-07-28 · supervised labeler v6 人工審查拒絕
-
-- v6 數值 audit 為 precision 0.8995、recall 0.8584、median matched IoU
-  0.8430，但 kuotunyu 在固定 48 格 Train-only 審查中確認 9 個問題格：
-  `04, 06, 07, 13, 23, 27, 38, 43, 45`。
-- 問題包含背景誤框、04 漏掉一頂安全帽，以及 13/27 相鄰安全帽未逐一
-  分離。原始綠／青頁與分離後綠／洋紅頁的 SHA256 都已綁進拒絕證據。
-- 正式證據：
-  `reports/supervised_labeler_v6_human_review.json`，canonical evidence SHA256
-  `4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec`。
-- `generation_gate.allowed=false`；whole-image v10 不得執行。Validation/Test
-  讀取皆為 0，whole-image generation 亦為 false。
-- v6 的 48 格已揭露，只能供 v7 診斷，不能再作 v7 untouched audit。
-  驗證：`uv run ruff check src scripts tests` 通過，`uv run pytest -q`
-  為 161 passed；提交 `355fbd2`。
-
-### 2026-07-27 · FLUX.2 v2 A100 診斷完成
-
-- A100 40 GB 以 `full_model_on_cuda` 完成四個 Train 案例、三個預註冊
-  variant，共 12/12 輸出；總推論 86.70 秒。
-- 結果 ZIP SHA256：
-  `33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6`。
-- 三個 variant 的 outside-mask changes 都是 0；移除 reference 的 masked
-  RGB MAE 僅 0.2260/255，降低 strength 也沒有一致的視覺改善。
-- 沒有選出替代 variant。v1 identity gate 的失敗維持有效；未計算新 H4
-  AUC，沒有開啟 M13 或 Phase 2。
-- 下一個方法必須先處理 rejected pilot 暴露的 invalid draft 與
-  mislocalized anchor，並在新的 untouched identity pilot 前預註冊。
-
-### 2026-07-27 · H6 簽核與 H4 Option A 預註冊
-
-- kuotunyu 對 exact-grid SHA 簽核 0/64 真正安全帽，H6 通過。
-- 選定 Apache-2.0 `FLUX.2-klein-base-4B`，revision 與 14.88 GiB
-  Diffusers 檔案清單已由 Hugging Face metadata 驗證；權重未下載。
-- 鎖定 reference-conditioned boundary inpainting、protected core、64 圖
-  人工 identity gate 與新的 one-shot H4 fold；0.60 門檻不變。
-- 新增 local-only loader、模型 manifest hard gate、像素身份不變式與 7 項測試。
-
-
----
-
-> 更早的日誌已移到 [worklog_archive.md](worklog_archive.md)。

@@ -6,6 +6,49 @@
 
 ---
 
+### 2026-07-28 · supervised labeler v6 人工審查拒絕
+
+- v6 數值 audit 為 precision 0.8995、recall 0.8584、median matched IoU
+  0.8430，但 kuotunyu 在固定 48 格 Train-only 審查中確認 9 個問題格：
+  `04, 06, 07, 13, 23, 27, 38, 43, 45`。
+- 問題包含背景誤框、04 漏掉一頂安全帽，以及 13/27 相鄰安全帽未逐一
+  分離。原始綠／青頁與分離後綠／洋紅頁的 SHA256 都已綁進拒絕證據。
+- 正式證據：
+  `reports/supervised_labeler_v6_human_review.json`，canonical evidence SHA256
+  `4f23014a5ec9eea77317a172e3c0901e61fa9b9c91b9a40470c3d6c35464e4ec`。
+- `generation_gate.allowed=false`；whole-image v10 不得執行。Validation/Test
+  讀取皆為 0，whole-image generation 亦為 false。
+- v6 的 48 格已揭露，只能供 v7 診斷，不能再作 v7 untouched audit。
+  驗證：`uv run ruff check src scripts tests` 通過，`uv run pytest -q`
+  為 161 passed；提交 `355fbd2`。
+
+### 2026-07-27 · FLUX.2 v2 A100 診斷完成
+
+- A100 40 GB 以 `full_model_on_cuda` 完成四個 Train 案例、三個預註冊
+  variant，共 12/12 輸出；總推論 86.70 秒。
+- 結果 ZIP SHA256：
+  `33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6`。
+- 三個 variant 的 outside-mask changes 都是 0；移除 reference 的 masked
+  RGB MAE 僅 0.2260/255，降低 strength 也沒有一致的視覺改善。
+- 沒有選出替代 variant。v1 identity gate 的失敗維持有效；未計算新 H4
+  AUC，沒有開啟 M13 或 Phase 2。
+- 下一個方法必須先處理 rejected pilot 暴露的 invalid draft 與
+  mislocalized anchor，並在新的 untouched identity pilot 前預註冊。
+
+### 2026-07-27 · H6 簽核與 H4 Option A 預註冊
+
+- kuotunyu 對 exact-grid SHA 簽核 0/64 真正安全帽，H6 通過。
+- 選定 Apache-2.0 `FLUX.2-klein-base-4B`，revision 與 14.88 GiB
+  Diffusers 檔案清單已由 Hugging Face metadata 驗證；權重未下載。
+- 鎖定 reference-conditioned boundary inpainting、protected core、64 圖
+  人工 identity gate 與新的 one-shot H4 fold；0.60 門檻不變。
+- 新增 local-only loader、模型 manifest hard gate、像素身份不變式與 7 項測試。
+
+
+---
+
+> 更早的日誌已移到 [worklog_archive.md](worklog_archive.md)。
+
 ### 2026-07-27 · M6–M12 · 素材、合成、filter 與 H4 硬閘門
 
 - **M6–M8**

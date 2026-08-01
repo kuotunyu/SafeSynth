@@ -102,7 +102,7 @@
   - **驗證於**：`7f2f0b3` @ 2026-08-01
   - **實際結果**：`results/detection_metrics.csv` 441 列。**兩條獨立實作算出的主表一致到 8.8e-07**（JSON 浮點往返誤差）。凍結 Test 744 張：`real_only` primary AP_small **0.4511**、`standard_aug` 0.4236、`unfiltered_syn` 0.3759、`filtered_syn` 0.3664。**合成沒有提升。**
   - **防洩漏實跑通過**：`assert_test_untouched()` 覆蓋 744 張；四組訓練清單的 digest 皆等於凍結 train split，與 Test 交集為零。
-  - **bootstrap 未跑**（`--bootstrap-resamples 0`），所以 **EVAL-09 尚未滿足**，報告已載明。
+  - **這一輪跑的是 `--bootstrap-resamples 0`**，所以它不滿足 EVAL-09；報告已載明這件事。
 
 - [x] **M19** 錯誤分析：FP/FN 對照 grid ＋ 情境切分表
   - **對應規格**：EVAL-15 ~ EVAL-18
@@ -127,7 +127,7 @@
     主表仍以 RT-DETRv2 為準，速度對照另立一表
   - **已完成的部分**（`55da06a`）：RF-DETR-Nano 實際載入並前向通過（`RfDetrForObjectDetection`，transformers 5.14.1）；兩個模型的 Hub 授權於量測當下重新查證皆為 `apache-2.0` 並釘住 revision；`grep -rn ultralytics` **零命中**，而且改成由 `scripts/check_forbidden_licences.py` **真的執行掃描**（原本是寫死的字串，種一個違規檔進去照樣說通過）；延遲數字含 batch／解析度／dtype 三項。
   - **實測發現，且它推翻了原本要下的結論**：把輸入從 640 降到 320（像素少 4 倍），**兩個模型都沒有變快**（RT-DETRv2 +0.1%、RF-DETR +3.5%）。batch-1 是 dispatch-bound，量到的是我們的 eager-PyTorch 推論路徑而不是架構。**所以「RF-DETR-Nano 比較快」這句話不能寫**——只量一個解析度就會理直氣壯地寫下錯的結論。
-  - **未完成**：① 延遲數字用的是**預訓練 80 類 checkpoint**，不是微調後的 3 類權重，報告全篇標著 PROVISIONAL，需在最終權重上重測；② ADR-005 範圍裡的「RF-DETR 用同樣四組訓練一次」尚未做（需要 GPU）。
+  - **這個 `[~]` 涵蓋的範圍**：① 延遲數字量自**預訓練 80 類 checkpoint**，不是微調後的 3 類權重，報告全篇標著 PROVISIONAL，要在最終權重上重測一次；② ADR-005 範圍裡的「RF-DETR 用同樣四組各訓練一次」需要 GPU，留到 GPU 空出來再跑。
   - **驗證於**：（未完成）
 
 ---

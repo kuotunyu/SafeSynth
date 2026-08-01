@@ -391,6 +391,32 @@ def test_digits_inside_an_annotation_are_not_read_as_part_of_the_value() -> None
     assert check_table_numbers(readme, rows) == []
 
 
+def test_a_cell_arm_annotation_overrides_the_row_label() -> None:
+    """<!--arm: ...--> has to win in the arms-in-rows orientation too.
+
+    Both rows below are unreadable without the annotation being honoured: the
+    first has a label that resolves to no arm at all, and the second carries the
+    FILTERED value under a row labelled Real-only. If the annotation were
+    ignored the first cell would be "no arm applies" and the second would be
+    compared against real_only's 0.3564, so an annotation silently dropped here
+    cannot look like a pass.
+    """
+
+    unlabelled = _table(
+        "| Arm | primary_map_small |",
+        "| Real-only | 0.3564 |",
+        "| Best synthetic run | 0.3200<!--arm: filtered_syn--> |",
+    )
+    overriding = _table(
+        "| Arm | primary_map_small |",
+        "| Real-only | 0.3564 |",
+        "| Real-only | 0.3200<!--arm: filtered_syn--> |",
+    )
+
+    assert check_table_numbers(unlabelled, ROWS) == []
+    assert check_table_numbers(overriding, ROWS) == []
+
+
 def test_an_explicitly_skipped_cell_is_left_alone() -> None:
     readme = _table(
         "| Arm | primary_map_small | Rank |",
@@ -487,6 +513,37 @@ def test_a_spread_on_a_single_seed_with_no_interval_has_nothing_to_come_from() -
     assert "no spread at all" in failure.message
 
 
+def test_two_numbers_with_no_plus_minus_sign_have_no_interpretation() -> None:
+    """A pair of numbers only reads as "value ± spread" when the sign is there.
+
+    The second number is exactly half the bootstrap interval, i.e. a spread the
+    module WOULD accept after a ±. So a check that entered the spread branch on
+    the count alone - without also requiring the sign - would call this cell
+    verified while the README never said what the second number is.
+    """
+
+    rows = [
+        _row(
+            "real_only",
+            "primary_map_small",
+            REAL_ONLY_MAP_SMALL,
+            ci_low=0.3000,
+            ci_high=0.4000,
+        )
+    ]
+    # (0.4000 - 0.3000) / 2 = 0.0500.
+    (failure,) = check_table_numbers(
+        _table("| Arm | primary_map_small |", "| real_only | 0.3564 0.0500 |"), rows
+    )
+
+    assert "no interpretation" in failure.message
+    # With the sign written the same pair is accepted, so what the test pins
+    # down is the sign and not the two numbers.
+    assert check_table_numbers(
+        _table("| Arm | primary_map_small |", "| real_only | 0.3564 ± 0.0500 |"), rows
+    ) == []
+
+
 def test_a_bootstrap_interval_cell_is_checked_against_ci_low_and_ci_high() -> None:
     rows = [
         _row(
@@ -526,6 +583,33 @@ def test_a_metric_present_on_two_splits_demands_an_explicit_split() -> None:
     (failure,) = check_table_numbers(ambiguous, rows)
     assert "add a <!--split: test--> annotation" in failure.message
     assert check_table_numbers(explicit, rows) == []
+
+
+def test_the_split_annotation_is_read_from_the_cell_and_from_the_row_label() -> None:
+    """The header-level form is not the only one; all three places are offered.
+
+    README.md currently annotates two whole columns, so the header form is
+    load-bearing - but the cell and row-label forms are advertised by the same
+    expression and would otherwise never be executed. Each table below names a
+    split that picks the value shown; without the annotation being read the
+    metric is ambiguous across two splits and the cell fails.
+    """
+
+    rows = [
+        _row("real_only", "primary_map_small", 0.3564, split="test"),
+        _row("real_only", "primary_map_small", 0.3701, split="val"),
+    ]
+    on_the_cell = _table(
+        "| Arm | primary_map_small |",
+        "| real_only | 0.3564<!--split: test--> |",
+    )
+    on_the_row_label = _table(
+        "| Metric | Real-only |",
+        "| primary_map_small<!--split: val--> | 0.3701 |",
+    )
+
+    assert check_table_numbers(on_the_cell, rows) == []
+    assert check_table_numbers(on_the_row_label, rows) == []
 
 
 def test_a_row_wider_than_its_header_is_reported_not_crashed_on() -> None:
@@ -700,6 +784,39 @@ def test_a_link_with_an_anchor_resolves_the_file_part(tmp_path: Path) -> None:
     assert check_relative_links("[adr](docs/decisions.md#adr-011)\n", tmp_path) == []
 
 
+def test_a_query_string_is_stripped_before_the_path_is_resolved(tmp_path: Path) -> None:
+    """GitHub's own ?plain=1 links point at a file that exists.
+
+    Leaving the query attached asks the filesystem for `decisions.md?plain=1`,
+    which resolves nowhere, so the verifier would report a broken link for a
+    document sitting right there - and the module's docstring would be claiming
+    a strip that never happens.
+    """
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "decisions.md").write_text("x", encoding="utf-8", newline="\n")
+
+    assert check_relative_links("[adr](docs/decisions.md?plain=1#adr-011)\n", tmp_path) == []
+
+    # Stripping the query must not stop a genuinely missing file being caught.
+    (failure,) = check_relative_links("[gone](docs/missing.md?plain=1)\n", tmp_path)
+    assert "docs/missing.md?plain=1" in failure.message
+
+
+def test_a_protocol_relative_target_is_a_url_and_not_a_repo_path() -> None:
+    """`//host/path` inherits the page's scheme; it is not a path in this repo.
+
+    Asserted on the target list rather than through check_relative_links,
+    because resolving `//host/path` against a Windows root produces a UNC path
+    and the failure would be a network timeout rather than a red assertion.
+    """
+
+    assert relative_link_targets("[cdn](//example.com/logo.png)\n") == []
+    # The same shape one slash shorter IS a repo path, so the test distinguishes
+    # the protocol-relative prefix from "starts with a slash".
+    assert relative_link_targets("[doc](/docs/decisions.md)\n") == [(1, "/docs/decisions.md")]
+
+
 def test_a_directory_target_counts_as_resolving(tmp_path: Path) -> None:
     (tmp_path / "docs").mkdir()
 
@@ -726,6 +843,19 @@ def test_the_windows_user_name_is_searched_for_but_generic_ci_names_are_not() ->
     assert collect_local_identifiers({"USERNAME": "runner"}, []) == []
     # Below _IDENTIFIER_MIN_LENGTH: "abc" would match ordinary prose.
     assert collect_local_identifiers({"USERNAME": "abc"}, []) == []
+
+
+def test_an_identifier_exactly_at_the_minimum_length_is_still_searched_for() -> None:
+    """The floor is inclusive, and the boundary is where this machine sits.
+
+    _IDENTIFIER_MIN_LENGTH is 4 and the account name this repository is written
+    on is four characters long, so a `>=` quietly turned into `>` would drop the
+    one identifier PUB-10 most needs to look for while every other test stayed
+    green. Four characters must be kept, three must not.
+    """
+
+    assert collect_local_identifiers({"USERNAME": "ab12"}, []) == ["ab12"]
+    assert collect_local_identifiers({"USERNAME": "ab1"}, []) == []
 
 
 def test_a_github_noreply_address_is_the_public_identity_and_is_not_searched() -> None:
@@ -796,6 +926,18 @@ def _repository(tmp_path: Path, *, readme: str) -> Path:
     (tmp_path / "docs").mkdir()
     (tmp_path / "README.md").write_text(readme, encoding="utf-8", newline="\n")
     return tmp_path
+
+
+def _pretend_home(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    """Make Path.home() answer with a known directory name.
+
+    verify() reads the real home directory, so without this the driver tests
+    would depend on whose machine they run on - and the identifier the test
+    plants could collide with the operator's actual account name.
+    """
+
+    home = Path("/home") / name
+    monkeypatch.setattr(verify_readme.Path, "home", classmethod(lambda cls: home))
 
 
 def test_a_clean_repository_with_results_exits_zero(tmp_path: Path) -> None:
@@ -870,6 +1012,57 @@ def test_verify_actually_runs_the_table_check_when_results_exist(tmp_path: Path)
     result = verify(root, environment={}, git_emails=[])
 
     assert [failure.check for failure in result.failures] == ["table-numbers"]
+    assert result.exit_code() == EXIT_FAILED
+
+
+def test_verify_actually_runs_the_identifier_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PUB-10 has to run from the driver, not only from its own unit test.
+
+    This repository has already shipped a report that asserted the outcome of a
+    scan the driver never called, and that is exactly what deleting these lines
+    would reproduce: every other check stays green and the run says PASS about
+    documents nobody searched. The README below leaks the account name given in
+    the environment, so a driver that skips the check cannot come back clean.
+    """
+
+    _pretend_home(monkeypatch, "nobodyhome")
+    root = _repository(
+        tmp_path,
+        readme=COMPLETE_DISCLOSURES + "\n\nScratch files live under C:/Users/jdoe1/tmp.\n",
+    )
+
+    result = verify(root, environment={"USERNAME": "jdoe1"}, git_emails=[])
+
+    assert [failure.check for failure in result.failures] == ["leaked-identifier"]
+    assert "jdoe1" in result.failures[0].message
+    assert result.exit_code() == EXIT_FAILED
+
+
+def test_verify_feeds_the_home_directory_name_into_the_identifier_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The home directory is one of the three identifier sources, and the only
+    one the driver has to supply itself.
+
+    USERNAME/USER arrive in the environment mapping and the email arrives from
+    git, so both survive a driver that passes an empty home name; this is the
+    source that disappears silently. The environment is empty and there is no
+    git email here, which leaves the home directory as the sole way the planted
+    string can be found.
+    """
+
+    _pretend_home(monkeypatch, "operator7")
+    root = _repository(
+        tmp_path,
+        readme=COMPLETE_DISCLOSURES + "\n\nThe cutout bank lives in /home/operator7/data.\n",
+    )
+
+    result = verify(root, environment={}, git_emails=[])
+
+    assert [failure.check for failure in result.failures] == ["leaked-identifier"]
+    assert "operator7" in result.failures[0].message
     assert result.exit_code() == EXIT_FAILED
 
 
