@@ -1,0 +1,93 @@
+# RF-DETR-Nano training config for the DEMO-05 / ADR-005 accuracy comparison.
+#
+# NOT a copy of training.yaml with the checkpoint swapped. Every preprocessing
+# key below was read off `Roboflow/rf-detr-nano` on 2026-08-02 rather than
+# inherited, because RT-DETRv2 and RF-DETR disagree on all of them:
+#
+#   key            RT-DETRv2-R18    RF-DETR-Nano
+#   do_normalize   false            TRUE  (ImageNet mean/std)
+#   input size     640x640          384x384
+#   do_pad         false            TRUE
+#   head classes   80               91
+#   backbone       ResNet-18        DINOv2
+#   parameters     20.2 M           30.47 M
+#
+# The first row is the dangerous one and it runs the opposite way to the warning
+# in training.yaml. RT-DETR only divides by 255, so hand-rolling ImageNet
+# normalization wrecks it. RF-DETR REQUIRES that normalization, so copying
+# `do_normalize: false` across would wreck this one instead - silently, in both
+# directions, which is why the values are read from the checkpoint and not typed.
+#
+# `source` tags: fixed | guess | upstream | verified
+#   verified - read off the checkpoint's config / processor on 2026-08-02
+#   guess    - inherited from the RT-DETRv2 recipe and NOT validated for a
+#              DINOv2 backbone. See the note under `optimizer`.
+
+seed: 42                                     # source: fixed  (same split seed as the main run)
+
+# ===========================================================================
+# Model
+# ===========================================================================
+model:
+  checkpoint: "Roboflow/rf-detr-nano"        # source: verified  apache-2.0, 30.47 M params
+  # Only nano / small / medium / base / large are Apache-2.0. XL and 2XL are
+  # PML-1.0 and must not be used here (ADR-005).
+  num_labels: 3                              # source: fixed  helmet=0, head=1, person=2
+  ignore_mismatched_sizes: true              # source: fixed  MANDATORY: 91 -> 3 classes
+
+  image_size: 384                            # source: verified  (processor SizeDict 384x384)
+  do_normalize: true                         # source: verified  ⚠ OPPOSITE of training.yaml
+  image_mean: [0.485, 0.456, 0.406]          # source: verified  standard ImageNet
+  image_std: [0.229, 0.224, 0.225]           # source: verified
+  do_pad: true                               # source: verified  (RT-DETR sets this false)
+  do_convert_annotations: true               # source: verified  COCO xywh -> normalized cxcywh
+
+# ===========================================================================
+# Optimizer / schedule
+# ===========================================================================
+#
+# ⚠ EVERY VALUE IN THIS BLOCK IS INHERITED FROM THE RT-DETRv2 RECIPE AND IS A
+# GUESS HERE. RT-DETRv2 has a ResNet-18 backbone; this model has a DINOv2 ViT
+# backbone, and ViT backbones are commonly fine-tuned at lower LR with a longer
+# warmup than a CNN. Nothing below has been validated on this architecture.
+#
+# The backbone LR group DOES work unchanged: src/training/trainer.py selects on
+# `"backbone" in name`, and RF-DETR names those parameters
+# `model.backbone.backbone.*` - 249 of 473 parameters match.
+optimizer:
+  name: "adamw_torch"                        # source: guess
+  learning_rate: 1.0e-4                      # source: guess  (drop to 5e-5 if unstable)
+  backbone_lr_multiplier: 0.1                # source: guess  -> DINOv2 at 1e-5
+  weight_decay: 1.0e-4                       # source: guess
+  no_decay_on_norm_and_bias: true            # source: guess
+  betas: [0.9, 0.999]                        # source: guess
+
+schedule:
+  lr_scheduler_type: "cosine"                # source: guess
+  warmup_steps: 2000                         # source: guess
+  max_grad_norm: 0.1                         # source: guess  ⚠ NOT the Trainer default of 1.0
+
+# ===========================================================================
+# Scope: two arms, not four
+# ===========================================================================
+#
+# ADR-005 scopes this as "RF-DETR trained on the same four arms". Running two is
+# a deliberate reduction, recorded here rather than left as a silent shortfall.
+#
+# The question this comparison answers is "does the synthetic result replicate
+# on another architecture", and `real_only` against `filtered_syn` is the
+# decisive contrast for it: those are the two arms whose 95% intervals are
+# disjoint on the primary metric in the main run. `standard_aug` and
+# `unfiltered_syn` are not separable from their neighbours there, so paying for
+# them a second time buys the least.
+arms:
+  - "real_only"                              # source: fixed
+  - "filtered_syn"                           # source: fixed
+
+run:
+  total_steps: 10900                         # source: fixed  matches the main run (TRAIN-07)
+  # UNMEASURED on this machine. Every RT-DETRv2 arm ran on Colab L4, so there is
+  # no local training throughput figure to extrapolate from - and the last
+  # extrapolation here was wrong by 3x. Measure 200 steps and report the real
+  # rate before committing to a full run.
+  seed: 1337                                 # source: fixed  same training seed as the main run
