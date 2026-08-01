@@ -18,7 +18,7 @@ from typing import Any
 
 from src.data.paths import PROJECT_ROOT
 
-MODULES = ("arms", "data", "trainer", "metrics", "run")
+MODULES = ("arms", "data", "trainer", "metrics", "run", "ingest")
 DRIVE_DIR = "/content/drive/MyDrive/sdg-portfolio/02-safesynth-ppe"
 ARCHIVE = "safesynth_train_data.zip"
 EXPECTED_REAL_IMAGES = 4256
@@ -252,13 +252,12 @@ out.mkdir(exist_ok=True)
 (out / "training_summary.json").write_text(
     json.dumps(summary, indent=2, sort_keys=True, default=str), encoding="utf-8"
 )
-for arm_dir in RUNS.glob("*/seed_*"):
-    for name in ("run_record.json", "trainer_state.json"):
-        source = arm_dir / name
-        if source.is_file():
-            target = out / arm_dir.parent.name / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
+from src.training.ingest import package_arm_outputs
+
+packaged, missing = package_arm_outputs(RUNS, out)
+print(f"packaged {len(packaged)} files")
+if missing:
+    print("WARNING - not packaged:", missing)
 
 archive_path = shutil.make_archive("/content/results_colab", "zip", str(out))
 shutil.copy2(archive_path, pathlib.Path(DRIVE_DIR) / "results_colab.zip")

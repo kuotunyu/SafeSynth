@@ -24,7 +24,9 @@ from src.training.ingest import (
     ColabResultsError,
     Finding,
     audit_colab_results,
+    latest_checkpoint,
     load_run_records,
+    package_arm_outputs,
     render_audit_markdown,
     training_curve,
 )
@@ -428,6 +430,110 @@ def test_a_warning_only_report_still_renders_as_pass() -> None:
 
     assert "**Verdict: PASS**" in render_audit_markdown(report)
     assert "1 warning" in render_audit_markdown(report)
+
+
+# --------------------------------------------------------------------------
+# packaging on the Colab side
+#
+# This is the code that silently shipped an archive with no trainer_state.json
+# in it, on all four arms, with no error. The fixtures below put the file where
+# HF actually puts it - inside checkpoint-N/ - because a fixture that put it at
+# the top of the seed directory would have passed against the broken version.
+# --------------------------------------------------------------------------
+
+
+def _runs_tree(root: Path, *, arms=("real_only", "filtered_syn"), steps=(500, 1000)) -> Path:
+    for arm in arms:
+        seed = root / arm / "seed_1337"
+        seed.mkdir(parents=True, exist_ok=True)
+        (seed / "run_record.json").write_text(json.dumps({"arm": arm}), encoding="utf-8")
+        for step in steps:
+            checkpoint = seed / f"checkpoint-{step}"
+            checkpoint.mkdir(parents=True, exist_ok=True)
+            (checkpoint / "trainer_state.json").write_text(
+                json.dumps(
+                    {
+                        "global_step": step,
+                        "best_model_checkpoint": f"/content/runs/{arm}/seed_1337/checkpoint-{steps[0]}",
+                        "log_history": [{"eval_map": 0.1 * step, "step": step}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+    return root
+
+
+def test_packaging_finds_trainer_state_inside_the_checkpoint_directory(
+    tmp_path: Path,
+) -> None:
+    runs = _runs_tree(tmp_path / "runs")
+    out = tmp_path / "out"
+
+    packaged, missing = package_arm_outputs(runs, out)
+
+    assert missing == []
+    assert (out / "real_only" / "trainer_state.json").is_file()
+    assert (out / "filtered_syn" / "trainer_state.json").is_file()
+    assert "real_only/trainer_state.json" in packaged
+
+
+def test_packaging_takes_the_highest_numbered_checkpoint_not_the_first(
+    tmp_path: Path,
+) -> None:
+    """The last checkpoint is the one carrying the full log_history."""
+
+    runs = _runs_tree(tmp_path / "runs", arms=("real_only",), steps=(500, 1000, 250))
+    out = tmp_path / "out"
+
+    package_arm_outputs(runs, out)
+
+    state = json.loads((out / "real_only" / "trainer_state.json").read_text(encoding="utf-8"))
+    assert state["global_step"] == 1000
+
+
+def test_packaging_records_which_checkpoint_holds_the_best_weights(
+    tmp_path: Path,
+) -> None:
+    """Without this the local evaluation has to guess at a step number."""
+
+    runs = _runs_tree(tmp_path / "runs", arms=("real_only",), steps=(500, 1000))
+    out = tmp_path / "out"
+
+    package_arm_outputs(runs, out)
+
+    manifest = json.loads((out / "real_only" / "checkpoints.json").read_text(encoding="utf-8"))
+    assert manifest["latest_checkpoint"] == "checkpoint-1000"
+    assert manifest["best_model_checkpoint"].endswith("checkpoint-500")
+    assert manifest["available"] == ["checkpoint-500", "checkpoint-1000"]
+
+
+def test_packaging_reports_an_arm_with_no_checkpoints_instead_of_skipping_it(
+    tmp_path: Path,
+) -> None:
+    """Silence is what made the original bug invisible."""
+
+    runs = tmp_path / "runs"
+    (runs / "real_only" / "seed_1337").mkdir(parents=True)
+    (runs / "real_only" / "seed_1337" / "run_record.json").write_text("{}", encoding="utf-8")
+
+    packaged, missing = package_arm_outputs(runs, tmp_path / "out")
+
+    assert missing == ["real_only/trainer_state.json"]
+    assert packaged == ["real_only/run_record.json"]
+
+
+def test_a_non_numeric_checkpoint_name_does_not_crash_the_scan(tmp_path: Path) -> None:
+    seed = tmp_path / "runs" / "real_only" / "seed_1337"
+    (seed / "checkpoint-final").mkdir(parents=True)
+    (seed / "checkpoint-700").mkdir(parents=True)
+
+    assert latest_checkpoint(seed).name == "checkpoint-700"
+
+
+def test_latest_checkpoint_is_none_when_there_are_none(tmp_path: Path) -> None:
+    tmp_path.joinpath("seed_1337").mkdir()
+
+    assert latest_checkpoint(tmp_path / "seed_1337") is None
 
 
 # --------------------------------------------------------------------------

@@ -86,6 +86,108 @@ class AuditReport:
 
 
 # spec: TRAIN-15
+def _checkpoint_step(path: Path) -> tuple[int, str]:
+    """Sort key that orders checkpoint-500 before checkpoint-1000.
+
+    Plain `sorted()` on the names is lexical, which puts checkpoint-1000 first
+    and reads as though training went backwards. Non-numeric suffixes sort last
+    rather than raising.
+    """
+
+    suffix = path.name.split("-")[-1]
+    return (int(suffix) if suffix.isdigit() else 2**62, path.name)
+
+
+def latest_checkpoint(seed_dir: Path) -> Path | None:
+    """The highest-numbered `checkpoint-N` under one arm's seed directory.
+
+    Highest rather than newest-mtime: a resumed run re-writes older directories'
+    timestamps when they are copied back from Drive, so mtime does not order
+    them. The step number does.
+    """
+
+    numbered = [
+        (int(path.name.split("-")[-1]), path)
+        for path in Path(seed_dir).glob("checkpoint-*")
+        if path.name.split("-")[-1].isdigit()
+    ]
+    return max(numbered)[1] if numbered else None
+
+
+# spec: TRAIN-15
+def package_arm_outputs(runs_dir: Path, out_dir: Path) -> tuple[list[str], list[str]]:
+    """Copy the small per-arm artefacts out of a `runs/` tree, for shipping home.
+
+    Returns `(packaged, missing)` so the caller can say out loud what it failed
+    to find rather than producing a quietly incomplete bundle.
+
+    This exists as a tested function because the first version of it — inline in
+    the Colab notebook — globbed `runs/<arm>/seed_*/trainer_state.json` and
+    silently found nothing on all four arms. HF writes trainer_state.json INSIDE
+    each `checkpoint-N/`, never at the top of the output directory, and the
+    guarding `is_file()` turned that into no file and no error. The training
+    curves EVAL-12 requires were simply absent from the returned archive.
+
+    The last checkpoint's state is the one taken: it carries the full
+    `log_history`, and it records `best_model_checkpoint`, which is what the
+    local evaluation needs in order to load the right weights instead of
+    guessing at a step number.
+    """
+
+    runs_dir, out_dir = Path(runs_dir), Path(out_dir)
+    packaged: list[str] = []
+    missing: list[str] = []
+
+    for seed_dir in sorted(runs_dir.glob("*/seed_*")):
+        arm = seed_dir.parent.name
+        target_dir = out_dir / arm
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        record = seed_dir / "run_record.json"
+        if record.is_file():
+            (target_dir / "run_record.json").write_text(
+                record.read_text(encoding="utf-8"), encoding="utf-8", newline="\n"
+            )
+            packaged.append(f"{arm}/run_record.json")
+        else:
+            missing.append(f"{arm}/run_record.json")
+
+        checkpoint = latest_checkpoint(seed_dir)
+        state = checkpoint / "trainer_state.json" if checkpoint is not None else None
+        if state is None or not state.is_file():
+            missing.append(f"{arm}/trainer_state.json")
+            continue
+
+        body = state.read_text(encoding="utf-8")
+        (target_dir / "trainer_state.json").write_text(
+            body, encoding="utf-8", newline="\n"
+        )
+        packaged.append(f"{arm}/trainer_state.json")
+
+        loaded = json.loads(body)
+        (target_dir / "checkpoints.json").write_text(
+            json.dumps(
+                {
+                    "latest_checkpoint": checkpoint.name,
+                    "best_model_checkpoint": loaded.get("best_model_checkpoint"),
+                    "available": [
+                        p.name
+                        for p in sorted(seed_dir.glob("checkpoint-*"), key=_checkpoint_step)
+                    ],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        packaged.append(f"{arm}/checkpoints.json")
+
+    return packaged, missing
+
+
+# spec: TRAIN-15
 def load_run_records(root: Path, *, arms: Sequence[str] = ARMS) -> dict[str, dict[str, Any]]:
     """Read `<root>/<arm>/run_record.json` for each arm that produced one.
 
