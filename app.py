@@ -4,9 +4,11 @@ DEMO-01..DEMO-03. No webcam (a construction scene is not reproducible in front
 of a laptop camera, and assuming the user has one is a bad default).
 
 Runs on CPU by default. That is not a limitation being apologised for - the
-measured latency on this machine is around 300 ms per frame on CPU, which is
-usable for the single images and short clips this demo takes, and it means the
-demo does not compete with whatever else is using the GPU.
+measured end-to-end latency on this machine is 204 ms median per frame on CPU
+(12 validation images, after the warm-up this file performs at startup), which
+is usable for the single images and short clips this demo takes, and it means
+the demo does not compete with whatever else is using the GPU. On CUDA the same
+measurement is 20 ms.
 
 Two honesty notes are surfaced in the UI rather than buried here, because a
 reader who sees boxes appear will otherwise draw the wrong conclusion:
@@ -26,6 +28,7 @@ import argparse
 import json
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -144,6 +147,78 @@ def performance_line(model_ms: float, e2e_ms: float, detector: Detector) -> str:
     )
 
 
+@dataclass(frozen=True)
+class VideoResult:
+    """What the video tab produced, separated from how Gradio displays it."""
+
+    path: Path
+    note: str
+    model_ms: float
+    e2e_ms: float
+    n_frames: int
+    truncated: bool
+
+
+# spec: DEMO-02
+def annotate_video(detector, source, threshold: float, destination: Path | None = None):
+    """Annotate up to MAX_VIDEO_FRAMES of a clip; None if nothing decoded.
+
+    Lifted out of the Gradio callback so it can be exercised without a browser.
+    Everything else in this file that had never been run turned out to be
+    broken - the CUDA branch raised twice on its first execution - and an
+    untested path is not made safe by being short.
+    """
+
+    import cv2
+
+    capture = cv2.VideoCapture(str(source))
+    fps = capture.get(cv2.CAP_PROP_FPS) or 12.0
+    frames, rates, model_times, e2e_times = [], [], [], []
+    while len(frames) < MAX_VIDEO_FRAMES:
+        ok, frame = capture.read()
+        if not ok:
+            break
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        annotated, summary, model_ms, e2e_ms = annotate(detector, rgb, threshold)
+        frames.append(annotated)
+        model_times.append(model_ms)
+        e2e_times.append(e2e_ms)
+        if summary.compliance_rate is not None:
+            rates.append(summary.compliance_rate)
+    capture.release()
+    if not frames:
+        return None
+
+    out = (
+        PROJECT_ROOT / "reports" / "figures" / "demo_annotated.mp4"
+        if destination is None
+        else Path(destination)
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    height, width = frames[0].shape[:2]
+    writer = cv2.VideoWriter(
+        str(out), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
+    )
+    for frame in frames:
+        writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    writer.release()
+
+    truncated = len(frames) == MAX_VIDEO_FRAMES
+    mean_rate = f"{sum(rates) / len(rates):.2f}" if rates else "n/a"
+    return VideoResult(
+        path=out,
+        note=(
+            f"{len(frames)} frames{' (truncated)' if truncated else ''}"
+            f"  ·  mean compliance_rate {mean_rate}"
+        ),
+        # Median, not mean: DEMO-03 says so, and one stalled frame moves a mean.
+        model_ms=float(np.median(model_times)),
+        e2e_ms=float(np.median(e2e_times)),
+        n_frames=len(frames),
+        truncated=truncated,
+    )
+
+
 def build_interface(detector: Detector, threshold: float):
     import gradio as gr
 
@@ -156,49 +231,11 @@ def build_interface(detector: Detector, threshold: float):
     def on_video(path):
         if not path:
             return None, "upload a clip", ""
-        import cv2
-
-        capture = cv2.VideoCapture(path)
-        fps = capture.get(cv2.CAP_PROP_FPS) or 12.0
-        frames, rates, model_times, e2e_times = [], [], [], []
-        while len(frames) < MAX_VIDEO_FRAMES:
-            ok, frame = capture.read()
-            if not ok:
-                break
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            annotated, summary, model_ms, e2e_ms = annotate(detector, rgb, threshold)
-            frames.append(annotated)
-            model_times.append(model_ms)
-            e2e_times.append(e2e_ms)
-            if summary.compliance_rate is not None:
-                rates.append(summary.compliance_rate)
-        capture.release()
-        if not frames:
+        result = annotate_video(detector, path, threshold)
+        if result is None:
             return None, "could not read any frame from that file", ""
-
-        out = PROJECT_ROOT / "reports" / "figures" / "demo_annotated.mp4"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        height, width = frames[0].shape[:2]
-        writer = cv2.VideoWriter(
-            str(out), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
-        )
-        for frame in frames:
-            writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-        writer.release()
-
-        mean_rate = f"{sum(rates) / len(rates):.2f}" if rates else "n/a"
-        note = (
-            f"{len(frames)} frames"
-            f"{' (truncated)' if len(frames) == MAX_VIDEO_FRAMES else ''}"
-            f"  ·  mean compliance_rate {mean_rate}"
-        )
-        # Median, not mean: DEMO-03 says so, and one stalled frame would move a mean.
-        return (
-            str(out),
-            note,
-            performance_line(
-                float(np.median(model_times)), float(np.median(e2e_times)), detector
-            ),
+        return str(result.path), result.note, performance_line(
+            result.model_ms, result.e2e_ms, detector
         )
 
     header = f"""
