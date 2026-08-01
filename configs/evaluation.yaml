@@ -22,7 +22,19 @@ compliance:
   # Operating point for the detector when deriving compliance. This is SEPARATE
   # from mAP evaluation, which integrates over all confidences.
   # SELECTED ON VALIDATION, then frozen. Never tune this on Test.
-  score_threshold: 0.50                      # source: validation (placeholder; EVAL-04 selects on Val)
+  # SELECTED BY EVAL-04 on the frozen validation split (756 images, real_only at
+  # checkpoint-1752): bare-head recall 0.8575 at compliance precision 0.8507,
+  # against the 0.80 floor below. Curve in reports/compliance_operating_point.md.
+  # Now FROZEN - re-selecting after seeing Test would be tuning on Test.
+  #
+  # It is this low because the model's scores are compressed, not because the
+  # threshold is lax: across 223,200 test detections the highest score is 0.2495
+  # and none exceeds 0.30. The best checkpoint arrives at step 1,752 of 10,900,
+  # long before the reinitialised 3-class head saturates, so the ranking is good
+  # and the calibration is not. The placeholder 0.50 that stood here would have
+  # predicted nothing at all.
+  score_threshold: 0.07                      # source: validation
+
   min_compliance_precision: 0.80             # source: guess
                                              # constraint when sweeping for the
                                              # threshold that maximises bare-head recall

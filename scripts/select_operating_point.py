@@ -42,6 +42,22 @@ from src.training.metrics import predictions_to_coco
 
 CLASS_NAMES = ("helmet", "head", "person")
 PROCESSOR_ID = "PekingU/rtdetr_v2_r18vd"
+
+# `sweep_operating_points` defaults its candidate thresholds to every DISTINCT
+# detection score, which is the right default for a handful of boxes and
+# unusable here: the stored predictions keep all 300 queries per image, so a
+# validation split is ~226,800 scores and the sweep becomes quadratic.
+#
+# The grid below is deliberately dense at the bottom. This model's scores are
+# compressed: over 223,200 test detections the maximum is 0.2495 and nothing
+# exceeds 0.30, because the best checkpoint arrives at step 1752 of 10,900 and
+# the reinitialised 3-class head has not saturated. A grid spaced for a
+# well-calibrated detector would put every usable point in its first cell.
+SWEEP_GRID = tuple(round(0.005 * step, 3) for step in range(1, 61)) + (
+    0.35,
+    0.40,
+    0.50,
+)
 REPORT_PATH = PROJECT_ROOT / "reports" / "compliance_operating_point.md"
 FIGURE_PATH = PROJECT_ROOT / "reports" / "figures" / "compliance_sweep.png"
 BASELINE_ARM = "real_only"
@@ -84,6 +100,29 @@ def best_checkpoint(paths, arm: str, seed: int) -> Path:
     # exist here; only its name is portable.
     resolved = seed_dir / Path(recorded).name
     return resolved if resolved.is_dir() else last
+
+
+def stored_predictions(arm: str, seed: int, split: str = "val") -> list[dict] | None:
+    """Reuse scripts/dump_predictions.py output when it exists.
+
+    Inference over validation is about 200 CPU-seconds per arm and produces
+    exactly the same boxes every time, so paying for it again here would be
+    waste. Returns None when nothing has been dumped, and the caller falls back
+    to running the model.
+    """
+
+    index_path = PROJECT_ROOT / "results" / "predictions_index.json"
+    if not index_path.is_file():
+        return None
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    entry = index.get(f"{arm}/{split}/seed_{seed}")
+    if entry is None:
+        return None
+    stored = Path(entry["path"])
+    if not stored.is_file():
+        return None
+    print(f"reusing stored predictions: {stored.name} ({entry['n_detections']} boxes)")
+    return json.loads(stored.read_text(encoding="utf-8"))
 
 
 def predict(checkpoint: Path, samples) -> list[dict]:
@@ -176,10 +215,20 @@ def render(points, chosen, *, arm, checkpoint, n_images, floor, figure_path) -> 
     ]
     for point in points:
         marker = " **←**" if chosen is not None and point is chosen else ""
+        # Precision is undefined, not zero, at a threshold that predicts nothing:
+        # there is no denominator. Printing 0.0000 would read as "it got them all
+        # wrong" rather than "it made no call".
+        precision = (
+            "—"
+            if point.compliance_precision is None
+            else f"{point.compliance_precision:.4f}"
+        )
+        recall = (
+            "—" if point.bare_head_recall is None else f"{point.bare_head_recall:.4f}"
+        )
         lines.append(
-            f"| {point.score_threshold:.2f}{marker} | {point.bare_head_recall:.4f} | "
-            f"{point.compliance_precision:.4f} | {point.n_predicted_compliant} | "
-            f"{point.n_predicted_non_compliant} |"
+            f"| {point.score_threshold:.3f}{marker} | {recall} | {precision} | "
+            f"{point.n_predicted_compliant} | {point.n_predicted_non_compliant} |"
         )
     lines.append("")
 
@@ -244,12 +293,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(f"{args.arm} @ {checkpoint.name}: {len(samples)} validation images")
-    started = time.perf_counter()
-    records = predict(checkpoint, samples)
-    print(f"inference {time.perf_counter() - started:.0f}s, {len(records)} detections")
+    records = None if args.limit else stored_predictions(args.arm, args.seed)
+    if records is None:
+        started = time.perf_counter()
+        records = predict(checkpoint, samples)
+        print(f"inference {time.perf_counter() - started:.0f}s, {len(records)} detections")
 
     points = sweep_operating_points(
-        detections_from_coco(records), samples, split="val", config=config
+        detections_from_coco(records),
+        samples,
+        split="val",
+        config=config,
+        thresholds=SWEEP_GRID,
     )
     chosen = select_operating_point(points, config=config)
 

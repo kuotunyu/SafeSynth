@@ -1,0 +1,71 @@
+# PUB-10: lint and the full test suite on every push and pull request.
+#
+# WHY windows-latest AND NOT ubuntu-latest. This project is Windows-native by
+# decision (ADR-002, CLAUDE.md), and the test suite encodes that. The clearest
+# case is tests/test_paths.py, which asserts that the configured data root
+# "D:/bulk" resolves unchanged: PureWindowsPath("D:/bulk").is_absolute() is
+# True, PurePosixPath("D:/bulk").is_absolute() is False, so on Linux the loader
+# would treat the drive letter as a relative directory and glue it onto the
+# project root. Running CI on Linux would report a failure that says nothing
+# about the code.
+#
+# WHAT THIS JOB DELIBERATELY DOES NOT NEED. No GPU: every test fakes torch.cuda
+# rather than touching it, and no test calls from_pretrained. No network model
+# download. No D:\sdg-data drive: the bulk data lives outside the repository and
+# every test builds its fixtures under tmp_path. The 39 tests that skip locally
+# skip for reasons that hold here too (38 modules have no __main__ guard, and
+# faster-coco-eval is not a dependency - see EVAL-13).
+#
+# WHY THE README VERIFIER IS NOT A STEP HERE. scripts/verify_readme.py compares
+# the README against results/detection_metrics.csv, and .gitignore excludes
+# /results/* from the repository, so a fresh clone has nothing to compare
+# against and the script exits EXIT_NOTHING_TO_VERIFY (3) by design. Adding it
+# as a gate would make CI permanently red for a reason unrelated to the code.
+# It becomes a CI step once that file is tracked.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      # The workspace on a Windows runner sits on the small D: drive, and the
+      # cu130 torch wheel plus its CUDA payload does not fit there next to a uv
+      # cache. Both the cache and the virtual environment go on C:, and
+      # UV_LINK_MODE=copy because uv cannot hardlink across volumes.
+      UV_CACHE_DIR: C:\uv-cache
+      UV_PROJECT_ENVIRONMENT: C:\safesynth-venv
+      UV_LINK_MODE: copy
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.18"
+
+      # --locked fails rather than re-resolving, so a pyproject.toml change that
+      # was never locked cannot slip through as a silently different dependency
+      # set. uv.lock is committed; see PUB-10.
+      - name: Install the locked dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test
+        run: uv run pytest -q

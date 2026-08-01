@@ -30,7 +30,11 @@ from src.training.metrics import build_coco_ground_truth
 CLASS_NAMES = ("helmet", "head", "person")
 INDEX_PATH = PROJECT_ROOT / "results" / "predictions_index.json"
 REPORT_PATH = PROJECT_ROOT / "reports" / "bare_head_recall_sweep.md"
-THRESHOLDS = (0.0, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
+# Dense at the bottom: this model's scores are compressed (max 0.2495 over
+# 223,200 test detections), so a grid spaced for a calibrated detector would
+# put the entire usable range in its first cell. 0.07 is the frozen operating
+# point selected by EVAL-04 and must be present so the main table can read it.
+THRESHOLDS = (0.0, 0.02, 0.05, 0.07, 0.10, 0.12, 0.15, 0.20, 0.30, 0.50)
 
 
 class SweepError(RuntimeError):

@@ -982,3 +982,51 @@ def test_select_operating_point_on_a_real_sweep(config: dict) -> None:
     assert chosen is not None
     assert chosen.score_threshold == 0.7
     assert chosen.bare_head_recall == 1.0
+
+
+# spec: EVAL-04
+def test_a_zero_recall_point_is_never_selected_however_good_its_precision() -> None:
+    """A safety check that never fires scores 1.0 precision and is worthless.
+
+    Measured on the real unfiltered_syn arm: it cannot reach the 0.80 precision
+    floor at any threshold where it detects anything, and the unguarded rule
+    selected threshold 0.20 at recall 0.0000 / precision 1.0000.
+    """
+
+    config = {"compliance": {"min_compliance_precision": 0.80}}
+    points = (
+        OperatingPoint(
+            score_threshold=0.05,
+            bare_head_recall=0.70,
+            compliance_precision=0.76,  # below the floor
+            n_predicted_compliant=800,
+            n_predicted_non_compliant=700,
+            n_ground_truth_bare_heads=880,
+        ),
+        OperatingPoint(
+            score_threshold=0.20,
+            bare_head_recall=0.0,  # fires on nothing
+            compliance_precision=1.0,
+            n_predicted_compliant=3,
+            n_predicted_non_compliant=0,
+            n_ground_truth_bare_heads=880,
+        ),
+    )
+
+    assert select_operating_point(points, config=config) is None
+
+
+def test_a_positive_recall_point_above_the_floor_is_still_selected() -> None:
+    """The guard must not reject everything - the normal case has to survive."""
+
+    config = {"compliance": {"min_compliance_precision": 0.80}}
+    points = (
+        OperatingPoint(0.05, 0.90, 0.70, 800, 700, 880),
+        OperatingPoint(0.07, 0.64, 0.81, 400, 300, 880),
+        OperatingPoint(0.20, 0.0, 1.0, 3, 0, 880),
+    )
+
+    chosen = select_operating_point(points, config=config)
+
+    assert chosen is not None
+    assert chosen.score_threshold == pytest.approx(0.07)

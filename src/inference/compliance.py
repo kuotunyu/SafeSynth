@@ -564,6 +564,17 @@ def select_operating_point(
 
     Returns None when no candidate clears the precision floor - the caller then
     has to decide something explicitly instead of receiving a silently bad point.
+
+    A point with ZERO bare-head recall is never eligible, however good its
+    precision looks. Precision is undefined-shaped near the top of the sweep: a
+    threshold that fires on almost nothing scores 1.0 on the handful of calls it
+    still makes, so "maximise recall subject to precision" would happily return
+    a detector that never reports anyone non-compliant. Measured on this
+    project's `unfiltered_syn` arm, which cannot reach the 0.80 floor at any
+    threshold where it detects anything, the unguarded rule selected threshold
+    0.20 with recall 0.0000 and precision 1.0000 - a perfect score for a safety
+    check that never fires. The honest answer there is "no usable operating
+    point", and that is what None now means.
     """
 
     minimum = float(config["compliance"]["min_compliance_precision"])
@@ -571,6 +582,7 @@ def select_operating_point(
         point
         for point in points
         if point.bare_head_recall is not None
+        and point.bare_head_recall > 0.0
         and point.compliance_precision is not None
         and point.compliance_precision >= minimum
     ]
