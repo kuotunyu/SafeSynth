@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import math
 import os
@@ -56,8 +57,30 @@ def _run_nvidia_smi(*arguments: str) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=10.0,
     )
     return completed.stdout
+
+
+def _resolve_windows_process_name(pid: int) -> str | None:
+    if os.name != "nt":
+        return None
+    try:
+        completed = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5.0,
+        )
+        rows = list(csv.reader(completed.stdout.splitlines()))
+    except (OSError, subprocess.SubprocessError, csv.Error):
+        return None
+    if not rows or not rows[0] or rows[0][0].startswith("INFO:"):
+        return None
+    return rows[0][0].strip() or None
 
 
 def _parse_gpu_processes(output: str) -> tuple[GpuProcess, ...]:
@@ -73,7 +96,10 @@ def _parse_gpu_processes(output: str) -> tuple[GpuProcess, ...]:
             pid = int(pid_text.strip())
         except ValueError:
             continue
-        processes.append(GpuProcess(pid=pid, process_name=process_name.strip()))
+        name = process_name.strip()
+        if _is_unidentified_gpu_client(name):
+            name = _resolve_windows_process_name(pid) or name
+        processes.append(GpuProcess(pid=pid, process_name=name))
     return tuple(processes)
 
 
@@ -91,7 +117,7 @@ def read_health_snapshot(output_root: Path) -> HealthSnapshot:
             "--query-gpu=name,temperature.gpu,memory.used,memory.total",
             "--format=csv,noheader,nounits",
         ).strip()
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, subprocess.SubprocessError):
         gpu_line = ""
     if gpu_line:
         fields = [field.strip() for field in gpu_line.split(",")]
@@ -128,6 +154,7 @@ _WINDOWS_DESKTOP_GPU_CLIENTS = {
     "chatgpt.exe",
     "chrome.exe",
     "crossdeviceresume.exe",
+    "dwm.exe",
     "explorer.exe",
     "firefox.exe",
     "lockapp.exe",
@@ -186,10 +213,6 @@ class UnattendedSafetyPolicy:
             for process in snapshot.gpu_processes
             if process.pid != self.own_pid
             and not _is_allowlisted_desktop_gpu_client(process.process_name)
-            and not (
-                _is_unidentified_gpu_client(process.process_name)
-                and (own_gpu_process or snapshot.gpu_memory_used_mib <= 4_096)
-            )
         )
         violations: list[str] = []
         if not snapshot.cuda_available:
@@ -310,10 +333,12 @@ class UnattendedWatchdog:
         self._last_progress_at = self.monotonic()
 
     def _checkpoint_step(self) -> int | None:
+        from src.training.trainer import resumable_checkpoint_step
+
         steps = [
-            int(path.name.rsplit("-", 1)[-1])
+            step
             for path in self.output_dir.glob("checkpoint-*")
-            if path.is_dir() and path.name.rsplit("-", 1)[-1].isdigit()
+            if (step := resumable_checkpoint_step(path)) is not None
         ]
         return max(steps) if steps else None
 

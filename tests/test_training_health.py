@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.training import health as health_module
 from src.training.config import load_training_config
 from src.training.health import (
     GpuProcess,
@@ -153,8 +154,13 @@ def test_unidentified_windows_client_requires_memory_or_ownership_evidence(
     tmp_path: Path,
 ) -> None:
     unidentified = GpuProcess(pid=999, process_name="[Insufficient Permissions]")
-    safe = _snapshot(gpu_memory_used_mib=1_000, gpu_processes=(unidentified,))
-    unsafe = _snapshot(gpu_memory_used_mib=8_000, gpu_processes=(unidentified,))
+    unsafe = _snapshot(
+        gpu_memory_used_mib=8_000,
+        gpu_processes=(
+            GpuProcess(pid=123, process_name="python.exe"),
+            unidentified,
+        ),
+    )
 
     def policy(snapshot: HealthSnapshot, name: str) -> UnattendedSafetyPolicy:
         return UnattendedSafetyPolicy(
@@ -165,9 +171,42 @@ def test_unidentified_windows_client_requires_memory_or_ownership_evidence(
             snapshot_reader=lambda _: snapshot,
         )
 
-    assert policy(safe, "safe").check(stage="startup") == safe
     with pytest.raises(SafetyPolicyError, match="Insufficient Permissions"):
         policy(unsafe, "unsafe").check(stage="startup")
+
+
+def test_gpu_process_parser_resolves_unidentified_windows_pid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        health_module,
+        "_resolve_windows_process_name",
+        lambda pid: "dwm.exe" if pid == 2068 else None,
+    )
+
+    processes = health_module._parse_gpu_processes(
+        "2068, [Insufficient Permissions]\n999, python.exe\n"
+    )
+
+    assert processes == (
+        GpuProcess(pid=2068, process_name="dwm.exe"),
+        GpuProcess(pid=999, process_name="python.exe"),
+    )
+
+
+def test_nvidia_smi_call_has_a_bounded_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(*args, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(stdout="ok")
+
+    monkeypatch.setattr(health_module.subprocess, "run", fake_run)
+
+    assert health_module._run_nvidia_smi("--query-gpu=name") == "ok"
+    assert captured["timeout"] == 10.0
 
 
 def test_watchdog_hard_exits_on_deadline_without_trainer_logs(tmp_path: Path) -> None:
@@ -224,6 +263,11 @@ def test_watchdog_rejects_stale_checkpoint_progress(tmp_path: Path) -> None:
         max_progress_stall_seconds=3_600.0,
         monotonic=lambda: next(ticks),
         hard_exit=lambda _: None,
+    )
+    partial = tmp_path / "run" / "checkpoint-500"
+    partial.mkdir(parents=True)
+    (partial / "trainer_state.json").write_text(
+        json.dumps({"global_step": 500}), encoding="utf-8"
     )
 
     with pytest.raises(SafetyPolicyError, match="checkpoint progress"):

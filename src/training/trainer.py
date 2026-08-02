@@ -12,7 +12,9 @@ Two things live here that Trainer does not give you:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -164,27 +166,71 @@ def assert_mandatory_arguments(arguments: TrainingArguments) -> None:
         )
 
 
+def _nonempty_file(path: Path) -> bool:
+    return path.is_file() and path.stat().st_size > 0
+
+
+def _weight_evidence_complete(checkpoint: Path) -> bool:
+    if _nonempty_file(checkpoint / "model.safetensors") or _nonempty_file(
+        checkpoint / "pytorch_model.bin"
+    ):
+        return True
+    for name in ("model.safetensors.index.json", "pytorch_model.bin.index.json"):
+        index_path = checkpoint / name
+        if not _nonempty_file(index_path):
+            continue
+        try:
+            payload = json.loads(index_path.read_text(encoding="utf-8"))
+            weight_map = payload["weight_map"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            continue
+        shard_names = tuple(weight_map.values()) if isinstance(weight_map, Mapping) else ()
+        if (
+            shard_names
+            and all(isinstance(shard, str) for shard in shard_names)
+            and all(
+                _nonempty_file(checkpoint / shard) for shard in set(shard_names)
+            )
+        ):
+            return True
+    return False
+
+
+def resumable_checkpoint_step(checkpoint: Path) -> int | None:
+    checkpoint = Path(checkpoint)
+    try:
+        step = int(checkpoint.name.rsplit("-", 1)[-1])
+    except ValueError:
+        return None
+    if step < 0 or not checkpoint.is_dir():
+        return None
+    state_path = checkpoint / "trainer_state.json"
+    if not _nonempty_file(state_path):
+        return None
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(state, Mapping) or state.get("global_step") != step:
+        return None
+    required = ("optimizer.pt", "scheduler.pt", "rng_state.pth")
+    if not all(_nonempty_file(checkpoint / name) for name in required):
+        return None
+    return step if _weight_evidence_complete(checkpoint) else None
+
+
 def find_resumable_checkpoint(output_dir) -> str | None:
     """Colab disconnects; resuming is not an optional feature (TRAIN-10)."""
-
-    from pathlib import Path
 
     directory = Path(output_dir)
     if not directory.is_dir():
         return None
     checkpoints = [
-        path
+        (step, path)
         for path in directory.iterdir()
-        if path.is_dir() and path.name.startswith("checkpoint-")
+        if (step := resumable_checkpoint_step(path)) is not None
     ]
     if not checkpoints:
         return None
 
-    def step_of(path) -> int:
-        try:
-            return int(path.name.split("-")[-1])
-        except ValueError:
-            return -1
-
-    latest = max(checkpoints, key=step_of)
-    return str(latest) if step_of(latest) >= 0 else None
+    return str(max(checkpoints)[1])

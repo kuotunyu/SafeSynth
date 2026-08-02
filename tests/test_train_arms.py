@@ -216,6 +216,8 @@ def _write_checkpoint(job, step: int) -> Path:
         json.dumps({"global_step": step}), encoding="utf-8"
     )
     save_file({"weight": torch.tensor([1.0])}, checkpoint / "model.safetensors")
+    for name in ("optimizer.pt", "scheduler.pt", "rng_state.pth"):
+        (checkpoint / name).write_bytes(b"complete")
     return checkpoint
 
 
@@ -274,6 +276,8 @@ def test_completed_run_requires_final_readable_checkpoint(
     (checkpoint / "trainer_state.json").write_text(
         json.dumps({"global_step": state_step}), encoding="utf-8"
     )
+    for name in ("optimizer.pt", "scheduler.pt", "rng_state.pth"):
+        (checkpoint / name).write_bytes(b"complete")
     if write_weights:
         (checkpoint / "model.safetensors").write_bytes(b"test checkpoint")
     _module().atomic_write_json(

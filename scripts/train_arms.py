@@ -27,6 +27,7 @@ from src.training.health import (
     UnattendedSafetyPolicy,
     UnattendedWatchdog,
 )
+from src.training.ingest import latest_checkpoint
 from src.training.run import RunPaths, run_arm
 from src.training.trainer import find_resumable_checkpoint
 
@@ -459,9 +460,10 @@ def inspect_run(job: ArmJob) -> str:
         raise TrainingOrchestrationError(
             f"completed run record names unreadable checkpoint {checkpoint}"
         )
-    if resumable is None or Path(resumable).name != checkpoint_name:
+    newest = latest_checkpoint(job.paths.output_dir)
+    if newest is None or newest.name != checkpoint_name:
         raise TrainingOrchestrationError(
-            f"run record names {checkpoint_name}, newest checkpoint is {resumable}"
+            f"run record names {checkpoint_name}, newest checkpoint is {newest}"
         )
     _validate_final_checkpoint(checkpoint, expected_step=job.total_steps)
     return "complete"
