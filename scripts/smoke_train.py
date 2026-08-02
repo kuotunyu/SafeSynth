@@ -22,36 +22,46 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from collections.abc import Sequence
 from dataclasses import replace
-
-import yaml
+from pathlib import Path
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.training.arms import build_all_arms
+from src.training.config import load_training_config
 from src.training.run import RunPaths, run_arm
 from src.training.trainer import find_resumable_checkpoint
 
 POOL_TAG = "m13_pool_1x"
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config", type=Path, default=Path("configs/training.yaml")
+    )
     parser.add_argument("--arm", default="filtered_syn")
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--resume-steps", type=int, default=4)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--val-images", type=int, default=16)
     parser.add_argument("--keep", action="store_true", help="do not delete the run dir")
-    return parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def smoke_output_dir(
+    runs_root: Path, config_path: Path, arm: str, seed: int
+) -> Path:
+    """Keep checkpoints from different detector architectures isolated."""
+
+    return Path(runs_root) / "smoke" / Path(config_path).stem / f"{arm}_seed_{seed}"
 
 
 def main() -> None:
     args = parse_args()
     paths = load_project_paths()
     pool = paths.synthetic / POOL_TAG
-    config = yaml.safe_load(
-        (PROJECT_ROOT / "configs" / "training.yaml").read_text(encoding="utf-8")
-    )
+    config = load_training_config(args.config)
     # Evaluation MUST run here. Skipping it is exactly what let a broken
     # compute_metrics reach Colab and kill all four arms.
     config["run"]["eval_strategy"] = "steps"
@@ -74,7 +84,7 @@ def main() -> None:
         composition, real_val=composition.real_val[: args.val_images]
     )
 
-    output_dir = paths.runs / "smoke" / f"{args.arm}_seed_{args.seed}"
+    output_dir = smoke_output_dir(paths.runs, args.config, args.arm, args.seed)
     if output_dir.exists():
         shutil.rmtree(output_dir)
 
@@ -82,9 +92,13 @@ def main() -> None:
         real_images=paths.hardhat_raw / "images",
         real_coco=paths.interim / "coco_all.json",
         synthetic_images=pool / "images",
-        synthetic_coco=pool / "annotations_filtered_1x.json"
-        if args.arm == "filtered_syn"
-        else pool / "annotations_unfiltered_1x.json",
+        synthetic_coco=(
+            pool / "annotations_filtered_1x.json"
+            if args.arm == "filtered_syn"
+            else pool / "annotations_unfiltered_1x.json"
+            if args.arm == "unfiltered_syn"
+            else None
+        ),
         output_dir=output_dir,
     )
 
