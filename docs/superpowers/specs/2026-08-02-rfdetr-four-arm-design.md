@@ -102,6 +102,35 @@ The measured projection replaces all earlier planning ranges. Report the
 projection to the user in commentary, then continue under the user's existing
 authorization unless the probe is invalid or exposes a safety problem.
 
+### Unattended execution policy
+
+The owner has authorized a 16-hour unattended local-GPU window. During that
+window, orchestration does not pause for non-blocking approvals after preflight
+or the speed probe. It continues in this priority order:
+
+1. preflight and short GPU smoke;
+2. valid two-run speed probe;
+3. `real_only`;
+4. `filtered_syn`;
+5. `standard_aug`;
+6. `unfiltered_syn`;
+7. frozen evaluation and report generation.
+
+The 16 hours are an availability window, not permission to change the frozen
+experiment to finish sooner. The implementation must not reduce the 10,900-step
+budget, change arm composition, tune hyperparameters, or read Test during
+training. If the window ends before completion, preserve the newest valid
+checkpoint and orchestration summary so the next run resumes instead of
+restarting.
+
+While unattended, check GPU allocation, temperature, free disk, training loss,
+checkpoint freshness, and child-process liveness at bounded intervals. Continue
+through ordinary warnings and recoverable interruptions. Stop only when
+continuing could invalidate results or damage recoverability: CUDA OOM, NaN/Inf
+loss, corrupt data or checkpoint, insufficient disk, an unrelated project
+materially occupying the GPU, or a failed provenance/validation check. Never
+terminate or modify another project's process.
+
 ### Evaluation and reporting
 
 After all four arms finish:
