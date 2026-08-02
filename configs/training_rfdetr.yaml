@@ -76,21 +76,17 @@ schedule:
   max_grad_norm: 0.1                         # source: guess  ⚠ NOT the Trainer default of 1.0
 
 # ===========================================================================
-# Scope: two arms, not four
+# Scope: approved four-arm architecture replication
 # ===========================================================================
 #
-# ADR-005 scopes this as "RF-DETR trained on the same four arms". Running two is
-# a deliberate reduction, recorded here rather than left as a silent shortfall.
-#
-# The question this comparison answers is "does the synthetic result replicate
-# on another architecture", and `real_only` against `filtered_syn` is the
-# decisive contrast for it: those are the two arms whose 95% intervals are
-# disjoint on the primary metric in the main run. `standard_aug` and
-# `unfiltered_syn` are not separable from their neighbours there, so paying for
-# them a second time buys the least.
+# The decisive `real_only` versus `filtered_syn` contrast runs first. The two
+# remaining arms complete the same ablation as RT-DETRv2 without changing data,
+# budget, seed or preprocessing after seeing a result.
 arms:
   - "real_only"                              # source: fixed
   - "filtered_syn"                           # source: fixed
+  - "standard_aug"                           # source: fixed
+  - "unfiltered_syn"                         # source: fixed
 
 run:
   total_steps: 10900                         # source: fixed  matches the main run (TRAIN-07)

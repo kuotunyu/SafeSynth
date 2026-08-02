@@ -191,10 +191,15 @@ def test_the_rfdetr_config_overrides_the_three_settings_that_differ() -> None:
     assert resolved["model"]["checkpoint"] == "Roboflow/rf-detr-nano"
 
 
-def test_the_rfdetr_config_narrows_to_the_two_decisive_arms() -> None:
+def test_the_rfdetr_config_resolves_to_the_approved_four_arms() -> None:
     resolved = load_training_config("configs/training_rfdetr.yaml")
 
-    assert resolved["arms"] == ["real_only", "filtered_syn"]
+    assert resolved["arms"] == [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn",
+    ]
 
 
 def test_the_rfdetr_config_keeps_the_batch_size_that_makes_steps_comparable() -> None:

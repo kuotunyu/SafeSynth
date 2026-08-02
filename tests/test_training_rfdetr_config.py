@@ -83,13 +83,15 @@ def test_the_step_budget_matches_what_the_main_run_actually_did() -> None:
     assert _load(RFDETR)["run"]["total_steps"] == int(actual.pop())
 
 
-def test_the_reduced_arm_list_is_explicit_and_names_the_decisive_pair() -> None:
-    """ADR-005 says four arms; running two is a choice that must be visible."""
+def test_the_four_arm_scope_and_execution_order_are_explicit() -> None:
+    """A missing or reordered arm changes the approved replication experiment."""
 
-    arms = _load(RFDETR)["arms"]
-
-    assert arms == ["real_only", "filtered_syn"]
-    assert len(arms) == 2
+    assert _load(RFDETR)["arms"] == [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn",
+    ]
 
 
 def test_every_optimizer_value_is_labelled_a_guess() -> None:
