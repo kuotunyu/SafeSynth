@@ -2,7 +2,7 @@
 
 > 這份檔案只留**需要你親自判斷或執行外部動作**的事。
 > 本機可逆的實作、測試與 commit 已授權自動完成；不會自行建立 remote、push 或發佈。
-> 最後更新：2026-08-02（EVAL-09 有區間了、DEMO-04 GIF 產出、repo 體積數字已更正）
+> 最後更新：2026-08-02（M20 ① 完成；GPU 被 llama-server 佔住，M20 ② 卡在那裡）
 
 ---
 
@@ -61,9 +61,7 @@ reports/figures/error_analysis/new_false_positive.png   合成資料的代價
 PLAN 的前置判斷寫得很清楚：**若 Filtered 組沒有提升，補 seed 不會改變結論**。
 我**暫緩了**，理由記在 worklog。你可以推翻這個決定。
 
-### 3️⃣ GPU 空出來之後（你決定時機）
-
-### ✅ M20 ① —— **完成了**（2026-08-02，你鎖的那次時脈成功了）
+### 3️⃣ ✅ M20 ① —— **完成了**（2026-08-02，你鎖的那次時脈成功了）
 
 三道閘門同時全綠：contention 0/9、clock spread **1.00**（門檻 1.15）、授權掃描 PASS。
 
@@ -106,46 +104,6 @@ uv run python -m scripts.probe_train_speed --arm real_only --short 40 --long 140
 
 
 
-**鎖時脈已經證實有效**（你跑過了，謝謝）——clock check 從 spread 3.65 變成
-**1.00 PASS**，延遲回到 13.26 ms。剩下的是 p95 尾巴 1.40（門檻 1.30），
-那是機器有人在用造成的。所以下次要**兩件事同時成立**：時脈鎖著，而且
-那 4 分鐘你不在座位上。開「以系統管理員身分執行」的 PowerShell：
-
-```bash
-nvidia-smi -lgc 2520,2520
-```
-
-告訴我一聲，我重跑約 5 分鐘。**跑完務必解除**（鎖著會讓 GPU 一直高頻耗電發熱、
-影響你其他專案）：
-
-```bash
-nvidia-smi -rgc
-```
-
-為什麼需要這個：這台 4090 在使用中，同一次執行內 SM clock 從 690 盪到 2520 MHz，
-延遲跟著差 2.3 倍。`reports/speed_baseline_probe.md` 現在是 **FAIL** 狀態，
-那是正確的——舊版報告的 `11.81 ms` 是運氣好抽中的，而當時的檢查給它 PASS。
-細節見 [K-22](docs/troubleshooting.md)。
-
-**不想做也完全可以**：M20 ① 維持 `[~]`，README 本來就沒引用任何延遲數字，
-不影響任何主結論。
-
----
-
-兩件事在等 GPU，都不急：
-- **在微調後的 3 類權重上重測延遲**（M20 ①）。約 15 分鐘，跑完就能拿掉
-  `reports/speed_baseline_probe.md` 全篇的 PROVISIONAL 標記
-- **RF-DETR-Nano 速度對照組的訓練那一半**（M20 ②）。**時數未知**——
-  四組 RT-DETRv2 都在 Colab L4 上跑，本機 4090 沒有任何訓練實測。
-  要先跑 200 步量實測 it/s 才能報時數
-
-一件等你判斷（跟 GPU 無關）：
-- ~~demo 的 GIF（DEMO-04）~~ **已完成**，不需要你的素材：資料集本身有 501 張
-  同時含戴帽與裸頭的圖。做成靜態幀蒙太奇（`assets/demo.gif`），README 明說它不是實拍。
-
-~~**EVAL-09 的 bootstrap**~~ **已完成**（2026-08-02）。CPU 16 進程實測 **2 小時 20 分**。
-GPU 從頭到尾沒碰。
-
 ### 4️⃣ 想玩 demo 的話
 
 ```bash
@@ -168,7 +126,11 @@ uv run python app.py --device cpu
    正好夾到它注入變異、還沒還原的窗口。後果是 PUB-10 的洩漏掃描
    在這台機器上**什麼都不搜尋卻照樣印 PASS**。已修，並加了會抓到它的測試。
 
-3. **這一輪完全沒有使用 GPU**，照你交代的。評測與分析都在 CPU 上跑。
+3. **變異測試被 SIGKILL 之後，把變異留在了工作樹裡**（[K-21b](docs/troubleshooting.md)）。
+   我在 commit 前逐行看 `git diff` 才發現——三十幾行合理改動裡夾著一行
+   `if args.long <= args.short:` → `if args.long < 0:`。**這次沒有進 main。**
+   根因是我寫的測試會呼叫 `main()`，拿掉守衛後它就真的開始訓練，harness 卡死被殺，
+   `finally:` 對 SIGKILL 無效。守衛已抽成獨立函式，測試再也啟動不了昂貴作業。
 
 ---
 
