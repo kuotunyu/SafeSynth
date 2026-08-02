@@ -78,6 +78,7 @@ dist/
 build/
 
 # --- Tooling / OS ---
+.worktrees/
 .vscode/
 .idea/
 .claude/settings.local.json
