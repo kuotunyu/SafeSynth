@@ -818,7 +818,7 @@ def render_report(
     return "\n".join(lines)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="DEMO-03 latency benchmark")
     parser.add_argument(
         "--models",
@@ -838,7 +838,12 @@ def parse_args() -> argparse.Namespace:
             "the licence evidence still come from the Hub id."
         ),
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+    )
+    return parser.parse_args(argv)
 
 
 def parse_weight_overrides(pairs: Sequence[str]) -> dict[str, str]:
@@ -1046,7 +1051,8 @@ def main() -> None:
         resolution_probes=resolution_probes,
         forbidden_scan=forbidden_scan,
     )
-    out_path = paths.reports / REPORT_NAME
+    out_path = args.report or (paths.reports / REPORT_NAME)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(markdown, encoding="utf-8", newline="\n")
     print(f"wrote {out_path}")
 

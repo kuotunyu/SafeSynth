@@ -1430,6 +1430,18 @@ def test_a_weights_override_resolves_to_the_directory_it_names(tmp_path) -> None
     assert bl.parse_weight_overrides([]) == {}
 
 
+def test_latency_report_path_can_be_isolated(tmp_path: Path) -> None:
+    """A second architecture benchmark must not overwrite the primary report."""
+
+    destination = tmp_path / "rfdetr_speed.md"
+    args = bl.parse_args(
+        ["--models", "rf_detr_nano", "--report", str(destination)]
+    )
+
+    assert args.models == ["rf_detr_nano"]
+    assert args.report == destination
+
+
 @pytest.mark.parametrize(
     "argument",
     ["rtdetrv2_r18", "=path", "rtdetrv2_r18=", "typo_key=."],
