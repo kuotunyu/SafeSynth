@@ -4,7 +4,7 @@
 > 這份檔案是「還剩什麼、怎麼做、哪裡有地雷」；CLAUDE.md 是「永遠適用的規則」。
 > 兩者衝突時**以 CLAUDE.md 為準**，並回報衝突。
 >
-> 建立於 2026-08-02，對應 commit `f767853`。
+> 建立於 2026-08-02，對應 commit `d39de08`。
 > **開工第一件事是證偽這份檔案**——見下方〈開工檢查〉。
 
 ---
@@ -42,9 +42,9 @@ uv run python scripts/verify_readme.py
 **應該看到**：
 
 ```
-f767853 docs(K-21b): the killed harness also left a fabricated measurement report
+d39de08 docs: HANDOFF.md, and the script its slimming plan claimed to have
 （tree 乾淨，0 行輸出）
-1516 passed, 44 skipped
+1518 passed, 44 skipped
 PASS: every README number has a source and every disclosure is present
 ```
 
@@ -161,7 +161,7 @@ clone 大小（打包後）      631.27 MiB
 那份檔案是腳本產的，可以重跑：
 
 ```bash
-uv run python -m scripts.plan_repo_slimming    # 若腳本已抽出；否則見該檔頂端說明
+uv run python -m scripts.plan_repo_slimming
 ```
 
 **依 CLAUDE.md，`filter-repo` 由使用者親自執行。** Claude 不要代跑。
