@@ -42,13 +42,19 @@ uv run python scripts/verify_readme.py
 **應該看到**：
 
 ```
-d39de08 docs: HANDOFF.md, and the script its slimming plan claimed to have
-（tree 乾淨，0 行輸出）
+（git status 零行輸出）
 1518 passed, 44 skipped
 PASS: every README number has a source and every disclosure is present
 ```
 
-**對不上就先停下來報告，不要直接開工。**
+`git log` 的最新 commit **會比這份檔案新**——這份檔案本身就是一筆 commit，
+之後還會有收尾的 commit。所以**不要拿 sha 去對**，要對的是那三件事：
+工作樹乾淨、測試全過、README 驗證通過。
+（這份檔案寫成時的基準是 `d39de08`，僅供參考。）
+
+測試數只會**往上**。變少了就是有東西被刪掉或壞掉，要查。
+
+**這三項對不上就先停下來報告，不要直接開工。**
 不一致本身是最重要的資訊——通常代表上一輪收工沒收乾淨。
 
 環境：Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
