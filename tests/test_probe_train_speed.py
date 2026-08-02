@@ -10,7 +10,11 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.probe_train_speed import PRODUCTION_STEPS, SpeedProbe
+from scripts.probe_train_speed import (
+    PRODUCTION_STEPS,
+    SpeedProbe,
+    validate_step_pair,
+)
 
 
 def _probe(short_steps, long_steps, short_seconds, long_seconds) -> SpeedProbe:
@@ -118,3 +122,26 @@ def test_the_l4_reference_point_reproduces_the_published_colab_figure() -> None:
     for rate, expected_hours in ((1.7, 1.78), (1.9, 1.59)):
         probe = _probe(40, 140, 40 / rate, 140 / rate)
         assert probe.production_hours() == pytest.approx(expected_hours, abs=0.02)
+
+
+# --------------------------------------------------------------------------
+# the step-pair guard
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("short", "long"), [(40, 40), (140, 40), (10, 0), (0, 0)])
+def test_a_degenerate_step_pair_is_refused(short, long) -> None:
+    """Equal counts divide by zero; inverted ones give a NEGATIVE rate, and so
+    negative hours, reported with a straight face.
+
+    Asserted against the guard directly, NOT through main(). A version of this
+    test that called main() started real training the moment a mutation removed
+    the guard.
+    """
+
+    with pytest.raises(SystemExit, match="must exceed"):
+        validate_step_pair(short, long)
+
+
+def test_a_valid_pair_passes_silently() -> None:
+    assert validate_step_pair(40, 140) is None

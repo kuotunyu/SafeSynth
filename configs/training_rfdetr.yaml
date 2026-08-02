@@ -23,6 +23,14 @@
 #   guess    - inherited from the RT-DETRv2 recipe and NOT validated for a
 #              DINOv2 backbone. See the note under `optimizer`.
 
+# This file states DIFFERENCES ONLY. Everything unmentioned - the sixteen
+# TrainingArguments under `run:`, the augmentation block - comes from the base
+# below, resolved by src/training/config.py. Loading this file with plain
+# yaml.safe_load produces a `run:` block of two keys and run_arm dies on
+# KeyError: 'per_device_eval_batch_size'. That is not a corrupt file; it is a
+# config that was never meant to stand alone, and this line is what says so.
+extends: "configs/training.yaml"             # source: fixed
+
 seed: 42                                     # source: fixed  (same split seed as the main run)
 
 # ===========================================================================

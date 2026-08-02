@@ -718,3 +718,44 @@ uv run python scripts/append_derived_metrics.py
 「煙霧測試」用了正式的輸出路徑，就不是煙霧測試了。
 這次靠 `git checkout --` 就救回來，是因為那份 CSV 已經進 git；
 如果它還在工作樹裡沒 commit，我就把四組跑出來的結果洗掉了。
+
+---
+
+### K-21b — 被 SIGKILL 的變異測試會把變異留在工作樹裡
+
+**K-21 的第二種形式，成因不同、後果一樣。**
+K-21 是 `git add -A` 夾到變異注入的窗口；這次沒有人用 `git add -A`，
+是**變異 harness 自己被殺掉**。
+
+**發生經過**
+`mutate_speed.py` 的 S11 把 `if args.long <= args.short:` 換成 `if args.long < 0:`，
+跑測試，然後在 `finally:` 還原。但我當時寫的那條測試會呼叫 `main()`——
+**拿掉守衛之後，`main()` 就真的開始跑訓練了**。
+harness 卡在那裡，10 分鐘後被 timeout SIGKILL。
+`finally:` 對 SIGKILL 無效，於是 **S11 的變異就留在檔案裡**。
+
+我是在改同一個檔案、發現 `grep` 出來的那一行長得不對才察覺的。
+`git diff` 一看就清楚：三十幾行合理改動裡夾著一行
+
+```
+-    if args.long <= args.short:
++    if args.long < 0:
+```
+
+**兩個獨立的錯，都要修**
+
+1. **測試不該能啟動昂貴作業。** 把守衛從 `main()` 裡抽成獨立函式
+   `validate_step_pair(short, long)`，測試直接打它。
+   這樣任何變異都只會讓一條斷言變紅，不會讓機器開始訓練。
+   通則：**變異測試會刻意把程式改壞，所以被測入口點必須是「壞掉也很便宜」的**。
+2. **不能只靠 `finally:`。** 它擋得住例外，擋不住 SIGKILL、斷電、關機。
+
+**強制動作（K-21 的規則升級版）**
+commit 之前**一定要 `git diff` 逐行看過**，不是只看 `--stat`。
+`--stat` 只會告訴你「這個檔案改了 31 行」，而混進去的那一行就藏在裡面。
+凡是背景跑過變異 harness 的 session，這一步不可省略。
+
+**沒有踩到的那顆地雷**
+這次工作樹裡同時有 `src/training/config.py`（新檔）與另外三個修改檔。
+如果我當時用 `git add -A` 直接提交，這個變異會**第二次**進到 main。
+按檔名逐一 stage 這條規則不是形式主義——它讓我在 stage 之前非看 diff 不可。

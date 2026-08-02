@@ -31,10 +31,9 @@ import time
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-import yaml
-
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.training.arms import build_all_arms
+from src.training.config import load_training_config
 from src.training.run import RunPaths, run_arm
 
 # The budget the real four-arm run used, so the extrapolation lands on a number
@@ -87,11 +86,6 @@ class SpeedProbe:
         )
 
 
-def load_config(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as stream:
-        return yaml.safe_load(stream)
-
-
 def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images: int) -> float:
     """Wall seconds for a complete run_arm at `steps`, from a clean directory."""
 
@@ -140,7 +134,7 @@ def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images:
 def probe(
     label: str, config_path: Path, arm: str, *, short: int, long: int, seed: int, val_images: int
 ) -> SpeedProbe:
-    config = copy.deepcopy(load_config(config_path))
+    config = copy.deepcopy(load_training_config(config_path))
     # A 2000-step warmup inside a 120-step probe would measure the warmup only.
     config["schedule"]["warmup_steps"] = 1
     config["run"]["eval_on_n_val_images"] = val_images
@@ -162,6 +156,24 @@ def probe(
     )
 
 
+# spec: TRAIN-01
+def validate_step_pair(short: int, long: int) -> None:
+    """Refuse a degenerate step pair before anything expensive starts.
+
+    Equal counts divide by zero. An inverted pair produces a NEGATIVE rate and
+    therefore negative hours, reported with a straight face.
+
+    A free function rather than an inline check in main(), because the test for
+    it must not call main(). The first version of that test did, and when a
+    mutation removed the guard the test started a REAL multi-hour training run -
+    the mutation harness had to be killed at ten minutes, and being killed meant
+    its restore never ran and it left the mutation in the working tree (K-21).
+    """
+
+    if long <= short:
+        raise SystemExit(f"--long must exceed --short, got {long} <= {short}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="measured training speed on this machine")
     parser.add_argument("--arm", default="real_only")
@@ -180,8 +192,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if args.long <= args.short:
-        raise SystemExit(f"--long must exceed --short, got {args.long} <= {args.short}")
+    validate_step_pair(args.short, args.long)
 
     import torch
 
