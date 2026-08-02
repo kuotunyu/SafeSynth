@@ -445,3 +445,33 @@ def test_an_arm_recording_no_step_count_is_reported_not_skipped() -> None:
     problems = verify_step_budget(_plan(), records)
 
     assert any("no total_steps" in problem for problem in problems)
+
+
+def test_rf_inputs_require_explicit_isolated_evaluation_outputs() -> None:
+    args = eval_driver.parse_args(
+        [
+            "--runs-root",
+            "D:/runs_rfdetr",
+            "--training-config",
+            "configs/training_rfdetr.yaml",
+        ]
+    )
+
+    with pytest.raises(EvalDriverError, match="--metrics-csv.*--report.*--predictions-root"):
+        eval_driver.validate_output_isolation(
+            args,
+            default_runs_root=Path("D:/runs"),
+            default_training_config=eval_driver.TRAINING_CONFIG,
+            default_metrics_csv=Path(args.metrics_csv),
+            default_report=Path(args.report),
+        )
+
+
+def test_corrupt_evaluation_prediction_index_is_not_silently_replaced(
+    tmp_path: Path,
+) -> None:
+    index = tmp_path / "index.json"
+    index.write_text("{broken", encoding="utf-8")
+
+    with pytest.raises(EvalDriverError, match="prediction index"):
+        eval_driver.read_prediction_index_strict(index)

@@ -21,14 +21,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shutil
 from collections.abc import Sequence
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.training.arms import build_all_arms
 from src.training.config import load_training_config
+from src.training.health import TrainerHealthCallback, UnattendedSafetyPolicy
 from src.training.run import RunPaths, run_arm
 from src.training.trainer import find_resumable_checkpoint
 
@@ -45,6 +49,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--resume-steps", type=int, default=4)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--val-images", type=int, default=16)
+    parser.add_argument("--min-free-gib", type=float, default=50.0)
+    parser.add_argument("--max-runtime-hours", type=float, default=2.0)
+    parser.add_argument("--max-gpu-temperature-c", type=float, default=85.0)
+    parser.add_argument("--health-log", type=Path, default=None)
     parser.add_argument("--keep", action="store_true", help="do not delete the run dir")
     return parser.parse_args(argv)
 
@@ -55,6 +63,31 @@ def smoke_output_dir(
     """Keep checkpoints from different detector architectures isolated."""
 
     return Path(runs_root) / "smoke" / Path(config_path).stem / f"{arm}_seed_{seed}"
+
+
+def validate_smoke_record(record: dict[str, Any]) -> None:
+    values: dict[str, Any] = {"train_loss": record.get("train_loss")}
+    metrics = record.get("eval_metrics", {})
+    if isinstance(metrics, dict):
+        values.update({f"eval_metrics.{key}": value for key, value in metrics.items()})
+    for name, value in values.items():
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise RuntimeError(f"{name} is not finite: {value!r}")
+
+
+def validate_smoke_checkpoint(checkpoint: Path | str, *, expected_step: int) -> None:
+    path = Path(checkpoint)
+    expected_name = f"checkpoint-{expected_step}"
+    if path.name != expected_name:
+        raise RuntimeError(f"expected {expected_name}, found {path.name}")
+    try:
+        state = json.loads((path / "trainer_state.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"cannot read {path / 'trainer_state.json'}: {error}") from error
+    if not isinstance(state, dict) or state.get("global_step") != expected_step:
+        raise RuntimeError(
+            f"{path / 'trainer_state.json'} did not reach global_step {expected_step}"
+        )
 
 
 def main() -> None:
@@ -101,6 +134,16 @@ def main() -> None:
         ),
         output_dir=output_dir,
     )
+    policy = UnattendedSafetyPolicy(
+        output_root=paths.runs,
+        health_log=args.health_log or (PROJECT_ROOT / "reports" / "train_smoke_health.jsonl"),
+        deadline_utc=datetime.now(UTC)
+        + timedelta(hours=float(args.max_runtime_hours)),
+        min_free_gib=float(args.min_free_gib),
+        max_gpu_temperature_c=float(args.max_gpu_temperature_c),
+    )
+    policy.check(stage="startup")
+    callback = TrainerHealthCallback(policy=policy, arm=args.arm)
 
     print(f"=== cold start: {args.steps} steps, no checkpoint present ===")
     assert find_resumable_checkpoint(output_dir) is None, "run dir was not clean"
@@ -111,12 +154,15 @@ def main() -> None:
         total_steps=args.steps,
         seed=args.seed,
         resume=True,
+        callbacks=(callback,),
     )
+    validate_smoke_record(first)
     checkpoint = find_resumable_checkpoint(output_dir)
     print(f"    steps={first['total_steps']}  resumed_from={first['resumed_from']}")
     print(f"    checkpoint written: {checkpoint}")
     if checkpoint is None:
         raise SystemExit("TRAIN-10 failed: no checkpoint written on the cold run")
+    validate_smoke_checkpoint(checkpoint, expected_step=args.steps)
 
     print(f"\n=== warm start: {args.resume_steps} steps, checkpoint present ===")
     second = run_arm(
@@ -126,10 +172,16 @@ def main() -> None:
         total_steps=args.resume_steps,
         seed=args.seed,
         resume=True,
+        callbacks=(callback,),
     )
+    validate_smoke_record(second)
     print(f"    steps={second['total_steps']}  resumed_from={second['resumed_from']}")
     if second["resumed_from"] is None:
         raise SystemExit("TRAIN-10 failed: the warm run ignored the checkpoint")
+    warm_checkpoint = find_resumable_checkpoint(output_dir)
+    if warm_checkpoint is None:
+        raise SystemExit("TRAIN-10 failed: warm run wrote no checkpoint")
+    validate_smoke_checkpoint(warm_checkpoint, expected_step=args.resume_steps)
 
     report = {
         "arm": args.arm,

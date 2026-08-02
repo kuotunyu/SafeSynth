@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -147,6 +147,7 @@ def run_arm(
     total_steps: int,
     seed: int,
     resume: bool = True,
+    callbacks: Sequence[Any] | None = None,
 ) -> dict[str, Any]:
     """Train one arm, resuming automatically if a checkpoint is present."""
 
@@ -182,6 +183,7 @@ def run_arm(
         data_collator=collate,
         compute_metrics=make_compute_metrics(processor, val_samples),
         optimizer_config=config["optimizer"],
+        callbacks=list(callbacks or ()),
     )
 
     checkpoint = find_resumable_checkpoint(paths.output_dir) if resume else None

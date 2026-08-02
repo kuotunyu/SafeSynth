@@ -172,3 +172,38 @@ def test_a_degenerate_step_pair_is_refused(short, long) -> None:
 
 def test_a_valid_pair_passes_silently() -> None:
     assert validate_step_pair(40, 140) is None
+
+
+def test_probe_checks_gpu_safety_before_both_measured_runs(
+    monkeypatch, tmp_path
+) -> None:
+    observed: list[tuple[str, str, int | None]] = []
+
+    class RecordingPolicy:
+        def check(self, *, stage: str, arm: str, step: int | None = None):
+            observed.append((stage, arm, step))
+
+    def fake_timed_run(config, arm_name, steps, *, seed, val_images, callbacks):
+        assert len(callbacks) == 1
+        return 10.0 if steps == 40 else 30.0
+
+    monkeypatch.setattr(speed_probe, "timed_run", fake_timed_run)
+
+    measured = speed_probe.probe(
+        "rfdetr",
+        tmp_path / "unused.yaml",
+        "real_only",
+        short=40,
+        long=140,
+        seed=1337,
+        val_images=16,
+        config={"schedule": {"warmup_steps": 2_000}, "run": {}},
+        safety_policy=RecordingPolicy(),
+    )
+
+    assert measured.short_seconds == 10.0
+    assert measured.long_seconds == 30.0
+    assert observed == [
+        ("before_probe", "real_only", 40),
+        ("before_probe", "real_only", 140),
+    ]

@@ -6,16 +6,20 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import shutil
+import socket
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from src.data.paths import load_project_paths
 from src.training.arms import ArmComposition, build_all_arms, split_real_images
 from src.training.config import load_training_config
+from src.training.health import TrainerHealthCallback, UnattendedSafetyPolicy
 from src.training.run import RunPaths, run_arm
 from src.training.trainer import find_resumable_checkpoint
 
@@ -42,6 +46,87 @@ class PreflightReport:
     required_free_gib: float
     real_train_digest: str
     synthetic_counts: Mapping[str, int]
+
+
+@contextmanager
+def orchestration_lock(
+    path: Path, *, owner: Mapping[str, Any] | None = None
+):
+    """Hold a non-blocking OS lock; stale metadata never blocks crash recovery."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        try:
+            path.open("xb").close()
+        except FileExistsError:
+            pass
+    try:
+        stream = path.open("r+b")
+    except OSError as error:
+        raise TrainingOrchestrationError(
+            f"orchestration is already owned; cannot open {path}: {error}"
+        ) from error
+    locked = False
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            if path.stat().st_size == 0:
+                stream.write(b"\0")
+                stream.flush()
+            stream.seek(0)
+            try:
+                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError as error:
+                try:
+                    current = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    current = "<owner metadata is locked>"
+                raise TrainingOrchestrationError(
+                    f"orchestration is already owned: {current}"
+                ) from error
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as error:
+                try:
+                    current = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    current = "<owner metadata is locked>"
+                raise TrainingOrchestrationError(
+                    f"orchestration is already owned: {current}"
+                ) from error
+        locked = True
+        metadata = dict(
+            owner
+            or {
+                "pid": os.getpid(),
+                "host": socket.gethostname(),
+                "acquired_at_utc": _utc_now(),
+            }
+        )
+        encoded = (json.dumps(metadata, sort_keys=True) + "\n").encode("utf-8")
+        stream.seek(0)
+        stream.truncate(0)
+        stream.write(encoded)
+        stream.flush()
+        os.fsync(stream.fileno())
+        yield metadata
+    finally:
+        if locked:
+            stream.seek(0)
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+        stream.close()
 
 
 def resolved_config_digest(config: Mapping[str, Any]) -> str:
@@ -223,6 +308,33 @@ def _finite_record_values(record: Mapping[str, Any]) -> None:
             raise TrainingOrchestrationError(f"{name} is not finite: {value!r}")
 
 
+def _validate_final_checkpoint(checkpoint: Path, *, expected_step: int) -> None:
+    expected_name = f"checkpoint-{expected_step}"
+    if checkpoint.name != expected_name:
+        raise TrainingOrchestrationError(
+            f"completed run names {checkpoint.name}; expected {expected_name}"
+        )
+
+    state_path = checkpoint / "trainer_state.json"
+    state = _read_record(state_path)
+    if state.get("global_step") != expected_step:
+        raise TrainingOrchestrationError(
+            f"{state_path} global_step={state.get('global_step')!r}; "
+            f"expected {expected_step}"
+        )
+
+    weight_paths = (
+        checkpoint / "model.safetensors",
+        checkpoint / "model.safetensors.index.json",
+        checkpoint / "pytorch_model.bin",
+        checkpoint / "pytorch_model.bin.index.json",
+    )
+    if not any(path.is_file() and path.stat().st_size > 0 for path in weight_paths):
+        raise TrainingOrchestrationError(
+            f"completed checkpoint {checkpoint} has no readable model weights"
+        )
+
+
 def inspect_run(job: ArmJob) -> str:
     """Return absent/resumable/complete; reject any conflicting completion claim."""
 
@@ -232,6 +344,36 @@ def inspect_run(job: ArmJob) -> str:
         return "resumable" if resumable else "absent"
 
     record = _read_record(record_path)
+    orchestrator_keys = {
+        "model_checkpoint",
+        "config_sha256",
+        "started_at_utc",
+        "finished_at_utc",
+        "latest_checkpoint",
+    }
+    if orchestrator_keys.isdisjoint(record):
+        raw_expected = {
+            "arm": job.arm,
+            "seed": job.seed,
+            "total_steps": job.total_steps,
+            "composition": job.composition.summary(),
+        }
+        mismatched = {
+            name: (record.get(name), value)
+            for name, value in raw_expected.items()
+            if record.get(name) != value
+        }
+        if mismatched:
+            raise TrainingOrchestrationError(
+                f"conflicting raw run record {record_path}: {mismatched!r}"
+            )
+        _finite_record_values(record)
+        if resumable is None:
+            raise TrainingOrchestrationError(
+                f"raw run record {record_path} has no resumable checkpoint"
+            )
+        return "resumable"
+
     expected = {
         "arm": job.arm,
         "seed": job.seed,
@@ -262,10 +404,16 @@ def inspect_run(job: ArmJob) -> str:
         raise TrainingOrchestrationError(
             f"run record names {checkpoint_name}, newest checkpoint is {resumable}"
         )
+    _validate_final_checkpoint(checkpoint, expected_step=job.total_steps)
     return "complete"
 
 
-def execute_job(job: ArmJob, config: Mapping[str, Any]) -> dict[str, Any]:
+def execute_job(
+    job: ArmJob,
+    config: Mapping[str, Any],
+    *,
+    callbacks: Sequence[Any] | None = None,
+) -> dict[str, Any]:
     """The only production seam that enters single-arm model training."""
 
     return run_arm(
@@ -275,7 +423,21 @@ def execute_job(job: ArmJob, config: Mapping[str, Any]) -> dict[str, Any]:
         total_steps=job.total_steps,
         seed=job.seed,
         resume=True,
+        callbacks=callbacks,
     )
+
+
+def build_production_trainer(
+    safety_policy: UnattendedSafetyPolicy,
+) -> Callable[[ArmJob, Mapping[str, Any]], Mapping[str, Any]]:
+    """Bind the measured unattended policy to every production arm."""
+
+    def train_one(job: ArmJob, config: Mapping[str, Any]) -> Mapping[str, Any]:
+        safety_policy.check(stage="before_arm", arm=job.arm)
+        callback = TrainerHealthCallback(policy=safety_policy, arm=job.arm)
+        return execute_job(job, config, callbacks=(callback,))
+
+    return train_one
 
 
 def _utc_now() -> str:
@@ -289,11 +451,23 @@ def run_jobs(
     train_one: Callable[[ArmJob, Mapping[str, Any]], Mapping[str, Any]],
     summary_path: Path,
     run_records_root: Path,
+    provenance: Mapping[str, Any] | None = None,
 ) -> int:
     """Skip complete arms, resume incomplete ones, and stop on the first failure."""
 
     if not jobs:
         raise TrainingOrchestrationError("no arms selected")
+    attempts: list[dict[str, Any]] = []
+    if Path(summary_path).is_file():
+        previous = _read_record(summary_path)
+        previous_attempts = previous.get("attempts", [])
+        if isinstance(previous_attempts, list):
+            attempts.extend(
+                item for item in previous_attempts if isinstance(item, dict)
+            )
+        attempts.append({key: value for key, value in previous.items() if key != "attempts"})
+
+    started_at = _utc_now()
     summary: dict[str, Any] = {
         "config_sha256": jobs[0].config_sha256,
         "model_checkpoint": jobs[0].model_checkpoint,
@@ -301,7 +475,10 @@ def run_jobs(
         "total_steps": jobs[0].total_steps,
         "arm_order": [job.arm for job in jobs],
         "arms": {job.arm: {"status": "pending"} for job in jobs},
-        "updated_at_utc": _utc_now(),
+        "provenance": dict(provenance or {}),
+        "attempts": attempts,
+        "started_at_utc": started_at,
+        "updated_at_utc": started_at,
     }
     atomic_write_json(summary_path, summary)
 
@@ -371,6 +548,7 @@ def run_jobs(
                 "finished_at_utc": _utc_now(),
             }
             summary["updated_at_utc"] = _utc_now()
+            summary["finished_at_utc"] = summary["updated_at_utc"]
             atomic_write_json(summary_path, summary)
             return 1
 
@@ -381,6 +559,9 @@ def run_jobs(
         }
         summary["updated_at_utc"] = _utc_now()
         atomic_write_json(summary_path, summary)
+    summary["finished_at_utc"] = _utc_now()
+    summary["updated_at_utc"] = summary["finished_at_utc"]
+    atomic_write_json(summary_path, summary)
     return 0
 
 
@@ -409,10 +590,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--runs-root", type=Path, default=None)
     parser.add_argument("--run-records-root", type=Path, default=None)
     parser.add_argument("--summary", type=Path, default=None)
+    parser.add_argument("--health-log", type=Path, default=None)
     parser.add_argument("--manifest", type=Path, default=None)
     parser.add_argument("--pool-tag", default="m13_pool_1x")
     parser.add_argument("--arms", nargs="*", default=None)
     parser.add_argument("--min-free-gib", type=float, default=50.0)
+    parser.add_argument("--max-runtime-hours", type=float, default=16.0)
+    parser.add_argument("--max-gpu-temperature-c", type=float, default=85.0)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
 
@@ -475,13 +659,44 @@ def main(
         print(json.dumps(payload, indent=2, sort_keys=True))
         return 0
 
-    return run_jobs(
-        jobs,
-        config=config,
-        train_one=execute_job if train_one is None else train_one,
-        summary_path=summary_path,
-        run_records_root=run_records_root,
-    )
+    if args.max_runtime_hours <= 0:
+        raise TrainingOrchestrationError("--max-runtime-hours must be positive")
+    if args.max_gpu_temperature_c <= 0:
+        raise TrainingOrchestrationError("--max-gpu-temperature-c must be positive")
+
+    selected_train = train_one
+    if selected_train is None:
+        health_log = args.health_log or (paths.reports / "rfdetr_health.jsonl")
+        policy = UnattendedSafetyPolicy(
+            output_root=runs_root,
+            health_log=health_log,
+            deadline_utc=datetime.now(UTC)
+            + timedelta(hours=float(args.max_runtime_hours)),
+            min_free_gib=float(args.min_free_gib),
+            max_gpu_temperature_c=float(args.max_gpu_temperature_c),
+        )
+        policy.check(stage="startup")
+        selected_train = build_production_trainer(policy)
+
+    with orchestration_lock(Path(runs_root) / ".rfdetr-orchestration.lock"):
+        return run_jobs(
+            jobs,
+            config=config,
+            train_one=selected_train,
+            summary_path=summary_path,
+            run_records_root=run_records_root,
+            provenance={
+                "config_path": str(args.config),
+                "manifest_path": str(manifest),
+                "pool_tag": str(args.pool_tag),
+                "real_train_digest": report.real_train_digest,
+                "synthetic_counts": dict(report.synthetic_counts),
+                "required_free_gib": report.required_free_gib,
+                "free_disk_gib_at_preflight": report.free_disk_gib,
+                "runs_root": str(runs_root),
+                "run_records_root": str(run_records_root),
+            },
+        )
 
 
 if __name__ == "__main__":

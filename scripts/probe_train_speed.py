@@ -31,12 +31,14 @@ import shutil
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.training.arms import build_all_arms
 from src.training.config import load_training_config
+from src.training.health import TrainerHealthCallback, UnattendedSafetyPolicy
 from src.training.run import RunPaths, run_arm
 
 # The budget the real four-arm run used, so the extrapolation lands on a number
@@ -118,7 +120,15 @@ def validate_probe(probe: SpeedProbe) -> None:
         raise SpeedProbeError("negative fixed overhead makes the slope unreliable")
 
 
-def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images: int) -> float:
+def timed_run(
+    config: dict,
+    arm_name: str,
+    steps: int,
+    *,
+    seed: int,
+    val_images: int,
+    callbacks: tuple[Any, ...] = (),
+) -> float:
     """Wall seconds for a complete run_arm at `steps`, from a clean directory."""
 
     paths = load_project_paths()
@@ -157,6 +167,7 @@ def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images:
         total_steps=steps,
         seed=seed,
         resume=False,
+        callbacks=callbacks,
     )
     validate_finite_run_record(record)
     elapsed = time.perf_counter() - started
@@ -165,19 +176,50 @@ def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images:
 
 
 def probe(
-    label: str, config_path: Path, arm: str, *, short: int, long: int, seed: int, val_images: int
+    label: str,
+    config_path: Path,
+    arm: str,
+    *,
+    short: int,
+    long: int,
+    seed: int,
+    val_images: int,
+    config: dict[str, Any] | None = None,
+    safety_policy: UnattendedSafetyPolicy | None = None,
 ) -> SpeedProbe:
-    config = copy.deepcopy(load_training_config(config_path))
+    config = copy.deepcopy(
+        load_training_config(config_path) if config is None else config
+    )
     # A 2000-step warmup inside a 120-step probe would measure the warmup only.
     config["schedule"]["warmup_steps"] = 1
     config["run"]["eval_on_n_val_images"] = val_images
 
     print(f"  {label}: {short} steps...", flush=True)
-    short_seconds = timed_run(config, arm, short, seed=seed, val_images=val_images)
+    callbacks: tuple[Any, ...] = ()
+    if safety_policy is not None:
+        safety_policy.check(stage="before_probe", arm=arm, step=short)
+        callbacks = (TrainerHealthCallback(policy=safety_policy, arm=arm),)
+    short_seconds = timed_run(
+        config,
+        arm,
+        short,
+        seed=seed,
+        val_images=val_images,
+        callbacks=callbacks,
+    )
     print(f"    {short_seconds:.1f} s", flush=True)
 
     print(f"  {label}: {long} steps...", flush=True)
-    long_seconds = timed_run(config, arm, long, seed=seed, val_images=val_images)
+    if safety_policy is not None:
+        safety_policy.check(stage="before_probe", arm=arm, step=long)
+    long_seconds = timed_run(
+        config,
+        arm,
+        long,
+        seed=seed,
+        val_images=val_images,
+        callbacks=callbacks,
+    )
     print(f"    {long_seconds:.1f} s", flush=True)
 
     return SpeedProbe(
@@ -214,6 +256,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--long", type=int, default=140)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--val-images", type=int, default=16)
+    parser.add_argument("--min-free-gib", type=float, default=50.0)
+    parser.add_argument("--max-runtime-hours", type=float, default=4.0)
+    parser.add_argument("--max-gpu-temperature-c", type=float, default=85.0)
+    parser.add_argument("--health-log", type=Path, default=None)
     parser.add_argument(
         "--configs",
         nargs="*",
@@ -226,6 +272,18 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     validate_step_pair(args.short, args.long)
+
+    paths = load_project_paths()
+    safety_policy = UnattendedSafetyPolicy(
+        output_root=paths.runs,
+        health_log=args.health_log
+        or (PROJECT_ROOT / "reports" / "rfdetr_probe_health.jsonl"),
+        deadline_utc=datetime.now(UTC)
+        + timedelta(hours=float(args.max_runtime_hours)),
+        min_free_gib=float(args.min_free_gib),
+        max_gpu_temperature_c=float(args.max_gpu_temperature_c),
+    )
+    safety_policy.check(stage="startup")
 
     import torch
 
@@ -245,6 +303,7 @@ def main() -> int:
                 long=args.long,
                 seed=args.seed,
                 val_images=args.val_images,
+                safety_policy=safety_policy,
             )
         validate_probe(measured)
         probes.append(measured)
@@ -285,9 +344,8 @@ def main() -> int:
         ),
         "",
         (
-            "A negative fixed cost would mean the two runs disagree about the setup "
-            "overhead, which makes the slope untrustworthy; the table prints it so "
-            "that case is visible instead of hidden inside an hours figure."
+            "A negative fixed cost means the two runs disagree about setup overhead; "
+            "the safety gate rejects that probe before it can write an ETA report."
         ),
         "",
     ]

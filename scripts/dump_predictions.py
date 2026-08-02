@@ -98,13 +98,58 @@ def predict_split(
 
 
 def write_predictions(records: list[dict], destination: Path) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
     # Compact separators: this file has hundreds of thousands of entries and the
     # pretty-printed form is several times larger for no benefit.
-    destination.write_text(
-        json.dumps(records, separators=(",", ":")), encoding="utf-8", newline="\n"
-    )
+    atomic_write_json_value(destination, records, compact=True)
     return destination
+
+
+def atomic_write_json_value(path: Path, payload, *, compact: bool = False) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    rendered = (
+        json.dumps(payload, separators=(",", ":"))
+        if compact
+        else json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    )
+    temporary.write_text(rendered, encoding="utf-8", newline="\n")
+    temporary.replace(path)
+
+
+def load_prediction_index(path: Path) -> dict[str, dict]:
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise PredictionError(f"cannot read prediction index {path}: {error}") from error
+    if not isinstance(payload, dict) or not all(
+        isinstance(key, str) and isinstance(value, dict)
+        for key, value in payload.items()
+    ):
+        raise PredictionError(f"prediction index {path} is not an object of objects")
+    return payload
+
+
+def validate_output_isolation(
+    args: argparse.Namespace,
+    *,
+    default_runs_root: Path,
+    default_out_root: Path,
+    default_index: Path,
+) -> None:
+    if args.runs_root is None or Path(args.runs_root) == Path(default_runs_root):
+        return
+    missing: list[str] = []
+    if args.out_root is None or Path(args.out_root) == Path(default_out_root):
+        missing.append("--out-root")
+    if Path(args.index) == Path(default_index):
+        missing.append("--index")
+    if missing:
+        raise PredictionError(
+            "a nondefault --runs-root requires isolated " + " and ".join(missing)
+        )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -123,12 +168,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     paths = load_project_paths()
-    out_root = args.out_root or (paths.runs / "predictions")
+    default_out_root = paths.runs / "predictions"
+    validate_output_isolation(
+        args,
+        default_runs_root=paths.runs,
+        default_out_root=default_out_root,
+        default_index=INDEX_PATH,
+    )
+    out_root = args.out_root or default_out_root
     runs_root = args.runs_root or paths.runs
 
-    index: dict[str, dict] = {}
-    if args.index.is_file():
-        index = json.loads(args.index.read_text(encoding="utf-8"))
+    index = load_prediction_index(args.index)
 
     failures = []
     for split in args.splits:
@@ -167,12 +217,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"-> {destination.name}  ({elapsed:.0f}s)"
             )
 
-    args.index.parent.mkdir(parents=True, exist_ok=True)
-    args.index.write_text(
-        json.dumps(index, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    atomic_write_json_value(args.index, index)
     print(f"\nwrote {args.index}")
     if failures:
         print("FAILED:", failures)

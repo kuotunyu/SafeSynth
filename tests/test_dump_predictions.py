@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts.dump_predictions import parse_args
+import pytest
+
+from scripts.dump_predictions import (
+    PredictionError,
+    load_prediction_index,
+    parse_args,
+    validate_output_isolation,
+)
 
 
 def test_dump_predictions_accepts_rf_roots_processor_and_index() -> None:
@@ -24,3 +31,23 @@ def test_dump_predictions_accepts_rf_roots_processor_and_index() -> None:
     assert args.runs_root == Path("D:/runs_rfdetr")
     assert args.processor == "Roboflow/rf-detr-nano"
     assert args.index == Path("results/rfdetr_predictions_index.json")
+
+
+def test_nondefault_runs_root_requires_namespaced_outputs() -> None:
+    args = parse_args(["--runs-root", "D:/runs_rfdetr"])
+
+    with pytest.raises(PredictionError, match="--out-root.*--index"):
+        validate_output_isolation(
+            args,
+            default_runs_root=Path("D:/runs"),
+            default_out_root=Path("D:/runs/predictions"),
+            default_index=Path(args.index),
+        )
+
+
+def test_corrupt_prediction_index_is_rejected_instead_of_discarded(tmp_path: Path) -> None:
+    index = tmp_path / "index.json"
+    index.write_text("{not valid json", encoding="utf-8")
+
+    with pytest.raises(PredictionError, match="prediction index"):
+        load_prediction_index(index)

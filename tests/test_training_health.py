@@ -1,0 +1,141 @@
+"""Unattended detector runs must stop on measurable safety violations."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from src.training.health import (
+    GpuProcess,
+    HealthSnapshot,
+    SafetyPolicyError,
+    TrainerHealthCallback,
+    UnattendedSafetyPolicy,
+)
+
+NOW = datetime(2026, 8, 2, 14, 0, tzinfo=UTC)
+
+
+def _snapshot(**overrides) -> HealthSnapshot:
+    values = {
+        "observed_at_utc": NOW,
+        "cuda_available": True,
+        "gpu_name": "NVIDIA GeForce RTX 4090",
+        "gpu_temperature_c": 55.0,
+        "gpu_memory_used_mib": 1_000,
+        "gpu_memory_total_mib": 24_564,
+        "gpu_processes": (),
+        "disk_free_gib": 500.0,
+    }
+    values.update(overrides)
+    return HealthSnapshot(**values)
+
+
+@pytest.mark.parametrize(
+    ("snapshot", "deadline", "message"),
+    [
+        (_snapshot(cuda_available=False), NOW + timedelta(hours=1), "CUDA"),
+        (_snapshot(disk_free_gib=49.9), NOW + timedelta(hours=1), "disk"),
+        (_snapshot(gpu_temperature_c=86.0), NOW + timedelta(hours=1), "temperature"),
+        (
+            _snapshot(
+                gpu_processes=(GpuProcess(pid=999, process_name="python.exe"),)
+            ),
+            NOW + timedelta(hours=1),
+            "competing GPU process",
+        ),
+        (_snapshot(), NOW - timedelta(seconds=1), "deadline"),
+    ],
+)
+def test_policy_rejects_each_unattended_safety_violation(
+    tmp_path: Path,
+    snapshot: HealthSnapshot,
+    deadline: datetime,
+    message: str,
+) -> None:
+    """Removing any gate would let a known unsafe run continue overnight."""
+
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=deadline,
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    with pytest.raises(SafetyPolicyError, match=message):
+        policy.check(stage="before_arm", arm="real_only")
+
+    event = json.loads((tmp_path / "health.jsonl").read_text(encoding="utf-8"))
+    assert event["status"] == "rejected"
+    assert event["violations"]
+
+
+def test_policy_records_a_passing_snapshot_and_ignores_its_own_gpu_pid(
+    tmp_path: Path,
+) -> None:
+    snapshot = _snapshot(
+        gpu_memory_used_mib=13_000,
+        gpu_processes=(GpuProcess(pid=123, process_name="python.exe"),),
+    )
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=16),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    returned = policy.check(stage="training_log", arm="real_only", step=50)
+
+    assert returned == snapshot
+    event = json.loads((tmp_path / "health.jsonl").read_text(encoding="utf-8"))
+    assert event["status"] == "passed"
+    assert event["step"] == 50
+
+
+def test_trainer_callback_rejects_non_finite_logs_before_next_step(tmp_path: Path) -> None:
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: _snapshot(),
+    )
+    callback = TrainerHealthCallback(policy=policy, arm="real_only")
+
+    with pytest.raises(SafetyPolicyError, match="non-finite.*loss"):
+        callback.on_log(
+            SimpleNamespace(),
+            SimpleNamespace(global_step=50),
+            SimpleNamespace(),
+            logs={"loss": float("nan")},
+        )
+
+
+def test_trainer_callback_checks_system_health_on_logs(tmp_path: Path) -> None:
+    observed: list[tuple[str, str, int | None]] = []
+
+    class RecordingPolicy:
+        def check(self, *, stage: str, arm: str, step: int | None = None):
+            observed.append((stage, arm, step))
+
+    callback = TrainerHealthCallback(policy=RecordingPolicy(), arm="filtered_syn")
+    callback.on_log(
+        SimpleNamespace(),
+        SimpleNamespace(global_step=100),
+        SimpleNamespace(),
+        logs={"loss": 1.25, "grad_norm": 0.5},
+    )
+
+    assert observed == [("training_log", "filtered_syn", 100)]

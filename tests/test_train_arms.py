@@ -196,7 +196,10 @@ def test_preflight_rejects_disk_below_the_reserve(job_inputs) -> None:
 def _write_checkpoint(job, step: int) -> Path:
     checkpoint = job.paths.output_dir / f"checkpoint-{step}"
     checkpoint.mkdir(parents=True, exist_ok=True)
-    (checkpoint / "trainer_state.json").write_text("{}", encoding="utf-8")
+    (checkpoint / "trainer_state.json").write_text(
+        json.dumps({"global_step": step}), encoding="utf-8"
+    )
+    (checkpoint / "model.safetensors").write_bytes(b"test checkpoint")
     return checkpoint
 
 
@@ -232,6 +235,40 @@ def test_run_inspection_distinguishes_absent_resumable_and_complete(job_inputs) 
     assert _module().inspect_run(jobs[2]) == "complete"
 
 
+@pytest.mark.parametrize(
+    ("record_checkpoint", "state_step", "write_weights", "message"),
+    [
+        ("checkpoint-500", 500, True, "expected checkpoint-10900"),
+        ("checkpoint-10900", 500, True, "global_step"),
+        ("checkpoint-10900", 10_900, False, "model weights"),
+    ],
+)
+def test_completed_run_requires_final_readable_checkpoint(
+    job_inputs,
+    record_checkpoint: str,
+    state_step: int,
+    write_weights: bool,
+    message: str,
+) -> None:
+    """A directory plus a completion record must not skip partial/corrupt work."""
+
+    job = _jobs(job_inputs)[0]
+    checkpoint = job.paths.output_dir / record_checkpoint
+    checkpoint.mkdir(parents=True)
+    (checkpoint / "trainer_state.json").write_text(
+        json.dumps({"global_step": state_step}), encoding="utf-8"
+    )
+    if write_weights:
+        (checkpoint / "model.safetensors").write_bytes(b"test checkpoint")
+    _module().atomic_write_json(
+        job.paths.output_dir / "run_record.json",
+        _complete_record(job, checkpoint=record_checkpoint),
+    )
+
+    with pytest.raises(Exception, match=message):
+        _module().inspect_run(job)
+
+
 def test_a_conflicting_completed_record_is_an_unsafe_collision(job_inputs) -> None:
     job = _jobs(job_inputs)[0]
     _write_checkpoint(job, 10_900)
@@ -241,6 +278,26 @@ def test_a_conflicting_completed_record_is_an_unsafe_collision(job_inputs) -> No
 
     with pytest.raises(Exception, match="model_checkpoint"):
         _module().inspect_run(job)
+
+
+def test_raw_run_arm_record_is_resumable_after_orchestrator_crash(job_inputs) -> None:
+    """A crash before provenance upgrade must resume, not strand valid checkpoints."""
+
+    job = _jobs(job_inputs)[0]
+    _write_checkpoint(job, 10_900)
+    raw_record = {
+        "arm": job.arm,
+        "seed": job.seed,
+        "total_steps": job.total_steps,
+        "composition": job.composition.summary(),
+        "train_loss": 1.0,
+        "eval_metrics": {"eval_map": 0.2},
+        "resumed_from": None,
+        "bf16": True,
+    }
+    _module().atomic_write_json(job.paths.output_dir / "run_record.json", raw_record)
+
+    assert _module().inspect_run(job) == "resumable"
 
 
 def test_non_finite_completed_loss_is_not_accepted(job_inputs) -> None:
@@ -330,6 +387,101 @@ def test_first_training_failure_stops_later_arms_and_is_recorded(job_inputs) -> 
     assert payload["arms"]["standard_aug"]["status"] == "pending"
 
 
+def test_resume_archives_prior_attempt_and_keeps_preflight_provenance(job_inputs) -> None:
+    job = _jobs(job_inputs)[0]
+    summary = job_inputs.runs_root.parent / "reports" / "orchestration.json"
+    prior = {
+        "started_at_utc": "2026-08-02T00:00:00+00:00",
+        "updated_at_utc": "2026-08-02T01:00:00+00:00",
+        "arms": {"real_only": {"status": "failed", "error": "interrupted"}},
+        "attempts": [],
+    }
+    _module().atomic_write_json(summary, prior)
+
+    def train_one(received_job, config):
+        _write_checkpoint(received_job, 10_900)
+        return {
+            "arm": received_job.arm,
+            "seed": received_job.seed,
+            "total_steps": received_job.total_steps,
+            "train_loss": 1.0,
+            "eval_metrics": {"eval_map": 0.2},
+            "composition": received_job.composition.summary(),
+        }
+
+    code = _module().run_jobs(
+        (job,),
+        config=job_inputs.config,
+        train_one=train_one,
+        summary_path=summary,
+        run_records_root=job_inputs.runs_root.parent / "records",
+        provenance={
+            "config_path": "configs/training_rfdetr.yaml",
+            "real_train_digest": job.composition.real_train_digest,
+            "synthetic_counts": {"real_only": 0},
+        },
+    )
+
+    assert code == 0
+    payload = json.loads(summary.read_text(encoding="utf-8"))
+    assert payload["provenance"]["config_path"] == "configs/training_rfdetr.yaml"
+    assert payload["provenance"]["real_train_digest"] == job.composition.real_train_digest
+    assert payload["attempts"][0]["arms"]["real_only"]["status"] == "failed"
+    assert payload["finished_at_utc"]
+
+
+def test_production_trainer_checks_each_arm_and_injects_health_callback(
+    job_inputs, monkeypatch
+) -> None:
+    job = _jobs(job_inputs)[0]
+    observed: list[tuple[str, str, int | None]] = []
+
+    class RecordingPolicy:
+        def check(self, *, stage: str, arm: str, step: int | None = None):
+            observed.append((stage, arm, step))
+
+    captured = {}
+
+    def fake_execute_job(received_job, config, *, callbacks):
+        captured["job"] = received_job
+        captured["callbacks"] = callbacks
+        return {"arm": received_job.arm}
+
+    monkeypatch.setattr(_module(), "execute_job", fake_execute_job)
+    train_one = _module().build_production_trainer(RecordingPolicy())
+
+    returned = train_one(job, job_inputs.config)
+
+    assert returned == {"arm": "real_only"}
+    assert observed == [("before_arm", "real_only", None)]
+    assert captured["job"] == job
+    assert len(captured["callbacks"]) == 1
+    assert captured["callbacks"][0].arm == "real_only"
+
+
+def test_orchestration_lock_rejects_a_live_owner_and_reuses_stale_metadata(
+    tmp_path: Path,
+) -> None:
+    lock_path = tmp_path / ".rfdetr.lock"
+    with _module().orchestration_lock(
+        lock_path,
+        owner={"pid": 111, "host": "test", "process_started_at": 1.0},
+    ), pytest.raises(Exception, match="already owned"), _module().orchestration_lock(
+        lock_path,
+        owner={"pid": 222, "host": "test", "process_started_at": 2.0},
+    ):
+        pass
+
+    with _module().orchestration_lock(
+        lock_path,
+        owner={"pid": 444, "host": "test", "process_started_at": 4.0},
+    ) as current:
+        assert current["pid"] == 444
+
+    assert lock_path.exists(), "metadata persists, but the OS lock must be released"
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["pid"] == 444
+
+
 def test_explicit_arm_subset_preserves_config_order(job_inputs) -> None:
     """CLI argument order must not silently reorder the approved experiment."""
 
@@ -396,3 +548,76 @@ def test_dry_run_calls_no_training_and_writes_no_summary(
     printed = json.loads(capsys.readouterr().out)
     assert printed["arms"] == list(APPROVED)
     assert printed["synthetic_counts"]["filtered_syn"] == 3_500
+
+
+def test_production_main_enforces_startup_policy_before_orchestration(
+    job_inputs, monkeypatch
+) -> None:
+    module = _module()
+    manifest = _materialize_required_inputs(job_inputs)
+    monkeypatch.setattr(module, "load_project_paths", lambda: job_inputs.paths)
+    monkeypatch.setattr(module, "load_training_config", lambda path: job_inputs.config)
+    monkeypatch.setattr(module, "build_all_arms", lambda **kwargs: job_inputs.compositions)
+    monkeypatch.setattr(
+        module,
+        "split_real_images",
+        lambda path: {
+            "train": ("train-a.png", "train-b.png"),
+            "val": ("val-a.png",),
+            "test": ("test-a.png",),
+        },
+    )
+    observed = {}
+
+    class RecordingPolicy:
+        def __init__(self, **kwargs):
+            observed["policy_kwargs"] = kwargs
+
+        def check(self, *, stage: str, arm=None, step=None):
+            observed["startup"] = (stage, arm, step)
+
+    sentinel_train = object()
+    monkeypatch.setattr(module, "UnattendedSafetyPolicy", RecordingPolicy)
+    monkeypatch.setattr(
+        module, "build_production_trainer", lambda policy: sentinel_train
+    )
+
+    def fake_run_jobs(
+        jobs, *, config, train_one, summary_path, run_records_root, provenance
+    ):
+        observed["train_one"] = train_one
+        observed["provenance"] = provenance
+        return 0
+
+    monkeypatch.setattr(module, "run_jobs", fake_run_jobs)
+    health_log = job_inputs.paths.reports / "health.jsonl"
+
+    code = module.main(
+        [
+            "--config",
+            "configs/training_rfdetr.yaml",
+            "--runs-root",
+            str(job_inputs.runs_root),
+            "--run-records-root",
+            str(job_inputs.runs_root.parent / "records"),
+            "--summary",
+            str(job_inputs.paths.reports / "orchestration.json"),
+            "--health-log",
+            str(health_log),
+            "--manifest",
+            str(manifest),
+            "--min-free-gib",
+            "0.01",
+            "--max-runtime-hours",
+            "16",
+            "--max-gpu-temperature-c",
+            "84",
+        ]
+    )
+
+    assert code == 0
+    assert observed["startup"] == ("startup", None, None)
+    assert observed["train_one"] is sentinel_train
+    assert observed["policy_kwargs"]["health_log"] == health_log
+    assert observed["policy_kwargs"]["min_free_gib"] == pytest.approx(0.01)
+    assert observed["policy_kwargs"]["max_gpu_temperature_c"] == 84

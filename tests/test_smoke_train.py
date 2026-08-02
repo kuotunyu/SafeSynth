@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from scripts import smoke_train
 
 
@@ -29,3 +31,23 @@ def test_smoke_output_is_namespaced_by_config(tmp_path: Path) -> None:
     )
 
     assert path == tmp_path / "smoke" / "training_rfdetr" / "real_only_seed_1337"
+
+
+def test_smoke_rejects_non_finite_training_evidence() -> None:
+    with pytest.raises(RuntimeError, match="train_loss"):
+        smoke_train.validate_smoke_record(
+            {"train_loss": float("nan"), "eval_metrics": {"eval_map": 0.1}}
+        )
+
+
+def test_smoke_requires_the_warm_checkpoint_to_reach_requested_step(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "checkpoint-2"
+    checkpoint.mkdir()
+    (checkpoint / "trainer_state.json").write_text(
+        '{"global_step": 2}', encoding="utf-8"
+    )
+
+    with pytest.raises(RuntimeError, match="checkpoint-4"):
+        smoke_train.validate_smoke_checkpoint(checkpoint, expected_step=4)

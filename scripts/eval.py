@@ -1165,6 +1165,47 @@ def atomic_write_json_value(path: Path, payload: Any, *, compact: bool = False) 
     temporary.replace(path)
 
 
+def read_prediction_index_strict(path: Path) -> dict[str, dict[str, Any]]:
+    if not Path(path).is_file():
+        return {}
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise EvalDriverError(f"cannot read prediction index {path}: {error}") from error
+    if not isinstance(payload, dict) or not all(
+        isinstance(key, str) and isinstance(value, dict)
+        for key, value in payload.items()
+    ):
+        raise EvalDriverError(f"prediction index {path} is not an object of objects")
+    return payload
+
+
+def validate_output_isolation(
+    args: argparse.Namespace,
+    *,
+    default_runs_root: Path,
+    default_training_config: Path,
+    default_metrics_csv: Path,
+    default_report: Path,
+) -> None:
+    nondefault_model = Path(args.runs_root) != Path(default_runs_root) or Path(
+        args.training_config
+    ) != Path(default_training_config)
+    if not nondefault_model:
+        return
+    missing: list[str] = []
+    if Path(args.metrics_csv) == Path(default_metrics_csv):
+        missing.append("--metrics-csv")
+    if Path(args.report) == Path(default_report):
+        missing.append("--report")
+    if args.predictions_root is None:
+        missing.append("--predictions-root")
+    if missing:
+        raise EvalDriverError(
+            "nondefault detector inputs require isolated " + " and ".join(missing)
+        )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     paths = load_project_paths()
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1221,9 +1262,16 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
     if load_model is None:
         load_model = default_load_model
 
+    project_paths = load_project_paths()
+    validate_output_isolation(
+        args,
+        default_runs_root=project_paths.runs,
+        default_training_config=TRAINING_CONFIG,
+        default_metrics_csv=default_detection_metrics_path(),
+        default_report=project_paths.reports / REPORT_NAME,
+    )
     config = load_evaluation_config(args.config)
     training_config = load_driver_training_config(args.training_config)
-    project_paths = load_project_paths()
 
     # The four-arm archive is still being downloaded, so every input below can
     # legitimately be absent today. Each one says which file to produce instead
@@ -1248,7 +1296,7 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
     try:
         records = load_run_records(args.run_records)
     except ColabResultsError as error:
-        print(f"Cannot read the Colab run records: {error}")
+        print(f"Cannot read the run records: {error}")
         return 2
 
     weights, problems = discover_arm_weights(args.runs_root)
@@ -1317,7 +1365,7 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
 
     results: list[ArmResult] = []
     prediction_index = (
-        read_json_mapping(args.predictions_index) or {}
+        read_prediction_index_strict(args.predictions_index)
         if args.predictions_root is not None
         else {}
     )
