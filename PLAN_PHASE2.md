@@ -139,7 +139,14 @@
     主表仍以 RT-DETRv2 為準，速度對照另立一表
   - **已完成的部分**（`55da06a`）：RF-DETR-Nano 實際載入並前向通過（`RfDetrForObjectDetection`，transformers 5.14.1）；兩個模型的 Hub 授權於量測當下重新查證皆為 `apache-2.0` 並釘住 revision；`grep -rn ultralytics` **零命中**，而且改成由 `scripts/check_forbidden_licences.py` **真的執行掃描**（原本是寫死的字串，種一個違規檔進去照樣說通過）；延遲數字含 batch／解析度／dtype 三項。
   - **實測發現，且它推翻了原本要下的結論**：把輸入從 640 降到 320（像素少 4 倍），**兩個模型都沒有變快**（RT-DETRv2 +0.1%、RF-DETR +3.5%）。batch-1 是 dispatch-bound，量到的是我們的 eager-PyTorch 推論路徑而不是架構。**所以「RF-DETR-Nano 比較快」這句話不能寫**——只量一個解析度就會理直氣壯地寫下錯的結論。
-  - **① 微調權重重測：程式已完成，數字量不出來**（2026-08-01，GPU 已空出）。
+  - **① 微調權重重測：完成**（2026-08-02，`reports/speed_baseline_probe.md` 三道閘門全綠）。
+    RT-DETRv2-R18 微調 3 類權重：**model-only 12.79 ms / 78.2 FPS、end-to-end 16.23 ms / 61.6 FPS**，
+    batch 1、640×640、fp16、**SM clock 鎖定 2520 MHz**。
+    contention 0/9 通過、clock spread **1.00**（門檻 1.15）通過。
+    **可重現的前提是鎖時脈**：`nvidia-smi -lgc 2520,2520`（管理員），量完 `-rgc`。
+    未鎖時同一支 harness 兩次跑出 11.81 ms 與 26.74 ms，見 [K-22](docs/troubleshooting.md)。
+    鎖了之後仍需重試 2 次才拿到 p95 乾淨的一輪——時脈鎖住的是頻率，不是別的行程。
+  - **① 的歷程（保留，因為它是 K-22 的證據）**：程式先完成、數字量不出來。
     `--weights` 可指向本機微調 checkpoint（demo 實際服務的 `real_only/seed_1337/checkpoint-1752`），
     處理器仍取自 Hub（Trainer 輸出目錄沒有 `preprocessor_config.json`）。
     **PROVISIONAL 標籤改成推導的**：讀 `config.id2label`，只有當所有列都預測
