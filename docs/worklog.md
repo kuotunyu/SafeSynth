@@ -8,7 +8,7 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-02 凌晨（EVAL-09 完成、DEMO-04 GIF 產出、M23 誠實降級）
+- **更新時間**：2026-08-02 上午（M20 ① 完成；GPU 被 llama-server 佔住）
 - **最後驗證 commit**：`741fd6d` feat(demo): run the video path for the first time
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19`、`M22` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
@@ -35,10 +35,12 @@ uns\<arm>\seed_1337\`
 - **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
   GPU 於本輪後段空出並用於 M20 ①（延遲重測），其餘評測與分析在 CPU 上。
 - **下一個動作（一句話、可直接動手）**：等使用者對 `instructions_for_me.md` 裡的 repo 體積問題（437 MB，其中 362.9 MB 是孤兒圖）做決定，那件事在第一次 push 之前處理才便宜。
-- **卡住的事**：**只剩 M20 ① 的最後一哩**。鎖時脈確實有效——clock check
-  從 spread 3.65 變成 **1.00（PASS）**，延遲回到 13.26 ms 那個區間。
-  但 p95 尾巴（1.40 vs 門檻 1.30）還在，那是機器有人在用。
-  需要的是「鎖住時脈 ＋ 4 分鐘沒人碰機器」，兩者同時成立。詳見 [K-22](troubleshooting.md)。
+- **卡住的事**：**M20 ② 卡在 GPU 被別的程式佔住**。使用者機器上有一個
+  `llama-server`（不是我開的）吃掉 **23.5 GB / 90%** 的 4090，訓練跑不起來。
+  程式已全部備妥：`configs/training_rfdetr.yaml` 可載入了、
+  `scripts/probe_train_speed.py` 可量實測速度。GPU 一空出來就能跑。
+  另外**時脈還鎖著**（`nvidia-smi -rgc` 要使用者執行）。
+
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
      這是預先登記的閘門確實有預測力，不是事後找的藉口
@@ -64,6 +66,34 @@ uns\<arm>\seed_1337\`
 ---
 
 ## 工作日誌
+
+### 2026-08-02（上午）— M20 ① 收掉，以及變異測試第二次咬到我
+
+- **對應規格**：DEMO-03、DEMO-05、TRAIN-01
+- **M20 ① 完成**。使用者鎖了時脈之後，三道閘門第一次同時全綠：
+  contention 0/9、clock spread **1.00**（門檻 1.15）、授權掃描 PASS。
+  RT-DETRv2-R18 微調 3 類：**model-only 12.79 ms / 78.2 FPS、
+  end-to-end 16.23 ms / 61.6 FPS**（batch 1、640、fp16、2520 MHz）。
+  **鎖了之後仍重試 2 次才拿到 p95 乾淨的一輪**——鎖住的是頻率，不是其他行程。
+- **`configs/training_rfdetr.yaml` 先前根本載入不了**。它是刻意只寫差異的檔案，
+  但缺 17 個 `run:` 鍵，`yaml.safe_load` 之後 `run_arm` 第 18 行就
+  `KeyError: 'per_device_eval_batch_size'`。
+  改法是把關係寫成資料：加 `extends:`，`src/training/config.py` 做深層合併。
+  兩個性質有測試撐著——**分節深層合併**（淺層會刪掉子檔沒提的 16 個鍵）與
+  **子檔一定贏**（`do_normalize` 必須從 base 的 `false` 翻成 `true`，
+  那是唯一一個「安靜繼承會毀掉模型而不是讓它崩潰」的設定）。
+- **[K-21b](troubleshooting.md)：被 SIGKILL 的變異 harness 把變異留在工作樹裡。**
+  我寫的測試會呼叫 `main()`，於是變異拿掉守衛之後**它真的開始訓練**，
+  harness 卡住被 10 分鐘 timeout 殺掉，`finally:` 對 SIGKILL 無效。
+  是我改同一個檔案時 grep 到那行長得不對才發現的。**這次沒有進 main。**
+  兩個獨立的錯都修了：守衛抽成獨立函式（測試再也啟動不了昂貴作業），
+  以及 commit 前**逐行看 `git diff` 而不是只看 `--stat`** 寫成強制動作。
+- **驗證**：`1516 passed, 44 skipped`；ruff clean；`verify_readme` PASS；
+  變異 10/10（config 合併）、12/12（速度斜率）。
+- **卡住**：`llama-server` 佔住 23.5 GB VRAM，M20 ② 的訓練與速度實測都跑不了。
+- **刻意不做**：沒有去關使用者的 `llama-server`——那是別人的程序，
+  不是我該動的東西。也沒有在被佔用的 GPU 上硬跑量測然後宣稱那是實測。
+
 
 ### 2026-08-02（凌晨）— EVAL-09 補上了，代價是收回兩個主張
 
@@ -174,54 +204,3 @@ uns\<arm>\seed_1337\`
   沒有任何文件引用（Phase 1 已放棄路線的診斷圖）。刪除是不可逆的，
   而且要真的瘦身得 `filter-repo`——依規矩是使用者的動作。已寫進交接文件。
 - **commit**：`71ac177`、`6f5a906`、`17e5153`、`8368cda`、`7f24640`、`fa1b327`、`38e5635`
-
-### 2026-08-01 · Phase 2 主線：四組結果出爐，合成沒有提升
-
-- **對應規格**：TRAIN-15~18、EVAL-01~18、PUB-01~05
-- **做了什麼**：回收 Colab 四組產出並稽核（M16）、合規操作點（M17）、
-  凍結 Test 主表（M18）、四類錯誤分析（M19）、README 與 CI 關卡（M23 大部分）。
-  全程未使用 GPU。
-- **驗證（實跑輸出）**：
-  - 盤點：**PASS，0 fatal / 4 warning**。四組 `real_train_digest` 全同、步數皆 10,900、
-    filtered 與 unfiltered 皆 3,500。
-  - 主表（凍結 Test 744 張，各組取自己最佳 checkpoint），primary = helmet+head：
-
-    | arm | primary AP_small | primary mAP | 真實影像曝光 |
-    |---|---:|---:|---:|
-    | real_only | **0.4511** | **0.5341** | 49.83 |
-    | standard_aug | 0.4236 | 0.4958 | 49.83 |
-    | unfiltered_syn | 0.3759 | 0.4597 | 24.91 |
-    | filtered_syn | 0.3664 | 0.4858 | 24.91 |
-
-  - **兩條獨立實作一致到 8.8e-07**（`scripts/eval.py` vs 一支獨立的 scratchpad 腳本）。
-  - 防洩漏實跑：`assert_test_untouched()` 過 744 張；四組訓練 digest 皆等於凍結 train split。
-  - `uv run pytest -q` → **1292 passed, 41 skipped**；`ruff check .` 全清。
-- **結論與分析**：
-  - **合成沒有提升。** 依鐵律如實報告，不做選擇性呈現。
-  - **但它在標註稀少時有效**：改用「真實影像曝光」而不是 optimizer 步數當 x 軸，
-    `filtered_syn` 在 1–4 輪領先最多 **+0.090 mAP**，第 4–5 輪被追過。
-    本資料集有 5,000 張標註，正是合成增強最無用武之地的區間。
-    **注意**：對齊曝光就對不齊算力，每一列都是「相同標註、更多計算」。
-  - **過濾的價值在合規操作點上最清楚**：各組各選各的門檻後，
-    **`unfiltered_syn` 在任何會偵測到東西的門檻上都達不到 0.80 精確度**，
-    `filtered_syn` 可以（0.8076）。過濾決定了能不能部署。
-  - **針對性失敗，而且比無效更糟**：`small_object` 是**移動最不利**的切片（−0.0572）。
-  - **退步是不對稱的**：修好 73 個漏檢、新製造 1,304 個。
-- **決策**：無新 ADR。ADR-011 的預測（H4 未過 ⇒ 可能無提升）得到證實。
-- **踩到的坑**：
-  - [K-20](troubleshooting.md)：`run_record.json` 的 `eval_metrics` 與任何 checkpoint 都對不上。
-    兩趟各 200 秒的 CPU 推論就把「權重壞了」和「記錄壞了」分開——處置完全不同。
-  - 打包程式漏抓全部四組的 `trainer_state.json`，**完全沒報錯**：
-    HF 寫在 `checkpoint-N/` 裡，glob 只掃 `seed_*/`，`is_file()` 把「找不到」變成「跳過」。
-    這段邏輯當初寫在 notebook 字串裡，測不到。已移進 `src/training/ingest.py`。
-  - `compliance.score_threshold: 0.50` 這個佔位值對本模型是災難（最高分 0.2495）。
-  - `select_operating_point` 會選出「從不觸發」的退化解（precision 1.0、recall 0.0）。
-  - bare-head recall 在門檻 0 上四組差距只有 0.0023，**沒有鑑別力**；
-    改在操作點上讀，差距變成 0.54。已寫成 EVAL-05b。
-- **刻意不做**：
-  - **M21 補 seed 暫緩**。PLAN 的前置判斷寫得很清楚：若 Filtered 組沒有提升，
-    補 seed 不會改變結論。額度留給錯誤分析與後續的 real-fraction 消融。
-  - bootstrap 用 0 跑（因此這一輪不滿足 EVAL-09），因為 1000 次重抽 × 每次一輪 COCOeval
-    在 CPU 上是好幾小時，而它不改變方向性結論。這件事報告有寫。
-- **commit**：`7f2f0b3`、`bc44f3f`、`735111a`、`8c8a240`
-

@@ -374,3 +374,55 @@
   supervised labeler 的審查頁是**凍結證據，路徑與 SHA 都釘死**，已回退該部分。
 - **驗證**：`uv run pytest -q` → **643 passed / 25 skipped**；`uv run ruff check .` → 全綠
 - **commit**：見下一筆
+
+---
+
+### 2026-08-01 · Phase 2 主線：四組結果出爐，合成沒有提升
+
+- **對應規格**：TRAIN-15~18、EVAL-01~18、PUB-01~05
+- **做了什麼**：回收 Colab 四組產出並稽核（M16）、合規操作點（M17）、
+  凍結 Test 主表（M18）、四類錯誤分析（M19）、README 與 CI 關卡（M23 大部分）。
+  全程未使用 GPU。
+- **驗證（實跑輸出）**：
+  - 盤點：**PASS，0 fatal / 4 warning**。四組 `real_train_digest` 全同、步數皆 10,900、
+    filtered 與 unfiltered 皆 3,500。
+  - 主表（凍結 Test 744 張，各組取自己最佳 checkpoint），primary = helmet+head：
+
+    | arm | primary AP_small | primary mAP | 真實影像曝光 |
+    |---|---:|---:|---:|
+    | real_only | **0.4511** | **0.5341** | 49.83 |
+    | standard_aug | 0.4236 | 0.4958 | 49.83 |
+    | unfiltered_syn | 0.3759 | 0.4597 | 24.91 |
+    | filtered_syn | 0.3664 | 0.4858 | 24.91 |
+
+  - **兩條獨立實作一致到 8.8e-07**（`scripts/eval.py` vs 一支獨立的 scratchpad 腳本）。
+  - 防洩漏實跑：`assert_test_untouched()` 過 744 張；四組訓練 digest 皆等於凍結 train split。
+  - `uv run pytest -q` → **1292 passed, 41 skipped**；`ruff check .` 全清。
+- **結論與分析**：
+  - **合成沒有提升。** 依鐵律如實報告，不做選擇性呈現。
+  - **但它在標註稀少時有效**：改用「真實影像曝光」而不是 optimizer 步數當 x 軸，
+    `filtered_syn` 在 1–4 輪領先最多 **+0.090 mAP**，第 4–5 輪被追過。
+    本資料集有 5,000 張標註，正是合成增強最無用武之地的區間。
+    **注意**：對齊曝光就對不齊算力，每一列都是「相同標註、更多計算」。
+  - **過濾的價值在合規操作點上最清楚**：各組各選各的門檻後，
+    **`unfiltered_syn` 在任何會偵測到東西的門檻上都達不到 0.80 精確度**，
+    `filtered_syn` 可以（0.8076）。過濾決定了能不能部署。
+  - **針對性失敗，而且比無效更糟**：`small_object` 是**移動最不利**的切片（−0.0572）。
+  - **退步是不對稱的**：修好 73 個漏檢、新製造 1,304 個。
+- **決策**：無新 ADR。ADR-011 的預測（H4 未過 ⇒ 可能無提升）得到證實。
+- **踩到的坑**：
+  - [K-20](troubleshooting.md)：`run_record.json` 的 `eval_metrics` 與任何 checkpoint 都對不上。
+    兩趟各 200 秒的 CPU 推論就把「權重壞了」和「記錄壞了」分開——處置完全不同。
+  - 打包程式漏抓全部四組的 `trainer_state.json`，**完全沒報錯**：
+    HF 寫在 `checkpoint-N/` 裡，glob 只掃 `seed_*/`，`is_file()` 把「找不到」變成「跳過」。
+    這段邏輯當初寫在 notebook 字串裡，測不到。已移進 `src/training/ingest.py`。
+  - `compliance.score_threshold: 0.50` 這個佔位值對本模型是災難（最高分 0.2495）。
+  - `select_operating_point` 會選出「從不觸發」的退化解（precision 1.0、recall 0.0）。
+  - bare-head recall 在門檻 0 上四組差距只有 0.0023，**沒有鑑別力**；
+    改在操作點上讀，差距變成 0.54。已寫成 EVAL-05b。
+- **刻意不做**：
+  - **M21 補 seed 暫緩**。PLAN 的前置判斷寫得很清楚：若 Filtered 組沒有提升，
+    補 seed 不會改變結論。額度留給錯誤分析與後續的 real-fraction 消融。
+  - bootstrap 用 0 跑（因此這一輪不滿足 EVAL-09），因為 1000 次重抽 × 每次一輪 COCOeval
+    在 CPU 上是好幾小時，而它不改變方向性結論。這件事報告有寫。
+- **commit**：`7f2f0b3`、`bc44f3f`、`735111a`、`8c8a240`
