@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from scripts import eval as eval_driver
 from scripts.eval import (
     CheckpointSource,
     EvalDriverError,
@@ -47,6 +49,79 @@ def real_digest(frozen_split):
     from src.training.arms import digest_names
 
     return digest_names(frozen_split["train"])
+
+
+def test_eval_resolves_the_inherited_rf_training_config() -> None:
+    """Plain YAML loading drops inherited eval batch settings and fails after training."""
+
+    resolved = eval_driver.load_driver_training_config(
+        Path("configs/training_rfdetr.yaml")
+    )
+
+    assert resolved["run"]["per_device_eval_batch_size"] == 8
+    assert resolved["model"]["checkpoint"] == "Roboflow/rf-detr-nano"
+
+
+def test_evaluate_arm_persists_the_same_detections_it_scores(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Removing the write must fail without rerunning expensive Test inference."""
+
+    checkpoint = tmp_path / "checkpoint-10900"
+    checkpoint.mkdir()
+    weights = eval_driver.ArmWeights(
+        arm="real_only",
+        seed=1337,
+        seed_dir=tmp_path,
+        choice=eval_driver.CheckpointChoice(
+            checkpoint, eval_driver.CheckpointSource.HIGHEST_STEP
+        ),
+    )
+    expected = [
+        {
+            "image_id": 7,
+            "category_id": 1,
+            "bbox": [10.0, 20.0, 30.0, 40.0],
+            "score": 0.75,
+        }
+    ]
+    monkeypatch.setattr(eval_driver, "run_inference", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        eval_driver,
+        "detections_for_evaluation",
+        lambda *args, **kwargs: expected,
+    )
+    metrics = SimpleNamespace(n_images=1, n_detections=1)
+    monkeypatch.setattr(
+        eval_driver, "evaluate_detection_metrics", lambda *args, **kwargs: metrics
+    )
+    monkeypatch.setattr(eval_driver, "detection_metric_rows", lambda *args, **kwargs: ())
+    destination = tmp_path / "predictions" / "real_only_test_seed1337.json"
+
+    eval_driver.evaluate_arm(
+        weights,
+        samples=(SimpleNamespace(image_id=7, width=100, height=100),),
+        ground_truth={},
+        slices={},
+        hard_negative_ids=(),
+        config={},
+        load_model=lambda *args, **kwargs: (
+            object(),
+            SimpleNamespace(size={"height": 100, "width": 100}),
+        ),
+        processor_source="Roboflow/rf-detr-nano",
+        device="cpu",
+        dtype_name="float32",
+        batch_size=1,
+        bootstrap_resamples=0,
+        bootstrap_workers=1,
+        bootstrap_seed=42,
+        exposures=50.0,
+        total_steps=10_900,
+        predictions_path=destination,
+    )
+
+    assert json.loads(destination.read_text(encoding="utf-8")) == expected
 
 
 # --------------------------------------------------------------------------

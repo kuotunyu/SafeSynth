@@ -41,7 +41,6 @@ from enum import StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-import yaml
 from PIL import Image
 
 from scripts.profile_test_set import load_test_samples
@@ -76,6 +75,7 @@ from src.training.arms import (
     equal_step_budget,
     split_real_images,
 )
+from src.training.config import load_training_config as load_resolved_training_config
 from src.training.data import CLASS_NAMES, Sample
 from src.training.ingest import ColabResultsError, latest_checkpoint, load_run_records
 from src.training.metrics import build_coco_ground_truth, predictions_to_coco
@@ -802,6 +802,7 @@ def evaluate_arm(
     bootstrap_seed: int,
     exposures: float | None,
     total_steps: int | None,
+    predictions_path: Path | None = None,
 ) -> ArmResult:
     """Score one arm on the frozen Test split, in annotation coordinates.
 
@@ -840,6 +841,8 @@ def evaluate_arm(
         },
         config=config,
     )
+    if predictions_path is not None:
+        atomic_write_json_value(predictions_path, detections, compact=True)
 
     metrics = evaluate_detection_metrics(ground_truth, detections, config=config)
     rows = detection_metric_rows(
@@ -1141,19 +1144,38 @@ def render_main_table(
 # ---------------------------------------------------------------------------
 
 
-def load_training_config(path: Path = TRAINING_CONFIG) -> dict[str, Any]:
-    with Path(path).open("r", encoding="utf-8") as stream:
-        payload = yaml.safe_load(stream)
-    if not isinstance(payload, dict):
-        raise EvalDriverError(f"Expected a mapping in {path}")
-    return payload
+def load_driver_training_config(path: Path = TRAINING_CONFIG) -> dict[str, Any]:
+    """Resolve child configs; plain YAML loading silently drops inherited run keys."""
+
+    return load_resolved_training_config(path)
+
+
+def atomic_write_json_value(path: Path, payload: Any, *, compact: bool = False) -> None:
+    """Persist predictions/index evidence without leaving a partial JSON file."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    text = (
+        json.dumps(payload, separators=(",", ":"))
+        if compact
+        else json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    )
+    temporary.write_text(text, encoding="utf-8", newline="\n")
+    temporary.replace(path)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     paths = load_project_paths()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs-root", type=Path, default=paths.runs)
-    parser.add_argument("--colab-results", type=Path, default=COLAB_RESULTS)
+    parser.add_argument(
+        "--run-records",
+        "--colab-results",
+        dest="run_records",
+        type=Path,
+        default=COLAB_RESULTS,
+    )
     parser.add_argument("--manifest", type=Path, default=paths.splits / "split_manifest.json")
     parser.add_argument("--annotations", type=Path, default=paths.interim / "coco_all.json")
     parser.add_argument("--images-root", type=Path, default=paths.hardhat_raw / "images")
@@ -1161,6 +1183,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--training-config", type=Path, default=TRAINING_CONFIG)
     parser.add_argument("--metrics-csv", type=Path, default=default_detection_metrics_path())
     parser.add_argument("--report", type=Path, default=paths.reports / REPORT_NAME)
+    parser.add_argument("--predictions-root", type=Path, default=None)
+    parser.add_argument(
+        "--predictions-index",
+        type=Path,
+        default=PROJECT_ROOT / "results" / "rfdetr_predictions_index.json",
+    )
     parser.add_argument("--device", default=None, help="cuda / cpu (default: auto-detect)")
     parser.add_argument("--dtype", default=DEFAULT_DTYPE)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -1194,7 +1222,7 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
         load_model = default_load_model
 
     config = load_evaluation_config(args.config)
-    training_config = load_training_config(args.training_config)
+    training_config = load_driver_training_config(args.training_config)
     project_paths = load_project_paths()
 
     # The four-arm archive is still being downloaded, so every input below can
@@ -1210,15 +1238,15 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
             print(f"{args.manifest} declares no {name!r} split")
             return 2
 
-    if not args.colab_results.is_dir():
+    if not args.run_records.is_dir():
         print(
-            f"{args.colab_results} does not exist, so no arm's training composition can "
-            f"be read and EVAL-14 cannot be checked. Run "
-            f"`uv run python -m scripts.audit_colab_results` first."
+            f"{args.run_records} does not exist, so no arm's training composition can "
+            f"be read and EVAL-14 cannot be checked. Produce or mirror run records "
+            f"before evaluation."
         )
         return 2
     try:
-        records = load_run_records(args.colab_results)
+        records = load_run_records(args.run_records)
     except ColabResultsError as error:
         print(f"Cannot read the Colab run records: {error}")
         return 2
@@ -1288,11 +1316,20 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
     dtype_name = resolve_dtype_name(str(args.dtype), device)
 
     results: list[ArmResult] = []
+    prediction_index = (
+        read_json_mapping(args.predictions_index) or {}
+        if args.predictions_root is not None
+        else {}
+    )
     for item in weights:
         entry = plan.get(item.arm, {})
         print(f"scoring {item.arm} seed {item.seed} from {item.choice.path}")
-        results.append(
-            evaluate_arm(
+        predictions_path = (
+            args.predictions_root / f"{item.arm}_{SPLIT_NAME}_seed{item.seed}.json"
+            if args.predictions_root is not None
+            else None
+        )
+        result = evaluate_arm(
                 item,
                 samples=samples,
                 ground_truth=ground_truth,
@@ -1309,8 +1346,25 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
                 bootstrap_seed=project_paths.seed,
                 exposures=entry.get("real_image_exposures"),
                 total_steps=records.get(item.arm, {}).get("total_steps"),
+                predictions_path=predictions_path,
             )
-        )
+        results.append(result)
+        if predictions_path is not None:
+            prediction_index[f"{item.arm}/{SPLIT_NAME}/seed_{item.seed}"] = {
+                "arm": item.arm,
+                "split": SPLIT_NAME,
+                "seed": item.seed,
+                "checkpoint": result.checkpoint.name,
+                "n_images": result.metrics.n_images,
+                "n_detections": result.metrics.n_detections,
+                "path": predictions_path.as_posix(),
+                "coordinates": "original per-image annotation space (DATA-25)",
+                "score_threshold": MAP_SCORE_THRESHOLD,
+            }
+
+    if args.predictions_root is not None:
+        atomic_write_json_value(args.predictions_index, prediction_index)
+        print(f"wrote {args.predictions_index}")
 
     rows = [row for result in results for row in result.rows]
     csv_path = write_detection_metrics_csv(rows, args.metrics_csv)

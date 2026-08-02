@@ -74,10 +74,12 @@ def resolve_checkpoint(seed_dir: Path) -> Path:
     return resolved if resolved.is_dir() else last
 
 
-def predict_split(checkpoint: Path, samples) -> list[dict]:
+def predict_split(
+    checkpoint: Path, samples, *, processor_source: str = PROCESSOR_ID
+) -> list[dict]:
     from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
-    processor = AutoImageProcessor.from_pretrained(PROCESSOR_ID)
+    processor = AutoImageProcessor.from_pretrained(processor_source)
     model = AutoModelForObjectDetection.from_pretrained(
         str(checkpoint), dtype=torch.float32
     ).eval()
@@ -112,6 +114,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--limit", type=int, default=None, help="debug: fewer images")
     parser.add_argument("--out-root", type=Path, default=None)
+    parser.add_argument("--runs-root", type=Path, default=None)
+    parser.add_argument("--processor", default=PROCESSOR_ID)
+    parser.add_argument("--index", type=Path, default=INDEX_PATH)
     return parser.parse_args(argv)
 
 
@@ -119,17 +124,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     paths = load_project_paths()
     out_root = args.out_root or (paths.runs / "predictions")
+    runs_root = args.runs_root or paths.runs
 
     index: dict[str, dict] = {}
-    if INDEX_PATH.is_file():
-        index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    if args.index.is_file():
+        index = json.loads(args.index.read_text(encoding="utf-8"))
 
     failures = []
     for split in args.splits:
         samples = split_samples(paths, split, args.limit)
         print(f"\n=== {split}: {len(samples)} images")
         for arm in args.arms:
-            seed_dir = paths.runs / arm / f"seed_{args.seed}"
+            seed_dir = runs_root / arm / f"seed_{args.seed}"
             try:
                 checkpoint = resolve_checkpoint(seed_dir)
             except PredictionError as error:
@@ -138,7 +144,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
 
             started = time.perf_counter()
-            records = predict_split(checkpoint, samples)
+            records = predict_split(
+                checkpoint, samples, processor_source=args.processor
+            )
             destination = write_predictions(
                 records, out_root / f"{arm}_{split}_seed{args.seed}.json"
             )
@@ -159,13 +167,13 @@ def main(argv: list[str] | None = None) -> int:
                 f"-> {destination.name}  ({elapsed:.0f}s)"
             )
 
-    INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INDEX_PATH.write_text(
+    args.index.parent.mkdir(parents=True, exist_ok=True)
+    args.index.write_text(
         json.dumps(index, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
         newline="\n",
     )
-    print(f"\nwrote {INDEX_PATH}")
+    print(f"\nwrote {args.index}")
     if failures:
         print("FAILED:", failures)
         return 1
