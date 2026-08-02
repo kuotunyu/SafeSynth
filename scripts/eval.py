@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -1161,7 +1162,10 @@ def atomic_write_json_value(path: Path, payload: Any, *, compact: bool = False) 
         if compact
         else json.dumps(payload, indent=2, sort_keys=True) + "\n"
     )
-    temporary.write_text(text, encoding="utf-8", newline="\n")
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(text)
+        stream.flush()
+        os.fsync(stream.fileno())
     temporary.replace(path)
 
 
@@ -1187,19 +1191,26 @@ def validate_output_isolation(
     default_training_config: Path,
     default_metrics_csv: Path,
     default_report: Path,
+    default_predictions_root: Path,
+    default_predictions_index: Path,
 ) -> None:
-    nondefault_model = Path(args.runs_root) != Path(default_runs_root) or Path(
-        args.training_config
-    ) != Path(default_training_config)
+    canonical = lambda path: Path(path).resolve(strict=False)
+    nondefault_model = canonical(args.runs_root) != canonical(
+        default_runs_root
+    ) or canonical(args.training_config) != canonical(default_training_config)
     if not nondefault_model:
         return
     missing: list[str] = []
-    if Path(args.metrics_csv) == Path(default_metrics_csv):
+    if canonical(args.metrics_csv) == canonical(default_metrics_csv):
         missing.append("--metrics-csv")
-    if Path(args.report) == Path(default_report):
+    if canonical(args.report) == canonical(default_report):
         missing.append("--report")
-    if args.predictions_root is None:
+    if args.predictions_root is None or canonical(args.predictions_root) == canonical(
+        default_predictions_root
+    ):
         missing.append("--predictions-root")
+    if canonical(args.predictions_index) == canonical(default_predictions_index):
+        missing.append("--predictions-index")
     if missing:
         raise EvalDriverError(
             "nondefault detector inputs require isolated " + " and ".join(missing)
@@ -1269,6 +1280,8 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
         default_training_config=TRAINING_CONFIG,
         default_metrics_csv=default_detection_metrics_path(),
         default_report=project_paths.reports / REPORT_NAME,
+        default_predictions_root=project_paths.runs / "predictions",
+        default_predictions_index=PROJECT_ROOT / "results" / "predictions_index.json",
     )
     config = load_evaluation_config(args.config)
     training_config = load_driver_training_config(args.training_config)

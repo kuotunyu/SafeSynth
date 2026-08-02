@@ -48,6 +48,17 @@ class RunPaths:
     output_dir: Path
 
 
+def write_run_record_atomic(path: Path, record: Mapping[str, Any]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(record, indent=2, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(path)
+
+
 def load_model_and_processor(checkpoint: str, *, dtype=torch.float32):
     """Auto classes only. ADR-014: the named RTDetrV2ImageProcessor does not exist."""
 
@@ -214,10 +225,5 @@ def run_arm(
         "composition": composition.summary(),
         "bf16": bool(use_bf16),
     }
-    paths.output_dir.mkdir(parents=True, exist_ok=True)
-    (paths.output_dir / "run_record.json").write_text(
-        json.dumps(record, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    write_run_record_atomic(paths.output_dir / "run_record.json", record)
     return record

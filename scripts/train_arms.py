@@ -16,6 +16,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import torch
+from safetensors import safe_open
+
 from src.data.paths import load_project_paths
 from src.training.arms import ArmComposition, build_all_arms, split_real_images
 from src.training.config import load_training_config
@@ -140,11 +143,10 @@ def atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
     temporary.replace(path)
 
 
@@ -323,16 +325,69 @@ def _validate_final_checkpoint(checkpoint: Path, *, expected_step: int) -> None:
             f"expected {expected_step}"
         )
 
-    weight_paths = (
-        checkpoint / "model.safetensors",
-        checkpoint / "model.safetensors.index.json",
-        checkpoint / "pytorch_model.bin",
-        checkpoint / "pytorch_model.bin.index.json",
-    )
-    if not any(path.is_file() and path.stat().st_size > 0 for path in weight_paths):
+    safetensors_path = checkpoint / "model.safetensors"
+    safetensors_index = checkpoint / "model.safetensors.index.json"
+    bin_path = checkpoint / "pytorch_model.bin"
+    bin_index = checkpoint / "pytorch_model.bin.index.json"
+    if safetensors_path.is_file():
+        _validate_safetensors_file(safetensors_path)
+    elif safetensors_index.is_file():
+        _validate_sharded_weights(safetensors_index, safetensors=True)
+    elif bin_path.is_file():
+        _validate_torch_weights_file(bin_path)
+    elif bin_index.is_file():
+        _validate_sharded_weights(bin_index, safetensors=False)
+    else:
         raise TrainingOrchestrationError(
             f"completed checkpoint {checkpoint} has no readable model weights"
         )
+
+
+def _validate_safetensors_file(path: Path) -> None:
+    try:
+        with safe_open(str(path), framework="pt", device="cpu") as stream:
+            keys = tuple(stream.keys())
+            if not keys:
+                raise TrainingOrchestrationError(f"safetensors file {path} is empty")
+            for key in keys:
+                stream.get_slice(key)
+    except TrainingOrchestrationError:
+        raise
+    except Exception as error:
+        raise TrainingOrchestrationError(
+            f"cannot read safetensors file {path}: {type(error).__name__}: {error}"
+        ) from error
+
+
+def _validate_torch_weights_file(path: Path) -> None:
+    try:
+        payload = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    except Exception as error:
+        raise TrainingOrchestrationError(
+            f"cannot read PyTorch weights {path}: {type(error).__name__}: {error}"
+        ) from error
+    if not isinstance(payload, Mapping) or not payload:
+        raise TrainingOrchestrationError(f"PyTorch weights {path} are empty")
+
+
+def _validate_sharded_weights(index_path: Path, *, safetensors: bool) -> None:
+    index = _read_record(index_path)
+    weight_map = index.get("weight_map")
+    if not isinstance(weight_map, Mapping) or not weight_map:
+        raise TrainingOrchestrationError(
+            f"sharded weight index {index_path} has no weight_map"
+        )
+    shards = sorted({str(name) for name in weight_map.values()})
+    for shard_name in shards:
+        shard = index_path.parent / shard_name
+        if not shard.is_file() or shard.stat().st_size <= 0:
+            raise TrainingOrchestrationError(
+                f"sharded weight index {index_path} names missing shard {shard}"
+            )
+        if safetensors:
+            _validate_safetensors_file(shard)
+        else:
+            _validate_torch_weights_file(shard)
 
 
 def inspect_run(job: ArmJob) -> str:

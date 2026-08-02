@@ -100,6 +100,9 @@ MANDATORY_TRAINING_ARGUMENTS = {
     # Upstream clip_max_norm is 0.1, not Trainer's default 1.0. The usual NaN
     # loss reports trace back to too-high LR or too-loose clipping.
     "max_grad_norm": 0.1,
+    # Surface raw NaN/Inf losses to Trainer callbacks instead of replacing them
+    # with the previous finite average, which would defeat unattended health gates.
+    "logging_nan_inf_filter": False,
 }
 
 
@@ -139,6 +142,7 @@ def build_training_arguments(
         remove_unused_columns=MANDATORY_TRAINING_ARGUMENTS["remove_unused_columns"],
         eval_do_concat_batches=MANDATORY_TRAINING_ARGUMENTS["eval_do_concat_batches"],
         logging_steps=50,
+        logging_nan_inf_filter=MANDATORY_TRAINING_ARGUMENTS["logging_nan_inf_filter"],
         report_to=[],
     )
     assert_mandatory_arguments(arguments)

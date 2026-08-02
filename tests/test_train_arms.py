@@ -10,6 +10,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import torch
+from safetensors.torch import save_file
 
 from src.training.arms import ArmComposition, digest_names
 
@@ -18,6 +20,20 @@ APPROVED = ("real_only", "filtered_syn", "standard_aug", "unfiltered_syn")
 
 def _module():
     return importlib.import_module("scripts.train_arms")
+
+
+def test_orchestration_json_is_flushed_before_atomic_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fsync_calls: list[int] = []
+    module = _module()
+    monkeypatch.setattr(
+        module.os, "fsync", lambda descriptor: fsync_calls.append(descriptor)
+    )
+
+    module.atomic_write_json(tmp_path / "orchestration.json", {"status": "running"})
+
+    assert fsync_calls
 
 
 def _composition(arm: str, *, synthetic: tuple[str, ...] = ()) -> ArmComposition:
@@ -199,7 +215,7 @@ def _write_checkpoint(job, step: int) -> Path:
     (checkpoint / "trainer_state.json").write_text(
         json.dumps({"global_step": step}), encoding="utf-8"
     )
-    (checkpoint / "model.safetensors").write_bytes(b"test checkpoint")
+    save_file({"weight": torch.tensor([1.0])}, checkpoint / "model.safetensors")
     return checkpoint
 
 
@@ -266,6 +282,34 @@ def test_completed_run_requires_final_readable_checkpoint(
     )
 
     with pytest.raises(Exception, match=message):
+        _module().inspect_run(job)
+
+
+def test_completed_run_rejects_corrupt_nonempty_safetensors(job_inputs) -> None:
+    job = _jobs(job_inputs)[0]
+    checkpoint = _write_checkpoint(job, 10_900)
+    (checkpoint / "model.safetensors").write_bytes(b"not a safetensors file")
+    _module().atomic_write_json(
+        job.paths.output_dir / "run_record.json", _complete_record(job)
+    )
+
+    with pytest.raises(Exception, match="safetensors"):
+        _module().inspect_run(job)
+
+
+def test_completed_run_rejects_a_sharded_index_with_missing_shards(job_inputs) -> None:
+    job = _jobs(job_inputs)[0]
+    checkpoint = _write_checkpoint(job, 10_900)
+    (checkpoint / "model.safetensors").unlink()
+    (checkpoint / "model.safetensors.index.json").write_text(
+        json.dumps({"weight_map": {"weight": "missing-00001-of-00002.safetensors"}}),
+        encoding="utf-8",
+    )
+    _module().atomic_write_json(
+        job.paths.output_dir / "run_record.json", _complete_record(job)
+    )
+
+    with pytest.raises(Exception, match="missing shard"):
         _module().inspect_run(job)
 
 

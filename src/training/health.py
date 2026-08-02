@@ -8,7 +8,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -114,10 +114,34 @@ def read_health_snapshot(output_root: Path) -> HealthSnapshot:
     )
 
 
-def _looks_like_competing_compute(process_name: str) -> bool:
-    lowered = Path(process_name).name.lower()
-    markers = ("python", "ollama", "comfy", "blender", "cuda", "train")
-    return any(marker in lowered for marker in markers)
+_WINDOWS_DESKTOP_GPU_CLIENTS = {
+    "[insufficient permissions]",
+    "applicationframehost.exe",
+    "armourydevice.exe",
+    "asus_framework.exe",
+    "chatgpt.exe",
+    "chrome.exe",
+    "crossdeviceresume.exe",
+    "explorer.exe",
+    "firefox.exe",
+    "lockapp.exe",
+    "msedgewebview2.exe",
+    "nvidia share.exe",
+    "phoneexperiencehost.exe",
+    "searchhost.exe",
+    "shellhost.exe",
+    "shellexperiencehost.exe",
+    "startmenuexperiencehost.exe",
+    "steamwebhelper.exe",
+    "systemsettings.exe",
+    "texinputhost.exe",
+    "textinputhost.exe",
+}
+
+
+def _is_allowlisted_desktop_gpu_client(process_name: str) -> bool:
+    lowered = process_name.strip().replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return lowered in _WINDOWS_DESKTOP_GPU_CLIENTS
 
 
 @dataclass
@@ -127,7 +151,9 @@ class UnattendedSafetyPolicy:
     deadline_utc: datetime
     min_free_gib: float = 50.0
     max_gpu_temperature_c: float = 85.0
-    own_pid: int = os.getpid()
+    expected_gpu_name: str = "NVIDIA GeForce RTX 4090"
+    min_gpu_memory_total_mib: int = 23_000
+    own_pid: int = field(default_factory=os.getpid)
     snapshot_reader: Callable[[Path], HealthSnapshot] = read_health_snapshot
 
     def _append_event(self, event: Mapping[str, Any]) -> None:
@@ -146,11 +172,24 @@ class UnattendedSafetyPolicy:
             process
             for process in snapshot.gpu_processes
             if process.pid != self.own_pid
-            and _looks_like_competing_compute(process.process_name)
+            and not _is_allowlisted_desktop_gpu_client(process.process_name)
         )
         violations: list[str] = []
         if not snapshot.cuda_available:
             violations.append("CUDA is unavailable")
+        elif self.expected_gpu_name not in snapshot.gpu_name:
+            violations.append(
+                f"expected RTX 4090 GPU ({self.expected_gpu_name!r}), "
+                f"found {snapshot.gpu_name!r}"
+            )
+        if (
+            snapshot.cuda_available
+            and snapshot.gpu_memory_total_mib < self.min_gpu_memory_total_mib
+        ):
+            violations.append(
+                f"GPU VRAM {snapshot.gpu_memory_total_mib} MiB is below "
+                f"{self.min_gpu_memory_total_mib} MiB"
+            )
         if snapshot.disk_free_gib < self.min_free_gib:
             violations.append(
                 f"disk free {snapshot.disk_free_gib:.1f} GiB is below "

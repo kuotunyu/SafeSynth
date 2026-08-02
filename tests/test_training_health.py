@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.training.config import load_training_config
 from src.training.health import (
     GpuProcess,
     HealthSnapshot,
@@ -16,6 +17,7 @@ from src.training.health import (
     TrainerHealthCallback,
     UnattendedSafetyPolicy,
 )
+from src.training.trainer import build_training_arguments
 
 NOW = datetime(2026, 8, 2, 14, 0, tzinfo=UTC)
 
@@ -39,6 +41,8 @@ def _snapshot(**overrides) -> HealthSnapshot:
     ("snapshot", "deadline", "message"),
     [
         (_snapshot(cuda_available=False), NOW + timedelta(hours=1), "CUDA"),
+        (_snapshot(gpu_name="NVIDIA T4"), NOW + timedelta(hours=1), "RTX 4090"),
+        (_snapshot(gpu_memory_total_mib=16_384), NOW + timedelta(hours=1), "VRAM"),
         (_snapshot(disk_free_gib=49.9), NOW + timedelta(hours=1), "disk"),
         (_snapshot(gpu_temperature_c=86.0), NOW + timedelta(hours=1), "temperature"),
         (
@@ -102,6 +106,47 @@ def test_policy_records_a_passing_snapshot_and_ignores_its_own_gpu_pid(
     assert event["step"] == 50
 
 
+def test_policy_rejects_unknown_foreign_compute_even_without_python_in_its_name(
+    tmp_path: Path,
+) -> None:
+    snapshot = _snapshot(
+        gpu_processes=(GpuProcess(pid=999, process_name="render.exe"),)
+    )
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    with pytest.raises(SafetyPolicyError, match="render.exe"):
+        policy.check(stage="training_log", arm="real_only", step=50)
+
+
+def test_policy_allows_known_windows_desktop_gpu_clients(tmp_path: Path) -> None:
+    snapshot = _snapshot(
+        gpu_processes=(
+            GpuProcess(pid=999, process_name=r"C:\Windows\explorer.exe"),
+            GpuProcess(pid=998, process_name=r"C:\Program Files\Google\Chrome\chrome.exe"),
+            GpuProcess(pid=997, process_name=r"C:\Windows\System32\ShellHost.exe"),
+        )
+    )
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    assert policy.check(stage="training_log", arm="real_only", step=50) == snapshot
+
+
 def test_trainer_callback_rejects_non_finite_logs_before_next_step(tmp_path: Path) -> None:
     policy = UnattendedSafetyPolicy(
         output_root=tmp_path,
@@ -139,3 +184,20 @@ def test_trainer_callback_checks_system_health_on_logs(tmp_path: Path) -> None:
     )
 
     assert observed == [("training_log", "filtered_syn", 100)]
+
+
+def test_training_arguments_expose_nan_and_inf_to_the_health_callback(
+    tmp_path: Path,
+) -> None:
+    config = load_training_config("configs/training_rfdetr.yaml")
+
+    arguments = build_training_arguments(
+        output_dir=str(tmp_path),
+        config=config,
+        total_steps=4,
+        seed=1337,
+        use_bf16=True,
+        dataloader_num_workers=0,
+    )
+
+    assert arguments.logging_nan_inf_filter is False

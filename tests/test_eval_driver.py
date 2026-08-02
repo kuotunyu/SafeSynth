@@ -289,7 +289,20 @@ def test_a_planted_overlap_raises_rather_than_reporting_pass(
             real_train_names=frozen_split["train"],
             test_names=poisoned,
             arms=ARMS,
-        )
+)
+
+
+def test_evaluation_json_is_flushed_before_atomic_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fsync_calls: list[int] = []
+    monkeypatch.setattr(
+        eval_driver.os, "fsync", lambda descriptor: fsync_calls.append(descriptor)
+    )
+
+    eval_driver.atomic_write_json_value(tmp_path / "evaluation.json", {"ok": True})
+
+    assert fsync_calls
 
 
 def test_a_digest_that_does_not_match_the_frozen_split_is_refused(
@@ -464,6 +477,50 @@ def test_rf_inputs_require_explicit_isolated_evaluation_outputs() -> None:
             default_training_config=eval_driver.TRAINING_CONFIG,
             default_metrics_csv=Path(args.metrics_csv),
             default_report=Path(args.report),
+            default_predictions_root=Path("D:/runs/predictions"),
+            default_predictions_index=Path("results/predictions_index.json"),
+        )
+
+
+def test_rf_inputs_reject_aliases_of_primary_evaluation_outputs(
+    tmp_path: Path,
+) -> None:
+    primary_metrics = tmp_path / "metrics.csv"
+    primary_report = tmp_path / "report.md"
+    primary_predictions = tmp_path / "predictions"
+    primary_index = tmp_path / "predictions_index.json"
+    alias = lambda path: path.parent / "unused" / ".." / path.name
+    args = eval_driver.parse_args(
+        [
+            "--runs-root",
+            str(tmp_path / "runs_rfdetr"),
+            "--training-config",
+            "configs/training_rfdetr.yaml",
+            "--metrics-csv",
+            str(alias(primary_metrics)),
+            "--report",
+            str(alias(primary_report)),
+            "--predictions-root",
+            str(primary_predictions / "unused" / ".."),
+            "--predictions-index",
+            str(alias(primary_index)),
+        ]
+    )
+
+    with pytest.raises(
+        EvalDriverError,
+        match=(
+            "--metrics-csv.*--report.*--predictions-root.*--predictions-index"
+        ),
+    ):
+        eval_driver.validate_output_isolation(
+            args,
+            default_runs_root=tmp_path / "runs",
+            default_training_config=eval_driver.TRAINING_CONFIG,
+            default_metrics_csv=primary_metrics,
+            default_report=primary_report,
+            default_predictions_root=primary_predictions,
+            default_predictions_index=primary_index,
         )
 
 

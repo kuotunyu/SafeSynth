@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -113,7 +114,10 @@ def atomic_write_json_value(path: Path, payload, *, compact: bool = False) -> No
         if compact
         else json.dumps(payload, indent=2, sort_keys=True) + "\n"
     )
-    temporary.write_text(rendered, encoding="utf-8", newline="\n")
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(rendered)
+        stream.flush()
+        os.fsync(stream.fileno())
     temporary.replace(path)
 
 
@@ -139,12 +143,13 @@ def validate_output_isolation(
     default_out_root: Path,
     default_index: Path,
 ) -> None:
-    if args.runs_root is None or Path(args.runs_root) == Path(default_runs_root):
+    canonical = lambda path: Path(path).resolve(strict=False)
+    if args.runs_root is None or canonical(args.runs_root) == canonical(default_runs_root):
         return
     missing: list[str] = []
-    if args.out_root is None or Path(args.out_root) == Path(default_out_root):
+    if args.out_root is None or canonical(args.out_root) == canonical(default_out_root):
         missing.append("--out-root")
-    if Path(args.index) == Path(default_index):
+    if canonical(args.index) == canonical(default_index):
         missing.append("--index")
     if missing:
         raise PredictionError(
