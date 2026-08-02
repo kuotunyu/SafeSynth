@@ -26,10 +26,13 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import shutil
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.training.arms import build_all_arms
@@ -45,6 +48,10 @@ PRODUCTION_STEPS = 10_900
 # many pools, several of them stale, and reaching straight into it silently
 # resolves to nothing.
 POOL_TAG = "m13_pool_1x"
+
+
+class SpeedProbeError(RuntimeError):
+    """The measured probe cannot support a production-time projection."""
 
 
 @dataclass(frozen=True)
@@ -86,6 +93,31 @@ class SpeedProbe:
         )
 
 
+def validate_finite_run_record(record: Mapping[str, Any]) -> None:
+    """Reject poisoned training evidence before it reaches a speed estimate."""
+
+    values = {"train_loss": record.get("train_loss")}
+    eval_metrics = record.get("eval_metrics", {})
+    if isinstance(eval_metrics, Mapping):
+        values.update(eval_metrics)
+    for name, value in values.items():
+        if isinstance(value, (int, float)) and not math.isfinite(float(value)):
+            raise SpeedProbeError(f"non-finite {name}: {value}")
+
+
+def validate_probe(probe: SpeedProbe) -> None:
+    """Require a finite positive slope and coherent non-negative intercept."""
+
+    if probe.long_seconds <= probe.short_seconds:
+        raise SpeedProbeError("long probe did not take longer than short probe")
+    if not math.isfinite(probe.seconds_per_step) or probe.seconds_per_step <= 0:
+        raise SpeedProbeError("seconds per step must be finite and positive")
+    if not math.isfinite(probe.fixed_overhead_seconds):
+        raise SpeedProbeError("fixed overhead must be finite")
+    if probe.fixed_overhead_seconds < 0:
+        raise SpeedProbeError("negative fixed overhead makes the slope unreliable")
+
+
 def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images: int) -> float:
     """Wall seconds for a complete run_arm at `steps`, from a clean directory."""
 
@@ -118,7 +150,7 @@ def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images:
     )
 
     started = time.perf_counter()
-    run_arm(
+    record = run_arm(
         composition,
         run_paths,
         config=config,
@@ -126,6 +158,7 @@ def timed_run(config: dict, arm_name: str, steps: int, *, seed: int, val_images:
         seed=seed,
         resume=False,
     )
+    validate_finite_run_record(record)
     elapsed = time.perf_counter() - started
     shutil.rmtree(output_dir, ignore_errors=True)
     return elapsed
@@ -204,8 +237,7 @@ def main() -> int:
     for config_path in args.configs:
         path = Path(config_path)
         label = path.stem.replace("training_", "").replace("training", "rtdetrv2")
-        probes.append(
-            probe(
+        measured = probe(
                 label,
                 path,
                 args.arm,
@@ -214,7 +246,8 @@ def main() -> int:
                 seed=args.seed,
                 val_images=args.val_images,
             )
-        )
+        validate_probe(measured)
+        probes.append(measured)
 
     print("\n" + "=" * 100)
     for item in probes:

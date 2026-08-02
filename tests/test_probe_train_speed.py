@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from scripts import probe_train_speed as speed_probe
 from scripts.probe_train_speed import (
     PRODUCTION_STEPS,
     SpeedProbe,
@@ -101,6 +102,32 @@ def test_a_negative_intercept_is_surfaced_rather_than_swallowed() -> None:
 
 def test_a_coherent_probe_does_not_cry_wolf() -> None:
     assert "NEGATIVE" not in _probe(40, 140, 60 + 0.25 * 40, 60 + 0.25 * 140).render()
+
+
+def test_a_probe_with_a_negative_intercept_is_rejected() -> None:
+    """Removing the intercept gate would turn incoherent timings into an ETA."""
+
+    with pytest.raises(speed_probe.SpeedProbeError, match="negative fixed overhead"):
+        speed_probe.validate_probe(_probe(40, 140, 10.0, 100.0))
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_training_loss_is_rejected(value: float) -> None:
+    """A poisoned short run must not feed the slope or start production."""
+
+    with pytest.raises(speed_probe.SpeedProbeError, match="train_loss"):
+        speed_probe.validate_finite_run_record(
+            {"train_loss": value, "eval_metrics": {}}
+        )
+
+
+def test_a_valid_probe_and_finite_record_pass() -> None:
+    probe = _probe(40, 140, 60 + 0.25 * 40, 60 + 0.25 * 140)
+
+    assert speed_probe.validate_probe(probe) is None
+    assert speed_probe.validate_finite_run_record(
+        {"train_loss": 1.25, "eval_metrics": {"eval_map": 0.1}}
+    ) is None
 
 
 def test_the_rendered_line_carries_the_units_a_reader_needs() -> None:
