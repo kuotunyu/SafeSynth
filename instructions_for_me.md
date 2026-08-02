@@ -63,7 +63,48 @@ PLAN 的前置判斷寫得很清楚：**若 Filtered 組沒有提升，補 seed 
 
 ### 3️⃣ GPU 空出來之後（你決定時機）
 
-### 🔧 M20 ① 只差最後一哩：鎖時脈 ＋ 4 分鐘沒人碰機器
+### ✅ M20 ① —— **完成了**（2026-08-02，你鎖的那次時脈成功了）
+
+三道閘門同時全綠：contention 0/9、clock spread **1.00**（門檻 1.15）、授權掃描 PASS。
+
+| RT-DETRv2-R18（微調 3 類） | |
+|---|---:|
+| model-only | **12.79 ms / 78.2 FPS** |
+| end-to-end | **16.23 ms / 61.6 FPS** |
+
+batch 1、640×640、fp16、SM clock 鎖定 2520 MHz。
+**鎖時脈是可重現的前提**，不是細節——沒鎖時同一支 harness 連續兩次跑出
+11.81 ms 與 26.74 ms。鎖了之後我還是重試了 2 次才拿到 p95 乾淨的一輪，
+因為鎖住的是頻率、不是其他行程。
+
+### 🔴 兩件現在就該知道的事
+
+**1. GPU 時脈還鎖著，請解除。**
+
+```bash
+nvidia-smi -rgc
+```
+
+**2. 你的機器上有一個 `llama-server` 正在吃 GPU。**
+不是我開的。我發現時它佔 18.4 GB / 95%，現在是 **23.5 GB / 90%**——
+幾乎整張 4090。它會讓任何 GPU 量測失去意義，也讓 RF-DETR 訓練跑不起來
+（VRAM 不夠）。如果你不需要它，關掉；如果需要，那 M20 ② 就得排在它之後。
+
+### ⬜ M20 ② —— 程式備好了，卡在 GPU 被佔用
+
+`configs/training_rfdetr.yaml` 現在**真的可以載入**（先前它只寫差異、缺 17 個
+`run:` 鍵，載入就 KeyError）。已加 `extends: configs/training.yaml` 與
+`src/training/config.py` 的深層合併。
+
+`scripts/probe_train_speed.py` 也備好了，量法是「兩趟取斜率」而不是一趟除以步數。
+**但它需要 GPU，而 GPU 現在被 llama-server 佔滿。**
+等 GPU 空出來跑這行就會得到實測時數：
+
+```bash
+uv run python -m scripts.probe_train_speed --arm real_only --short 40 --long 140
+```
+
+
 
 **鎖時脈已經證實有效**（你跑過了，謝謝）——clock check 從 spread 3.65 變成
 **1.00 PASS**，延遲回到 13.26 ms。剩下的是 p95 尾巴 1.40（門檻 1.30），
