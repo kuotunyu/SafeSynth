@@ -550,7 +550,7 @@ Run: `uv run python scripts/verify_readme.py`
 
 Expected: PASS.
 
-Run: `uv run python scripts/license_scan.py`
+Run: `uv run python scripts/check_forbidden_licences.py`
 
 Expected: PASS.
 
@@ -703,7 +703,7 @@ Run: `uv run python scripts/verify_readme.py`
 
 Expected: PASS against the new tracked RF result source.
 
-Run: `uv run python scripts/license_scan.py`
+Run: `uv run python scripts/check_forbidden_licences.py`
 
 Expected: PASS.
 
@@ -757,7 +757,7 @@ Run: `uv run python scripts/verify_readme.py`
 
 Expected: PASS.
 
-Run: `uv run python scripts/license_scan.py`
+Run: `uv run python scripts/check_forbidden_licences.py`
 
 Expected: PASS.
 
