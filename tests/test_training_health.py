@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from threading import Event
 from types import SimpleNamespace
 
 import pytest
@@ -16,6 +17,7 @@ from src.training.health import (
     SafetyPolicyError,
     TrainerHealthCallback,
     UnattendedSafetyPolicy,
+    UnattendedWatchdog,
 )
 from src.training.trainer import build_training_arguments
 
@@ -145,6 +147,91 @@ def test_policy_allows_known_windows_desktop_gpu_clients(tmp_path: Path) -> None
     )
 
     assert policy.check(stage="training_log", arm="real_only", step=50) == snapshot
+
+
+def test_unidentified_windows_client_requires_memory_or_ownership_evidence(
+    tmp_path: Path,
+) -> None:
+    unidentified = GpuProcess(pid=999, process_name="[Insufficient Permissions]")
+    safe = _snapshot(gpu_memory_used_mib=1_000, gpu_processes=(unidentified,))
+    unsafe = _snapshot(gpu_memory_used_mib=8_000, gpu_processes=(unidentified,))
+
+    def policy(snapshot: HealthSnapshot, name: str) -> UnattendedSafetyPolicy:
+        return UnattendedSafetyPolicy(
+            output_root=tmp_path,
+            health_log=tmp_path / f"{name}.jsonl",
+            deadline_utc=NOW + timedelta(hours=1),
+            own_pid=123,
+            snapshot_reader=lambda _: snapshot,
+        )
+
+    assert policy(safe, "safe").check(stage="startup") == safe
+    with pytest.raises(SafetyPolicyError, match="Insufficient Permissions"):
+        policy(unsafe, "unsafe").check(stage="startup")
+
+
+def test_watchdog_hard_exits_on_deadline_without_trainer_logs(tmp_path: Path) -> None:
+    expired = _snapshot(observed_at_utc=NOW + timedelta(hours=2))
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        own_pid=123,
+        snapshot_reader=lambda _: expired,
+    )
+    terminated = Event()
+    exit_codes: list[int] = []
+
+    def hard_exit(code: int) -> None:
+        exit_codes.append(code)
+        terminated.set()
+
+    watchdog = UnattendedWatchdog(
+        policy=policy,
+        arm="real_only",
+        output_dir=tmp_path / "run",
+        poll_interval_seconds=0.01,
+        max_progress_stall_seconds=60.0,
+        hard_exit=hard_exit,
+    )
+
+    with watchdog:
+        assert terminated.wait(timeout=1.0)
+
+    assert exit_codes == [70]
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "health.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert events[-1]["stage"] == "watchdog"
+    assert events[-1]["status"] == "rejected"
+
+
+def test_watchdog_rejects_stale_checkpoint_progress(tmp_path: Path) -> None:
+    ticks = iter((0.0, 3_601.0))
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=2),
+        own_pid=123,
+        snapshot_reader=lambda _: _snapshot(),
+    )
+    watchdog = UnattendedWatchdog(
+        policy=policy,
+        arm="filtered_syn",
+        output_dir=tmp_path / "run",
+        poll_interval_seconds=60.0,
+        max_progress_stall_seconds=3_600.0,
+        monotonic=lambda: next(ticks),
+        hard_exit=lambda _: None,
+    )
+
+    with pytest.raises(SafetyPolicyError, match="checkpoint progress"):
+        watchdog.poll_once()
+
+    event = json.loads((tmp_path / "health.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    assert event["stage"] == "watchdog_progress"
+    assert event["status"] == "rejected"
 
 
 def test_trainer_callback_rejects_non_finite_logs_before_next_step(tmp_path: Path) -> None:

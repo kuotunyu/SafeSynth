@@ -479,6 +479,7 @@ def test_production_trainer_checks_each_arm_and_injects_health_callback(
 ) -> None:
     job = _jobs(job_inputs)[0]
     observed: list[tuple[str, str, int | None]] = []
+    watchdog_events: list[tuple[str, str, Path]] = []
 
     class RecordingPolicy:
         def check(self, *, stage: str, arm: str, step: int | None = None):
@@ -486,12 +487,25 @@ def test_production_trainer_checks_each_arm_and_injects_health_callback(
 
     captured = {}
 
+    class RecordingWatchdog:
+        def __init__(self, *, policy, arm, output_dir):
+            assert isinstance(policy, RecordingPolicy)
+            watchdog_events.append(("init", arm, Path(output_dir)))
+
+        def __enter__(self):
+            watchdog_events.append(("enter", job.arm, job.paths.output_dir))
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            watchdog_events.append(("exit", job.arm, job.paths.output_dir))
+
     def fake_execute_job(received_job, config, *, callbacks):
         captured["job"] = received_job
         captured["callbacks"] = callbacks
         return {"arm": received_job.arm}
 
     monkeypatch.setattr(_module(), "execute_job", fake_execute_job)
+    monkeypatch.setattr(_module(), "UnattendedWatchdog", RecordingWatchdog)
     train_one = _module().build_production_trainer(RecordingPolicy())
 
     returned = train_one(job, job_inputs.config)
@@ -501,6 +515,11 @@ def test_production_trainer_checks_each_arm_and_injects_health_callback(
     assert captured["job"] == job
     assert len(captured["callbacks"]) == 1
     assert captured["callbacks"][0].arm == "real_only"
+    assert watchdog_events == [
+        ("init", "real_only", job.paths.output_dir),
+        ("enter", "real_only", job.paths.output_dir),
+        ("exit", "real_only", job.paths.output_dir),
+    ]
 
 
 def test_orchestration_lock_rejects_a_live_owner_and_reuses_stale_metadata(

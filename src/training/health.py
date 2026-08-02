@@ -7,13 +7,15 @@ import math
 import os
 import shutil
 import subprocess
+import sys
+import threading
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
-import torch
 from transformers import TrainerCallback
 
 
@@ -76,25 +78,30 @@ def _parse_gpu_processes(output: str) -> tuple[GpuProcess, ...]:
 
 
 def read_health_snapshot(output_root: Path) -> HealthSnapshot:
-    """Read CUDA, GPU and disk evidence without allocating model memory."""
+    """Read GPU and disk evidence without touching the process CUDA context."""
 
-    cuda_available = bool(torch.cuda.is_available())
-    gpu_name = torch.cuda.get_device_name(0) if cuda_available else "unavailable"
+    cuda_available = False
+    gpu_name = "unavailable"
     temperature = float("nan")
     memory_used = 0
     memory_total = 0
     processes: tuple[GpuProcess, ...] = ()
-    if cuda_available:
+    try:
         gpu_line = _run_nvidia_smi(
-            "--query-gpu=temperature.gpu,memory.used,memory.total",
+            "--query-gpu=name,temperature.gpu,memory.used,memory.total",
             "--format=csv,noheader,nounits",
         ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        gpu_line = ""
+    if gpu_line:
         fields = [field.strip() for field in gpu_line.split(",")]
-        if len(fields) != 3:
+        if len(fields) != 4:
             raise SafetyPolicyError(f"unexpected nvidia-smi GPU output: {gpu_line!r}")
-        temperature = float(fields[0])
-        memory_used = int(fields[1])
-        memory_total = int(fields[2])
+        cuda_available = True
+        gpu_name = fields[0]
+        temperature = float(fields[1])
+        memory_used = int(fields[2])
+        memory_total = int(fields[3])
         process_output = _run_nvidia_smi(
             "--query-compute-apps=pid,process_name",
             "--format=csv,noheader",
@@ -115,7 +122,6 @@ def read_health_snapshot(output_root: Path) -> HealthSnapshot:
 
 
 _WINDOWS_DESKTOP_GPU_CLIENTS = {
-    "[insufficient permissions]",
     "applicationframehost.exe",
     "armourydevice.exe",
     "asus_framework.exe",
@@ -144,6 +150,10 @@ def _is_allowlisted_desktop_gpu_client(process_name: str) -> bool:
     return lowered in _WINDOWS_DESKTOP_GPU_CLIENTS
 
 
+def _is_unidentified_gpu_client(process_name: str) -> bool:
+    return process_name.strip().lower() == "[insufficient permissions]"
+
+
 @dataclass
 class UnattendedSafetyPolicy:
     output_root: Path
@@ -168,11 +178,18 @@ class UnattendedSafetyPolicy:
         self, *, stage: str, arm: str | None = None, step: int | None = None
     ) -> HealthSnapshot:
         snapshot = self.snapshot_reader(Path(self.output_root))
+        own_gpu_process = any(
+            process.pid == self.own_pid for process in snapshot.gpu_processes
+        )
         competitors = tuple(
             process
             for process in snapshot.gpu_processes
             if process.pid != self.own_pid
             and not _is_allowlisted_desktop_gpu_client(process.process_name)
+            and not (
+                _is_unidentified_gpu_client(process.process_name)
+                and (own_gpu_process or snapshot.gpu_memory_used_mib <= 4_096)
+            )
         )
         violations: list[str] = []
         if not snapshot.cuda_available:
@@ -207,9 +224,6 @@ class UnattendedSafetyPolicy:
                 f"{process.pid}:{process.process_name}" for process in competitors
             )
             violations.append(f"competing GPU process detected: {rendered}")
-        own_gpu_process = any(
-            process.pid == self.own_pid for process in snapshot.gpu_processes
-        )
         if (
             stage in {"startup", "before_arm"}
             and not own_gpu_process
@@ -238,6 +252,119 @@ class UnattendedSafetyPolicy:
         if violations:
             raise SafetyPolicyError("; ".join(violations))
         return snapshot
+
+    def reject_snapshot(
+        self,
+        snapshot: HealthSnapshot,
+        *,
+        stage: str,
+        violation: str,
+        arm: str | None = None,
+        step: int | None = None,
+    ) -> None:
+        """Persist a watchdog-only rejection before raising it to the caller."""
+
+        event = {
+            **asdict(snapshot),
+            "observed_at_utc": snapshot.observed_at_utc.isoformat(),
+            "gpu_processes": [asdict(process) for process in snapshot.gpu_processes],
+            "stage": stage,
+            "arm": arm,
+            "step": step,
+            "deadline_utc": self.deadline_utc.isoformat(),
+            "status": "rejected",
+            "violations": [violation],
+        }
+        self._append_event(event)
+        raise SafetyPolicyError(violation)
+
+
+class UnattendedWatchdog:
+    """Wall-clock supervisor that remains live when Trainer stops emitting events."""
+
+    def __init__(
+        self,
+        *,
+        policy: UnattendedSafetyPolicy,
+        arm: str,
+        output_dir: Path,
+        poll_interval_seconds: float = 60.0,
+        max_progress_stall_seconds: float = 5_400.0,
+        hard_exit: Callable[[int], Any] = os._exit,
+        monotonic: Callable[[], float] = time.monotonic,
+    ):
+        if poll_interval_seconds <= 0:
+            raise ValueError("poll_interval_seconds must be positive")
+        if max_progress_stall_seconds <= 0:
+            raise ValueError("max_progress_stall_seconds must be positive")
+        self.policy = policy
+        self.arm = arm
+        self.output_dir = Path(output_dir)
+        self.poll_interval_seconds = float(poll_interval_seconds)
+        self.max_progress_stall_seconds = float(max_progress_stall_seconds)
+        self.hard_exit = hard_exit
+        self.monotonic = monotonic
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._last_checkpoint = self._checkpoint_step()
+        self._last_progress_at = self.monotonic()
+
+    def _checkpoint_step(self) -> int | None:
+        steps = [
+            int(path.name.rsplit("-", 1)[-1])
+            for path in self.output_dir.glob("checkpoint-*")
+            if path.is_dir() and path.name.rsplit("-", 1)[-1].isdigit()
+        ]
+        return max(steps) if steps else None
+
+    def poll_once(self) -> HealthSnapshot:
+        snapshot = self.policy.check(stage="watchdog", arm=self.arm)
+        checkpoint = self._checkpoint_step()
+        now = self.monotonic()
+        if checkpoint != self._last_checkpoint:
+            self._last_checkpoint = checkpoint
+            self._last_progress_at = now
+        elif now - self._last_progress_at > self.max_progress_stall_seconds:
+            self.policy.reject_snapshot(
+                snapshot,
+                stage="watchdog_progress",
+                arm=self.arm,
+                violation=(
+                    f"no checkpoint progress for more than "
+                    f"{self.max_progress_stall_seconds:.0f} seconds"
+                ),
+            )
+        return snapshot
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.poll_interval_seconds):
+            try:
+                self.poll_once()
+            except Exception as error:  # noqa: BLE001 - watchdog must fail closed
+                print(
+                    f"unattended watchdog terminating after {type(error).__name__}: "
+                    f"{error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                self.hard_exit(70)
+                return
+
+    def __enter__(self) -> Self:
+        if self._thread is not None:
+            raise RuntimeError("watchdog is already running")
+        self._thread = threading.Thread(
+            target=self._run,
+            name=f"rfdetr-watchdog-{self.arm}",
+            daemon=True,
+        )
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=max(1.0, self.poll_interval_seconds * 2))
 
 
 def validate_finite_logs(logs: Mapping[str, Any] | None) -> None:

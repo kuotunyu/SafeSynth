@@ -22,7 +22,11 @@ from safetensors import safe_open
 from src.data.paths import load_project_paths
 from src.training.arms import ArmComposition, build_all_arms, split_real_images
 from src.training.config import load_training_config
-from src.training.health import TrainerHealthCallback, UnattendedSafetyPolicy
+from src.training.health import (
+    TrainerHealthCallback,
+    UnattendedSafetyPolicy,
+    UnattendedWatchdog,
+)
 from src.training.run import RunPaths, run_arm
 from src.training.trainer import find_resumable_checkpoint
 
@@ -490,7 +494,12 @@ def build_production_trainer(
     def train_one(job: ArmJob, config: Mapping[str, Any]) -> Mapping[str, Any]:
         safety_policy.check(stage="before_arm", arm=job.arm)
         callback = TrainerHealthCallback(policy=safety_policy, arm=job.arm)
-        return execute_job(job, config, callbacks=(callback,))
+        with UnattendedWatchdog(
+            policy=safety_policy,
+            arm=job.arm,
+            output_dir=job.paths.output_dir,
+        ):
+            return execute_job(job, config, callbacks=(callback,))
 
     return train_one
 
