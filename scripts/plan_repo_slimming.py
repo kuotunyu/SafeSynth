@@ -75,6 +75,8 @@ def history_bytes_by_area(root: Path) -> tuple[float, dict[str, float]]:
                 continue
             path = raw_path.decode("utf-8", errors="surrogateescape")
             blob_paths.setdefault(object_id.decode("ascii"), set()).add(path)
+    if not blob_paths:
+        return 0.0, {}
     described = subprocess.run(
         ["git", "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
         cwd=root,

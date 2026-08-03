@@ -245,6 +245,29 @@ def test_history_metrics_count_report_blob_shared_with_other_path(fixture_repo: 
     )
 
 
+def test_history_metrics_handle_a_valid_empty_commit_repository(tmp_path: Path) -> None:
+    """Reachable history with no blob objects is a valid zero-byte inventory."""
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "--allow-empty",
+            "-qm",
+            "empty fixture",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+
+    assert plan_repo_slimming.history_bytes_by_area(tmp_path) == (0.0, {})
+
+
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:
     """`python scripts/...py` must not depend on pytest adding the repo to sys.path."""
 
