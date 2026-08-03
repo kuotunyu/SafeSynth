@@ -21,40 +21,24 @@ filename buried in the code that produced it.
 
 from __future__ import annotations
 
-import re
 import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.release.repository_curation import (
+    FIGURE_ROOT,
+    FigureDisposition,
+    plan_figure_curation,
+    tracked_files,
+)
+
 REPORT_PATH = PROJECT_ROOT / "reports" / "repo_slimming_plan.md"
-FIGURE_ROOT = "reports/figures/"
-IMAGE_SUFFIXES = ("png", "jpg", "jpeg", "gif", "svg", "mp4")
-IMAGE_PATTERN = re.compile(r"[\w./-]+\.(?:" + "|".join(IMAGE_SUFFIXES) + ")")
 BYTES_PER_MB = 2**20
-
-
-def tracked_files(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files"], cwd=root, capture_output=True, text=True, check=True
-    )
-    return [line for line in result.stdout.splitlines() if line]
-
-
-# spec: PUB-04
-def referenced_image_names(root: Path, files: list[str]) -> set[str]:
-    """Image basenames a tracked Markdown document links to."""
-
-    names: set[str] = set()
-    for name in files:
-        if not name.endswith(".md"):
-            continue
-        path = root / name
-        if not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        names |= {Path(hit).name for hit in IMAGE_PATTERN.findall(text)}
-    return names
 
 
 # spec: PUB-04
@@ -89,16 +73,21 @@ def history_bytes_by_area(root: Path) -> tuple[float, dict[str, float]]:
 
 def render(root: Path) -> str:
     files = tracked_files(root)
-    referenced = referenced_image_names(root, files)
-    figures = [name for name in files if name.startswith(FIGURE_ROOT)]
-
-    def size_mb(name: str) -> float:
-        path = root / name
-        return path.stat().st_size / BYTES_PER_MB if path.is_file() else 0.0
-
-    keep = sorted(name for name in figures if Path(name).name in referenced)
-    drop = sorted(name for name in figures if Path(name).name not in referenced)
+    plan = plan_figure_curation(root, files)
+    keep = tuple(item for item in plan if item.keep)
+    drop = tuple(item for item in plan if not item.keep)
     total_history, areas = history_bytes_by_area(root)
+
+    def total_mb(dispositions: tuple[FigureDisposition, ...]) -> float:
+        return sum(item.size_bytes for item in dispositions) / BYTES_PER_MB
+
+    def line(disposition: FigureDisposition) -> str:
+        source_lines = ", ".join(
+            f"`{reference.source_path}:{reference.line_number}`"
+            for reference in disposition.references
+        )
+        evidence = f" — linked from {source_lines}" if source_lines else ""
+        return f"- `{disposition.path}` ({disposition.size_bytes / BYTES_PER_MB:.2f} MB){evidence}"
 
     lines = [
         "# Repo slimming plan — the file list to review before `git filter-repo`",
@@ -118,30 +107,61 @@ def render(root: Path) -> str:
         "",
         "A clone downloads history, not the working tree, so deleting these at HEAD",
         "would change nothing. Rewriting history is the only thing that shrinks it,",
-        "and this repo has never been pushed - `git remote -v` is empty - so doing it",
-        "now costs nothing and doing it later means force-pushing over published",
-        "history.",
+        "and the complete current tree is archived before the owner takes any action.",
         "",
         "## KEEP — a document links to these",
         "",
-        f"{len(keep)} files, {sum(size_mb(name) for name in keep):.1f} MB.",
+        f"{len(keep)} files, {total_mb(keep):.1f} MB.",
         "",
     ]
-    lines += [f"- `{name}` ({size_mb(name):.2f} MB)" for name in keep]
+    correction = [
+        "## Exact-path correction",
+        "",
+        "KEEP decisions use only real Markdown destinations after resolving each target",
+        "relative to its source document. Bare filenames in prose or code are not links.",
+        "",
+    ]
+    if (len(keep), len(drop)) != (32, 118):
+        correction += [
+            f"This exact inventory is {len(keep)} KEEP / {len(drop)} DROP, rather than the",
+            "read-only 32 KEEP / 118 DROP basename-scan baseline. Seven apparent image links",
+            "in `reports/compliance_operating_point.md:7`,",
+            "`reports/compliance_operating_point_filtered_syn.md:7`,",
+            "`reports/compliance_operating_point_real_only.md:7`,",
+            "`reports/compliance_operating_point_standard_aug.md:7`,",
+            "`reports/compliance_operating_point_unfiltered_syn.md:7`,",
+            "`reports/exposure_analysis.md:7`, and `reports/training_curves.md:5` resolve",
+            "from `reports/` to untracked",
+            "`reports/reports/figures/...` paths. The remaining 18 baseline-only names are",
+            "prose or inline-code mentions, including `class_distribution.png`,",
+            "`filter_pass_reject_grid.png`, `flux2_v2_diagnostic_detail.png`, the three",
+            "`h2_sam2_*.png` files, `h3_clip_largest_groups.png`,",
+            "`h4_generative_identity_pilot*.png`, `h4_guarded_input_preflight.png`,",
+            "`h4_paired_person_input_preflight_seed20260802.png`,",
+            "`h5_placement_priors.png`, `hard_negative_bank_grid.png`, and",
+            "`review/k11_hard_negative_before.png`, `review/k12_blackout_evidence.png`,",
+            "`review/loose_helmet_question.png`, `review/preview_hard_negative_p1.png`,",
+            "and `review/preview_head_no_helmet_p1.png`. They are not Markdown destinations",
+            "and cannot safely promote a figure to KEEP.",
+            "",
+        ]
+    keep_heading = lines.index(next(item for item in lines if item.startswith("## KEEP")))
+    lines[keep_heading:keep_heading] = correction
+    lines += [line(item) for item in keep]
     lines += [
         "",
         "## DROP — no document links to these",
         "",
-        f"{len(drop)} files, {sum(size_mb(name) for name in drop):.1f} MB. Their only",
-        "mention anywhere is inside the script that generated them, which is not a",
-        "reference a reader can follow.",
+        f"{len(drop)} files, {total_mb(drop):.1f} MB. No real Markdown destination",
+        "links to them; prose and inline-code filename mentions are not references a",
+        "reader can follow.",
         "",
         "**The evidence they represent is not discarded** — the worklog records which",
         "labeler iterations and synthesis routes were tried and what each returned.",
         "That is the form a reader can search.",
         "",
     ]
-    lines += [f"- `{name}` ({size_mb(name):.2f} MB)" for name in drop]
+    lines += [line(item) for item in drop]
     lines += [
         "",
         "## The command (YOURS to run — CLAUDE.md reserves history rewrites)",

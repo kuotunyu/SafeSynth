@@ -12,14 +12,57 @@
 
 A clone downloads history, not the working tree, so deleting these at HEAD
 would change nothing. Rewriting history is the only thing that shrinks it,
-and this repo has never been pushed - `git remote -v` is empty - so doing it
-now costs nothing and doing it later means force-pushing over published
-history.
+and the complete current tree is archived before the owner takes any action.
+
+## Exact-path correction
+
+KEEP decisions use only real Markdown destinations after resolving each target
+relative to its source document. Bare filenames in prose or code are not links.
+
+This exact inventory is 7 KEEP / 143 DROP, rather than the
+read-only 32 KEEP / 118 DROP basename-scan baseline. Seven apparent image links
+in `reports/compliance_operating_point.md:7`,
+`reports/compliance_operating_point_filtered_syn.md:7`,
+`reports/compliance_operating_point_real_only.md:7`,
+`reports/compliance_operating_point_standard_aug.md:7`,
+`reports/compliance_operating_point_unfiltered_syn.md:7`,
+`reports/exposure_analysis.md:7`, and `reports/training_curves.md:5` resolve
+from `reports/` to untracked
+`reports/reports/figures/...` paths. The remaining 18 baseline-only names are
+prose or inline-code mentions, including `class_distribution.png`,
+`filter_pass_reject_grid.png`, `flux2_v2_diagnostic_detail.png`, the three
+`h2_sam2_*.png` files, `h3_clip_largest_groups.png`,
+`h4_generative_identity_pilot*.png`, `h4_guarded_input_preflight.png`,
+`h4_paired_person_input_preflight_seed20260802.png`,
+`h5_placement_priors.png`, `hard_negative_bank_grid.png`, and
+`review/k11_hard_negative_before.png`, `review/k12_blackout_evidence.png`,
+`review/loose_helmet_question.png`, `review/preview_hard_negative_p1.png`,
+and `review/preview_head_no_helmet_p1.png`. They are not Markdown destinations
+and cannot safely promote a figure to KEEP.
 
 ## KEEP — a document links to these
 
-148 files, 403.2 MB.
+7 files, 1.5 MB.
 
+- `reports/figures/error_analysis/both_wrong.png` (0.13 MB) — linked from `reports/error_analysis.md:17`, `reports/error_analysis.md:58`
+- `reports/figures/error_analysis/fixed_false_negative.png` (0.24 MB) — linked from `reports/error_analysis.md:13`, `reports/error_analysis.md:40`
+- `reports/figures/error_analysis/fixed_false_positive.png` (0.22 MB) — linked from `reports/error_analysis.md:14`, `reports/error_analysis.md:46`
+- `reports/figures/error_analysis/new_false_positive.png` (0.29 MB) — linked from `reports/error_analysis.md:15`, `reports/error_analysis.md:52`
+- `reports/figures/h4_artifact_roc.png` (0.05 MB) — linked from `docs/decisions.md:569`
+- `reports/figures/hard_negative_test_regions.png` (0.51 MB) — linked from `reports/hard_negative_false_positives.md:40`
+- `reports/figures/headline.png` (0.11 MB) — linked from `README.md:119`
+
+## DROP — no document links to these
+
+143 files, 401.7 MB. No real Markdown destination
+links to them; prose and inline-code filename mentions are not references a
+reader can follow.
+
+**The evidence they represent is not discarded** — the worklog records which
+labeler iterations and synthesis routes were tried and what each returned.
+That is the form a reader can search.
+
+- `reports/figures/README.md` (0.00 MB)
 - `reports/figures/class_distribution.png` (0.14 MB)
 - `reports/figures/compliance_sweep.png` (0.05 MB)
 - `reports/figures/compliance_sweep_filtered_syn.png` (0.06 MB)
@@ -28,10 +71,6 @@ history.
 - `reports/figures/compliance_sweep_unfiltered_syn.png` (0.05 MB)
 - `reports/figures/demo_examples/demo_hard_hat_workers2261.png` (0.33 MB)
 - `reports/figures/demo_examples/demo_hard_hat_workers245.png` (0.28 MB)
-- `reports/figures/error_analysis/both_wrong.png` (0.13 MB)
-- `reports/figures/error_analysis/fixed_false_negative.png` (0.24 MB)
-- `reports/figures/error_analysis/fixed_false_positive.png` (0.22 MB)
-- `reports/figures/error_analysis/new_false_positive.png` (0.29 MB)
 - `reports/figures/exposure_curves.png` (0.17 MB)
 - `reports/figures/filter_pass_reject_grid.png` (1.79 MB)
 - `reports/figures/flux2_v2_diagnostic_detail.png` (0.42 MB)
@@ -45,7 +84,6 @@ history.
 - `reports/figures/h3_clip_largest_groups.png` (2.06 MB)
 - `reports/figures/h4_ablation_no_hard_negative_roc.png` (0.05 MB)
 - `reports/figures/h4_artifact_gate_m13_roc.png` (0.05 MB)
-- `reports/figures/h4_artifact_roc.png` (0.05 MB)
 - `reports/figures/h4_generative_identity_pilot.png` (9.87 MB)
 - `reports/figures/h4_generative_identity_pilot_detail.png` (8.21 MB)
 - `reports/figures/h4_guarded_input_preflight.png` (8.15 MB)
@@ -54,9 +92,8 @@ history.
 - `reports/figures/h5_placement_priors.png` (0.51 MB)
 - `reports/figures/h6_hard_negative_candidates.png` (2.00 MB)
 - `reports/figures/hard_negative_bank_grid.png` (0.17 MB)
-- `reports/figures/hard_negative_test_regions.png` (0.51 MB)
-- `reports/figures/headline.png` (0.11 MB)
 - `reports/figures/procedural_hard_negative_grid.png` (0.80 MB)
+- `reports/figures/review/README.md` (0.00 MB)
 - `reports/figures/review/k11_hard_negative_before.png` (2.43 MB)
 - `reports/figures/review/k12_blackout_evidence.png` (0.11 MB)
 - `reports/figures/review/loose_helmet_question.png` (2.12 MB)
@@ -168,19 +205,6 @@ history.
 - `reports/figures/training_curves.png` (0.16 MB)
 - `reports/figures/whole_person_edit_diagnostic_v8.png` (0.56 MB)
 - `reports/figures/whole_person_edit_preflight_v8.png` (0.83 MB)
-
-## DROP — no document links to these
-
-2 files, 0.0 MB. Their only
-mention anywhere is inside the script that generated them, which is not a
-reference a reader can follow.
-
-**The evidence they represent is not discarded** — the worklog records which
-labeler iterations and synthesis routes were tried and what each returned.
-That is the form a reader can search.
-
-- `reports/figures/README.md` (0.00 MB)
-- `reports/figures/review/README.md` (0.00 MB)
 
 ## The command (YOURS to run — CLAUDE.md reserves history rewrites)
 

@@ -9,13 +9,116 @@ from pathlib import Path
 
 import pytest
 
+from scripts import plan_repo_slimming
 from src.release.markdown_links import (
     RepositoryLinkError,
     collect_local_destinations,
     resolve_local_target,
 )
+from src.release.repository_curation import plan_figure_curation
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write(root: Path, path: str, text: str) -> None:
+    destination = root / path
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(text, encoding="utf-8")
+
+
+def _write_bytes(root: Path, path: str, contents: bytes) -> None:
+    destination = root / path
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(contents)
+
+
+@pytest.fixture
+def fixture_repo(tmp_path: Path) -> Path:
+    _write(tmp_path, "README.md", "# Fixture\n\n![keep](reports/figures/keep.png)\n")
+    _write_bytes(tmp_path, "reports/figures/keep.png", b"keep")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    return tmp_path
+
+
+def test_generated_report_cannot_promote_drop_entries(tmp_path: Path) -> None:
+    _write(tmp_path, "README.md", "![keep](reports/figures/a/keep.png)\n")
+    _write(
+        tmp_path,
+        "reports/repo_slimming_plan.md",
+        "`reports/figures/drop.png`\n",
+    )
+    _write_bytes(tmp_path, "reports/figures/a/keep.png", b"keep")
+    _write_bytes(tmp_path, "reports/figures/drop.png", b"drop")
+    files = [
+        "README.md",
+        "reports/repo_slimming_plan.md",
+        "reports/figures/a/keep.png",
+        "reports/figures/drop.png",
+    ]
+
+    planned = {item.path: item for item in plan_figure_curation(tmp_path, files)}
+
+    assert planned["reports/figures/a/keep.png"].keep is True
+    assert planned["reports/figures/drop.png"].keep is False
+
+
+def test_same_basename_in_two_directories_is_not_conflated(tmp_path: Path) -> None:
+    _write(tmp_path, "README.md", "![keep](reports/figures/a/same.png)\n")
+    _write_bytes(tmp_path, "reports/figures/a/same.png", b"a")
+    _write_bytes(tmp_path, "reports/figures/b/same.png", b"b")
+    files = [
+        "README.md",
+        "reports/figures/a/same.png",
+        "reports/figures/b/same.png",
+    ]
+
+    planned = {item.path: item for item in plan_figure_curation(tmp_path, files)}
+
+    assert planned["reports/figures/a/same.png"].keep is True
+    assert planned["reports/figures/b/same.png"].keep is False
+
+
+def test_existing_figure_directory_link_is_not_a_missing_figure(tmp_path: Path) -> None:
+    _write(tmp_path, "README.md", "[directory](reports/figures/a/)\n")
+    _write_bytes(tmp_path, "reports/figures/a/keep.png", b"keep")
+    files = ["README.md", "reports/figures/a/keep.png"]
+
+    planned = plan_figure_curation(tmp_path, files)
+
+    assert planned[0].keep is False
+
+
+def test_report_is_deterministic_and_names_keep_sources(
+    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        plan_repo_slimming,
+        "history_bytes_by_area",
+        lambda _root: (100.0, {"reports/figures/": 75.0, "everything else": 25.0}),
+    )
+
+    first = plan_repo_slimming.render(fixture_repo)
+    second = plan_repo_slimming.render(fixture_repo)
+
+    assert first == second
+    assert "README.md:3" in first
+    assert "## Exact-path correction" in first
+    assert "No real Markdown destination\nlinks to them" in first
 
 
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:
@@ -26,6 +129,7 @@ def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:
     scripts.mkdir()
     figures.mkdir(parents=True)
     shutil.copy2(PROJECT_ROOT / "scripts" / "plan_repo_slimming.py", scripts)
+    shutil.copytree(PROJECT_ROOT / "src", tmp_path / "src")
     (tmp_path / "README.md").write_text(
         "# Fixture\n\n![kept](reports/figures/keep.png)\n",
         encoding="utf-8",
