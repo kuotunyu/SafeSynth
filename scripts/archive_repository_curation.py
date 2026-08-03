@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
-import uuid
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -263,20 +263,21 @@ def _verify_renamed_bundle(project_root: Path, bundle_path: Path, expected_diges
         raise ArchiveError(f"published Git bundle verification failed: {detail}")
 
 
-def _private_stage(destination: Path) -> Path:
-    while True:
-        candidate = destination.parent / f".{uuid.uuid4().hex[:8]}"
-        if not _path_exists(candidate):
-            return candidate
+def _private_stage(destination: Path) -> tuple[Path, Path]:
+    """Atomically reserve an invocation-owned root and its unpublished package path."""
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    root = Path(tempfile.mkdtemp(prefix=".cs-", dir=destination.parent))
+    return root, root / "p"
 
 
-def _remove_private_stage(stage: Path) -> None:
-    if not _path_exists(stage):
+def _remove_private_stage(root: Path) -> None:
+    if not _path_exists(root):
         return
-    if stage.is_dir() and not stage.is_symlink():
-        shutil.rmtree(stage)
+    if root.is_dir() and not root.is_symlink():
+        shutil.rmtree(root)
     else:
-        stage.unlink()
+        root.unlink()
 
 
 def _publish_complete_stage(stage: Path, destination: Path) -> None:
@@ -296,7 +297,7 @@ def archive(project_root: Path, destination: Path, owner_project_root: str, arch
     if _path_exists(destination):
         raise FileExistsError(f"destination already exists: {destination}")
     plan = plan_figure_curation(project_root, tracked_files(project_root))
-    stage = _private_stage(destination)
+    stage_root, stage = _private_stage(destination)
     try:
         recovery = create_recovery_package(project_root, stage, plan)
         published_bundle = stage / BUNDLE_NAME
@@ -313,9 +314,10 @@ def archive(project_root: Path, destination: Path, owner_project_root: str, arch
         if verified_receipt != receipt:
             raise ArchiveError("staged receipt differs from the verified recovery package")
         _publish_complete_stage(stage, destination)
-    except BaseException:
-        _remove_private_stage(stage)
+    except Exception:
+        _remove_private_stage(stage_root)
         raise
+    _remove_private_stage(stage_root)
 
     print(
         f"archive={destination} source_commit={receipt.source_commit} "
