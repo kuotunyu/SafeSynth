@@ -44,35 +44,59 @@ BYTES_PER_MB = 2**20
 
 # spec: PUB-04
 def history_bytes_by_area(root: Path) -> tuple[float, dict[str, float]]:
-    """Blob bytes across ALL history, split by area.
+    """Blob bytes across reachable history, split by area.
 
     The working tree is the wrong thing to measure: a clone downloads history,
     and figures regenerated across commits are stored once per version. The
-    tree said 418 MB while the packed object store said 631 MiB. The generated
-    report is excluded so regenerating and committing it cannot change the
-    historical metric it displays.
+    tree said 418 MB while the packed object store said 631 MiB. Generated
+    report-only blobs are excluded so regenerating and committing the report
+    cannot change the historical metric it displays; a shared blob is retained
+    whenever any other path has used it.
     """
 
-    listing = subprocess.run(
-        ["git", "rev-list", "--objects", "--all"],
+    commits = subprocess.run(
+        ["git", "rev-list", "--all"],
         cwd=root, capture_output=True, text=True, check=True,
-    ).stdout
+    ).stdout.splitlines()
+    blob_paths: dict[str, set[str]] = {}
+    for commit in commits:
+        tree = subprocess.run(
+            ["git", "ls-tree", "-r", "-z", "--full-tree", commit],
+            cwd=root,
+            capture_output=True,
+            check=True,
+        ).stdout
+        for entry in tree.split(b"\0"):
+            if not entry:
+                continue
+            metadata, raw_path = entry.split(b"\t", maxsplit=1)
+            _mode, object_type, object_id = metadata.split(maxsplit=2)
+            if object_type != b"blob":
+                continue
+            path = raw_path.decode("utf-8", errors="surrogateescape")
+            blob_paths.setdefault(object_id.decode("ascii"), set()).add(path)
     described = subprocess.run(
-        ["git", "cat-file", "--batch-check=%(objecttype) %(objectsize) %(rest)"],
-        cwd=root, input=listing, capture_output=True, text=True, check=True,
+        ["git", "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+        cwd=root,
+        input="\n".join(sorted(blob_paths)) + "\n",
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
 
     total = 0.0
     areas: Counter[str] = Counter()
     for line in described.splitlines():
-        parts = line.split(" ", 2)
-        if len(parts) != 3 or parts[0] != "blob":
+        object_id, object_type, size = line.split(" ", 2)
+        if object_type != "blob":
             continue
-        size, path = float(parts[1]), parts[2].strip()
-        if path == GENERATED_REPORT_PATH:
+        paths = blob_paths[object_id]
+        if paths == {GENERATED_REPORT_PATH}:
             continue
-        total += size
-        areas[FIGURE_ROOT if path.startswith(FIGURE_ROOT) else "everything else"] += size
+        byte_size = float(size)
+        total += byte_size
+        area = FIGURE_ROOT if any(path.startswith(FIGURE_ROOT) for path in paths) else "everything else"
+        areas[area] += byte_size
     return total, dict(areas)
 
 
@@ -103,13 +127,15 @@ def render(root: Path) -> str:
         "",
         "## Why",
         "",
-        "| | bytes across ALL history | share |",
+        "| | reachable-history blob bytes* | share |",
         "|---|---:|---:|",
     ]
     for area, size in sorted(areas.items(), key=lambda item: -item[1]):
         share = 100 * size / total_history if total_history else 0.0
         lines.append(f"| `{area}` | {size / BYTES_PER_MB:.1f} MB | {share:.0f}% |")
     lines += [
+        "",
+        "* Generated-report-only historical blobs are excluded; shared blobs remain counted.",
         "",
         "A clone downloads history, not the working tree, so deleting these at HEAD",
         "would change nothing. Rewriting history is the only thing that shrinks it,",

@@ -6,10 +6,12 @@
 
 ## Why
 
-| | bytes across ALL history | share |
+| | reachable-history blob bytes* | share |
 |---|---:|---:|
 | `reports/figures/` | 629.7 MB | 93% |
 | `everything else` | 44.1 MB | 7% |
+
+* Generated-report-only historical blobs are excluded; shared blobs remain counted.
 
 A clone downloads history, not the working tree, so deleting these at HEAD
 would change nothing. Rewriting history is the only thing that shrinks it,

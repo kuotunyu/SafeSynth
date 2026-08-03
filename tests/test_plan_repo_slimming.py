@@ -169,6 +169,8 @@ def test_generated_report_defers_owner_steps_to_verified_external_runbook(
     assert "Task 8 full acceptance gates remain mandatory" in report
     assert "not embedded in this report" in report
     assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" in report
+    assert "bytes across ALL history" not in report
+    assert "Generated-report-only historical blobs are excluded; shared blobs remain counted." in report
     assert re.search(r"filter[-_\s]*repo", report, flags=re.IGNORECASE) is None
     assert "restore_curated_figures" not in report.lower()
     assert re.search(
@@ -206,6 +208,41 @@ def test_history_metrics_ignore_generated_report_commits(fixture_repo: Path) -> 
     )
 
     assert plan_repo_slimming.history_bytes_by_area(fixture_repo) == before
+
+
+def test_history_metrics_count_report_blob_shared_with_other_path(fixture_repo: Path) -> None:
+    """A blob is excluded only when no retained path has ever used it."""
+
+    before_total, before_areas = plan_repo_slimming.history_bytes_by_area(fixture_repo)
+    shared = "shared report content\n"
+    _write(fixture_repo, "reports/repo_slimming_plan.md", shared)
+    _write(fixture_repo, "zzz_retained_evidence.md", shared)
+    subprocess.run(
+        ["git", "add", "reports/repo_slimming_plan.md", "zzz_retained_evidence.md"],
+        cwd=fixture_repo,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "shared generated blob",
+        ],
+        cwd=fixture_repo,
+        check=True,
+    )
+
+    total, areas = plan_repo_slimming.history_bytes_by_area(fixture_repo)
+
+    assert total == before_total + len(shared.encode("utf-8"))
+    assert areas["everything else"] == before_areas["everything else"] + len(
+        shared.encode("utf-8")
+    )
 
 
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:
