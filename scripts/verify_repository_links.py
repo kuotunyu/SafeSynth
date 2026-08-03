@@ -44,6 +44,14 @@ def _filesystem_path(root: Path, relative_path: str) -> Path:
     return root.joinpath(*PurePosixPath(relative_path).parts)
 
 
+def _is_within_root(root: Path, candidate: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def _is_explicit_directory(raw_target: str) -> bool:
     target = raw_target.strip()
     if target.startswith("<") and target.endswith(">"):
@@ -61,21 +69,58 @@ def _error_failure(source_path: str, error: RepositoryLinkError) -> LinkFailure:
     )
 
 
+def _source_failure(source_path: str, reason: str) -> LinkFailure:
+    return LinkFailure(source_path, 0, "<source>", reason)
+
+
+def _read_trusted_source(
+    root: Path, canonical_root: Path, source_path: str
+) -> tuple[str | None, LinkFailure | None]:
+    source = _filesystem_path(root, source_path)
+    try:
+        canonical_source = source.resolve(strict=True)
+    except FileNotFoundError:
+        return None, _source_failure(source_path, "tracked Markdown source does not exist")
+    except OSError as error:
+        return None, _source_failure(
+            source_path, f"cannot resolve tracked Markdown source: {type(error).__name__}"
+        )
+    if not _is_within_root(canonical_root, canonical_source):
+        return None, _source_failure(source_path, "tracked Markdown source resolves outside repository")
+    if not canonical_source.is_file():
+        return None, _source_failure(source_path, "tracked Markdown source is not a regular file")
+    try:
+        return canonical_source.read_text(encoding="utf-8"), None
+    except UnicodeDecodeError:
+        return None, _source_failure(source_path, "tracked Markdown source is not valid UTF-8")
+    except OSError as error:
+        return None, _source_failure(
+            source_path, f"cannot read tracked Markdown source: {type(error).__name__}"
+        )
+
+
 def _collect_one_document(
-    root: Path, source_path: str
+    root: Path, canonical_root: Path, source_path: str
 ) -> tuple[tuple[MarkdownDestination, ...], tuple[LinkFailure, ...]]:
     """Collect one document, retaining separate diagnostics after a bad target."""
 
+    source_text, source_failure = _read_trusted_source(root, canonical_root, source_path)
+    if source_failure is not None:
+        return (), (source_failure,)
+    assert source_text is not None
     try:
         return collect_local_destinations(root, [source_path]), ()
     except RepositoryLinkError:
         pass
-
-    document = _filesystem_path(root, source_path)
-    try:
-        raw_destinations = extract_markdown_destinations(
-            document.read_text(encoding="utf-8"), source_path
+    except UnicodeDecodeError:
+        return (), (_source_failure(source_path, "tracked Markdown source is not valid UTF-8"),)
+    except OSError as error:
+        return (), (
+            _source_failure(source_path, f"cannot read tracked Markdown source: {type(error).__name__}"),
         )
+
+    try:
+        raw_destinations = extract_markdown_destinations(source_text, source_path)
     except RepositoryLinkError as error:
         return (), (_error_failure(source_path, error),)
 
@@ -104,22 +149,53 @@ def verify_repository_links(root: Path, files: Sequence[str]) -> tuple[LinkFailu
     reference.
     """
 
+    canonical_root = root.resolve(strict=True)
     failures: list[LinkFailure] = []
     markdown_paths = sorted(path for path in files if path.endswith(".md"))
     for source_path in markdown_paths:
-        destinations, document_failures = _collect_one_document(root, source_path)
+        destinations, document_failures = _collect_one_document(root, canonical_root, source_path)
         failures.extend(document_failures)
         for destination in destinations:
             if destination.resolved_path is None:
                 continue
             target_path = _filesystem_path(root, destination.resolved_path)
-            if target_path.is_file():
+            try:
+                canonical_target = target_path.resolve(strict=True)
+            except FileNotFoundError:
+                canonical_target = None
+                reason = "local target does not exist"
+            except OSError as error:
+                canonical_target = None
+                reason = f"cannot resolve local target: {type(error).__name__}"
+            else:
+                reason = ""
+            if canonical_target is None:
+                failures.append(
+                    LinkFailure(
+                        source_path=destination.source_path,
+                        line_number=destination.line_number,
+                        target=destination.raw_target,
+                        reason=reason,
+                    )
+                )
                 continue
-            if target_path.is_dir() and _is_explicit_directory(destination.raw_target):
+            if not _is_within_root(canonical_root, canonical_target):
+                failures.append(
+                    LinkFailure(
+                        source_path=destination.source_path,
+                        line_number=destination.line_number,
+                        target=destination.raw_target,
+                        reason="local target resolves outside repository",
+                    )
+                )
+                continue
+            if canonical_target.is_file():
+                continue
+            if canonical_target.is_dir() and _is_explicit_directory(destination.raw_target):
                 continue
             reason = (
                 "directory target must end with '/'"
-                if target_path.is_dir()
+                if canonical_target.is_dir()
                 else "local target does not exist"
             )
             failures.append(
