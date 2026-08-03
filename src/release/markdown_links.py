@@ -26,8 +26,12 @@ class MarkdownDestination:
 
 _FENCE_START = re.compile(r"^\s*(`{3,}|~{3,})")
 _INLINE_CODE = re.compile(r"`+[^`]*`+")
-_INLINE_DESTINATION = re.compile(r"!?\[[^\]]*\]\(\s*(<[^>\n]+>|[^\s)]+)")
+_INLINE_DESTINATION = re.compile(
+    r"!?\[[^\]]*\]\(\s*(<[^>\n]+>|[^\s)]+)(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
+)
+_INLINE_OPEN = re.compile(r"!?\[[^\]]*\]\(")
 _REFERENCE_DESTINATION = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*(<[^>\n]+>|\S+)")
+_WINDOWS_ABSOLUTE_PATH = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 def _without_inline_code(line: str) -> str:
@@ -55,7 +59,11 @@ def extract_markdown_destinations(text: str, source_path: str) -> tuple[tuple[in
         if reference_match:
             destinations.append((line_number, reference_match.group(1)))
             continue
-        destinations.extend((line_number, match.group(1)) for match in _INLINE_DESTINATION.finditer(visible))
+        inline_matches = tuple(_INLINE_DESTINATION.finditer(visible))
+        for opener in _INLINE_OPEN.finditer(visible):
+            if not any(match.start() <= opener.start() < match.end() for match in inline_matches):
+                raise RepositoryLinkError(f"malformed Markdown destination on line {line_number}")
+        destinations.extend((line_number, match.group(1)) for match in inline_matches)
     return tuple(destinations)
 
 
@@ -75,17 +83,18 @@ def resolve_local_target(source_path: str, raw_target: str) -> str | None:
     target = raw_target.strip()
     if target.startswith("<") and target.endswith(">"):
         target = target[1:-1]
-    parsed = urlsplit(unquote(target))
+    if _WINDOWS_ABSOLUTE_PATH.match(target):
+        raise RepositoryLinkError(f"absolute local path is forbidden: {raw_target}")
+    parsed = urlsplit(target)
     if parsed.scheme or parsed.netloc or target.startswith("#"):
         return None
     if not parsed.path:
         return None
-    if PurePosixPath(parsed.path).is_absolute():
+    local_path = unquote(parsed.path).replace("\\", "/")
+    if _WINDOWS_ABSOLUTE_PATH.match(local_path) or PurePosixPath(local_path).is_absolute():
         raise RepositoryLinkError(f"absolute local path is forbidden: {raw_target}")
     base = PurePosixPath(source_path).parent.as_posix()
-    return _normalized_repository_path(
-        posixpath.join(base, parsed.path.replace("\\", "/")), raw_target=raw_target
-    )
+    return _normalized_repository_path(posixpath.join(base, local_path), raw_target=raw_target)
 
 
 def collect_local_destinations(root: Path, markdown_paths: Sequence[str]) -> tuple[MarkdownDestination, ...]:

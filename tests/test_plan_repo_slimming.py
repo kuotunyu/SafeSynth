@@ -119,3 +119,35 @@ def test_absolute_markdown_source_path_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(RepositoryLinkError, match="absolute repository path"):
         collect_local_destinations(tmp_path, ["/outside.md"])
+
+
+@pytest.mark.parametrize(
+    ("raw_target", "expected"),
+    [
+        ("reports/figures/a%23b.png", "reports/figures/a#b.png"),
+        ("reports/figures/a%3Fb.png", "reports/figures/a?b.png"),
+    ],
+)
+def test_encoded_filename_delimiters_are_retained(raw_target: str, expected: str) -> None:
+    """Encoded delimiters are filename characters, not URL suffix separators."""
+
+    assert resolve_local_target("README.md", raw_target) == expected
+
+
+@pytest.mark.parametrize("raw_target", [r"C:\outside.png", "C%3A/outside.png"])
+def test_windows_absolute_target_fails_closed(raw_target: str) -> None:
+    """A drive-letter path must not be misclassified as an external scheme."""
+
+    with pytest.raises(RepositoryLinkError, match="absolute local path"):
+        resolve_local_target("README.md", raw_target)
+
+
+def test_malformed_markdown_link_opener_fails_closed(tmp_path: Path) -> None:
+    """An unclosed link opener is unsafe rather than a valid destination."""
+
+    document = tmp_path / "docs" / "audit.md"
+    document.parent.mkdir()
+    document.write_text("[broken](../reports/figures/a.png\n", encoding="utf-8")
+
+    with pytest.raises(RepositoryLinkError, match="malformed Markdown destination"):
+        collect_local_destinations(tmp_path, ["docs/audit.md"])
