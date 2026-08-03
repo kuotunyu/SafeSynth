@@ -3,11 +3,12 @@
 A README is the one artefact a reader trusts without running anything, so every
 claim in it has to be mechanically checkable or it is decoration. Six checks:
 
-  1. Every number in a README *metric* table is recomputable from
-     results/detection_metrics.csv. A cell that cannot be traced to a row of
-     that file is a FAILURE, not a warning - an untraceable number is exactly
-     what PUB-04 exists to catch, and downgrading it to a warning turns the
-     whole check into a comment.
+  1. Every number in a README *metric* table is recomputable from its declared
+     results CSV. Tables default to results/detection_metrics.csv; a replication
+     table may name another results CSV with a metrics-source annotation. A
+     cell that cannot be traced to a row of that file is a FAILURE, not a
+     warning - an untraceable number is exactly what PUB-04 exists to catch,
+     and downgrading it to a warning turns the whole check into a comment.
   2. Four disclosures are present in the BODY, not only under Limitations: the
      annotation defect, that every claim is relative and never absolute, why the
      design has four arms and not five, and the H4 outcome.
@@ -166,6 +167,7 @@ class MarkdownTable:
     rows: tuple[tuple[str, ...], ...]
     header_line: int
     row_lines: tuple[int, ...]
+    metrics_source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -299,12 +301,25 @@ def parse_markdown_tables(text: str) -> list[MarkdownTable]:
             rows.append(split_cells(numbered[cursor][1]))
             row_lines.append(numbered[cursor][0])
             cursor += 1
+        metrics_source: str | None = None
+        annotation_index = index - 1
+        while annotation_index >= 0 and not numbered[annotation_index][1].strip():
+            annotation_index -= 1
+        if annotation_index >= 0:
+            source_match = re.fullmatch(
+                r"\s*<!--\s*metrics-source:\s*([A-Za-z0-9_.-]+)\s*-->\s*",
+                numbered[annotation_index][1],
+                flags=re.IGNORECASE,
+            )
+            if source_match is not None:
+                metrics_source = source_match.group(1)
         tables.append(
             MarkdownTable(
                 header=header,
                 rows=tuple(rows),
                 header_line=number,
                 row_lines=tuple(row_lines),
+                metrics_source=metrics_source,
             )
         )
         index = cursor
@@ -475,6 +490,7 @@ def _check_cell(
     split: str | None,
     rows: Sequence[MetricRow],
     location: str,
+    metrics_filename: str,
 ) -> list[Failure]:
     """Compare one cell's numbers against the rows that source it."""
 
@@ -486,7 +502,7 @@ def _check_cell(
             Failure(
                 "table-numbers",
                 location,
-                f"no row in {DETECTION_METRICS_FILENAME} has arm={arm!r} metric={metric!r}"
+                f"no row in {metrics_filename} has arm={arm!r} metric={metric!r}"
                 + ("" if split is None else f" split={split!r}"),
             )
         ]
@@ -513,7 +529,7 @@ def _check_cell(
                 "table-numbers",
                 location,
                 f"shows {numbers[0].text!r} for arm={arm!r} metric={metric!r}, but "
-                f"{DETECTION_METRICS_FILENAME} has {_describe(candidates)}"
+                f"{metrics_filename} has {_describe(candidates)}"
                 + (f" (mean {_mean(values)!r})" if len(values) > 1 else ""),
             )
         ]
@@ -559,7 +575,11 @@ def _check_cell(
 
 
 def check_table_numbers(
-    readme_text: str, rows: Sequence[MetricRow], source_name: str = "README.md"
+    readme_text: str,
+    rows: Sequence[MetricRow],
+    source_name: str = "README.md",
+    *,
+    metrics_source: str | None = None,
 ) -> list[Failure]:
     """PUB-04: every number in a metric table traces back to the CSV.
 
@@ -574,7 +594,10 @@ def check_table_numbers(
     arms = sorted({row.arm for row in rows})
     metrics = {normalise_label(row.metric): row.metric for row in rows}
 
+    metrics_filename = metrics_source or DETECTION_METRICS_FILENAME
     for table in parse_markdown_tables(readme_text):
+        if table.metrics_source != metrics_source:
+            continue
         header_arms = [resolve_arm(cell, arms)[0] for cell in table.header]
         row_arms = [resolve_arm(row[0], arms)[0] if row else None for row in table.rows]
         arms_in_rows = any(arm is not None for arm in row_arms)
@@ -628,7 +651,7 @@ def check_table_numbers(
                             "table-numbers",
                             location,
                             f"{kind} {unresolved_label.strip()!r} does not name a metric in "
-                            f"{DETECTION_METRICS_FILENAME}; use the CSV name or annotate the "
+                            f"{metrics_filename}; use the CSV name or annotate the "
                             f"cell with <!--metric: ...-->. Known metrics: "
                             f"{sorted(metrics.values())}",
                         )
@@ -648,6 +671,7 @@ def check_table_numbers(
                         split=split,
                         rows=rows,
                         location=location,
+                        metrics_filename=metrics_filename,
                     )
                 )
     return failures
@@ -943,6 +967,37 @@ def verify(
         notes.append(
             f"{metrics_path} is absent, so no README number was checked against a "
             "source. This is NOT a pass - see the exit code."
+        )
+
+    extra_metrics_sources = sorted(
+        {
+            table.metrics_source
+            for table in parse_markdown_tables(readme_text)
+            if table.metrics_source is not None
+        }
+    )
+    for metrics_source in extra_metrics_sources:
+        source_path = project_root / "results" / metrics_source
+        if not source_path.is_file():
+            failures.append(
+                Failure(
+                    "table-numbers",
+                    str(source_path),
+                    "annotated metrics source does not exist",
+                )
+            )
+            continue
+        source_rows = read_detection_metrics_csv(source_path)
+        failures.extend(
+            check_table_numbers(
+                readme_text,
+                source_rows,
+                metrics_source=metrics_source,
+            )
+        )
+        notes.append(
+            f"{metrics_source}: {len(source_rows)} rows, "
+            f"arms {sorted({row.arm for row in source_rows})}"
         )
 
     failures.extend(check_required_disclosures(readme_text))

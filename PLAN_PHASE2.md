@@ -162,7 +162,8 @@
     而且 wall clock 與 SM clock 近乎成反比——時間花在 GPU 上、隨時脈縮放，
     但**不隨像素量縮放**。「不隨解析度變化」這個觀察不變，
     「所以兩個模型不能靠這個數字分高下」這個結論也不變。
-  - **② 訓練設定已備妥**（`configs/training_rfdetr.yaml`，`35b2394`）。
+  - **② 四組訓練與評測：完成**（2026-08-04）。設定由
+    `configs/training_rfdetr.yaml` 載入，並非複製 RT-DETR 設定後只換 checkpoint。
     **不是複製 `training.yaml` 換 checkpoint**——2026-08-02 逐項讀取
     `Roboflow/rf-detr-nano` 之後發現兩者在每一個關鍵預處理鍵上都不同：
 
@@ -182,12 +183,25 @@
     473 個參數中 249 個命中。
     `optimizer:` 底下**每一個值都標 `source: guess`**（把 CNN 的 recipe 套到 ViT），
     且有測試強制這個標記存在。
-    **範圍從四組縮成兩組**（`real_only` 與 `filtered_syn`），理由寫進 config：
-    那是主實驗裡 95% 區間唯一不重疊的一對。
-  - **② 還沒做的**：實際訓練。**本機 4090 沒有任何訓練速度實測**
-    （四組 RT-DETRv2 都跑在 Colab L4），時數未知，
-    要先跑 200 步量實測 it/s 才能報。config 裡已標 `UNMEASURED`。
-  - **驗證於**：（未完成）
+    最後依使用者決策跑完整四組，不再縮成兩組：`real_only`、`standard_aug`、
+    `unfiltered_syn`、`filtered_syn` 都以 seed 1337 跑滿 **10,900 steps**，
+    並各自用 best-validation checkpoint 評測。
+  - **② 凍結結果**：744 張 frozen Test、1,000 次影像層級 bootstrap 已完成，
+    來源為 `results/rfdetr_detection_metrics.csv`（424 列）與
+    `results/rfdetr_predictions_index.json`。`primary_map_small`：
+    `real_only` **0.4841 [0.4653, 0.5048]**、`standard_aug`
+    **0.4970 [0.4727, 0.5219]**、`unfiltered_syn`
+    **0.4959 [0.4747, 0.5194]**、`filtered_syn`
+    **0.5030 [0.4841, 0.5240]**。四組區間全部重疊，不能宣稱合成資料勝出；
+    synthetic arms 又只有一半 real-image exposures，且 H4 AUC 0.9053 失敗。
+    與 RT-DETRv2 的負向結果合看，結論是**架構敏感且不確定，沒有穩健提升**。
+  - **③ 還沒做的**：用 fine-tuned RF-DETR checkpoint 取得可發布的延遲表。
+    使用者已鎖定 2520 MHz，clock-spread gate 三次都通過，但 host-contention
+    p95 gate 三次都失敗；`reports/rfdetr_speed_baseline_probe.md` 因此保留 FAIL，
+    不能把數字放進 README。只在機器真正安靜時再重跑，不降低門檻。
+  - **驗證於**：`reports/rfdetr_detection_main_table.md`、
+    `results/rfdetr_detection_metrics.csv`、`results/rfdetr_predictions_index.json`；
+    M20 整體仍為 `[~]`，待 ③ 通過後才可標 `[x]`。
 
 ---
 
@@ -210,7 +224,7 @@
 
 ## M21 — 補 seeds（條件性）
 
-- [ ] **M21** Real-only 與最佳 Filtered 組各補到 3 seeds
+- [x] **M21** Real-only 與最佳 Filtered 組各補到 3 seeds（條件未觸發，記錄後結案）
   - **對應規格**：TRAIN-19、EVAL-09
   - **前置判斷**：先看 M18 的主表。**若 Filtered 組沒有提升，補 seed 不會改變結論**——
     此時把額度留給錯誤分析，並在 worklog 記錄這個取捨
@@ -218,7 +232,11 @@
     主表改報 **mean ± std**；
     只有 1 seed 的組別在表格中明確標註「單一 seed」；
     **不得用單 seed 的零點幾個點差距宣稱勝出**（[EVAL-10](docs/evaluation_spec.md)）
-  - **驗證於**：（未完成）
+  - **實際決策**：RT-DETRv2 的 `filtered_syn` 顯著低於 `real_only`；RF-DETR 的
+    `filtered_syn` 雖然點估計較高，但與 `real_only` 的 95% bootstrap 區間重疊，
+    且有 real-image exposure 與 H4 domain-gap 混淆。沒有得到「Filtered 提升」的
+    觸發條件，因此不再花 6 個額外長訓練重複一個不成立的方向性主張。
+  - **驗證於**：README 的兩模型家族結果段落、`docs/worklog.md` 2026-08-04 記錄。
 
 ---
 

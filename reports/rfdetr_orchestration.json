@@ -1,0 +1,382 @@
+{
+  "arm_order": [
+    "real_only",
+    "filtered_syn",
+    "standard_aug",
+    "unfiltered_syn"
+  ],
+  "arms": {
+    "filtered_syn": {
+      "finished_at_utc": "2026-08-03T07:51:04.669699+00:00",
+      "run_record": "<data_root>\\runs_rfdetr\\filtered_syn\\seed_1337\\run_record.json",
+      "status": "completed"
+    },
+    "real_only": {
+      "run_record": "<data_root>\\runs_rfdetr\\real_only\\seed_1337\\run_record.json",
+      "status": "skipped_complete"
+    },
+    "standard_aug": {
+      "finished_at_utc": "2026-08-03T09:10:13.337784+00:00",
+      "run_record": "<data_root>\\runs_rfdetr\\standard_aug\\seed_1337\\run_record.json",
+      "status": "completed"
+    },
+    "unfiltered_syn": {
+      "finished_at_utc": "2026-08-03T10:23:40.610901+00:00",
+      "run_record": "<data_root>\\runs_rfdetr\\unfiltered_syn\\seed_1337\\run_record.json",
+      "status": "completed"
+    }
+  },
+  "attempts": [
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "status": "pending"
+        },
+        "real_only": {
+          "started_at_utc": "2026-08-02T15:52:43.143162+00:00",
+          "status": "running"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1605.5356483459473,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-02T15:52:43.130600+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-02T15:52:43.143162+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "status": "pending"
+        },
+        "real_only": {
+          "started_at_utc": "2026-08-02T18:46:29.660728+00:00",
+          "status": "running"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.860424041748,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-02T18:46:29.654410+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-02T18:46:29.660728+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "status": "pending"
+        },
+        "real_only": {
+          "started_at_utc": "2026-08-02T19:00:43.218060+00:00",
+          "status": "running"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.8600311279297,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-02T19:00:43.193135+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-02T19:00:43.218060+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "status": "pending"
+        },
+        "real_only": {
+          "started_at_utc": "2026-08-03T03:35:23.052004+00:00",
+          "status": "running"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.8602867126465,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-03T03:35:23.048887+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-03T03:35:23.052004+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "error": "competing GPU process detected: 13908:Taskmgr.exe",
+          "error_type": "SafetyPolicyError",
+          "finished_at_utc": "2026-08-03T04:16:17.816472+00:00",
+          "status": "failed"
+        },
+        "real_only": {
+          "finished_at_utc": "2026-08-03T04:11:09.511803+00:00",
+          "run_record": "<data_root>\\runs_rfdetr\\real_only\\seed_1337\\run_record.json",
+          "status": "completed"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "finished_at_utc": "2026-08-03T04:16:17.816472+00:00",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.8597297668457,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-03T03:55:29.934033+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-03T04:16:17.816472+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "error": "competing GPU process detected: Photos.exe",
+          "error_type": "SafetyPolicyError",
+          "finished_at_utc": "2026-08-03T04:42:27.440858+00:00",
+          "status": "failed"
+        },
+        "real_only": {
+          "run_record": "<data_root>\\runs_rfdetr\\real_only\\seed_1337\\run_record.json",
+          "status": "skipped_complete"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "finished_at_utc": "2026-08-03T04:42:27.440858+00:00",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.521785736084,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-03T04:18:18.939487+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-03T04:42:27.440858+00:00"
+    },
+    {
+      "arm_order": [
+        "real_only",
+        "filtered_syn",
+        "standard_aug",
+        "unfiltered_syn"
+      ],
+      "arms": {
+        "filtered_syn": {
+          "error": "competing GPU process detected: 4:System",
+          "error_type": "SafetyPolicyError",
+          "finished_at_utc": "2026-08-03T06:28:31.192817+00:00",
+          "status": "failed"
+        },
+        "real_only": {
+          "run_record": "<data_root>\\runs_rfdetr\\real_only\\seed_1337\\run_record.json",
+          "status": "skipped_complete"
+        },
+        "standard_aug": {
+          "status": "pending"
+        },
+        "unfiltered_syn": {
+          "status": "pending"
+        }
+      },
+      "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+      "finished_at_utc": "2026-08-03T06:28:31.192817+00:00",
+      "model_checkpoint": "Roboflow/rf-detr-nano",
+      "provenance": {
+        "config_path": "configs\\training_rfdetr.yaml",
+        "free_disk_gib_at_preflight": 1604.1838150024414,
+        "manifest_path": "splits\\split_manifest.json",
+        "pool_tag": "m13_pool_1x",
+        "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+        "required_free_gib": 50.0,
+        "run_records_root": "<data_root>\\runs_rfdetr_records",
+        "runs_root": "<data_root>\\runs_rfdetr",
+        "synthetic_counts": {
+          "filtered_syn": 3500,
+          "real_only": 0,
+          "standard_aug": 0,
+          "unfiltered_syn": 3500
+        }
+      },
+      "seed": 1337,
+      "started_at_utc": "2026-08-03T06:15:17.342842+00:00",
+      "total_steps": 10900,
+      "updated_at_utc": "2026-08-03T06:28:31.192817+00:00"
+    }
+  ],
+  "config_sha256": "8d9622ec7596b0a039cc3a77ae4cc06b9285acb80c96f1408edf8794c6bccf85",
+  "finished_at_utc": "2026-08-03T10:23:40.701155+00:00",
+  "model_checkpoint": "Roboflow/rf-detr-nano",
+  "provenance": {
+    "config_path": "configs\\training_rfdetr.yaml",
+    "free_disk_gib_at_preflight": 1604.1834564208984,
+    "manifest_path": "splits\\split_manifest.json",
+    "pool_tag": "m13_pool_1x",
+    "real_train_digest": "b46e8263a9000a2ac019adf5034c100e54e41ef912da2c2edb6f1a2e520fc9b3",
+    "required_free_gib": 50.0,
+    "run_records_root": "<data_root>\\runs_rfdetr_records",
+    "runs_root": "<data_root>\\runs_rfdetr",
+    "synthetic_counts": {
+      "filtered_syn": 3500,
+      "real_only": 0,
+      "standard_aug": 0,
+      "unfiltered_syn": 3500
+    }
+  },
+  "seed": 1337,
+  "started_at_utc": "2026-08-03T07:10:58.622559+00:00",
+  "total_steps": 10900,
+  "updated_at_utc": "2026-08-03T10:23:40.701155+00:00"
+}

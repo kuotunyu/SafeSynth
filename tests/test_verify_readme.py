@@ -957,6 +957,65 @@ def test_a_clean_repository_with_results_exits_zero(tmp_path: Path) -> None:
     assert "PASS:" in format_report(result)[-1]
 
 
+def test_tables_can_select_a_second_metrics_csv_with_the_same_arm_names(
+    tmp_path: Path,
+) -> None:
+    """A model-family replication must not silently reuse the first CSV.
+
+    Both detector families use the same four arm names and metric names.  The
+    source annotation is therefore the only thing that prevents a plausible
+    RT-DETR value from being accepted as an RF-DETR result (or vice versa).
+    """
+
+    root = _repository(
+        tmp_path,
+        readme=(
+            COMPLETE_DISCLOSURES
+            + "\n\n"
+            + _table("| Arm | primary_map_small |", "| Real-only | 0.3564 |")
+            + "\n\n<!--metrics-source: rfdetr_detection_metrics.csv-->\n"
+            + _table("| Arm | primary_map_small |", "| Real-only | 0.4841 |")
+        ),
+    )
+    (root / "results").mkdir()
+    write_detection_metrics_csv(ROWS, root / "results" / "detection_metrics.csv")
+    write_detection_metrics_csv(
+        [_row("real_only", "primary_map_small", 0.4841)],
+        root / "results" / "rfdetr_detection_metrics.csv",
+    )
+
+    result = verify(root, environment={}, git_emails=[])
+
+    assert result.failures == ()
+    assert any("rfdetr_detection_metrics.csv" in note for note in result.notes)
+
+
+def test_a_second_metrics_table_cannot_borrow_a_number_from_the_default_csv(
+    tmp_path: Path,
+) -> None:
+    root = _repository(
+        tmp_path,
+        readme=(
+            COMPLETE_DISCLOSURES
+            + "\n\n"
+            + _table("| Arm | primary_map_small |", "| Real-only | 0.3564 |")
+            + "\n\n<!--metrics-source: rfdetr_detection_metrics.csv-->\n"
+            + _table("| Arm | primary_map_small |", "| Real-only | 0.3564 |")
+        ),
+    )
+    (root / "results").mkdir()
+    write_detection_metrics_csv(ROWS, root / "results" / "detection_metrics.csv")
+    write_detection_metrics_csv(
+        [_row("real_only", "primary_map_small", 0.4841)],
+        root / "results" / "rfdetr_detection_metrics.csv",
+    )
+
+    result = verify(root, environment={}, git_emails=[])
+
+    assert [failure.check for failure in result.failures] == ["table-numbers"]
+    assert "0.3564" in result.failures[0].message
+
+
 def test_a_clean_repository_without_results_is_not_a_pass(tmp_path: Path) -> None:
     root = _repository(tmp_path, readme=COMPLETE_DISCLOSURES + "\n")
 

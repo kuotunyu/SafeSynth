@@ -8,52 +8,53 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-02 上午（M20 ① 完成；GPU 被 llama-server 佔住）
-- **最後驗證 commit**：`741fd6d` feat(demo): run the video path for the first time
+- **更新時間**：2026-08-04（RF-DETR 四組訓練與完整評測完成；延遲閘門待安靜重跑）
+- **最後已 commit 程式 checkpoint**：`45cd180` fix(m20): allow Docker desktop GPU client
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19`、`M22` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
-  **`M20` 進行中**（只差 ① 那 4 分鐘的安靜量測，② RF-DETR 訓練未開始），
+  **`M20` 進行中**（四組訓練、預測、1,000 次 bootstrap 與結果解讀完成；
+  只差 fine-tuned RF-DETR 延遲通過 contention gate），
   **`M23` 是誠實的 `[~]`**（四條本機條件全綠，但「CI 為綠」需要先 push），
-  `M21` 依前置判斷暫緩，`M24` 未開始。
-- **⚠️ 未 commit 的改動**：無（收工時工作樹乾淨）。
-- **最重要的一句話**：**合成資料在這個資料集上沒有提升，而且現在有信賴區間撐著這句話**——
-  `real_only` 與兩個合成組的 95% CI **不重疊**。
-  但同一批區間也**收回了兩個主張**：`real_only` 勝過 `standard_aug`（重疊，不成立）、
-  `filtered_syn` 在偵測指標上勝過 `unfiltered_syn`（三個指標全部重疊，不成立）。
-  過濾可量測的效果在合規操作點，不在 AP。
+  `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；`M24` 未開始。
+- **⚠️ 未 commit 的改動**：RF 結果表、索引、README／PLAN／worklog、README verifier
+  多來源支援及其測試；另有訓練程序產生的報告，凍結前逐一分類。
+- **最重要的一句話**：RT-DETRv2 的合成組顯著較差；RF-DETR-Nano 的合成組
+  點估計稍高但四組 95% CI 全部重疊。兩個架構方向不一致，因此目前只有
+  **「沒有穩健、可泛化的合成資料提升」**這個結論，不能宣稱 RF 已證明勝出。
 - **已凍結不得再動**：`splits/split_manifest.json`、`test_blocklist.json`、
   `source_checksums.json`、`MANIFEST.sha256`（SHA256
   `ce9d76ee336cfba5e6071727442f7af413a8372f28cc9882093cb784587287a3`）；
   再加上 **`configs/evaluation.yaml` 的 `compliance.score_threshold: 0.07`**——
   EVAL-04 在 Validation 上選定後即凍結，**看過 Test 之後再改就是在 Test 上調參**。
-- **資料與素材落地**：Colab 四組權重解壓在 `D:\sdg-data-safesynth
-uns\<arm>\seed_1337\`
-  （每組 best ＋ last 兩個 checkpoint）；八份偵測結果（4 arms × test/val）在
-  `runs/predictions/`，索引在 `results/predictions_index.json`。
+- **資料與素材落地**：RT-DETRv2 四組權重位於
+  `<data_root>/runs/<arm>/seed_1337/`（每組 best ＋ last）；
+  八份偵測結果（4 arms × test/val）索引在 `results/predictions_index.json`。
   **`results/detection_metrics.csv` 現在是被追蹤的**（441 列）——EVAL-12 要求所有報告數字
   都能從它重算，`scripts/verify_readme.py` 與 CI 都以它為準。
-- **環境**：不變。Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
-  GPU 於本輪後段空出並用於 M20 ①（延遲重測），其餘評測與分析在 CPU 上。
-- **下一個動作（一句話、可直接動手）**：等使用者對 `instructions_for_me.md` 裡的 repo 體積問題（437 MB，其中 362.9 MB 是孤兒圖）做決定，那件事在第一次 push 之前處理才便宜。
-- **卡住的事**：**M20 ② 卡在 GPU 被別的程式佔住**。使用者機器上有一個
-  `llama-server`（不是我開的）吃掉 **23.5 GB / 90%** 的 4090，訓練跑不起來。
-  程式已全部備妥：`configs/training_rfdetr.yaml` 可載入了、
-  `scripts/probe_train_speed.py` 可量實測速度。GPU 一空出來就能跑。
-  另外**時脈還鎖著**（`nvidia-smi -rgc` 要使用者執行）。
+  RF 複驗另有 `results/rfdetr_detection_metrics.csv`（424 列）與
+  `results/rfdetr_predictions_index.json`；README 用明確的 `metrics-source` 註記選來源，
+  防止同名 arm／metric 誤對到 RT-DETRv2 的 CSV。
+- **環境**：Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
+  RF 四組在本機 RTX 4090 完成；bootstrap 與目前文件凍結主要使用 CPU。
+  使用者已於延遲嘗試後執行 `nvidia-smi -rgc`，SafeSynth 不占 GPU。
+- **下一個動作（一句話、可直接動手）**：完成 RF 結果凍結與全套測試；等機器真正
+  安靜時只重跑一次 fine-tuned RF 延遲，通過才關閉 M20。
+- **卡住的事**：只有 M20 的正式延遲表。2520 MHz clock-spread gate 已連續三次通過，
+  但 host-contention p95 gate 三次失敗；不降低門檻，也不把 FAIL 數字寫入 README。
 
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
      這是預先登記的閘門確實有預測力，不是事後找的藉口
-  2. **這一輪沒有跑 bootstrap**（`--bootstrap-resamples 0`），所以它不滿足 EVAL-09，
-     報告已明載。全部單一 seed，EVAL-10 禁止用零點幾個點宣稱勝出
+  2. RF-DETR 已跑 **1,000 次影像層級 bootstrap**，但四組仍全是單一 seed；
+     EVAL-10 禁止用區間重疊的零點幾個點宣稱勝出
   3. **EVAL-16 無法產生**：凍結 Test 的 744 張**全都**含 helmet 或 head，
      hard-negative 子集是空的，而候選區域 fallback 未實作
   4. 模型**校準很差**：223,200 個偵測的最高分只有 0.2495。排序good、絕對分數不可用
   5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
   6. **repo 有 437 MB**，其中 362.9 MB 是 116 個沒有任何文件引用的 Phase 1 診斷圖。
      從 HEAD 刪不會讓 clone 變小，要 `filter-repo`，而且**要在第一次 push 之前做**
-- **等使用者做的事**：見 [instructions_for_me.md](../instructions_for_me.md)。
-  遠端 GitHub repo 仍未建立（發佈時才需要）。
+- **等使用者做的事**：目前沒有。遠端 GitHub repo 仍未建立；歷史瘦身、建立遠端與
+  Hugging Face 上傳屬外部／不可逆步驟，會在本機內容完全驗證後逐步請使用者操作。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_colab_results
@@ -66,6 +67,31 @@ uns\<arm>\seed_1337\`
 ---
 
 ## 工作日誌
+
+### 2026-08-04 — RF-DETR 四組完成，結果凍結只差可信延遲
+
+- **訓練完成**：`real_only`、`standard_aug`、`unfiltered_syn`、`filtered_syn`
+  都以 seed 1337 在 RTX 4090 跑滿 10,900 optimizer steps；四組 run record 的
+  frozen Train digest 相同，synthetic counts 為 0／0／3500／3500。
+- **預測與評測完成**：四組各自解析 best-validation checkpoint，在相同 frozen
+  744-image Test 上產生預測並跑 1,000 次 image-level bootstrap。主結果與來源分別在
+  `reports/rfdetr_detection_main_table.md`、`results/rfdetr_detection_metrics.csv`、
+  `results/rfdetr_predictions_index.json`。
+- **結果解讀**：`primary_map_small` 依序為 0.4841、0.4970、0.4959、0.5030；
+  四組 95% CI 全部重疊。RF 的點估計方向與 RT 相反，但不能宣稱 synthetic win；
+  synthetic arms 又只有一半 real-image exposures，且 H4 AUC 0.9053 仍失敗。
+  跨架構結論是「效果敏感且不確定」，不是穩健提升。
+- **M21 不觸發**：RT 的 Filtered 沒提升，RF 的 Filtered 也沒有區間分離；依原先
+  前置判斷，不再補 6 個長訓練 seed。
+- **延遲仍未凍結**：管理員鎖定 2520 MHz 後連跑三次，clock spread 都是 1.00，
+  但 contention p95 分別有 6/9、5/9、8/9 rows 失敗。三個模型／解析度一起抖動，
+  證據指向 host scheduling，而不是單一模型。正式報告保留 FAIL；不降低門檻，
+  等真正安靜的時段再重跑一次。使用者已執行 `nvidia-smi -rgc`，時脈限制解除。
+- **README 防錯**：先加入兩個會失敗的測試，再讓 metric table 可用
+  `<!--metrics-source: ...-->` 指定第二份 CSV。若 RF 表誤貼 RT 的可信數字，現在也會
+  FAIL，而不是因 arm／metric 同名而蒙混過關。
+- **[~] 本輪狀態**：全套 pytest、Ruff、README verifier、授權掃描與
+  `git diff --check` 已跑；M20 等可信延遲通過後才能改成 `[x]`。
 
 ### 2026-08-02（上午）— M20 ① 收掉，以及變異測試第二次咬到我
 

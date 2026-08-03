@@ -261,6 +261,37 @@ project has no such arm because Real-only already is it** — `real_only` trains
 on the entire real Train split, so there is no higher real-data ceiling left to
 add. Stating that is cheaper than letting a reader conclude an arm was dropped.
 
+### RF-DETR-Nano replication: the direction changed, the conclusion did not
+
+The same four-arm protocol was repeated on RF-DETR-Nano with seed 1337 and the
+same 10,900 optimizer-step budget. Each arm was evaluated at its own
+best-validation checkpoint on the same frozen 744-image real Test split, with
+1,000 percentile-bootstrap resamples over Test images. Every number in the
+table comes from
+[`results/rfdetr_detection_metrics.csv`](results/rfdetr_detection_metrics.csv).
+
+<!--metrics-source: rfdetr_detection_metrics.csv-->
+| Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real_image_exposures <!--split: test--> |
+|---|---:|---:|---:|---:|
+| `real_only` | 0.4841 [0.4653, 0.5048] | 0.5657 | 0.9761 [0.9643, 0.9863] | 49.83 |
+| `standard_aug` | 0.4970 [0.4727, 0.5219] | 0.5789 | 0.9681 [0.9539, 0.9809] | 49.83 |
+| `unfiltered_syn` | 0.4959 [0.4747, 0.5194] | 0.5774 | 0.9750 [0.9596, 0.9865] | 24.91 |
+| `filtered_syn` | 0.5030 [0.4841, 0.5240] | 0.5818 | 0.9863 [0.9777, 0.9938] | 24.91 |
+
+Unlike RT-DETRv2, RF-DETR-Nano gives the synthetic arms slightly higher point
+estimates than `real_only`. **That is not a supported synthetic-data win:** all
+four `primary_map_small` intervals overlap, every arm is still a single seed,
+and the synthetic arms received only half as many real-image exposures. The H4
+artifact gate also failed at AUC 0.9053, so any apparent gain may reflect the
+detectable synthetic domain rather than useful variation. Taken together, the
+RT and RF runs say the effect is architecture-sensitive and inconclusive, not
+that synthetic data robustly improves detection.
+
+Fine-tuned RF-DETR latency is deliberately absent. Three locked-clock attempts
+failed the pre-registered host-contention p95 gate even though the clock-spread
+gate passed. Those runs are diagnostic evidence, not publishable timings; the
+benchmark remains pending until the machine is genuinely quiet.
+
 ### What would have to be true for this to work
 
 Every number above is a **single seed**, and EVAL-10 forbids reading a fraction

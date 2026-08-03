@@ -22,6 +22,10 @@ INTERVIEW_PREP.md
 /runs/
 /tmp/
 /outputs/
+# Runtime watchdog telemetry contains local process names and absolute paths;
+# keep the compact final reports, not these append-only machine logs.
+/reports/rfdetr_probe_health.jsonl
+/reports/train_smoke_health.jsonl
 # results/ must stay tracked as a directory so results/.gitkeep survives:
 # ignore its CONTENTS, not the directory itself.
 /results/*
@@ -32,6 +36,8 @@ INTERVIEW_PREP.md
 # without it cannot verify the README at all. These are kilobytes.
 !/results/detection_metrics.csv
 !/results/predictions_index.json
+!/results/rfdetr_detection_metrics.csv
+!/results/rfdetr_predictions_index.json
 !/results/colab/
 /results/colab/**/*.safetensors
 /results/colab/**/*.pt

@@ -1,0 +1,13 @@
+{
+  "device": "NVIDIA GeForce RTX 4090",
+  "arm": "real_only",
+  "probes": [
+    {
+      "label": "rfdetr",
+      "steps_per_second": 2.8932393828681486,
+      "seconds_per_step": 0.3456333430000086,
+      "fixed_overhead_seconds": 10.462401979995775,
+      "production_hours": 1.0494071779666914
+    }
+  ]
+}
