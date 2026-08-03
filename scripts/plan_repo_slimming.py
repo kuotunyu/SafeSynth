@@ -26,8 +26,7 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
-from src.data.paths import PROJECT_ROOT
-
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "repo_slimming_plan.md"
 FIGURE_ROOT = "reports/figures/"
 IMAGE_SUFFIXES = ("png", "jpg", "jpeg", "gif", "svg", "mp4")

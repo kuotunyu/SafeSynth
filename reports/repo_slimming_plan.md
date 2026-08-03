@@ -8,7 +8,7 @@
 | | bytes across ALL history | share |
 |---|---:|---:|
 | `reports/figures/` | 629.7 MB | 94% |
-| `everything else` | 42.3 MB | 6% |
+| `everything else` | 43.7 MB | 6% |
 
 A clone downloads history, not the working tree, so deleting these at HEAD
 would change nothing. Rewriting history is the only thing that shrinks it,
