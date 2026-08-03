@@ -29,6 +29,7 @@ from src.release.repository_curation import FigureDisposition, FigureReference
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE_COMMAND = WORKSPACE_ROOT / "scripts" / "archive_repository_curation.py"
 RESTORE_COMMAND = WORKSPACE_ROOT / "scripts" / "restore_curated_figures.py"
+EXPECTED_SOURCE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
 @dataclass(frozen=True)
@@ -708,6 +709,7 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
         (
             "$ErrorActionPreference = 'Stop'",
             f"$OwnerProjectRoot = '{owner_root}'",
+            f"$ExpectedSourceCommit = '{project.commit}'",
             (
                 "if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { "
                 "throw 'Owner project root is not a directory. STOP.' }"
@@ -721,6 +723,19 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
             (
                 'if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. '
                 'Status:`n$($GitStatus -join [Environment]::NewLine)" }'
+            ),
+            "$ActualSourceCommit = @(git rev-parse --verify HEAD)",
+            (
+                'if ($LASTEXITCODE -ne 0) { throw "git rev-parse failed with exit code '
+                '$LASTEXITCODE. STOP." }'
+            ),
+            (
+                'if ($ActualSourceCommit.Count -ne 1) { throw "git rev-parse must return '
+                'exactly one source commit line. STOP." }'
+            ),
+            (
+                "if ($ActualSourceCommit[0] -cne $ExpectedSourceCommit) { throw "
+                "'Owner repository HEAD does not match archived source commit. STOP.' }"
             ),
             "uvx git-filter-repo --version",
             (
@@ -747,7 +762,14 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
     assert completed.stdout.index("KEEP=1") < completed.stdout.index("DROP=1")
 
 
-def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_path: Path) -> None:
+def _execute_runbook_with_fake_native_commands(
+    tmp_path: Path,
+    *,
+    expected_commit: str = EXPECTED_SOURCE_COMMIT,
+    status_exit: int = 0,
+    rev_parse_exit: int = 0,
+    rev_parse_lines: tuple[str, ...] = (),
+) -> tuple[subprocess.CompletedProcess[str], list[str], str, Path]:
     owner_root = tmp_path / "owner's project"
     owner_root.mkdir()
     fake_commands = tmp_path / "fake-commands"
@@ -756,7 +778,15 @@ def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_pat
     _write(
         fake_commands,
         "git.cmd",
-        b'@echo off\r\necho git %*>>"%COMMAND_LOG%"\r\nexit /b 17\r\n',
+        (
+            '@echo off\r\necho git %*>>"%COMMAND_LOG%"\r\n'
+            'if "%1"=="status" exit /b %STATUS_EXIT%\r\n'
+            'if "%1"=="rev-parse" (\r\n'
+            '  if defined REV_PARSE_LINE_1 echo %REV_PARSE_LINE_1%\r\n'
+            '  if defined REV_PARSE_LINE_2 echo %REV_PARSE_LINE_2%\r\n'
+            '  exit /b %REV_PARSE_EXIT%\r\n'
+            ')\r\nexit /b 99\r\n'
+        ).encode("ascii"),
     )
     _write(
         fake_commands,
@@ -764,11 +794,15 @@ def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_pat
         b'@echo off\r\necho uvx %*>>"%COMMAND_LOG%"\r\nexit /b 0\r\n',
     )
     runbook = tmp_path / "runbook.ps1"
-    runbook.write_bytes(archive_command._runbook(str(owner_root)).encode("utf-8"))
+    runbook_text = archive_command._runbook(str(owner_root), expected_commit)
+    runbook.write_bytes(runbook_text.encode("utf-8"))
     environment = os.environ.copy()
     environment["COMMAND_LOG"] = str(command_log)
     environment["PATH"] = f"{fake_commands}{os.pathsep}{environment['PATH']}"
-
+    environment["STATUS_EXIT"] = str(status_exit)
+    environment["REV_PARSE_EXIT"] = str(rev_parse_exit)
+    for index, line in enumerate(rev_parse_lines, start=1):
+        environment[f"REV_PARSE_LINE_{index}"] = line
     completed = subprocess.run(
         [
             "powershell.exe",
@@ -784,15 +818,96 @@ def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_pat
         check=False,
         env=environment,
     )
+    commands = (
+        command_log.read_text(encoding="utf-8").splitlines() if command_log.exists() else []
+    )
+    return completed, commands, runbook_text, owner_root
+
+
+def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_path: Path) -> None:
+    completed, commands, runbook, owner_root = _execute_runbook_with_fake_native_commands(
+        tmp_path, status_exit=17
+    )
 
     assert completed.returncode != 0
     assert "git status failed with exit code 17" in completed.stderr
-    assert command_log.read_text(encoding="utf-8").splitlines() == [
-        "git status --porcelain=v1 --untracked-files=all"
-    ]
-    assert f"$OwnerProjectRoot = '{str(owner_root).replace("'", "''")}'" in runbook.read_text(
-        encoding="utf-8"
+    assert commands == ["git status --porcelain=v1 --untracked-files=all"]
+    assert f"$OwnerProjectRoot = '{str(owner_root).replace("'", "''")}'" in runbook
+    assert f"$ExpectedSourceCommit = '{EXPECTED_SOURCE_COMMIT}'" in runbook
+    assert runbook == archive_command._runbook(str(owner_root), EXPECTED_SOURCE_COMMIT)
+
+
+def test_owner_runbook_rev_parse_native_failure_never_reaches_uvx(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path, rev_parse_exit=23
     )
+
+    assert completed.returncode != 0
+    assert "git rev-parse failed with exit code 23" in completed.stderr
+    assert commands == [
+        "git status --porcelain=v1 --untracked-files=all",
+        "git rev-parse --verify HEAD",
+    ]
+
+
+def test_owner_runbook_wrong_clean_head_never_reaches_uvx(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path, rev_parse_lines=("fedcba9876543210fedcba9876543210fedcba98",)
+    )
+
+    assert completed.returncode != 0
+    assert "HEAD does not match archived source commit" in completed.stderr
+    assert commands[-1] == "git rev-parse --verify HEAD"
+    assert all(not command.startswith("uvx ") for command in commands)
+
+
+@pytest.mark.parametrize(
+    "rev_parse_lines",
+    [(), (EXPECTED_SOURCE_COMMIT, "fedcba9876543210fedcba9876543210fedcba98")],
+    ids=["empty", "multiline"],
+)
+def test_owner_runbook_rejects_non_scalar_rev_parse_output(
+    tmp_path: Path, rev_parse_lines: tuple[str, ...]
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path, rev_parse_lines=rev_parse_lines
+    )
+
+    assert completed.returncode != 0
+    assert "exactly one source commit line" in completed.stderr
+    assert commands[-1] == "git rev-parse --verify HEAD"
+    assert all(not command.startswith("uvx ") for command in commands)
+
+
+def test_owner_runbook_matching_head_reaches_rewrite_then_stop(tmp_path: Path) -> None:
+    completed, commands, runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path, rev_parse_lines=(EXPECTED_SOURCE_COMMIT,)
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert commands == [
+        "git status --porcelain=v1 --untracked-files=all",
+        "git rev-parse --verify HEAD",
+        "uvx git-filter-repo --version",
+        "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
+    ]
+    assert "STOP: Stage 1 history rewrite finished" in completed.stdout
+    assert "restore_curated_figures" not in runbook
+    assert "git add" not in runbook
+    assert "git commit" not in runbook
+
+
+@pytest.mark.parametrize(
+    "unsafe_commit",
+    [
+        "A" * 40,
+        "a" * 39,
+        "a" * 40 + "'; Write-Host injected",
+    ],
+)
+def test_owner_runbook_rejects_noncanonical_expected_commit(unsafe_commit: str) -> None:
+    with pytest.raises(ArchiveError, match="canonical source commit"):
+        archive_command._runbook("C:/owner", unsafe_commit)
 
 
 def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path) -> None:

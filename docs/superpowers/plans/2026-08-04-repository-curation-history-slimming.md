@@ -520,11 +520,16 @@ in this order, explicitly checking `$LASTEXITCODE` after every native command:
 ```powershell
 $ErrorActionPreference = 'Stop'
 $OwnerProjectRoot = 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+$ExpectedSourceCommit = '<recovery.source_commit>'
 if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { throw 'Owner project root is not a directory. STOP.' }
 Set-Location -LiteralPath $OwnerProjectRoot
 $GitStatus = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0) { throw "git status failed with exit code $LASTEXITCODE. STOP." }
 if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. Status:`n$($GitStatus -join [Environment]::NewLine)" }
+$ActualSourceCommit = @(git rev-parse --verify HEAD)
+if ($LASTEXITCODE -ne 0) { throw "git rev-parse failed with exit code $LASTEXITCODE. STOP." }
+if ($ActualSourceCommit.Count -ne 1) { throw "git rev-parse must return exactly one source commit line. STOP." }
+if ($ActualSourceCommit[0] -cne $ExpectedSourceCommit) { throw 'Owner repository HEAD does not match archived source commit. STOP.' }
 uvx git-filter-repo --version
 if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed with exit code $LASTEXITCODE. STOP." }
 uvx git-filter-repo --path reports/figures/ --invert-paths --force
@@ -532,8 +537,9 @@ if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code 
 Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or commit. Report the full output to the controller and wait for the Task 7 read-only checkpoint.'
 ```
 
-The implementation embeds the exact passed owner-root argument safely. The
-Stage 1 runbook contains no archive path or restoration authority.
+The implementation embeds the exact passed owner-root argument and the verified
+canonical recovery source commit safely. The Stage 1 runbook contains no archive
+path or restoration authority.
 
 - [ ] **Step 4: Implement the restore command**
 
@@ -737,11 +743,11 @@ Expected: both statuses are clean before removal, and only the intended linked w
 
 The agent must not execute the next command. Ask the owner to open the verified
 stage-1 owner runbook and run it in Windows PowerShell. The runbook checks the
-clean state and every native exit code, performs only the exact rewrite below,
-and ends with a mandatory STOP/report-back instruction. It contains no
-restoration, staging, or commit step. Explain that `uvx` downloads and runs the
-missing history tool without installing a persistent global command, while the
-exact rewrite is:
+clean state, requires `HEAD` to equal the archive's exact source commit, checks
+every native exit code, performs only the exact rewrite below, and ends with a
+mandatory STOP/report-back instruction. It contains no restoration, staging, or
+commit step. Explain that `uvx` downloads and runs the missing history tool
+without installing a persistent global command, while the exact rewrite is:
 
 ```powershell
 uvx git-filter-repo --path reports/figures/ --invert-paths --force

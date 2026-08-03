@@ -9,7 +9,7 @@
 | | reachable-history blob bytes* | share |
 |---|---:|---:|
 | `reports/figures/` | 629.7 MB | 93% |
-| `everything else` | 44.2 MB | 7% |
+| `everything else` | 44.4 MB | 7% |
 
 * Generated-report-only historical blobs are excluded; shared blobs remain counted.
 

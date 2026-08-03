@@ -232,11 +232,14 @@ def load_and_verify_receipt(archive_root: Path) -> CurationReceipt:
     )
 
 
-def _runbook(owner_project_root: str) -> str:
+def _runbook(owner_project_root: str, source_commit: str) -> str:
+    if not isinstance(source_commit, str) or _COMMIT_PATTERN.fullmatch(source_commit) is None:
+        raise ArchiveError("runbook requires a canonical source commit")
     owner = _power_shell_literal(owner_project_root)
     lines = (
         "$ErrorActionPreference = 'Stop'",
         f"$OwnerProjectRoot = '{owner}'",
+        f"$ExpectedSourceCommit = '{source_commit}'",
         (
             "if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { "
             "throw 'Owner project root is not a directory. STOP.' }"
@@ -250,6 +253,19 @@ def _runbook(owner_project_root: str) -> str:
         (
             'if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. '
             'Status:`n$($GitStatus -join [Environment]::NewLine)" }'
+        ),
+        "$ActualSourceCommit = @(git rev-parse --verify HEAD)",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git rev-parse failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        (
+            'if ($ActualSourceCommit.Count -ne 1) { throw "git rev-parse must return '
+            'exactly one source commit line. STOP." }'
+        ),
+        (
+            "if ($ActualSourceCommit[0] -cne $ExpectedSourceCommit) { throw "
+            "'Owner repository HEAD does not match archived source commit. STOP.' }"
         ),
         "uvx git-filter-repo --version",
         (
@@ -330,7 +346,7 @@ def archive(project_root: Path, destination: Path, owner_project_root: str) -> N
         receipt = _receipt_from_recovery(recovery)
         _write_canonical_json(stage / RECEIPT_NAME, _receipt_object(receipt))
         (stage / RUNBOOK_NAME).write_text(
-            _runbook(owner_project_root), encoding="utf-8", newline="\n"
+            _runbook(owner_project_root, recovery.source_commit), encoding="utf-8", newline="\n"
         )
         verified_receipt = load_and_verify_receipt(stage)
         _verify_renamed_bundle(project_root, published_bundle, verified_receipt.bundle_sha256)

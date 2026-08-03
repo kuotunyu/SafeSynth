@@ -196,11 +196,16 @@ def test_formal_plan_retires_old_archives_and_separates_owner_stages() -> None:
     assert "v1 and v2 recovery snapshots" in plan
     assert "forbidden for the owner gate" in plan
     assert v3 in plan
+    task_4 = plan.split("### Task 4:", 1)[1].split("### Task 5:", 1)[0]
     task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]
     task_8 = plan.split("### Task 8:", 1)[1]
+    assert "$ExpectedSourceCommit" in task_4
+    assert "git rev-parse --verify HEAD" in task_4
+    assert "-cne $ExpectedSourceCommit" in task_4
     assert "stage-1 owner runbook" in task_7
     assert "stop and report" in task_7
     assert "git ls-files reports/figures" in task_7
+    assert "requires `HEAD` to equal the archive's exact source commit" in task_7
     assert "restore_curated_figures.py" not in task_7
     assert v3 in task_8
     assert "restore_curated_figures.py" in task_8
