@@ -219,5 +219,6 @@ steps from this report.
 
 The external runbook is written only after the full figure archive, manifest, and
 Git bundle have passed verification.
-It is the sole approved source only for the owner-operated history rewrite and verified KEEP restoration commands.
-After it completes, Task 8 full acceptance gates remain mandatory and are not embedded in this report.
+It is the sole approved source only for the owner-operated Stage 1 history rewrite.
+It stops after that rewrite and does not authorize restoration, staging, or a commit.
+After the owner reports back, the Task 7 read-only checkpoint must pass; Task 8 is the sole restoration, inventory, and commit stage.

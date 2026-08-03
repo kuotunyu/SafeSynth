@@ -163,11 +163,11 @@ def test_generated_report_defers_owner_steps_to_verified_external_runbook(
 
     assert "## Owner-only, non-executable next step" in report
     assert (
-        "sole approved source only for the owner-operated history rewrite and "
-        "verified KEEP restoration commands" in report
+        "sole approved source only for the owner-operated Stage 1 history rewrite" in report
     )
-    assert "Task 8 full acceptance gates remain mandatory" in report
-    assert "not embedded in this report" in report
+    assert "does not authorize restoration, staging, or a commit" in report
+    assert "Task 7 read-only checkpoint" in report
+    assert "Task 8 is the sole restoration" in report
     assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" in report
     assert "bytes across ALL history" not in report
     assert "Generated-report-only historical blobs are excluded; shared blobs remain counted." in report
@@ -182,6 +182,28 @@ def test_generated_report_defers_owner_steps_to_verified_external_runbook(
         r".{0,120}\brewrite\b",
         report,
     ) is None
+
+
+def test_formal_plan_retires_old_archives_and_separates_owner_stages() -> None:
+    plan = (
+        Path(__file__).resolve().parents[1]
+        / "docs/superpowers/plans/2026-08-04-repository-curation-history-slimming.md"
+    ).read_text(encoding="utf-8")
+    v3 = r"D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3"
+
+    assert "2c2d3ff5198ff600220e5b1e1c606ebc80e07a98" in plan
+    assert "f514950b142da95bb4c71d3626b9417fb25a3bff" in plan
+    assert "v1 and v2 recovery snapshots" in plan
+    assert "forbidden for the owner gate" in plan
+    assert v3 in plan
+    task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]
+    task_8 = plan.split("### Task 8:", 1)[1]
+    assert "stage-1 owner runbook" in task_7
+    assert "stop and report" in task_7
+    assert "git ls-files reports/figures" in task_7
+    assert "restore_curated_figures.py" not in task_7
+    assert v3 in task_8
+    assert "restore_curated_figures.py" in task_8
 
 
 def test_history_metrics_ignore_generated_report_commits(fixture_repo: Path) -> None:

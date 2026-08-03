@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -705,19 +706,93 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
     runbook = (destination / "OWNER_HISTORY_REWRITE_RUNBOOK.txt").read_text(encoding="utf-8")
     assert runbook == "\n".join(
         (
-            f"Set-Location -LiteralPath '{owner_root}'",
-            "git status --short --branch",
+            "$ErrorActionPreference = 'Stop'",
+            f"$OwnerProjectRoot = '{owner_root}'",
+            (
+                "if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { "
+                "throw 'Owner project root is not a directory. STOP.' }"
+            ),
+            "Set-Location -LiteralPath $OwnerProjectRoot",
+            "$GitStatus = @(git status --porcelain=v1 --untracked-files=all)",
+            (
+                'if ($LASTEXITCODE -ne 0) { throw "git status failed with exit code '
+                '$LASTEXITCODE. STOP." }'
+            ),
+            (
+                'if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. '
+                'Status:`n$($GitStatus -join [Environment]::NewLine)" }'
+            ),
             "uvx git-filter-repo --version",
+            (
+                'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed '
+                'with exit code $LASTEXITCODE. STOP." }'
+            ),
             "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
-            f"uv run python scripts/restore_curated_figures.py --archive '{destination}'",
-            "git add -- reports/figures",
-            "git diff --cached --check",
-            "git commit -m 'docs: restore curated figure evidence'",
+            (
+                'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code '
+                '$LASTEXITCODE. STOP." }'
+            ),
+            (
+                "Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or "
+                "commit. Report the full output to the controller and wait for the Task 7 "
+                "read-only checkpoint.'"
+            ),
             "",
         )
     )
+    assert "restore_curated_figures" not in runbook
+    assert "git add" not in runbook
+    assert "git commit" not in runbook
     assert owner_root.joinpath("owner-sentinel.txt").read_bytes() == b"unchanged"
     assert completed.stdout.index("KEEP=1") < completed.stdout.index("DROP=1")
+
+
+def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_path: Path) -> None:
+    owner_root = tmp_path / "owner's project"
+    owner_root.mkdir()
+    fake_commands = tmp_path / "fake-commands"
+    fake_commands.mkdir()
+    command_log = tmp_path / "commands.log"
+    _write(
+        fake_commands,
+        "git.cmd",
+        b'@echo off\r\necho git %*>>"%COMMAND_LOG%"\r\nexit /b 17\r\n',
+    )
+    _write(
+        fake_commands,
+        "uvx.cmd",
+        b'@echo off\r\necho uvx %*>>"%COMMAND_LOG%"\r\nexit /b 0\r\n',
+    )
+    runbook = tmp_path / "runbook.ps1"
+    runbook.write_bytes(archive_command._runbook(str(owner_root)).encode("utf-8"))
+    environment = os.environ.copy()
+    environment["COMMAND_LOG"] = str(command_log)
+    environment["PATH"] = f"{fake_commands}{os.pathsep}{environment['PATH']}"
+
+    completed = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(runbook),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+
+    assert completed.returncode != 0
+    assert "git status failed with exit code 17" in completed.stderr
+    assert command_log.read_text(encoding="utf-8").splitlines() == [
+        "git status --porcelain=v1 --untracked-files=all"
+    ]
+    assert f"$OwnerProjectRoot = '{str(owner_root).replace("'", "''")}'" in runbook.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path) -> None:
@@ -830,7 +905,7 @@ def test_archive_command_removes_its_private_stage_when_receipt_write_fails(
     monkeypatch.setattr(archive_command, "_write_canonical_json", fail_receipt_write)
 
     with pytest.raises(OSError, match="injected receipt write failure"):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"), str(destination))
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
 
     assert not destination.exists()
     assert not list(tmp_path.glob(".*"))
@@ -858,7 +933,7 @@ def test_archive_private_root_collision_preserves_unowned_sentinel(
     monkeypatch.setattr(archive_command, "create_recovery_package", fail_package)
 
     with pytest.raises(ArchiveError, match="injected package failure"):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"), str(destination))
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
 
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
@@ -887,7 +962,7 @@ def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision
     monkeypatch.setattr(archive_command, "create_recovery_package", interrupt_package)
 
     with pytest.raises(KeyboardInterrupt):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"), str(destination))
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
 
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()

@@ -8,24 +8,26 @@
 
 **Tech Stack:** Python 3.12 standard library, dataclasses, pathlib/PurePosixPath, hashlib, json, shutil, subprocess/Git, pytest, Ruff, PowerShell, `git-filter-repo` (owner-operated only).
 
-## Final-review amendment — archive rebound
+## Final-review amendment — archive rebound and staged owner gate
 
-The final whole-branch review changed the generated inventory report at source
-commit `2c2d3ff`: it now defers every destructive instruction to the verified
-external owner runbook. The existing archive at
+The v1 archive at
 `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation`
-remains a valid recovery snapshot **only** for source commit `2c2d3ff`; it
-must not be used for the owner gate after this amendment. The next archive
-attempt must use the non-overwriting destination
+remains a recovery snapshot only for source commit
+`2c2d3ff5198ff600220e5b1e1c606ebc80e07a98`. The v2 archive at
 `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2`
-and must bind its receipt and runbook to the current clean branch HEAD.
+remains a recovery snapshot only for source commit
+`f514950b142da95bb4c71d3626b9417fb25a3bff`. These v1 and v2 recovery snapshots
+are forbidden for the owner gate after this amendment. The next archive attempt
+must use the non-overwriting destination
+`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3`
+and bind its receipt and stage-1 owner runbook to the current clean branch HEAD.
 
 ## Global Constraints
 
 - Keep only files under `reports/figures/` that a surviving tracked Markdown document links to through an exact normalized path.
 - Exclude generated `reports/repo_slimming_plan.md` from reference inputs so it cannot promote its own DROP entries to KEEP.
 - Treat unresolved, escaping, malformed, or ambiguous local links as blocking failures; never silently classify them as DROP.
-- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2`.
+- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3`.
 - Record byte size and SHA-256 for every archived file and verify source/archive equality before allowing history rewrite.
 - Create and verify a complete pre-rewrite Git bundle outside the repository.
 - Do not overwrite or delete an existing archive destination.
@@ -512,20 +514,26 @@ Expected: FAIL because both scripts are absent.
 
 The command must compute the real tracked inventory, plan it, call `create_recovery_package()`, verify the returned archive and bundle, and only then write `archive_receipt.json` and the runbook. Its success output must state counts, digests, source commit, and destination. It must not print or execute `git-filter-repo` before every verification passes.
 
-The generated PowerShell runbook must use these owner steps in this order:
+The generated PowerShell runbook is Stage 1 only. It must use these owner steps
+in this order, explicitly checking `$LASTEXITCODE` after every native command:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-git status --short --branch
+$ErrorActionPreference = 'Stop'
+$OwnerProjectRoot = 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { throw 'Owner project root is not a directory. STOP.' }
+Set-Location -LiteralPath $OwnerProjectRoot
+$GitStatus = @(git status --porcelain=v1 --untracked-files=all)
+if ($LASTEXITCODE -ne 0) { throw "git status failed with exit code $LASTEXITCODE. STOP." }
+if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. Status:`n$($GitStatus -join [Environment]::NewLine)" }
 uvx git-filter-repo --version
+if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed with exit code $LASTEXITCODE. STOP." }
 uvx git-filter-repo --path reports/figures/ --invert-paths --force
-uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2'
-git add -- reports/figures
-git diff --cached --check
-git commit -m 'docs: restore curated figure evidence'
+if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code $LASTEXITCODE. STOP." }
+Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or commit. Report the full output to the controller and wait for the Task 7 read-only checkpoint.'
 ```
 
-The implementation substitutes the exact verified archive and owner-root arguments; it does not infer a different location.
+The implementation embeds the exact passed owner-root argument safely. The
+Stage 1 runbook contains no archive path or restoration authority.
 
 - [ ] **Step 4: Implement the restore command**
 
@@ -626,7 +634,7 @@ Before committing, inspect `git diff --cached --name-only` and confirm only the 
 
 **Files:**
 - Read: `reports/repo_slimming_plan.md`
-- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2\`
+- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\`
 - No tracked repository changes expected.
 
 **Interfaces:**
@@ -650,14 +658,14 @@ Expected: every verifier passes and the branch is clean.
 - [ ] **Step 2: Confirm the approved destination does not exist**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
 if (Test-Path -LiteralPath $safeSynthArchive) { throw "approved archive destination already exists" }
 ```
 
 - [ ] **Step 3: Create the complete verified archive and bundle**
 
 ```powershell
-uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
 ```
 
 Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, KEEP/DROP counts, source commit, manifest SHA-256, and bundle SHA-256.
@@ -665,7 +673,7 @@ Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, K
 - [ ] **Step 4: Independently re-verify archive and bundle**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
@@ -690,7 +698,7 @@ Expected: the identity command prints only `kuotunyu <61350295+kuotunyu@users.no
 **Files:**
 - Worktree to retire after integration: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\rfdetr-four-arm`
 - Main repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
-- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
+- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
 
 **Interfaces:**
 - Consumes: verified Task 6 archive/bundle and clean branch.
@@ -725,15 +733,23 @@ git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree list
 
 Expected: both statuses are clean before removal, and only the intended linked worktree is removed. Never use `--force`.
 
-- [ ] **Step 4: Stop and give the owner the exact runbook**
+- [ ] **Step 4: Run the stage-1 owner runbook, stop and report**
 
-The agent must not execute the next command. Ask the owner to open the verified runbook and run its commands in PowerShell as directed. Explain that `uvx` downloads and runs the missing history tool without installing a persistent global command, while the actual rewrite command is:
+The agent must not execute the next command. Ask the owner to open the verified
+stage-1 owner runbook and run it in Windows PowerShell. The runbook checks the
+clean state and every native exit code, performs only the exact rewrite below,
+and ends with a mandatory STOP/report-back instruction. It contains no
+restoration, staging, or commit step. Explain that `uvx` downloads and runs the
+missing history tool without installing a persistent global command, while the
+exact rewrite is:
 
 ```powershell
 uvx git-filter-repo --path reports/figures/ --invert-paths --force
 ```
 
-Wait for the owner to report success and paste any error before continuing. Do not infer completion from process disappearance.
+The owner must stop and report the full output or any error. Wait for that report
+before continuing; do not infer completion from process disappearance and do not
+start Task 8.
 
 - [ ] **Step 5: Confirm the owner rewrite before restoration**
 
@@ -752,7 +768,7 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 **Files:**
 - Restore: exact manifest KEEP set under `reports/figures/`
-- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2\`
+- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\`
 
 **Interfaces:**
 - Consumes: owner-rewritten main and verified archive.
@@ -762,7 +778,7 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 ```powershell
 Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2'
+uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
 ```
 
 Expected: only manifest KEEP paths are restored, and every restored digest matches.
@@ -815,7 +831,7 @@ Expected: `size-pack` is below 120 MiB; only the approved identity appears; no c
 - [ ] **Step 6: Verify recovery assets remain intact**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"

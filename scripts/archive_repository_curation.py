@@ -232,18 +232,40 @@ def load_and_verify_receipt(archive_root: Path) -> CurationReceipt:
     )
 
 
-def _runbook(owner_project_root: str, archive_root: str) -> str:
+def _runbook(owner_project_root: str) -> str:
     owner = _power_shell_literal(owner_project_root)
-    archive = _power_shell_literal(archive_root)
     lines = (
-        f"Set-Location -LiteralPath '{owner}'",
-        "git status --short --branch",
+        "$ErrorActionPreference = 'Stop'",
+        f"$OwnerProjectRoot = '{owner}'",
+        (
+            "if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { "
+            "throw 'Owner project root is not a directory. STOP.' }"
+        ),
+        "Set-Location -LiteralPath $OwnerProjectRoot",
+        "$GitStatus = @(git status --porcelain=v1 --untracked-files=all)",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git status failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        (
+            'if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. '
+            'Status:`n$($GitStatus -join [Environment]::NewLine)" }'
+        ),
         "uvx git-filter-repo --version",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed '
+            'with exit code $LASTEXITCODE. STOP." }'
+        ),
         "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
-        f"uv run python scripts/restore_curated_figures.py --archive '{archive}'",
-        "git add -- reports/figures",
-        "git diff --cached --check",
-        "git commit -m 'docs: restore curated figure evidence'",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        (
+            "Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or "
+            "commit. Report the full output to the controller and wait for the Task 7 "
+            "read-only checkpoint.'"
+        ),
     )
     return "\n".join(lines) + "\n"
 
@@ -291,7 +313,7 @@ def _publish_complete_stage(stage: Path, destination: Path) -> None:
         raise ArchiveError(f"cannot publish verified recovery package: {error}") from error
 
 
-def archive(project_root: Path, destination: Path, owner_project_root: str, archive_argument: str) -> None:
+def archive(project_root: Path, destination: Path, owner_project_root: str) -> None:
     """Build a recovery package and write owner instructions after every verification."""
 
     if _path_exists(destination):
@@ -308,7 +330,7 @@ def archive(project_root: Path, destination: Path, owner_project_root: str, arch
         receipt = _receipt_from_recovery(recovery)
         _write_canonical_json(stage / RECEIPT_NAME, _receipt_object(receipt))
         (stage / RUNBOOK_NAME).write_text(
-            _runbook(owner_project_root, archive_argument), encoding="utf-8", newline="\n"
+            _runbook(owner_project_root), encoding="utf-8", newline="\n"
         )
         verified_receipt = load_and_verify_receipt(stage)
         _verify_renamed_bundle(project_root, published_bundle, verified_receipt.bundle_sha256)
@@ -350,7 +372,6 @@ def main(argv: list[str] | None = None) -> int:
             arguments.project_root,
             Path(arguments.destination),
             arguments.owner_project_root,
-            arguments.destination,
         )
     except (
         ArchiveError,
