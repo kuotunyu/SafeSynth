@@ -863,3 +863,32 @@ def test_archive_private_root_collision_preserves_unowned_sentinel(
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
     assert not destination.exists()
+
+
+def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "archive"
+    colliding_root = tmp_path / ".cs-collision"
+    _write(colliding_root, "sentinel.txt", b"another process owns this")
+    owned_root = tmp_path / ".cs-owned"
+
+    monkeypatch.setattr(
+        archive_command.tempfile,
+        "_get_candidate_names",
+        lambda: iter(("collision", "owned")),
+    )
+
+    def interrupt_package(_project_root: Path, stage: Path, _plan: object) -> object:
+        assert stage == owned_root / "p"
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(archive_command, "create_recovery_package", interrupt_package)
+
+    with pytest.raises(KeyboardInterrupt):
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"), str(destination))
+
+    assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
+    assert not owned_root.exists()
+    assert not destination.exists()

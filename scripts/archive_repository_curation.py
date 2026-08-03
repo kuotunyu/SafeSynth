@@ -298,6 +298,7 @@ def archive(project_root: Path, destination: Path, owner_project_root: str, arch
         raise FileExistsError(f"destination already exists: {destination}")
     plan = plan_figure_curation(project_root, tracked_files(project_root))
     stage_root, stage = _private_stage(destination)
+    published = False
     try:
         recovery = create_recovery_package(project_root, stage, plan)
         published_bundle = stage / BUNDLE_NAME
@@ -314,9 +315,10 @@ def archive(project_root: Path, destination: Path, owner_project_root: str, arch
         if verified_receipt != receipt:
             raise ArchiveError("staged receipt differs from the verified recovery package")
         _publish_complete_stage(stage, destination)
-    except Exception:
-        _remove_private_stage(stage_root)
-        raise
+        published = True
+    finally:
+        if not published:
+            _remove_private_stage(stage_root)
     _remove_private_stage(stage_root)
 
     print(
