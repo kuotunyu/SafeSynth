@@ -166,6 +166,7 @@ _WINDOWS_DESKTOP_GPU_CLIENTS = {
     "shellexperiencehost.exe",
     "startmenuexperiencehost.exe",
     "steamwebhelper.exe",
+    "system",
     "systemsettings.exe",
     "texinputhost.exe",
     "textinputhost.exe",

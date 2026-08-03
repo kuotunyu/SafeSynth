@@ -150,6 +150,25 @@ def test_policy_allows_known_windows_desktop_gpu_clients(tmp_path: Path) -> None
     assert policy.check(stage="training_log", arm="real_only", step=50) == snapshot
 
 
+def test_policy_allows_windows_kernel_system_gpu_client(tmp_path: Path) -> None:
+    """WDDM can report PID 4 as a GPU client even when no workload competes."""
+
+    snapshot = _snapshot(
+        gpu_processes=(GpuProcess(pid=4, process_name="System"),)
+    )
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    assert policy.check(stage="training_log", arm="filtered_syn", step=5_000) == snapshot
+
+
 def test_unidentified_windows_client_requires_memory_or_ownership_evidence(
     tmp_path: Path,
 ) -> None:
