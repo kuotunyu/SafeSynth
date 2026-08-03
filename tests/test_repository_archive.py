@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from src.release import repository_archive
 from src.release.repository_archive import (
     ArchiveError,
     create_recovery_package,
@@ -321,3 +322,250 @@ def test_recovery_package_returns_verified_archive_and_bundle(tmp_path: Path) ->
     assert receipt.bundle_path == destination / "repository.bundle"
     assert receipt.bundle_sha256 == sha256_file(receipt.bundle_path)
     assert receipt.entries == load_and_verify_manifest(destination)
+
+
+def test_recovery_package_bundle_failure_leaves_no_published_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "recovery"
+    real_create_bundle = repository_archive.create_verified_git_bundle
+
+    def fail_bundle(_project_root: Path, _bundle_path: Path) -> str:
+        raise ArchiveError("injected bundle failure")
+
+    monkeypatch.setattr(repository_archive, "create_verified_git_bundle", fail_bundle)
+    with pytest.raises(ArchiveError, match="injected bundle failure"):
+        create_recovery_package(project.root, destination, project.plan)
+
+    assert not destination.exists()
+    monkeypatch.setattr(repository_archive, "create_verified_git_bundle", real_create_bundle)
+    assert create_recovery_package(project.root, destination, project.plan).bundle_path.is_file()
+
+
+def test_restore_copy_failure_leaves_no_final_figures_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    _write(project.root, "reports/figures/second-keep.png", b"second")
+    plan = project.plan + (
+        FigureDisposition(
+            "reports/figures/second-keep.png",
+            6,
+            True,
+            (FigureReference("README.md", 2),),
+        ),
+    )
+    archive = tmp_path / "archive"
+    create_verified_archive(project.root, archive, plan)
+    restored_root = tmp_path / "restored"
+    real_copy = repository_archive.shutil.copyfileobj
+    calls = 0
+
+    def fail_second_copy(source: object, target: object) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected restore failure")
+        real_copy(source, target)
+
+    monkeypatch.setattr(repository_archive.shutil, "copyfileobj", fail_second_copy)
+    with pytest.raises(OSError, match="injected restore failure"):
+        restore_keep_files(restored_root, archive)
+
+    assert not (restored_root / "reports/figures").exists()
+    reports = restored_root / "reports"
+    assert not reports.exists() or not list(reports.glob(".figures.staging-*"))
+
+
+def test_recovery_receipt_uses_the_single_verified_manifest_parse(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    real_loads = repository_archive.json.loads
+    calls = 0
+
+    def allow_one_parse(*args: object, **kwargs: object) -> object:
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise AssertionError("manifest was reopened with an unverified parser")
+        return real_loads(*args, **kwargs)
+
+    monkeypatch.setattr(repository_archive.json, "loads", allow_one_parse)
+
+    receipt = create_recovery_package(project.root, tmp_path / "recovery", project.plan)
+
+    assert receipt.source_commit == project.commit
+    assert calls == 1
+
+
+def test_original_source_alias_is_rejected_before_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+
+    monkeypatch.setattr(
+        repository_archive,
+        "_is_path_alias",
+        lambda path: path.name == "keep.png",
+        raising=False,
+    )
+
+    with pytest.raises(ArchiveError, match="alias"):
+        create_verified_archive(project.root, tmp_path / "archive", (project.plan[1],))
+
+
+def test_duplicate_resolved_source_targets_are_rejected(tmp_path: Path) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    alias = FigureDisposition(
+        "reports/figures/KEEP.png",
+        4,
+        True,
+        (FigureReference("README.md", 1),),
+    )
+
+    with pytest.raises(ArchiveError, match="duplicate resolved source"):
+        create_verified_archive(
+            project.root,
+            tmp_path / "archive",
+            (project.plan[1], alias),
+        )
+
+
+def test_archive_rejects_non_windows_before_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "outputs" / "archive"
+    monkeypatch.setattr(repository_archive, "_is_windows_native", lambda: False, raising=False)
+
+    with pytest.raises(ArchiveError, match="Windows"):
+        create_verified_archive(project.root, destination, project.plan)
+
+    assert not destination.parent.exists()
+
+
+def test_bundle_rejects_non_windows_before_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    bundle_path = tmp_path / "outputs" / "repository.bundle"
+    monkeypatch.setattr(repository_archive, "_is_windows_native", lambda: False, raising=False)
+
+    with pytest.raises(ArchiveError, match="Windows"):
+        create_verified_git_bundle(project.root, bundle_path)
+
+    assert not bundle_path.parent.exists()
+
+
+def test_package_rejects_non_windows_before_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "outputs" / "recovery"
+    monkeypatch.setattr(repository_archive, "_is_windows_native", lambda: False, raising=False)
+
+    with pytest.raises(ArchiveError, match="Windows"):
+        create_recovery_package(project.root, destination, project.plan)
+
+    assert not destination.parent.exists()
+
+
+def test_restore_rejects_non_windows_before_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    archive = tmp_path / "archive"
+    create_verified_archive(project.root, archive, project.plan)
+    restored_root = tmp_path / "outputs" / "restored"
+    monkeypatch.setattr(repository_archive, "_is_windows_native", lambda: False, raising=False)
+
+    with pytest.raises(ArchiveError, match="Windows"):
+        restore_keep_files(restored_root, archive)
+
+    assert not restored_root.parent.exists()
+
+
+def test_post_publication_bundle_digest_failure_removes_only_new_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    bundle_path = tmp_path / "repository.bundle"
+    real_digest = repository_archive.sha256_file
+
+    def fail_final_digest(path: Path) -> str:
+        if Path(path) == bundle_path:
+            return "0" * 64
+        return real_digest(path)
+
+    monkeypatch.setattr(repository_archive, "sha256_file", fail_final_digest)
+
+    with pytest.raises(ArchiveError, match="published Git bundle SHA-256 mismatch"):
+        create_verified_git_bundle(project.root, bundle_path)
+
+    assert not bundle_path.exists()
+
+
+def test_bundle_digest_failure_does_not_remove_a_replacement_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    bundle_path = tmp_path / "repository.bundle"
+    real_digest = repository_archive.sha256_file
+
+    def replace_before_failed_digest(path: Path) -> str:
+        if Path(path) == bundle_path:
+            bundle_path.unlink()
+            bundle_path.write_bytes(b"replacement owned elsewhere")
+            return "0" * 64
+        return real_digest(path)
+
+    monkeypatch.setattr(repository_archive, "sha256_file", replace_before_failed_digest)
+
+    with pytest.raises(ArchiveError, match="published Git bundle SHA-256 mismatch"):
+        create_verified_git_bundle(project.root, bundle_path)
+
+    assert bundle_path.read_bytes() == b"replacement owned elsewhere"
+
+
+def test_recovery_bundle_must_contain_manifest_source_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "recovery"
+    real_create_bundle = repository_archive.create_verified_git_bundle
+
+    def replace_only_ref_then_bundle(project_root: Path, bundle_path: Path) -> str:
+        tree = subprocess.run(
+            ["git", "mktree"],
+            cwd=project_root,
+            input="",
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        replacement = _git(
+            project_root,
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit-tree",
+            tree,
+            "-m",
+            "replacement root",
+        )
+        _git(project_root, "update-ref", "HEAD", replacement)
+        return real_create_bundle(project_root, bundle_path)
+
+    monkeypatch.setattr(
+        repository_archive,
+        "create_verified_git_bundle",
+        replace_only_ref_then_bundle,
+    )
+
+    with pytest.raises(ArchiveError, match="does not contain source commit"):
+        create_recovery_package(project.root, destination, project.plan)
+
+    assert not destination.exists()

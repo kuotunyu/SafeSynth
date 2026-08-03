@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
@@ -53,6 +54,17 @@ class ArchiveReceipt:
     entries: tuple[ArchiveEntry, ...]
 
 
+@dataclass(frozen=True)
+class _VerifiedManifest:
+    source_commit: str
+    entries: tuple[ArchiveEntry, ...]
+    manifest_bytes: bytes
+
+    @property
+    def sha256(self) -> str:
+        return hashlib.sha256(self.manifest_bytes).hexdigest()
+
+
 def sha256_file(path: Path) -> str:
     """Return the lowercase SHA-256 digest of a file's contents."""
 
@@ -65,6 +77,19 @@ def sha256_file(path: Path) -> str:
 
 def _path_exists(path: Path) -> bool:
     return os.path.lexists(path)
+
+
+def _is_windows_native() -> bool:
+    return sys.platform == "win32"
+
+
+def _require_windows_native(operation: str) -> None:
+    if not _is_windows_native():
+        raise ArchiveError(f"{operation} requires Windows no-replace rename semantics")
+
+
+def _is_path_alias(path: Path) -> bool:
+    return path.is_symlink() or path.is_junction()
 
 
 def _validated_relative_path(raw_path: object) -> PurePosixPath:
@@ -84,9 +109,17 @@ def _validated_relative_path(raw_path: object) -> PurePosixPath:
 
 
 def _inside_root(root: Path, relative_path: PurePosixPath) -> Path:
+    candidate = root.joinpath(*relative_path.parts)
+    current = root
+    if _path_exists(current) and _is_path_alias(current):
+        raise ArchiveError(f"path alias is not allowed: {current}")
+    for part in relative_path.parts:
+        current = current / part
+        if _path_exists(current) and _is_path_alias(current):
+            raise ArchiveError(f"path alias is not allowed: {current}")
     resolved_root = root.resolve()
-    candidate = (resolved_root / Path(*relative_path.parts)).resolve()
-    if not candidate.is_relative_to(resolved_root):
+    resolved_candidate = candidate.resolve()
+    if not resolved_candidate.is_relative_to(resolved_root):
         raise ArchiveError(f"unsafe repository path: {str(relative_path)!r}")
     return candidate
 
@@ -126,6 +159,7 @@ def _preflight_dispositions(
 ) -> tuple[tuple[FigureDisposition, PurePosixPath, Path], ...]:
     planned: list[tuple[FigureDisposition, PurePosixPath, Path]] = []
     seen: set[str] = set()
+    seen_resolved: set[str] = set()
     for disposition in dispositions:
         relative_path = _validated_relative_path(disposition.path)
         if disposition.path in seen:
@@ -136,8 +170,12 @@ def _preflight_dispositions(
         if type(disposition.keep) is not bool:
             raise ArchiveError(f"invalid disposition: {disposition.path}")
         source = _inside_root(project_root, relative_path)
-        if source.is_symlink() or not source.is_file():
+        if not source.is_file():
             raise ArchiveError(f"missing source or unsupported source type: {disposition.path}")
+        resolved_key = os.path.normcase(str(source.resolve()))
+        if resolved_key in seen_resolved:
+            raise ArchiveError(f"duplicate resolved source target: {disposition.path}")
+        seen_resolved.add(resolved_key)
         actual_size = source.stat().st_size
         if actual_size != disposition.size_bytes:
             raise ArchiveError(
@@ -156,77 +194,90 @@ def _preflight_dispositions(
     return tuple(sorted(planned, key=lambda item: item[0].path))
 
 
+def _build_verified_archive(
+    project_root: Path, archive_root: Path, dispositions: Sequence[FigureDisposition]
+) -> _VerifiedManifest:
+    source_commit = _source_commit(project_root)
+    planned = _preflight_dispositions(project_root, dispositions)
+    figure_root = archive_root / "figures"
+    figure_root.mkdir()
+    entries: list[ArchiveEntry] = []
+
+    for disposition, relative_path, source in planned:
+        source_size_before = source.stat().st_size
+        source_digest = sha256_file(source)
+        target = figure_root.joinpath(*relative_path.parts)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        copied_size = target.stat().st_size
+        copied_digest = sha256_file(target)
+        if copied_size != disposition.size_bytes:
+            raise ArchiveError(f"archived size mismatch for {disposition.path}")
+        if copied_digest != source_digest:
+            raise ArchiveError(f"archived SHA-256 mismatch for {disposition.path}")
+        if source.stat().st_size != source_size_before or sha256_file(source) != source_digest:
+            raise ArchiveError(f"source changed while archiving: {disposition.path}")
+
+        reference_sources = tuple(
+            sorted(
+                f"{reference.source_path}:{reference.line_number}"
+                for reference in disposition.references
+            )
+        )
+        entries.append(
+            ArchiveEntry(
+                path=disposition.path,
+                size_bytes=copied_size,
+                sha256=copied_digest,
+                disposition="KEEP" if disposition.keep else "DROP",
+                reference_sources=reference_sources,
+            )
+        )
+
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "source_commit": source_commit,
+        "entries": [_entry_dict(entry) for entry in entries],
+    }
+    (archive_root / MANIFEST_NAME).write_bytes(_canonical_manifest_bytes(manifest))
+    verified = _load_verified_manifest(archive_root)
+    if verified.entries != tuple(entries):
+        raise ArchiveError("verified archive entries differ from source plan")
+    return verified
+
+
+def _publish_directory(staging: Path, destination: Path, artifact: str) -> None:
+    if _path_exists(destination):
+        raise FileExistsError(destination)
+    try:
+        os.rename(staging, destination)
+    except OSError as error:
+        if _path_exists(destination):
+            raise FileExistsError(destination) from error
+        raise ArchiveError(f"cannot publish verified {artifact}: {error}") from error
+
+
 def create_verified_archive(
     project_root: Path,
     destination: Path,
     dispositions: Sequence[FigureDisposition],
 ) -> Path:
-    """Copy every planned figure and publish only a fully verified archive."""
+    """Publish a verified archive using Windows no-replace rename semantics."""
 
+    _require_windows_native("archive publication")
     project_root = Path(project_root)
     destination = Path(destination)
     if _path_exists(destination):
         raise FileExistsError(destination)
-    source_commit = _source_commit(project_root)
-    planned = _preflight_dispositions(project_root, dispositions)
+    _preflight_dispositions(project_root, dispositions)
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(
         prefix=f".{destination.name}.staging-", dir=destination.parent
     ) as temporary_directory:
         staging = Path(temporary_directory)
-        figure_root = staging / "figures"
-        figure_root.mkdir()
-        entries: list[ArchiveEntry] = []
-
-        for disposition, relative_path, source in planned:
-            source_size_before = source.stat().st_size
-            source_digest = sha256_file(source)
-            target = figure_root.joinpath(*relative_path.parts)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-            copied_size = target.stat().st_size
-            copied_digest = sha256_file(target)
-            if copied_size != disposition.size_bytes:
-                raise ArchiveError(f"archived size mismatch for {disposition.path}")
-            if copied_digest != source_digest:
-                raise ArchiveError(f"archived SHA-256 mismatch for {disposition.path}")
-            if source.stat().st_size != source_size_before or sha256_file(source) != source_digest:
-                raise ArchiveError(f"source changed while archiving: {disposition.path}")
-
-            reference_sources = tuple(
-                sorted(
-                    f"{reference.source_path}:{reference.line_number}"
-                    for reference in disposition.references
-                )
-            )
-            entries.append(
-                ArchiveEntry(
-                    path=disposition.path,
-                    size_bytes=copied_size,
-                    sha256=copied_digest,
-                    disposition="KEEP" if disposition.keep else "DROP",
-                    reference_sources=reference_sources,
-                )
-            )
-
-        manifest = {
-            "schema_version": SCHEMA_VERSION,
-            "source_commit": source_commit,
-            "entries": [_entry_dict(entry) for entry in entries],
-        }
-        (staging / MANIFEST_NAME).write_bytes(_canonical_manifest_bytes(manifest))
-        verified_entries = load_and_verify_manifest(staging)
-        if verified_entries != tuple(entries):
-            raise ArchiveError("verified archive entries differ from source plan")
-        if _path_exists(destination):
-            raise FileExistsError(destination)
-        try:
-            os.rename(staging, destination)
-        except OSError as error:
-            if _path_exists(destination):
-                raise FileExistsError(destination) from error
-            raise ArchiveError(f"cannot publish verified archive: {error}") from error
+        _build_verified_archive(project_root, staging, dispositions)
+        _publish_directory(staging, destination, "archive")
 
     return destination / MANIFEST_NAME
 
@@ -264,12 +315,10 @@ def _parse_entry(raw_entry: object) -> ArchiveEntry:
     return ArchiveEntry(path, size_bytes, digest, disposition, tuple(references))
 
 
-def load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]:
-    """Load a canonical manifest and verify the exact archived file set and bytes."""
-
+def _load_verified_manifest(archive_root: Path) -> _VerifiedManifest:
     archive_root = Path(archive_root)
     manifest_path = archive_root / MANIFEST_NAME
-    if manifest_path.is_symlink() or not manifest_path.is_file():
+    if _is_path_alias(manifest_path) or not manifest_path.is_file():
         raise ArchiveError(f"missing manifest: {manifest_path}")
     try:
         manifest_bytes = manifest_path.read_bytes()
@@ -302,13 +351,13 @@ def load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]:
         raise ArchiveError("manifest schema is not canonical JSON")
 
     figure_root = archive_root / "figures"
-    if figure_root.is_symlink() or not figure_root.is_dir():
+    if _is_path_alias(figure_root) or not figure_root.is_dir():
         raise ArchiveError("archived file set does not match manifest")
     actual_paths: set[str] = set()
     for candidate in figure_root.rglob("*"):
-        if candidate.is_dir() and not candidate.is_symlink():
+        if candidate.is_dir() and not _is_path_alias(candidate):
             continue
-        if candidate.is_symlink() or not candidate.is_file():
+        if _is_path_alias(candidate) or not candidate.is_file():
             raise ArchiveError("archived file set contains unsupported paths")
         actual_paths.add(candidate.relative_to(figure_root).as_posix())
     if actual_paths != set(paths):
@@ -321,17 +370,25 @@ def load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]:
             raise ArchiveError(f"SHA-256 mismatch for archived file: {entry.path}")
         if archived_file.stat().st_size != entry.size_bytes:
             raise ArchiveError(f"size mismatch for archived file: {entry.path}")
-    return entries
+    return _VerifiedManifest(source_commit, entries, manifest_bytes)
+
+
+def load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]:
+    """Load a canonical manifest and verify the exact archived file set and bytes."""
+
+    return _load_verified_manifest(archive_root).entries
 
 
 def create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str:
-    """Create a bundle for all refs, verify it with Git, and publish without overwrite."""
+    """Verify and publish a bundle using Windows no-replace rename semantics."""
 
+    _require_windows_native("Git bundle publication")
     project_root = Path(project_root)
     bundle_path = Path(bundle_path)
     if _path_exists(bundle_path):
         raise FileExistsError(bundle_path)
     bundle_path.parent.mkdir(parents=True, exist_ok=True)
+    published_stat: os.stat_result | None = None
 
     with tempfile.TemporaryDirectory(
         prefix=f".{bundle_path.name}.staging-", dir=bundle_path.parent
@@ -362,7 +419,8 @@ def create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str:
             raise ArchiveError(f"Git bundle verification failed: {detail}")
         digest = sha256_file(staged_bundle)
         try:
-            os.link(staged_bundle, bundle_path)
+            os.rename(staged_bundle, bundle_path)
+            published_stat = bundle_path.stat()
         except FileExistsError:
             raise FileExistsError(bundle_path) from None
         except OSError as error:
@@ -370,8 +428,50 @@ def create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str:
                 raise FileExistsError(bundle_path) from error
             raise ArchiveError(f"cannot publish verified Git bundle: {error}") from error
     if sha256_file(bundle_path) != digest:
+        try:
+            current_stat = bundle_path.stat()
+            if published_stat is not None and os.path.samestat(published_stat, current_stat):
+                bundle_path.unlink()
+        except FileNotFoundError:
+            pass
         raise ArchiveError("published Git bundle SHA-256 mismatch")
     return digest
+
+
+def _verify_bundle_contains_commit(bundle_path: Path, source_commit: str) -> None:
+    with tempfile.TemporaryDirectory(
+        prefix=".bundle-contents-", dir=bundle_path.parent
+    ) as temporary_directory:
+        bare_repository = Path(temporary_directory) / "verify.git"
+        commands = (
+            ["git", "init", "--bare", "-q", str(bare_repository)],
+            ["git", "-C", str(bare_repository), "bundle", "unbundle", str(bundle_path)],
+            [
+                "git",
+                "-C",
+                str(bare_repository),
+                "cat-file",
+                "-e",
+                f"{source_commit}^{{commit}}",
+            ],
+        )
+        for command in commands:
+            try:
+                completed = subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except OSError as error:
+                raise ArchiveError(f"cannot inspect Git bundle contents: {error}") from error
+            if completed.returncode != 0:
+                if command == commands[-1]:
+                    raise ArchiveError(
+                        f"Git bundle does not contain source commit: {source_commit}"
+                    )
+                detail = completed.stderr.strip() or completed.stdout.strip()
+                raise ArchiveError(f"cannot inspect Git bundle contents: {detail}")
 
 
 def create_recovery_package(
@@ -379,59 +479,81 @@ def create_recovery_package(
     destination: Path,
     dispositions: Sequence[FigureDisposition],
 ) -> ArchiveReceipt:
-    """Create the verified figure archive and Git bundle as one recovery package."""
+    """Build, verify, and publish one complete Windows-native recovery package."""
 
-    manifest_path = create_verified_archive(project_root, destination, dispositions)
-    entries = load_and_verify_manifest(destination)
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    bundle_path = Path(destination) / BUNDLE_NAME
-    bundle_digest = create_verified_git_bundle(project_root, bundle_path)
+    _require_windows_native("recovery package publication")
+    project_root = Path(project_root)
+    destination = Path(destination)
+    if _path_exists(destination):
+        raise FileExistsError(destination)
+    _preflight_dispositions(project_root, dispositions)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(
+        prefix=f".{destination.name}.staging-", dir=destination.parent
+    ) as temporary_directory:
+        staging = Path(temporary_directory)
+        verified_manifest = _build_verified_archive(project_root, staging, dispositions)
+        staged_bundle = staging / BUNDLE_NAME
+        bundle_digest = create_verified_git_bundle(project_root, staged_bundle)
+        _verify_bundle_contains_commit(staged_bundle, verified_manifest.source_commit)
+        _publish_directory(staging, destination, "recovery package")
+
+    manifest_path = destination / MANIFEST_NAME
+    bundle_path = destination / BUNDLE_NAME
     return ArchiveReceipt(
-        source_commit=manifest["source_commit"],
+        source_commit=verified_manifest.source_commit,
         manifest_path=manifest_path,
-        manifest_sha256=sha256_file(manifest_path),
+        manifest_sha256=verified_manifest.sha256,
         bundle_path=bundle_path,
         bundle_sha256=bundle_digest,
-        entries=entries,
+        entries=verified_manifest.entries,
     )
 
 
 def restore_keep_files(project_root: Path, archive_root: Path) -> tuple[str, ...]:
-    """Restore verified KEEP entries without overwriting any destination file."""
+    """Stage and atomically publish the complete verified KEEP figure tree on Windows."""
 
+    _require_windows_native("KEEP restoration")
     project_root = Path(project_root)
-    entries = load_and_verify_manifest(archive_root)
-    keep_entries = tuple(entry for entry in entries if entry.disposition == "KEEP")
-    if _path_exists(project_root) and (project_root.is_symlink() or not project_root.is_dir()):
+    verified_manifest = _load_verified_manifest(archive_root)
+    keep_entries = tuple(
+        entry for entry in verified_manifest.entries if entry.disposition == "KEEP"
+    )
+    if _path_exists(project_root) and (_is_path_alias(project_root) or not project_root.is_dir()):
         raise ArchiveError(f"restore root is not a directory: {project_root}")
-    resolved_root = project_root.resolve()
-    targets: list[tuple[ArchiveEntry, Path, Path]] = []
+    if not keep_entries:
+        return ()
+
+    reports_root = project_root / "reports"
+    final_figures = reports_root / "figures"
+    _inside_root(project_root, PurePosixPath("reports/figures"))
+    if _path_exists(final_figures):
+        raise FileExistsError(final_figures)
+
+    sources: list[tuple[ArchiveEntry, Path, PurePosixPath]] = []
     for entry in keep_entries:
         relative_path = _validated_relative_path(entry.path)
+        if relative_path.parts[:2] != ("reports", "figures") or len(relative_path.parts) < 3:
+            raise ArchiveError(f"KEEP path is outside reports/figures: {entry.path}")
         source = _inside_root(Path(archive_root) / "figures", relative_path)
-        target = project_root.joinpath(*relative_path.parts)
-        if _path_exists(target):
-            raise FileExistsError(target)
-        if not target.resolve().is_relative_to(resolved_root):
-            raise ArchiveError(f"unsafe restore path: {entry.path}")
-        ancestor = target.parent
-        while not _path_exists(ancestor) and ancestor != project_root.parent:
-            ancestor = ancestor.parent
-        if _path_exists(ancestor) and (ancestor.is_symlink() or not ancestor.is_dir()):
-            raise ArchiveError(f"unsafe restore parent for: {entry.path}")
-        targets.append((entry, source, target))
+        within_figures = PurePosixPath(*relative_path.parts[2:])
+        sources.append((entry, source, within_figures))
 
     project_root.mkdir(parents=True, exist_ok=True)
-    restored: list[str] = []
-    for entry, source, target in targets:
-        target.parent.mkdir(parents=True, exist_ok=True)
-        try:
+    if _path_exists(reports_root) and (_is_path_alias(reports_root) or not reports_root.is_dir()):
+        raise ArchiveError(f"restore reports path is not a directory: {reports_root}")
+    reports_root.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".figures.staging-", dir=reports_root
+    ) as temporary_directory:
+        staging = Path(temporary_directory)
+        for entry, source, within_figures in sources:
+            target = staging.joinpath(*within_figures.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
             with source.open("rb") as source_handle, target.open("xb") as target_handle:
                 shutil.copyfileobj(source_handle, target_handle)
             if target.stat().st_size != entry.size_bytes or sha256_file(target) != entry.sha256:
-                target.unlink()
                 raise ArchiveError(f"restored file verification failed: {entry.path}")
-        except FileExistsError:
-            raise FileExistsError(target) from None
-        restored.append(entry.path)
-    return tuple(restored)
+        _publish_directory(staging, final_figures, "KEEP figure tree")
+    return tuple(entry.path for entry in keep_entries)
