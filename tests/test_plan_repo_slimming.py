@@ -147,6 +147,29 @@ def test_report_is_deterministic_and_names_keep_sources(
     assert "now resolve\nto tracked KEEP figures" in first
 
 
+def test_generated_report_defers_destructive_steps_to_verified_external_runbook(
+    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The inventory must not become a stale executable rewrite procedure."""
+
+    monkeypatch.setattr(
+        plan_repo_slimming,
+        "history_bytes_by_area",
+        lambda _root: (100.0, {"reports/figures/": 75.0, "everything else": 25.0}),
+    )
+
+    report = plan_repo_slimming.render(fixture_repo)
+
+    assert "## Owner-only, non-executable next step" in report
+    assert "ONLY the independently verified external" in report
+    assert "`OWNER_HISTORY_REWRITE_RUNBOOK.txt`" in report
+    assert "git filter-repo --path reports/figures/ --invert-paths --force" not in report
+    assert "scripts/restore_curated_figures.py" not in report
+    assert "git add -- reports/figures" not in report
+    assert "git add reports/figures" not in report
+    assert "they survive the rewrite" not in report
+
+
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:
     """`python scripts/...py` must not depend on pytest adding the repo to sys.path."""
 

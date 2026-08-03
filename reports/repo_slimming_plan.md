@@ -1,4 +1,4 @@
-# Repo slimming plan — the file list to review before `git filter-repo`
+# Repo slimming plan — curated inventory before the owner history-rewrite gate
 
 > Regenerate with `uv run python -m scripts.plan_repo_slimming`.
 > It reads `git ls-files` and every tracked `.md` except this generated report,
@@ -8,12 +8,12 @@
 
 | | bytes across ALL history | share |
 |---|---:|---:|
-| `reports/figures/` | 629.7 MB | 94% |
-| `everything else` | 43.8 MB | 6% |
+| `reports/figures/` | 629.7 MB | 93% |
+| `everything else` | 44.1 MB | 7% |
 
 A clone downloads history, not the working tree, so deleting these at HEAD
 would change nothing. Rewriting history is the only thing that shrinks it,
-and the complete current tree is archived before the owner takes any action.
+and the complete current tree must be archived and verified before owner action.
 
 ## Exact-path correction
 
@@ -207,27 +207,14 @@ That is the form a reader can search.
 - `reports/figures/whole_person_edit_diagnostic_v8.png` (0.56 MB)
 - `reports/figures/whole_person_edit_preflight_v8.png` (0.83 MB)
 
-## The command (YOURS to run — CLAUDE.md reserves history rewrites)
+## Owner-only, non-executable next step
 
-```bash
-git filter-repo --path reports/figures/ --invert-paths --force
-```
+**NON-EXECUTABLE WARNING.** This inventory is not a history-rewrite procedure.
+The destructive owner-only step must use **ONLY the independently verified external**
+`OWNER_HISTORY_REWRITE_RUNBOOK.txt` created in the recovery archive for this
+exact source commit. Do not copy commands from a prior runbook or infer recovery
+steps from this report.
 
-That removes the whole folder from history, keepers included. Re-add them
-afterwards as one fresh commit — they survive the rewrite because they are
-still in the working tree; `filter-repo` edits history, not your files:
-
-```bash
-git add reports/figures/ && git commit -m "docs: restore the figures documents reference"
-```
-
-## Verify afterwards
-
-```bash
-git count-objects -vH
-uv run pytest -q
-uv run python scripts/verify_readme.py
-```
-
-`size-pack` should fall sharply. `verify_readme` is the real check: it fails
-if any README figure link is dead.
+The external runbook is written only after the full figure archive, manifest, and
+Git bundle have passed verification. It is the sole approved source for the complete
+recovery, Markdown-link, identity, and size acceptance gates.
