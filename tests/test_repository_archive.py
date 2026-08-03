@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +22,10 @@ from src.release.repository_archive import (
     sha256_file,
 )
 from src.release.repository_curation import FigureDisposition, FigureReference
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+ARCHIVE_COMMAND = WORKSPACE_ROOT / "scripts" / "archive_repository_curation.py"
+RESTORE_COMMAND = WORKSPACE_ROOT / "scripts" / "restore_curated_figures.py"
 
 
 @dataclass(frozen=True)
@@ -60,6 +65,16 @@ def _commit_all(root: Path, message: str) -> str:
         message,
     )
     return _git(root, "rev-parse", "HEAD")
+
+
+def _run_command(command: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(command), *arguments],
+        cwd=WORKSPACE_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def _project_with_keep_and_drop(root: Path) -> _Project:
@@ -594,3 +609,146 @@ def test_recovery_bundle_must_contain_manifest_source_commit(
         create_recovery_package(project.root, destination, project.plan)
 
     assert not destination.exists()
+
+
+def test_archive_command_refuses_an_existing_destination(tmp_path: Path) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "archive"
+    destination.mkdir()
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "already exists" in completed.stderr
+
+
+def test_archive_command_refuses_unresolved_figure_links(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    _write(project_root, "README.md", b"![missing](reports/figures/missing.png)\n")
+    _git(project_root, "init", "-q")
+    _commit_all(project_root, "fixture")
+    destination = tmp_path / "archive"
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project_root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "local Markdown destination" in completed.stderr
+    assert not destination.exists()
+
+
+def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
+    tmp_path: Path,
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "archive"
+    owner_root = tmp_path / "owner project"
+    _write(owner_root, "owner-sentinel.txt", b"unchanged")
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(owner_root),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    receipt = json.loads((destination / "archive_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["source_commit"] == project.commit
+    assert receipt["manifest_sha256"] == sha256_file(destination / "figure_manifest.json")
+    bundle = destination / "SafeSynth-pre-filter-repo.bundle"
+    assert receipt["bundle_sha256"] == sha256_file(bundle)
+    assert receipt["keep_count"] == 1
+    assert receipt["drop_count"] == 1
+    assert not (destination / "repository.bundle").exists()
+    verified = subprocess.run(
+        ["git", "bundle", "verify", str(bundle)],
+        cwd=project.root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert verified.returncode == 0, verified.stderr
+    runbook = (destination / "OWNER_HISTORY_REWRITE_RUNBOOK.txt").read_text(encoding="utf-8")
+    assert runbook == "\n".join(
+        (
+            f"Set-Location -LiteralPath '{owner_root}'",
+            "git status --short --branch",
+            "uvx git-filter-repo --version",
+            "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
+            f"uv run python scripts/restore_curated_figures.py --archive '{destination}'",
+            "git add -- reports/figures",
+            "git diff --cached --check",
+            "git commit -m 'docs: restore curated figure evidence'",
+            "",
+        )
+    )
+    assert owner_root.joinpath("owner-sentinel.txt").read_bytes() == b"unchanged"
+    assert completed.stdout.index("KEEP=1") < completed.stdout.index("DROP=1")
+
+
+def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    archive = tmp_path / "archive"
+    create_verified_archive(project.root, archive, project.plan)
+    (archive / "figures/reports/figures/drop.png").write_bytes(b"tampered")
+    target = tmp_path / "target"
+
+    completed = _run_command(
+        RESTORE_COMMAND, "--project-root", str(target), "--archive", str(archive)
+    )
+
+    assert completed.returncode != 0
+    assert "SHA-256 mismatch" in completed.stderr
+    assert not target.exists()
+
+
+def test_restore_command_refuses_nonempty_figures_target(tmp_path: Path) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    archive = tmp_path / "archive"
+    create_verified_archive(project.root, archive, project.plan)
+    target = tmp_path / "target"
+    _write(target, "reports/figures/do-not-overwrite.png", b"existing")
+
+    completed = _run_command(
+        RESTORE_COMMAND, "--project-root", str(target), "--archive", str(archive)
+    )
+
+    assert completed.returncode != 0
+    assert "must be empty" in completed.stderr
+    assert (target / "reports/figures/do-not-overwrite.png").read_bytes() == b"existing"
+
+
+def test_restore_command_restores_only_keep_files_into_clean_target(tmp_path: Path) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    archive = tmp_path / "archive"
+    create_verified_archive(project.root, archive, project.plan)
+    target = tmp_path / "target"
+    (target / "reports/figures").mkdir(parents=True)
+
+    completed = _run_command(
+        RESTORE_COMMAND, "--project-root", str(target), "--archive", str(archive)
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (target / "reports/figures/keep.png").read_bytes() == b"keep"
+    assert not (target / "reports/figures/drop.png").exists()
+    assert completed.stdout.splitlines() == ["reports/figures/keep.png"]
