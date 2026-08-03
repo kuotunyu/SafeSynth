@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts import archive_repository_curation as archive_command
+from scripts import restore_curated_figures as restore_command
 from src.release import repository_archive
 from src.release.repository_archive import (
     ArchiveError,
@@ -101,6 +103,19 @@ def _project_with_keep_and_drop(root: Path) -> _Project:
         ),
         commit=commit,
     )
+
+
+def _create_command_archive(project: _Project, destination: Path) -> None:
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(destination.parent / "owner"),
+    )
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_archive_copies_every_entry_and_hash_verifies(tmp_path: Path) -> None:
@@ -708,7 +723,7 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
 def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path) -> None:
     project = _project_with_keep_and_drop(tmp_path / "source")
     archive = tmp_path / "archive"
-    create_verified_archive(project.root, archive, project.plan)
+    _create_command_archive(project, archive)
     (archive / "figures/reports/figures/drop.png").write_bytes(b"tampered")
     target = tmp_path / "target"
 
@@ -724,7 +739,7 @@ def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path)
 def test_restore_command_refuses_nonempty_figures_target(tmp_path: Path) -> None:
     project = _project_with_keep_and_drop(tmp_path / "source")
     archive = tmp_path / "archive"
-    create_verified_archive(project.root, archive, project.plan)
+    _create_command_archive(project, archive)
     target = tmp_path / "target"
     _write(target, "reports/figures/do-not-overwrite.png", b"existing")
 
@@ -740,7 +755,7 @@ def test_restore_command_refuses_nonempty_figures_target(tmp_path: Path) -> None
 def test_restore_command_restores_only_keep_files_into_clean_target(tmp_path: Path) -> None:
     project = _project_with_keep_and_drop(tmp_path / "source")
     archive = tmp_path / "archive"
-    create_verified_archive(project.root, archive, project.plan)
+    _create_command_archive(project, archive)
     target = tmp_path / "target"
     (target / "reports/figures").mkdir(parents=True)
 
@@ -752,3 +767,70 @@ def test_restore_command_restores_only_keep_files_into_clean_target(tmp_path: Pa
     assert (target / "reports/figures/keep.png").read_bytes() == b"keep"
     assert not (target / "reports/figures/drop.png").exists()
     assert completed.stdout.splitlines() == ["reports/figures/keep.png"]
+
+
+def test_commands_default_project_root_to_their_script_repository() -> None:
+    archive_arguments = archive_command._parser().parse_args(
+        ["--destination", "archive", "--owner-project-root", "owner"]
+    )
+    restore_arguments = restore_command._parser().parse_args(["--archive", "archive"])
+
+    assert archive_arguments.project_root == archive_command.PROJECT_ROOT
+    assert restore_arguments.project_root == restore_command.PROJECT_ROOT
+
+
+def test_restore_command_rejects_canonical_manifest_disposition_tampering(
+    tmp_path: Path,
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    archive = tmp_path / "archive"
+    owner_root = tmp_path / "owner"
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(archive),
+        "--owner-project-root",
+        str(owner_root),
+    )
+    assert completed.returncode == 0, completed.stderr
+    manifest_path = archive / "figure_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["entries"][0]["disposition"] = "KEEP"
+    manifest_path.write_bytes(
+        (json.dumps(manifest, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    )
+    receipt_path = archive / "archive_receipt.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["manifest_sha256"] = sha256_file(manifest_path)
+    receipt_path.write_bytes(
+        (json.dumps(receipt, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    )
+    target = tmp_path / "target"
+
+    completed = _run_command(
+        RESTORE_COMMAND, "--project-root", str(target), "--archive", str(archive)
+    )
+
+    assert completed.returncode != 0
+    assert "receipt entries do not match manifest" in completed.stderr
+    assert not target.exists()
+
+
+def test_archive_command_removes_its_private_stage_when_receipt_write_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    destination = tmp_path / "archive"
+
+    def fail_receipt_write(_path: Path, _value: dict[str, object]) -> None:
+        raise OSError("injected receipt write failure")
+
+    monkeypatch.setattr(archive_command, "_write_canonical_json", fail_receipt_write)
+
+    with pytest.raises(OSError, match="injected receipt write failure"):
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"), str(destination))
+
+    assert not destination.exists()
+    assert not list(tmp_path.glob(".*"))

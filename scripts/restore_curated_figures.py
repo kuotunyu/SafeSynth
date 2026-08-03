@@ -11,9 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.archive_repository_curation import load_and_verify_receipt
 from src.release.repository_archive import (
     ArchiveError,
-    load_and_verify_manifest,
     restore_keep_files,
 )
 
@@ -36,7 +36,7 @@ def _require_empty_figures_target(project_root: Path) -> None:
 def restore(project_root: Path, archive_root: Path) -> tuple[str, ...]:
     """Verify all archived content, then restore only the KEEP inventory."""
 
-    load_and_verify_manifest(archive_root)
+    load_and_verify_receipt(archive_root)
     _require_empty_figures_target(project_root)
     return tuple(sorted(restore_keep_files(project_root, archive_root)))
 
@@ -45,7 +45,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Restore only verified KEEP figures from a completed curation archive."
     )
-    parser.add_argument("--project-root", required=True, type=Path)
+    parser.add_argument("--project-root", default=PROJECT_ROOT, type=Path)
     parser.add_argument("--archive", required=True, type=Path)
     return parser
 
