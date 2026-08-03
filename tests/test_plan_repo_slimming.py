@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -147,7 +148,7 @@ def test_report_is_deterministic_and_names_keep_sources(
     assert "now resolve\nto tracked KEEP figures" in first
 
 
-def test_generated_report_defers_destructive_steps_to_verified_external_runbook(
+def test_generated_report_defers_owner_steps_to_verified_external_runbook(
     fixture_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The inventory must not become a stale executable rewrite procedure."""
@@ -161,13 +162,50 @@ def test_generated_report_defers_destructive_steps_to_verified_external_runbook(
     report = plan_repo_slimming.render(fixture_repo)
 
     assert "## Owner-only, non-executable next step" in report
-    assert "ONLY the independently verified external" in report
-    assert "`OWNER_HISTORY_REWRITE_RUNBOOK.txt`" in report
-    assert "git filter-repo --path reports/figures/ --invert-paths --force" not in report
-    assert "scripts/restore_curated_figures.py" not in report
-    assert "git add -- reports/figures" not in report
-    assert "git add reports/figures" not in report
-    assert "they survive the rewrite" not in report
+    assert (
+        "sole approved source only for the owner-operated history rewrite and "
+        "verified KEEP restoration commands" in report
+    )
+    assert "Task 8 full acceptance gates remain mandatory" in report
+    assert "not embedded in this report" in report
+    assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" in report
+    assert re.search(r"filter[-_\s]*repo", report, flags=re.IGNORECASE) is None
+    assert "restore_curated_figures" not in report.lower()
+    assert re.search(
+        r"(?im)^\s*git\s+add(?:\s|$)|\bgit\s+add\s+(?:--\s+)?reports/figures\b",
+        report,
+    ) is None
+    assert re.search(
+        r"(?is)\b(?:keep(?:ers|\s+files?)?|figures)\b.{0,120}\bsurviv\w*\b"
+        r".{0,120}\brewrite\b",
+        report,
+    ) is None
+
+
+def test_history_metrics_ignore_generated_report_commits(fixture_repo: Path) -> None:
+    """A regenerated report must not change the history metrics it displays."""
+
+    before = plan_repo_slimming.history_bytes_by_area(fixture_repo)
+    generated = fixture_repo / "reports" / "repo_slimming_plan.md"
+    generated.parent.mkdir(exist_ok=True)
+    generated.write_text("generated inventory\n", encoding="utf-8")
+    subprocess.run(["git", "add", "reports/repo_slimming_plan.md"], cwd=fixture_repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "generated report",
+        ],
+        cwd=fixture_repo,
+        check=True,
+    )
+
+    assert plan_repo_slimming.history_bytes_by_area(fixture_repo) == before
 
 
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:

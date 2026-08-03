@@ -216,5 +216,6 @@ exact source commit. Do not copy commands from a prior runbook or infer recovery
 steps from this report.
 
 The external runbook is written only after the full figure archive, manifest, and
-Git bundle have passed verification. It is the sole approved source for the complete
-recovery, Markdown-link, identity, and size acceptance gates.
+Git bundle have passed verification.
+It is the sole approved source only for the owner-operated history rewrite and verified KEEP restoration commands.
+After it completes, Task 8 full acceptance gates remain mandatory and are not embedded in this report.

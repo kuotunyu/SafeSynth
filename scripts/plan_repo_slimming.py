@@ -38,6 +38,7 @@ from src.release.repository_curation import (
 )
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "repo_slimming_plan.md"
+GENERATED_REPORT_PATH = "reports/repo_slimming_plan.md"
 BYTES_PER_MB = 2**20
 
 
@@ -47,7 +48,9 @@ def history_bytes_by_area(root: Path) -> tuple[float, dict[str, float]]:
 
     The working tree is the wrong thing to measure: a clone downloads history,
     and figures regenerated across commits are stored once per version. The
-    tree said 418 MB while the packed object store said 631 MiB.
+    tree said 418 MB while the packed object store said 631 MiB. The generated
+    report is excluded so regenerating and committing it cannot change the
+    historical metric it displays.
     """
 
     listing = subprocess.run(
@@ -66,6 +69,8 @@ def history_bytes_by_area(root: Path) -> tuple[float, dict[str, float]]:
         if len(parts) != 3 or parts[0] != "blob":
             continue
         size, path = float(parts[1]), parts[2].strip()
+        if path == GENERATED_REPORT_PATH:
+            continue
         total += size
         areas[FIGURE_ROOT if path.startswith(FIGURE_ROOT) else "everything else"] += size
     return total, dict(areas)
@@ -174,8 +179,15 @@ def render(root: Path) -> str:
         "steps from this report.",
         "",
         "The external runbook is written only after the full figure archive, manifest, and",
-        "Git bundle have passed verification. It is the sole approved source for the complete",
-        "recovery, Markdown-link, identity, and size acceptance gates.",
+        "Git bundle have passed verification.",
+        (
+            "It is the sole approved source only for the owner-operated history rewrite and "
+            "verified KEEP restoration commands."
+        ),
+        (
+            "After it completes, Task 8 full acceptance gates remain mandatory and are not "
+            "embedded in this report."
+        ),
     ]
     return "\n".join(lines) + "\n"
 
