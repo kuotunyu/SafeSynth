@@ -4,7 +4,7 @@ Swept on the **frozen validation split** (756 images) using `real_only` at `chec
 
 This threshold is deliberately separate from mAP evaluation, which integrates over every confidence. A deployed compliance check has to commit to one point.
 
-![sweep](reports/figures/compliance_sweep_real_only.png)
+![sweep](figures/compliance_sweep_real_only.png)
 
 | threshold | bare-head recall | compliance precision | pred. compliant | pred. non-compliant |
 |---:|---:|---:|---:|---:|

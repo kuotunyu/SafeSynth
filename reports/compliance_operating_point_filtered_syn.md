@@ -4,7 +4,7 @@ Swept on the **frozen validation split** (756 images) using `filtered_syn` at `c
 
 This threshold is deliberately separate from mAP evaluation, which integrates over every confidence. A deployed compliance check has to commit to one point.
 
-![sweep](reports/figures/compliance_sweep_filtered_syn.png)
+![sweep](figures/compliance_sweep_filtered_syn.png)
 
 | threshold | bare-head recall | compliance precision | pred. compliant | pred. non-compliant |
 |---:|---:|---:|---:|---:|

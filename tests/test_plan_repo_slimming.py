@@ -103,6 +103,30 @@ def test_existing_figure_directory_link_is_not_a_missing_figure(tmp_path: Path) 
     assert planned[0].keep is False
 
 
+def test_unresolved_local_destination_blocks_curation(tmp_path: Path) -> None:
+    _write(tmp_path, "reports/foo.md", "![missing](reports/figures/x.png)\n")
+
+    with pytest.raises(RepositoryLinkError, match="reports/reports/figures/x.png"):
+        plan_figure_curation(tmp_path, ["reports/foo.md"])
+
+
+def test_fence_info_inside_code_does_not_close_an_outer_fence(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "docs/plan.md",
+        """```python
+example = '''
+```text
+![ignored](../reports/figures/fenced.png)
+```
+'''
+```
+""",
+    )
+
+    assert collect_local_destinations(tmp_path, ["docs/plan.md"]) == ()
+
+
 def test_report_is_deterministic_and_names_keep_sources(
     fixture_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -119,6 +143,8 @@ def test_report_is_deterministic_and_names_keep_sources(
     assert "README.md:3" in first
     assert "## Exact-path correction" in first
     assert "No real Markdown destination\nlinks to them" in first
+    assert "every tracked `.md` except this generated report" in first
+    assert "now resolve\nto tracked KEEP figures" in first
 
 
 def test_plan_repo_slimming_runs_as_a_direct_script(tmp_path: Path) -> None:

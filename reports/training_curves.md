@@ -2,7 +2,7 @@
 
 Read from each arm's last checkpoint (EVAL-12: never copied from the notebook display). Validation only — the Test numbers live in the main table.
 
-![training curves](reports/figures/training_curves.png)
+![training curves](figures/training_curves.png)
 
 | arm | eval points | best mAP | at step | final mAP | decay from peak |
 |---|---:|---:|---:|---:|---:|

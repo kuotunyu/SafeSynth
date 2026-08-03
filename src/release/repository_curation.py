@@ -54,15 +54,15 @@ def plan_figure_curation(root: Path, files: Sequence[str]) -> tuple[FigureDispos
 
     for destination in collect_local_destinations(root, markdown_inputs):
         resolved = destination.resolved_path
-        if resolved is None or not resolved.startswith(FIGURE_ROOT):
+        if resolved is None:
             continue
-        if (root / resolved).is_dir():
-            continue
-        if resolved not in inventory:
+        if resolved not in inventory and not (root / resolved).is_dir():
             raise RepositoryLinkError(
-                "linked figure is not tracked: "
+                "local Markdown destination is neither tracked nor an existing directory: "
                 f"{destination.source_path}:{destination.line_number}: {resolved}"
             )
+        if not resolved.startswith(FIGURE_ROOT) or (root / resolved).is_dir():
+            continue
         references_by_figure[resolved].append(
             FigureReference(destination.source_path, destination.line_number)
         )

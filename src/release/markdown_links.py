@@ -25,6 +25,7 @@ class MarkdownDestination:
 
 
 _FENCE_START = re.compile(r"^\s*(`{3,}|~{3,})")
+_FENCE_CLOSE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
 _INLINE_CODE = re.compile(r"`+[^`]*`+")
 _INLINE_DESTINATION = re.compile(
     r"!?\[[^\]]*\]\(\s*(<[^>\n]+>|[^\s)]+)(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
@@ -45,11 +46,16 @@ def extract_markdown_destinations(text: str, source_path: str) -> tuple[tuple[in
     destinations: list[tuple[int, str]] = []
     fence: str | None = None
     for line_number, line in enumerate(text.splitlines(), start=1):
-        fence_match = _FENCE_START.match(line)
         if fence is not None:
-            if fence_match and fence_match.group(1)[0] == fence[0] and len(fence_match.group(1)) >= len(fence):
+            fence_close = _FENCE_CLOSE.match(line)
+            if (
+                fence_close
+                and fence_close.group(1)[0] == fence[0]
+                and len(fence_close.group(1)) >= len(fence)
+            ):
                 fence = None
             continue
+        fence_match = _FENCE_START.match(line)
         if fence_match:
             fence = fence_match.group(1)
             continue

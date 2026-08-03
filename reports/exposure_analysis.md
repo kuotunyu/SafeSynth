@@ -4,7 +4,7 @@
 
 ⚠️ **Matching real exposure unmatches compute.** At one pass over the real training set a 50/50 arm has taken twice as many optimizer steps as a real-only arm. The honest description of every row below is *same labels, more compute* — which is exactly the trade synthetic data offers, but it is not *same conditions*.
 
-![exposure curves](reports/figures/exposure_curves.png)
+![exposure curves](figures/exposure_curves.png)
 
 Re-aggregated from each arm's `trainer_state.json` (EVAL-12). **Validation only**, single seed.
 

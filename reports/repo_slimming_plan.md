@@ -1,14 +1,15 @@
 # Repo slimming plan — the file list to review before `git filter-repo`
 
 > Regenerate with `uv run python -m scripts.plan_repo_slimming`.
-> It reads `git ls-files` and every tracked `.md`, and changes nothing.
+> It reads `git ls-files` and every tracked `.md` except this generated report,
+> and changes nothing.
 
 ## Why
 
 | | bytes across ALL history | share |
 |---|---:|---:|
 | `reports/figures/` | 629.7 MB | 94% |
-| `everything else` | 43.7 MB | 6% |
+| `everything else` | 43.8 MB | 6% |
 
 A clone downloads history, not the working tree, so deleting these at HEAD
 would change nothing. Rewriting history is the only thing that shrinks it,
@@ -19,16 +20,16 @@ and the complete current tree is archived before the owner takes any action.
 KEEP decisions use only real Markdown destinations after resolving each target
 relative to its source document. Bare filenames in prose or code are not links.
 
-This exact inventory is 7 KEEP / 143 DROP, rather than the
-read-only 32 KEEP / 118 DROP basename-scan baseline. Seven apparent image links
+This exact inventory is 14 KEEP / 136 DROP, rather than the
+read-only 32 KEEP / 118 DROP basename-scan baseline. Seven image links
 in `reports/compliance_operating_point.md:7`,
 `reports/compliance_operating_point_filtered_syn.md:7`,
 `reports/compliance_operating_point_real_only.md:7`,
 `reports/compliance_operating_point_standard_aug.md:7`,
 `reports/compliance_operating_point_unfiltered_syn.md:7`,
-`reports/exposure_analysis.md:7`, and `reports/training_curves.md:5` resolve
-from `reports/` to untracked
-`reports/reports/figures/...` paths. The remaining 18 baseline-only names are
+`reports/exposure_analysis.md:7`, and `reports/training_curves.md:5` now resolve
+to tracked KEEP figures after their destinations were corrected to `figures/...`.
+The remaining 18 baseline-only names are
 prose or inline-code mentions, including `class_distribution.png`,
 `filter_pass_reject_grid.png`, `flux2_v2_diagnostic_detail.png`, the three
 `h2_sam2_*.png` files, `h3_clip_largest_groups.png`,
@@ -42,19 +43,26 @@ and cannot safely promote a figure to KEEP.
 
 ## KEEP — a document links to these
 
-7 files, 1.5 MB.
+14 files, 2.1 MB.
 
+- `reports/figures/compliance_sweep.png` (0.05 MB) — linked from `reports/compliance_operating_point.md:7`
+- `reports/figures/compliance_sweep_filtered_syn.png` (0.06 MB) — linked from `reports/compliance_operating_point_filtered_syn.md:7`
+- `reports/figures/compliance_sweep_real_only.png` (0.05 MB) — linked from `reports/compliance_operating_point_real_only.md:7`
+- `reports/figures/compliance_sweep_standard_aug.png` (0.05 MB) — linked from `reports/compliance_operating_point_standard_aug.md:7`
+- `reports/figures/compliance_sweep_unfiltered_syn.png` (0.05 MB) — linked from `reports/compliance_operating_point_unfiltered_syn.md:7`
 - `reports/figures/error_analysis/both_wrong.png` (0.13 MB) — linked from `reports/error_analysis.md:17`, `reports/error_analysis.md:58`
 - `reports/figures/error_analysis/fixed_false_negative.png` (0.24 MB) — linked from `reports/error_analysis.md:13`, `reports/error_analysis.md:40`
 - `reports/figures/error_analysis/fixed_false_positive.png` (0.22 MB) — linked from `reports/error_analysis.md:14`, `reports/error_analysis.md:46`
 - `reports/figures/error_analysis/new_false_positive.png` (0.29 MB) — linked from `reports/error_analysis.md:15`, `reports/error_analysis.md:52`
+- `reports/figures/exposure_curves.png` (0.17 MB) — linked from `reports/exposure_analysis.md:7`
 - `reports/figures/h4_artifact_roc.png` (0.05 MB) — linked from `docs/decisions.md:569`
 - `reports/figures/hard_negative_test_regions.png` (0.51 MB) — linked from `reports/hard_negative_false_positives.md:40`
 - `reports/figures/headline.png` (0.11 MB) — linked from `README.md:119`
+- `reports/figures/training_curves.png` (0.16 MB) — linked from `reports/training_curves.md:5`
 
 ## DROP — no document links to these
 
-143 files, 401.7 MB. No real Markdown destination
+136 files, 401.1 MB. No real Markdown destination
 links to them; prose and inline-code filename mentions are not references a
 reader can follow.
 
@@ -64,14 +72,8 @@ That is the form a reader can search.
 
 - `reports/figures/README.md` (0.00 MB)
 - `reports/figures/class_distribution.png` (0.14 MB)
-- `reports/figures/compliance_sweep.png` (0.05 MB)
-- `reports/figures/compliance_sweep_filtered_syn.png` (0.06 MB)
-- `reports/figures/compliance_sweep_real_only.png` (0.05 MB)
-- `reports/figures/compliance_sweep_standard_aug.png` (0.05 MB)
-- `reports/figures/compliance_sweep_unfiltered_syn.png` (0.05 MB)
 - `reports/figures/demo_examples/demo_hard_hat_workers2261.png` (0.33 MB)
 - `reports/figures/demo_examples/demo_hard_hat_workers245.png` (0.28 MB)
-- `reports/figures/exposure_curves.png` (0.17 MB)
 - `reports/figures/filter_pass_reject_grid.png` (1.79 MB)
 - `reports/figures/flux2_v2_diagnostic_detail.png` (0.42 MB)
 - `reports/figures/grounded_labeler_audit.png` (1.78 MB)
@@ -202,7 +204,6 @@ That is the form a reader can search.
 - `reports/figures/supervised_labeler_v6_audit_separated_page_01.png` (0.97 MB)
 - `reports/figures/supervised_labeler_v6_audit_separated_page_02.png` (0.96 MB)
 - `reports/figures/supervised_labeler_v6_audit_separated_page_03.png` (0.94 MB)
-- `reports/figures/training_curves.png` (0.16 MB)
 - `reports/figures/whole_person_edit_diagnostic_v8.png` (0.56 MB)
 - `reports/figures/whole_person_edit_preflight_v8.png` (0.83 MB)
 
