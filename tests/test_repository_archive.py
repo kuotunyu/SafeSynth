@@ -487,46 +487,71 @@ def test_restore_rejects_non_windows_before_mutation(
     assert not restored_root.parent.exists()
 
 
-def test_post_publication_bundle_digest_failure_removes_only_new_bundle(
+def test_bundle_verification_failure_leaves_no_final_or_staging_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     project = _project_with_keep_and_drop(tmp_path / "project")
     bundle_path = tmp_path / "repository.bundle"
-    real_digest = repository_archive.sha256_file
+    real_run = repository_archive.subprocess.run
 
-    def fail_final_digest(path: Path) -> str:
-        if Path(path) == bundle_path:
-            return "0" * 64
-        return real_digest(path)
+    def fail_bundle_verify(command: list[str], *args: object, **kwargs: object) -> object:
+        if command[:3] == ["git", "bundle", "verify"]:
+            return subprocess.CompletedProcess(command, 1, "", "injected verify failure")
+        return real_run(command, *args, **kwargs)
 
-    monkeypatch.setattr(repository_archive, "sha256_file", fail_final_digest)
+    monkeypatch.setattr(repository_archive.subprocess, "run", fail_bundle_verify)
 
-    with pytest.raises(ArchiveError, match="published Git bundle SHA-256 mismatch"):
+    with pytest.raises(ArchiveError, match="injected verify failure"):
         create_verified_git_bundle(project.root, bundle_path)
 
     assert not bundle_path.exists()
+    assert not list(tmp_path.glob(".repository.bundle.staging-*"))
 
 
-def test_bundle_digest_failure_does_not_remove_a_replacement_file(
+def test_bundle_digest_failure_before_rename_leaves_no_final_or_staging_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     project = _project_with_keep_and_drop(tmp_path / "project")
     bundle_path = tmp_path / "repository.bundle"
     real_digest = repository_archive.sha256_file
 
-    def replace_before_failed_digest(path: Path) -> str:
-        if Path(path) == bundle_path:
-            bundle_path.unlink()
-            bundle_path.write_bytes(b"replacement owned elsewhere")
-            return "0" * 64
+    def fail_staged_digest(path: Path) -> str:
+        if Path(path).name == bundle_path.name:
+            raise ArchiveError("injected staged digest failure")
         return real_digest(path)
 
-    monkeypatch.setattr(repository_archive, "sha256_file", replace_before_failed_digest)
+    monkeypatch.setattr(repository_archive, "sha256_file", fail_staged_digest)
 
-    with pytest.raises(ArchiveError, match="published Git bundle SHA-256 mismatch"):
+    with pytest.raises(ArchiveError, match="injected staged digest failure"):
         create_verified_git_bundle(project.root, bundle_path)
 
-    assert bundle_path.read_bytes() == b"replacement owned elsewhere"
+    assert not bundle_path.exists()
+    assert not list(tmp_path.glob(".repository.bundle.staging-*"))
+
+
+def test_successful_bundle_publication_never_reopens_the_final_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _project_with_keep_and_drop(tmp_path / "project")
+    bundle_path = tmp_path / "repository.bundle"
+    real_digest = repository_archive.sha256_file
+    digested_paths: list[Path] = []
+
+    def reject_final_path_digest(path: Path) -> str:
+        path = Path(path)
+        digested_paths.append(path)
+        if path == bundle_path:
+            raise AssertionError("published bundle path was reopened")
+        return real_digest(path)
+
+    monkeypatch.setattr(repository_archive, "sha256_file", reject_final_path_digest)
+
+    digest = create_verified_git_bundle(project.root, bundle_path)
+
+    assert bundle_path.is_file()
+    assert len(digested_paths) == 1
+    assert digested_paths[0] != bundle_path
+    assert digest == hashlib.sha256(bundle_path.read_bytes()).hexdigest()
 
 
 def test_recovery_bundle_must_contain_manifest_source_commit(

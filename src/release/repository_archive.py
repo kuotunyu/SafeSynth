@@ -388,7 +388,6 @@ def create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str:
     if _path_exists(bundle_path):
         raise FileExistsError(bundle_path)
     bundle_path.parent.mkdir(parents=True, exist_ok=True)
-    published_stat: os.stat_result | None = None
 
     with tempfile.TemporaryDirectory(
         prefix=f".{bundle_path.name}.staging-", dir=bundle_path.parent
@@ -420,21 +419,12 @@ def create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str:
         digest = sha256_file(staged_bundle)
         try:
             os.rename(staged_bundle, bundle_path)
-            published_stat = bundle_path.stat()
         except FileExistsError:
             raise FileExistsError(bundle_path) from None
         except OSError as error:
             if _path_exists(bundle_path):
                 raise FileExistsError(bundle_path) from error
             raise ArchiveError(f"cannot publish verified Git bundle: {error}") from error
-    if sha256_file(bundle_path) != digest:
-        try:
-            current_stat = bundle_path.stat()
-            if published_stat is not None and os.path.samestat(published_stat, current_stat):
-                bundle_path.unlink()
-        except FileNotFoundError:
-            pass
-        raise ArchiveError("published Git bundle SHA-256 mismatch")
     return digest
 
 
