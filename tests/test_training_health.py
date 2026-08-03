@@ -169,6 +169,30 @@ def test_policy_allows_windows_kernel_system_gpu_client(tmp_path: Path) -> None:
     assert policy.check(stage="training_log", arm="filtered_syn", step=5_000) == snapshot
 
 
+def test_policy_allows_docker_desktop_frontend_gpu_client(tmp_path: Path) -> None:
+    """Docker's Windows UI is a WDDM client, not a container CUDA workload."""
+
+    snapshot = _snapshot(
+        gpu_processes=(
+            GpuProcess(
+                pid=32604,
+                process_name=r"C:\Program Files\Docker\Docker\frontend\Docker Desktop.exe",
+            ),
+        )
+    )
+    policy = UnattendedSafetyPolicy(
+        output_root=tmp_path,
+        health_log=tmp_path / "health.jsonl",
+        deadline_utc=NOW + timedelta(hours=1),
+        min_free_gib=50.0,
+        max_gpu_temperature_c=85.0,
+        own_pid=123,
+        snapshot_reader=lambda _: snapshot,
+    )
+
+    assert policy.check(stage="startup", arm="filtered_syn") == snapshot
+
+
 def test_unidentified_windows_client_requires_memory_or_ownership_evidence(
     tmp_path: Path,
 ) -> None:

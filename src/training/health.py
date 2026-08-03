@@ -154,6 +154,7 @@ _WINDOWS_DESKTOP_GPU_CLIENTS = {
     "chatgpt.exe",
     "chrome.exe",
     "crossdeviceresume.exe",
+    "docker desktop.exe",
     "dwm.exe",
     "explorer.exe",
     "firefox.exe",
