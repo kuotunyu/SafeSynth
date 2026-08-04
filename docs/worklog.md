@@ -68,6 +68,11 @@
 
 ## 工作日誌
 
+### 2026-08-04 — v5 owner gate 在建檔前完成文件綁定
+- **已核准的書面規格**：v5 safety specification 是唯一的 owner gate；v1–v4 都是不可變、僅供復原的封存包，任何舊 runbook 都不得執行。v5 package 的建立留給 Task 4；本筆不宣稱 package 存在，也不預先記錄其 hash。
+- **Stage 1 的受保護邊界**：先完成完整 preflight，驗證每個 Codex tree ref 後才可作 conditional deletion；history rewrite 後必須做 all-ref scan、strict `git fsck` 與 object-count report，最後以 mandatory STOP 結束。整個流程不涉及 GPU。
+- **owner handoff**：owner 複製 v5 命令後完整關閉 Codex 與 editors，在外部 Windows PowerShell 執行；只在看到 STOP 後重開 Codex 並交回完整輸出。任何 restoration 都只能在另一個 read-only checkpoint 通過後開始。
+
 ### 2026-08-04 — RF-DETR 四組完成，結果凍結只差可信延遲
 
 - **訓練完成**：`real_only`、`standard_aug`、`unfiltered_syn`、`filtered_syn`

@@ -12,21 +12,20 @@
 
 The v1 archive at
 `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation`
-remains a recovery snapshot only for source commit
+is an immutable recovery-only package for source commit
 `2c2d3ff5198ff600220e5b1e1c606ebc80e07a98`. The v2 archive at
 `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2`
-remains a recovery snapshot only for source commit
-`f514950b142da95bb4c71d3626b9417fb25a3bff`. The v3 archive is also an immutable
-recovery snapshot. These v1, v2, and v3 immutable recovery snapshots are
-recovery-only and forbidden for the owner gate after this amendment. The owner
-gate may use only the non-overwriting v4 destination
-`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`.
+is an immutable recovery-only package for source commit
+`f514950b142da95bb4c71d3626b9417fb25a3bff`. The v3 and v4 packages are
+also immutable recovery-only packages. The v1, v2, and v3 immutable recovery snapshots and the v4 immutable recovery-only package are forbidden for the owner gate: the v1-v4 runbooks must not be executed, and none of those packages may be
+offered as an owner gate. The sole owner-gate package is the non-overwriting v5 destination
+`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5`.
 
 The archive command must load the tracked canonical manifest, verify exact source
 bytes and every curation-plan field before staging or publication, and require the
 produced recovery entry tuple to exactly match the tracked manifest entries before
 publication. The manifest's historical source commit remains evidence history;
-the v4 recovery package records the current clean HEAD. The 21-test dry-run
+the v5 recovery package records the current clean HEAD. The 21-test dry-run
 finding established that this binding is required before an owner may be offered
 the Stage 1 runbook.
 
@@ -35,7 +34,7 @@ the Stage 1 runbook.
 - Keep only files under `reports/figures/` that a surviving tracked Markdown document links to through an exact normalized path.
 - Exclude generated `reports/repo_slimming_plan.md` from reference inputs so it cannot promote its own DROP entries to KEEP.
 - Treat unresolved, escaping, malformed, or ambiguous local links as blocking failures; never silently classify them as DROP.
-- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, only under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`.
+- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, only under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5`.
 - Record byte size and SHA-256 for every archived file and verify source/archive equality before allowing history rewrite.
 - Create and verify a complete pre-rewrite Git bundle outside the repository.
 - Do not overwrite or delete an existing archive destination.
@@ -650,7 +649,7 @@ Before committing, inspect `git diff --cached --name-only` and confirm only the 
 
 **Files:**
 - Read: `reports/repo_slimming_plan.md`
-- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\`
+- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
 - No tracked repository changes expected.
 
 **Interfaces:**
@@ -674,14 +673,14 @@ Expected: every verifier passes and the branch is clean.
 - [ ] **Step 2: Confirm the approved destination does not exist**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 if (Test-Path -LiteralPath $safeSynthArchive) { throw "approved archive destination already exists" }
 ```
 
 - [ ] **Step 3: Create the complete verified archive and bundle**
 
 ```powershell
-uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
 ```
 
 Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, KEEP/DROP counts, source commit, manifest SHA-256, and bundle SHA-256.
@@ -689,7 +688,7 @@ Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, K
 - [ ] **Step 4: Independently re-verify archive and bundle**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
@@ -711,10 +710,15 @@ Expected: the identity command prints only `kuotunyu <61350295+kuotunyu@users.no
 
 ### Task 7: Fast-forward integration and owner history-rewrite gate
 
+The v4 package at
+`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`
+is an immutable recovery-only package; its runbook must not be executed. It is
+not a Task 7 input or owner gate.
+
 **Files:**
-- Worktree to retire after integration: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\rfdetr-four-arm`
+- Worktree to retire after integration: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5`
 - Main repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
-- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
+- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
 
 **Interfaces:**
 - Consumes: verified Task 6 archive/bundle and clean branch.
@@ -725,7 +729,7 @@ Expected: the identity command prints only `kuotunyu <61350295+kuotunyu@users.no
 
 ```powershell
 git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' status --short --branch
-git merge-base --is-ancestor main codex/rfdetr-four-arm
+git merge-base --is-ancestor main codex/repository-curation-v5
 ```
 
 Expected: main is clean and the ancestor command exits 0. If either check fails, stop and reconcile without deleting either worktree or rewriting history.
@@ -733,7 +737,7 @@ Expected: main is clean and the ancestor command exits 0. If either check fails,
 - [ ] **Step 2: Fast-forward main**
 
 ```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' merge --ff-only codex/rfdetr-four-arm
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' merge --ff-only codex/repository-curation-v5
 ```
 
 Expected: fast-forward succeeds without a merge commit, so the verified bundle already contains the resulting HEAD object.
@@ -742,8 +746,8 @@ Expected: fast-forward succeeds without a merge commit, so the verified bundle a
 
 ```powershell
 git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\rfdetr-four-arm' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree remove 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\rfdetr-four-arm'
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5' status --short --branch
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree remove 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5'
 git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree list
 ```
 
@@ -751,8 +755,9 @@ Expected: both statuses are clean before removal, and only the intended linked w
 
 - [ ] **Step 4: Run the stage-1 owner runbook, stop and report**
 
-The agent must not execute the next command. Ask the owner to open the verified
-stage-1 owner runbook and run it in Windows PowerShell. The runbook checks the
+The agent must not execute the next command. Ask the owner to copy the command,
+fully close Codex and all editors, and run the immutable v5 stage-1 owner
+runbook from an external Windows PowerShell process. The runbook checks the
 clean state, requires `HEAD` to equal the archive's exact source commit, checks
 every native exit code, performs only the exact rewrite below, and ends with a
 mandatory STOP/report-back instruction. It contains no restoration, staging, or
@@ -763,9 +768,10 @@ without installing a persistent global command, while the exact rewrite is:
 uvx git-filter-repo --path reports/figures/ --invert-paths --force
 ```
 
-The owner must stop and report the full output or any error. Wait for that report
-before continuing; do not infer completion from process disappearance and do not
-start Task 8.
+The owner must wait for the mandatory STOP, reopen Codex only after STOP, and
+return the complete output or any error. Wait for that report before continuing;
+do not infer completion from process disappearance, do not start Task 8, and do
+not restore anything before the separate read-only checkpoint in Step 5 passes.
 
 - [ ] **Step 5: Confirm the owner rewrite before restoration**
 
@@ -782,9 +788,14 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 ### Task 8: Restore curated evidence and run post-rewrite acceptance
 
+The v4 package at
+`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`
+is an immutable recovery-only package; its runbook must not be executed. It is
+not a Task 8 recovery source.
+
 **Files:**
 - Restore: exact manifest KEEP set under `reports/figures/`
-- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\`
+- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
 
 **Interfaces:**
 - Consumes: owner-rewritten main and verified archive.
@@ -794,7 +805,7 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 ```powershell
 Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
+uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 ```
 
 Expected: only manifest KEEP paths are restored, and every restored digest matches.
@@ -849,7 +860,7 @@ Expected: `size-pack` is below 120 MiB; only the approved identity appears; no c
 - [ ] **Step 6: Verify recovery assets remain intact**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
