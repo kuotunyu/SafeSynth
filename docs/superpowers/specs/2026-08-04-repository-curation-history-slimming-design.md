@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 
-**Status:** Approved v5 safety design, awaiting written-spec review
+**Status:** Approved written specification
 
 **Scope:** Repository figure curation, recoverable archival, and pre-publication Git history slimming only
 
