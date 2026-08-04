@@ -70,6 +70,43 @@ def _curate(root: Path) -> None:
     _commit_all(root, "remove drop")
 
 
+def _two_entry_manifest(drop_sha256: str = _DROP_SHA256) -> bytes:
+    return f'''{{
+  "entries": [
+    {{
+      "disposition": "DROP",
+      "path": "reports/figures/drop.png",
+      "reference_sources": [],
+      "sha256": "{drop_sha256}",
+      "size_bytes": 4
+    }},
+    {{
+      "disposition": "KEEP",
+      "path": "reports/figures/keep.png",
+      "reference_sources": [
+        "README.md:1"
+      ],
+      "sha256": "{_KEEP_SHA256}",
+      "size_bytes": 4
+    }}
+  ],
+  "schema_version": 1,
+  "source_commit": "0123456789abcdef0123456789abcdef01234567"
+}}
+'''.encode()
+
+
+def _configure_two_entry_verifier(
+    monkeypatch: pytest.MonkeyPatch, manifest: Path, entries: tuple[ArchiveEntry, ...]
+) -> None:
+    monkeypatch.setattr(
+        verify_command, "APPROVED_MANIFEST_SHA256", hashlib.sha256(manifest.read_bytes()).hexdigest()
+    )
+    monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", len(entries))
+    monkeypatch.setattr(verify_command, "EXPECTED_KEEP", 1)
+    monkeypatch.setattr(verify_command, "EXPECTED_DROP", 1)
+
+
 def test_source_state_requires_and_hashes_every_manifest_entry(tmp_path: Path) -> None:
     """Catch source verification accepting a corrupt tracked figure."""
 
@@ -234,35 +271,9 @@ def test_verifier_command_enforces_expected_counts_hash_and_state(
     root, entries = _project(tmp_path / "project")
     manifest = root / "reports/figure_curation_manifest.json"
     manifest.parent.mkdir(exist_ok=True)
-    manifest.write_bytes(
-        b'''{
-  "entries": [
-    {
-      "disposition": "DROP",
-      "path": "reports/figures/drop.png",
-      "reference_sources": [],
-      "sha256": "d90ee9ccf6bea1d2942a7b21319338198dec2a746f8a0d0771621f00da2e0864",
-      "size_bytes": 4
-    },
-    {
-      "disposition": "KEEP",
-      "path": "reports/figures/keep.png",
-      "reference_sources": [
-        "README.md:1"
-      ],
-      "sha256": "6ca7ea2feefc88ecb5ed6356ed963f47dc9137f82526fdd25d618ea626d0803f",
-      "size_bytes": 4
-    }
-  ],
-  "schema_version": 1,
-  "source_commit": "0123456789abcdef0123456789abcdef01234567"
-}
-'''
-    )
-    monkeypatch.setattr(verify_command, "APPROVED_MANIFEST_SHA256", hashlib.sha256(manifest.read_bytes()).hexdigest())
-    monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", len(entries))
-    monkeypatch.setattr(verify_command, "EXPECTED_KEEP", 1)
-    monkeypatch.setattr(verify_command, "EXPECTED_DROP", 1)
+    manifest.write_bytes(_two_entry_manifest())
+    _commit_all(root, "track canonical manifest")
+    _configure_two_entry_verifier(monkeypatch, manifest, entries)
 
     assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 0
     monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", 3)
@@ -275,6 +286,46 @@ def test_verifier_command_enforces_expected_counts_hash_and_state(
     )
     _curate(root)
     assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
+
+
+def test_verifier_command_rejects_a_correct_but_untracked_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Catch the public verifier accepting canonical bytes absent from Git's exact manifest path."""
+
+    root, entries = _project(tmp_path / "project")
+    manifest = root / "reports/figure_curation_manifest.json"
+    manifest.parent.mkdir(exist_ok=True)
+    manifest.write_bytes(_two_entry_manifest())
+    _configure_two_entry_verifier(monkeypatch, manifest, entries)
+
+    assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
+
+    assert "manifest is not Git-tracked" in capsys.readouterr().err
+
+
+def test_verifier_uses_the_entries_from_the_manifest_bytes_it_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catch a second manifest parse accepting replacement entries after the approved bytes were hashed."""
+
+    root, entries = _project(tmp_path / "project")
+    manifest = root / "reports/figure_curation_manifest.json"
+    manifest.parent.mkdir(exist_ok=True)
+    original_bytes = _two_entry_manifest()
+    manifest.write_bytes(original_bytes)
+    _commit_all(root, "track canonical manifest")
+    _configure_two_entry_verifier(monkeypatch, manifest, entries)
+    original_load = verify_command.load_manifest_commitments
+
+    def replace_after_first_verified_read(manifest_path: Path) -> tuple[str, tuple[ArchiveEntry, ...], str]:
+        commitments = original_load(manifest_path)
+        manifest.write_bytes(_two_entry_manifest("0" * 64))
+        return commitments
+
+    monkeypatch.setattr(verify_command, "load_manifest_commitments", replace_after_first_verified_read)
+
+    assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 0
 
 
 def test_figure_evidence_scripts_run_directly_without_pytest_path_injection() -> None:

@@ -20,6 +20,7 @@ from src.release.repository_archive import (
 from src.release.repository_curation import FigureDisposition
 
 _FIGURE_PREFIX = "reports/figures/"
+_MANIFEST_PATH = "reports/figure_curation_manifest.json"
 
 
 class FigureEvidenceError(RuntimeError):
@@ -52,14 +53,37 @@ def _entries_by_path(entries: Sequence[ArchiveEntry]) -> dict[str, ArchiveEntry]
     return by_path
 
 
-def load_repository_figure_manifest(project_root: Path) -> tuple[ArchiveEntry, ...]:
+def _require_tracked_repository_manifest(project_root: Path) -> None:
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", _MANIFEST_PATH],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise FigureEvidenceError(f"cannot inspect Git manifest tracking: {error}") from error
+    tracked_paths = [line for line in completed.stdout.splitlines() if line]
+    if completed.returncode != 0 or tracked_paths != [_MANIFEST_PATH]:
+        raise FigureEvidenceError(f"canonical manifest is not Git-tracked: {_MANIFEST_PATH}")
+
+
+def load_repository_figure_manifest(
+    project_root: Path,
+    commitments: tuple[str, tuple[ArchiveEntry, ...], str] | None = None,
+) -> tuple[ArchiveEntry, ...]:
     """Load the canonical, payload-free manifest tracked by this repository."""
 
-    manifest_path = Path(project_root) / "reports" / "figure_curation_manifest.json"
-    try:
-        _, entries, _ = load_manifest_commitments(manifest_path)
-    except ArchiveError as error:
-        raise FigureEvidenceError(str(error)) from error
+    project_root = Path(project_root)
+    _require_tracked_repository_manifest(project_root)
+    if commitments is None:
+        manifest_path = project_root / _MANIFEST_PATH
+        try:
+            commitments = load_manifest_commitments(manifest_path)
+        except ArchiveError as error:
+            raise FigureEvidenceError(str(error)) from error
+    _, entries, _ = commitments
     _entries_by_path(entries)
     return entries
 

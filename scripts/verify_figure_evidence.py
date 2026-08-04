@@ -28,12 +28,14 @@ def verify(project_root: Path, expected_state: str) -> str:
 
     manifest_path = Path(project_root) / "reports" / "figure_curation_manifest.json"
     try:
-        _, _, manifest_sha256 = load_manifest_commitments(manifest_path)
+        source_commit, entries, manifest_sha256 = load_manifest_commitments(manifest_path)
     except ArchiveError as error:
         raise FigureEvidenceError(str(error)) from error
     if manifest_sha256 != APPROVED_MANIFEST_SHA256:
         raise FigureEvidenceError("manifest SHA-256 differs from approved figure evidence")
-    entries = load_repository_figure_manifest(project_root)
+    entries = load_repository_figure_manifest(
+        project_root, commitments=(source_commit, entries, manifest_sha256)
+    )
     keep_count = sum(entry.disposition == "KEEP" for entry in entries)
     drop_count = sum(entry.disposition == "DROP" for entry in entries)
     if (len(entries), keep_count, drop_count) != (EXPECTED_TOTAL, EXPECTED_KEEP, EXPECTED_DROP):
