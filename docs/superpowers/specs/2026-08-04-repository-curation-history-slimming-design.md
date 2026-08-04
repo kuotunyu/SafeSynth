@@ -82,11 +82,22 @@ The generated human-readable report is derived output and must never become an i
 
 ### 4.3 External archive builder
 
-Before anything is removed or rewritten, all 150 current tracked figure entries are copied outside the repository to a date-stamped directory under:
-
-`D:\sdg-data\02-safesynth\release_archive\`
+Before anything is removed or rewritten, all current tracked figure entries are
+copied outside the repository to the approved, non-overwriting owner-controlled
+recovery destination. Its machine-local location belongs only in the owner plan,
+not in public documentation or tests.
 
 The archive includes both KEEP and DROP files, plus a manifest containing normalized path, size, SHA-256 digest, and planned disposition. Archive creation succeeds only when every copied file hashes identically to its source and the total inventory matches the tracked inventory.
+
+The archive command is bound to the tracked canonical manifest. Before staging or
+publication it loads that manifest, verifies the complete source state, and
+requires every current curation-plan field (path, byte size, disposition, and
+reference sources) to agree with it. After building the recovery package and
+before publication, its entry tuple must exactly match the tracked manifest
+entries. The historical source commit in the manifest is evidence provenance,
+not a requirement that the new package source equal it. This contract follows the
+21-test dry-run finding that archive contents otherwise could drift from the
+reviewed evidence index.
 
 The implementation also creates a complete pre-rewrite Git bundle outside the repository. The bundle is independently verified before the owner is offered any history-rewrite command. Neither archive is deleted as part of this project.
 
@@ -110,7 +121,7 @@ No automated author, committer, co-author trailer, or generated identity is perm
 6. Finish all ordinary branch integration while history is unchanged.
 7. Give the owner an exact, copyable history-rewrite procedure and stop for owner confirmation.
 8. After the owner rewrite, restore only KEEP files from the verified archive.
-9. Run link, repository, test, licensing, identity, and size verification.
+9. Verify `verify_figure_evidence.py --expected-state curated`, then run link, repository, test, licensing, identity, and size verification.
 10. Only after all gates pass may the separate GitHub publication project begin.
 
 ## 6. Failure handling and rollback
@@ -118,7 +129,7 @@ No automated author, committer, co-author trailer, or generated identity is perm
 The workflow fails closed:
 
 - An unresolved, escaping, malformed, or ambiguous figure link is reported and blocks approval; it is not silently treated as DROP.
-- A missing source, count mismatch, copy error, or digest mismatch blocks archive completion.
+- A missing tracked canonical manifest, source-state mismatch, curation-plan mismatch, entry-tuple mismatch, count mismatch, copy error, or digest mismatch blocks archive completion before publication.
 - A Git bundle that cannot be verified blocks history rewriting.
 - A history rewrite is never started by the agent and is never suggested while another linked worktree remains active.
 - If owner-operated rewriting fails, the original repository remains recoverable from the verified Git bundle, while all current figures remain recoverable from the SHA-256 archive.
@@ -139,7 +150,7 @@ Tests will cover:
 - Markdown links and image links to figures count as references;
 - path traversal and links outside the repository fail closed;
 - output ordering and repeated generation are deterministic; and
-- manifest hashes and source/archive inventories must match.
+- manifest hashes, complete source state, curation-plan fields, and source/archive entry tuples must match.
 
 ### 7.2 Pre-rewrite acceptance gates
 
@@ -155,6 +166,7 @@ Tests will cover:
 - Every local Markdown link or image destination resolves; this check covers all tracked Markdown, not only README.
 - No DROP figure remains tracked in Git, while all DROP files remain in the external archive.
 - The restored KEEP inventory matches the approved manifest exactly.
+- `verify_figure_evidence.py --expected-state curated` passes before the post-rewrite test suite.
 - `git count-objects -vH` reports a target pack size below 120 MiB. A larger pack blocks publication and triggers investigation rather than weakening the target silently.
 - The complete verification suite passes again.
 - All rewritten commits and the restoration commit preserve the contributor invariant.

@@ -18,6 +18,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.release.figure_evidence import (
+    FigureEvidenceError,
+    load_repository_figure_manifest,
+    verify_curation_plan_matches_manifest,
+    verify_repository_figure_state,
+)
 from src.release.markdown_links import RepositoryLinkError
 from src.release.repository_archive import (
     MANIFEST_NAME,
@@ -334,11 +340,16 @@ def archive(project_root: Path, destination: Path, owner_project_root: str) -> N
 
     if _path_exists(destination):
         raise FileExistsError(f"destination already exists: {destination}")
+    tracked_entries = load_repository_figure_manifest(project_root)
+    verify_repository_figure_state(project_root, tracked_entries, "source")
     plan = plan_figure_curation(project_root, tracked_files(project_root))
+    verify_curation_plan_matches_manifest(project_root, plan, tracked_entries)
     stage_root, stage = _private_stage(destination)
     published = False
     try:
         recovery = create_recovery_package(project_root, stage, plan)
+        if tuple(recovery.entries) != tracked_entries:
+            raise ArchiveError("recovery entries differ from tracked canonical manifest")
         published_bundle = stage / BUNDLE_NAME
         recovery.bundle_path.rename(published_bundle)
         _verify_renamed_bundle(project_root, published_bundle, recovery.bundle_sha256)
@@ -391,6 +402,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     except (
         ArchiveError,
+        FigureEvidenceError,
         FileExistsError,
         OSError,
         RepositoryLinkError,

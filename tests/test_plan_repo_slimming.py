@@ -184,18 +184,22 @@ def test_generated_report_defers_owner_steps_to_verified_external_runbook(
     ) is None
 
 
-def test_formal_plan_retires_old_archives_and_separates_owner_stages() -> None:
+def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state() -> None:
+    """Catch an owner workflow reviving immutable v1-v3 snapshots or skipping evidence gates."""
+
     plan = (
         Path(__file__).resolve().parents[1]
         / "docs/superpowers/plans/2026-08-04-repository-curation-history-slimming.md"
     ).read_text(encoding="utf-8")
-    v3 = r"D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3"
+    v4 = r"D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4"
 
     assert "2c2d3ff5198ff600220e5b1e1c606ebc80e07a98" in plan
     assert "f514950b142da95bb4c71d3626b9417fb25a3bff" in plan
-    assert "v1 and v2 recovery snapshots" in plan
+    assert "v1, v2, and v3 immutable recovery snapshots" in plan
     assert "forbidden for the owner gate" in plan
-    assert v3 in plan
+    assert "tracked canonical manifest" in plan
+    assert re.search(r"21-test dry-run\s+finding", plan)
+    assert v4 in plan
     task_4 = plan.split("### Task 4:", 1)[1].split("### Task 5:", 1)[0]
     task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]
     task_8 = plan.split("### Task 8:", 1)[1]
@@ -207,8 +211,27 @@ def test_formal_plan_retires_old_archives_and_separates_owner_stages() -> None:
     assert "git ls-files reports/figures" in task_7
     assert "requires `HEAD` to equal the archive's exact source commit" in task_7
     assert "restore_curated_figures.py" not in task_7
-    assert v3 in task_8
+    assert v4 in task_7
+    assert v4 in task_8
+    assert "v1" not in task_7 and "v2" not in task_7 and "v3" not in task_7
+    assert "v1" not in task_8 and "v2" not in task_8 and "v3" not in task_8
     assert "restore_curated_figures.py" in task_8
+    assert "verify_figure_evidence.py --expected-state curated" in task_8
+
+
+def test_formal_design_records_the_manifest_bound_archive_contract() -> None:
+    """Catch the governing design omitting the no-staging evidence and recovery contract."""
+
+    design = (
+        Path(__file__).resolve().parents[1]
+        / "docs/superpowers/specs/2026-08-04-repository-curation-history-slimming-design.md"
+    ).read_text(encoding="utf-8")
+
+    assert "tracked canonical manifest" in design
+    assert re.search(r"before staging\s+or\s+publication", design.lower())
+    assert re.search(r"entry tuple\s+must exactly match", design)
+    assert "21-test dry-run finding" in design
+    assert "verify_figure_evidence.py --expected-state curated" in design
 
 
 def test_history_metrics_ignore_generated_report_commits(fixture_repo: Path) -> None:

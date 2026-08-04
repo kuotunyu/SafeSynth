@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -86,6 +86,37 @@ def _project_with_keep_and_drop(root: Path) -> _Project:
     _write(root, "reports/figures/keep.png", b"keep")
     _write(root, "reports/figures/drop.png", b"drop")
     _git(root, "init", "-q")
+    _write(
+        root,
+        "reports/figure_curation_manifest.json",
+        (
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "source_commit": EXPECTED_SOURCE_COMMIT,
+                    "entries": [
+                        {
+                            "path": "reports/figures/drop.png",
+                            "size_bytes": 4,
+                            "sha256": hashlib.sha256(b"drop").hexdigest(),
+                            "disposition": "DROP",
+                            "reference_sources": [],
+                        },
+                        {
+                            "path": "reports/figures/keep.png",
+                            "size_bytes": 4,
+                            "sha256": hashlib.sha256(b"keep").hexdigest(),
+                            "disposition": "KEEP",
+                            "reference_sources": ["README.md:1"],
+                        },
+                    ],
+                },
+                sort_keys=True,
+                indent=2,
+            )
+            + "\n"
+        ).encode("utf-8"),
+    )
     commit = _commit_all(root, "fixture")
     return _Project(
         root=root,
@@ -650,6 +681,18 @@ def test_archive_command_refuses_an_existing_destination(tmp_path: Path) -> None
 def test_archive_command_refuses_unresolved_figure_links(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     _write(project_root, "README.md", b"![missing](reports/figures/missing.png)\n")
+    _write(
+        project_root,
+        "reports/figure_curation_manifest.json",
+        (
+            json.dumps(
+                {"schema_version": 1, "source_commit": EXPECTED_SOURCE_COMMIT, "entries": []},
+                sort_keys=True,
+                indent=2,
+            )
+            + "\n"
+        ).encode("utf-8"),
+    )
     _git(project_root, "init", "-q")
     _commit_all(project_root, "fixture")
     destination = tmp_path / "archive"
@@ -1082,6 +1125,127 @@ def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
     assert not destination.exists()
+
+
+def _assert_unpublished(destination: Path) -> None:
+    """The archive boundary must expose neither a package nor its private staging root."""
+
+    assert not destination.exists()
+    assert not list(destination.parent.glob(".cs-*"))
+
+
+def test_archive_command_rejects_missing_tracked_canonical_manifest_before_staging(
+    tmp_path: Path,
+) -> None:
+    """Catch publication proceeding when the source lacks its Git-tracked evidence index."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    (project.root / "reports/figure_curation_manifest.json").unlink()
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "manifest" in completed.stderr.lower()
+    _assert_unpublished(destination)
+
+
+def test_archive_command_rejects_plan_reference_mismatch_before_staging(tmp_path: Path) -> None:
+    """Catch a Markdown reference moving without a matching canonical-plan update."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    _write(project.root, "README.md", b"\n![keep](reports/figures/keep.png)\n")
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "references differ from manifest" in completed.stderr
+    _assert_unpublished(destination)
+
+
+def test_archive_command_rejects_source_byte_mismatch_before_staging(tmp_path: Path) -> None:
+    """Catch a source figure changing after the canonical evidence index was frozen."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    _write(project.root, "reports/figures/drop.png", b"gone")
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "SHA-256 mismatch" in completed.stderr
+    _assert_unpublished(destination)
+
+
+def test_archive_rejects_produced_entry_tuple_mismatch_and_cleans_private_stage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catch publication accepting package entries other than the tracked evidence tuple."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    original_create = archive_command.create_recovery_package
+
+    def create_with_changed_entries(
+        project_root: Path, stage: Path, plan: object
+    ) -> repository_archive.ArchiveReceipt:
+        recovery = original_create(project_root, stage, plan)
+        changed = replace(recovery.entries[0], disposition="KEEP")
+        return replace(recovery, entries=(changed, *recovery.entries[1:]))
+
+    monkeypatch.setattr(archive_command, "create_recovery_package", create_with_changed_entries)
+
+    with pytest.raises(ArchiveError, match="entries differ from tracked canonical manifest"):
+        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
+
+
+def test_archive_command_publishes_a_canonical_two_entry_manifest_fixture(tmp_path: Path) -> None:
+    """Catch a valid tracked two-entry evidence manifest being rejected by archive binding."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+
+    archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+
+    assert archive_command.load_and_verify_receipt(destination).entries == (
+        repository_archive.ArchiveEntry(
+            "reports/figures/drop.png", 4, hashlib.sha256(b"drop").hexdigest(), "DROP", ()
+        ),
+        repository_archive.ArchiveEntry(
+            "reports/figures/keep.png",
+            4,
+            hashlib.sha256(b"keep").hexdigest(),
+            "KEEP",
+            ("README.md:1",),
+        ),
+    )
 
 
 _CANONICAL_COMMITMENT_MANIFEST = b'''{

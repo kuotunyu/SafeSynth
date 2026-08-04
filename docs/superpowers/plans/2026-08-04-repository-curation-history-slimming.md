@@ -16,18 +16,26 @@ remains a recovery snapshot only for source commit
 `2c2d3ff5198ff600220e5b1e1c606ebc80e07a98`. The v2 archive at
 `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v2`
 remains a recovery snapshot only for source commit
-`f514950b142da95bb4c71d3626b9417fb25a3bff`. These v1 and v2 recovery snapshots
-are forbidden for the owner gate after this amendment. The next archive attempt
-must use the non-overwriting destination
-`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3`
-and bind its receipt and stage-1 owner runbook to the current clean branch HEAD.
+`f514950b142da95bb4c71d3626b9417fb25a3bff`. The v3 archive is also an immutable
+recovery snapshot. These v1, v2, and v3 immutable recovery snapshots are
+recovery-only and forbidden for the owner gate after this amendment. The owner
+gate may use only the non-overwriting v4 destination
+`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`.
+
+The archive command must load the tracked canonical manifest, verify exact source
+bytes and every curation-plan field before staging or publication, and require the
+produced recovery entry tuple to exactly match the tracked manifest entries before
+publication. The manifest's historical source commit remains evidence history;
+the v4 recovery package records the current clean HEAD. The 21-test dry-run
+finding established that this binding is required before an owner may be offered
+the Stage 1 runbook.
 
 ## Global Constraints
 
 - Keep only files under `reports/figures/` that a surviving tracked Markdown document links to through an exact normalized path.
 - Exclude generated `reports/repo_slimming_plan.md` from reference inputs so it cannot promote its own DROP entries to KEEP.
 - Treat unresolved, escaping, malformed, or ambiguous local links as blocking failures; never silently classify them as DROP.
-- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3`.
+- Archive every current tracked file under `reports/figures/`, including both KEEP and DROP, only under `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`.
 - Record byte size and SHA-256 for every archived file and verify source/archive equality before allowing history rewrite.
 - Create and verify a complete pre-rewrite Git bundle outside the repository.
 - Do not overwrite or delete an existing archive destination.
@@ -640,7 +648,7 @@ Before committing, inspect `git diff --cached --name-only` and confirm only the 
 
 **Files:**
 - Read: `reports/repo_slimming_plan.md`
-- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\`
+- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\`
 - No tracked repository changes expected.
 
 **Interfaces:**
@@ -664,14 +672,14 @@ Expected: every verifier passes and the branch is clean.
 - [ ] **Step 2: Confirm the approved destination does not exist**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
 if (Test-Path -LiteralPath $safeSynthArchive) { throw "approved archive destination already exists" }
 ```
 
 - [ ] **Step 3: Create the complete verified archive and bundle**
 
 ```powershell
-uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
 ```
 
 Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, KEEP/DROP counts, source commit, manifest SHA-256, and bundle SHA-256.
@@ -679,7 +687,7 @@ Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, K
 - [ ] **Step 4: Independently re-verify archive and bundle**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
@@ -704,7 +712,7 @@ Expected: the identity command prints only `kuotunyu <61350295+kuotunyu@users.no
 **Files:**
 - Worktree to retire after integration: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\rfdetr-four-arm`
 - Main repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
-- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
+- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
 
 **Interfaces:**
 - Consumes: verified Task 6 archive/bundle and clean branch.
@@ -774,7 +782,7 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 **Files:**
 - Restore: exact manifest KEEP set under `reports/figures/`
-- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3\`
+- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4\`
 
 **Interfaces:**
 - Consumes: owner-rewritten main and verified archive.
@@ -784,7 +792,7 @@ Expected: main is clean and `git ls-files reports/figures` prints nothing. If no
 
 ```powershell
 Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
+uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
 ```
 
 Expected: only manifest KEEP paths are restored, and every restored digest matches.
@@ -809,9 +817,10 @@ git commit -m 'docs: restore curated figure evidence'
 
 Verify author, committer, and trailers immediately.
 
-- [ ] **Step 4: Run the complete post-rewrite verification suite**
+- [ ] **Step 4: Verify the complete curated figure state, then run the post-rewrite suite**
 
 ```powershell
+uv run python scripts/verify_figure_evidence.py --expected-state curated
 uv run pytest -q
 uv run ruff check .
 uv run python scripts/verify_readme.py
@@ -821,7 +830,8 @@ git diff --check
 git status --short --branch
 ```
 
-Expected: all commands PASS and the tree is clean.
+Expected: the curated-state verifier confirms the exact manifest KEEP/DROP state before
+tests run; all remaining commands PASS and the tree is clean.
 
 - [ ] **Step 5: Verify size and contributor invariants**
 
@@ -837,7 +847,7 @@ Expected: `size-pack` is below 120 MiB; only the approved identity appears; no c
 - [ ] **Step 6: Verify recovery assets remain intact**
 
 ```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v3'
+$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4'
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
 Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
 git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
