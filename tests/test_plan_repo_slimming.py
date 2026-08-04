@@ -200,6 +200,9 @@ def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state(
     assert "forbidden for the owner gate" in plan
     assert "tracked canonical manifest" in plan
     assert re.search(r"21-test dry-run\s+finding", plan)
+    assert "create_recovery_package()" not in plan
+    assert "internal `_create_recovery_package` builder" in plan
+    assert "guarded `scripts/archive_repository_curation.py` command" in plan
     assert v4 in normalized_plan
     task_4 = plan.split("### Task 4:", 1)[1].split("### Task 5:", 1)[0]
     task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]

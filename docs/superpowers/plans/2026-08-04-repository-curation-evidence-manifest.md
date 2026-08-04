@@ -312,9 +312,9 @@ Expected: FAIL because archive creation does not yet bind the tracked manifest.
 - [ ] **Step 3: Implement pre-publication and post-build equality gates**
 
 Before staging, load `reports/figure_curation_manifest.json`, require exact
-`source` state, and compare every plan field with the manifest. After
-`create_recovery_package()` and before publishing, require
-`recovery.entries == tracked_manifest_entries`. Compare entries only; the
+`source` state, and compare every plan field with the manifest. After the
+guarded archive command's internal builder completes and before publishing,
+require `recovery.entries == tracked_manifest_entries`. Compare entries only; the
 tracked manifest's historical source commit remains v3 while the recovery
 package source commit is the current v4 HEAD.
 

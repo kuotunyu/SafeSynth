@@ -377,7 +377,9 @@ Verify the approved identity and no co-author trailer.
 - Produces: `sha256_file(path: Path) -> str`.
 - Produces: `create_verified_archive(project_root: Path, destination: Path, dispositions: Sequence[FigureDisposition]) -> Path` returning the manifest path.
 - Produces: `create_verified_git_bundle(project_root: Path, bundle_path: Path) -> str` returning the bundle SHA-256.
-- Produces: `create_recovery_package(project_root: Path, destination: Path, dispositions: Sequence[FigureDisposition]) -> ArchiveReceipt`.
+- Internal only: the guarded `scripts/archive_repository_curation.py` command
+  uses its internal `_create_recovery_package` builder to produce an
+  `ArchiveReceipt`; there is no public raw-package-builder contract.
 - Produces: `load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]`.
 - Produces: `restore_keep_files(project_root: Path, archive_root: Path) -> tuple[str, ...]`.
 
@@ -464,7 +466,7 @@ Write manifest JSON with `sort_keys=True`, `indent=2`, UTF-8, and a trailing new
 }
 ```
 
-Copy files to `destination/figures/<repository-relative-path>`. Reject existing destinations, missing sources, duplicate paths, path escapes, size mismatches, digest mismatches, manifest schema mismatches, and destination KEEP files that already exist. Invoke `git bundle create <path> --all`, then `git bundle verify <path>`, and delete only the newly created invalid bundle if verification fails. `create_recovery_package()` composes the verified archive and bundle and returns the canonical data used to write the receipt.
+Copy files to `destination/figures/<repository-relative-path>`. Reject existing destinations, missing sources, duplicate paths, path escapes, size mismatches, digest mismatches, manifest schema mismatches, and destination KEEP files that already exist. Invoke `git bundle create <path> --all`, then `git bundle verify <path>`, and delete only the newly created invalid bundle if verification fails. The internal builder used only by the guarded archive command composes the verified archive and bundle and returns the canonical data used to write the receipt.
 
 - [ ] **Step 6: Run tests, Ruff, and commit**
 
@@ -520,7 +522,7 @@ Expected: FAIL because both scripts are absent.
 
 - [ ] **Step 3: Implement the archive command**
 
-The command must compute the real tracked inventory, plan it, call `create_recovery_package()`, verify the returned archive and bundle, and only then write `archive_receipt.json` and the runbook. Its success output must state counts, digests, source commit, and destination. It must not print or execute `git-filter-repo` before every verification passes.
+The guarded `scripts/archive_repository_curation.py` command must compute the real tracked inventory, plan it, use its internal `_create_recovery_package` builder, verify the returned archive and bundle, and only then write `archive_receipt.json` and the runbook. Its success output must state counts, digests, source commit, and destination. It must not print or execute `git-filter-repo` before every verification passes. This guarded command is the sole supported archive-creation interface.
 
 The generated PowerShell runbook is Stage 1 only. It must use these owner steps
 in this order, explicitly checking `$LASTEXITCODE` after every native command:
