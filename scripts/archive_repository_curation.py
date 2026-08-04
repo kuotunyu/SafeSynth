@@ -19,8 +19,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.release.figure_evidence import (
+    APPROVED_FIGURE_MANIFEST,
     FigureEvidenceError,
+    FigureManifestApproval,
     load_repository_figure_manifest,
+    verify_approved_figure_manifest,
     verify_curation_plan_matches_manifest,
     verify_repository_figure_state,
 )
@@ -32,6 +35,7 @@ from src.release.repository_archive import (
     ArchiveReceipt,
     create_recovery_package,
     load_and_verify_manifest,
+    load_manifest_commitments,
     sha256_file,
 )
 from src.release.repository_curation import plan_figure_curation, tracked_files
@@ -335,12 +339,44 @@ def _publish_complete_stage(stage: Path, destination: Path) -> None:
         raise ArchiveError(f"cannot publish verified recovery package: {error}") from error
 
 
-def archive(project_root: Path, destination: Path, owner_project_root: str) -> None:
+def _require_clean_worktree(project_root: Path) -> None:
+    """Reject any source state that cannot be identified exactly with HEAD."""
+
+    try:
+        completed = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise ArchiveError(f"cannot inspect project worktree: {error}") from error
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or "git status failed"
+        raise ArchiveError(f"cannot inspect project worktree: {detail}")
+    changes = [line for line in completed.stdout.splitlines() if line]
+    if changes:
+        raise ArchiveError("project worktree is not clean: " + "; ".join(changes))
+
+
+def _archive(
+    project_root: Path,
+    destination: Path,
+    owner_project_root: str,
+    approval: FigureManifestApproval = APPROVED_FIGURE_MANIFEST,
+) -> None:
     """Build a recovery package and write owner instructions after every verification."""
 
     if _path_exists(destination):
         raise FileExistsError(f"destination already exists: {destination}")
-    tracked_entries = load_repository_figure_manifest(project_root)
+    _require_clean_worktree(project_root)
+    manifest_path = project_root / "reports" / "figure_curation_manifest.json"
+    source_commit, manifest_entries, manifest_sha256 = load_manifest_commitments(manifest_path)
+    verify_approved_figure_manifest(source_commit, manifest_entries, manifest_sha256, approval)
+    tracked_entries = load_repository_figure_manifest(
+        project_root, commitments=(source_commit, manifest_entries, manifest_sha256)
+    )
     verify_repository_figure_state(project_root, tracked_entries, "source")
     plan = plan_figure_curation(project_root, tracked_files(project_root))
     verify_curation_plan_matches_manifest(project_root, plan, tracked_entries)
@@ -363,6 +399,7 @@ def archive(project_root: Path, destination: Path, owner_project_root: str) -> N
         _verify_renamed_bundle(project_root, published_bundle, verified_receipt.bundle_sha256)
         if verified_receipt != receipt:
             raise ArchiveError("staged receipt differs from the verified recovery package")
+        _require_clean_worktree(project_root)
         _publish_complete_stage(stage, destination)
         published = True
     finally:
@@ -376,6 +413,12 @@ def archive(project_root: Path, destination: Path, owner_project_root: str) -> N
         f"manifest_sha256={receipt.manifest_sha256} "
         f"bundle_sha256={receipt.bundle_sha256}"
     )
+
+
+def archive(project_root: Path, destination: Path, owner_project_root: str) -> None:
+    """Create an archive only against the repository's reviewed evidence contract."""
+
+    _archive(project_root, destination, owner_project_root)
 
 
 def _parser() -> argparse.ArgumentParser:

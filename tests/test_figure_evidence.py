@@ -11,8 +11,10 @@ import pytest
 
 from scripts import freeze_figure_evidence_manifest as freeze_command
 from scripts import verify_figure_evidence as verify_command
+from src.release import figure_evidence
 from src.release.figure_evidence import (
     FigureEvidenceError,
+    FigureManifestApproval,
     verify_curation_plan_matches_manifest,
     verify_frozen_figure,
     verify_repository_figure_state,
@@ -26,6 +28,7 @@ VERIFY_COMMAND = WORKSPACE_ROOT / "scripts" / "verify_figure_evidence.py"
 
 _KEEP_SHA256 = "6ca7ea2feefc88ecb5ed6356ed963f47dc9137f82526fdd25d618ea626d0803f"
 _DROP_SHA256 = "d90ee9ccf6bea1d2942a7b21319338198dec2a746f8a0d0771621f00da2e0864"
+EXPECTED_SOURCE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
 def _git(root: Path, *arguments: str) -> None:
@@ -100,11 +103,16 @@ def _configure_two_entry_verifier(
     monkeypatch: pytest.MonkeyPatch, manifest: Path, entries: tuple[ArchiveEntry, ...]
 ) -> None:
     monkeypatch.setattr(
-        verify_command, "APPROVED_MANIFEST_SHA256", hashlib.sha256(manifest.read_bytes()).hexdigest()
+        figure_evidence,
+        "APPROVED_FIGURE_MANIFEST",
+        FigureManifestApproval(
+            manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+            source_commit=EXPECTED_SOURCE_COMMIT,
+            total=len(entries),
+            keep=1,
+            drop=1,
+        ),
     )
-    monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", len(entries))
-    monkeypatch.setattr(verify_command, "EXPECTED_KEEP", 1)
-    monkeypatch.setattr(verify_command, "EXPECTED_DROP", 1)
 
 
 def test_source_state_requires_and_hashes_every_manifest_entry(tmp_path: Path) -> None:
@@ -276,14 +284,21 @@ def test_verifier_command_enforces_expected_counts_hash_and_state(
     _configure_two_entry_verifier(monkeypatch, manifest, entries)
 
     assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 0
-    monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", 3)
-    assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
-    monkeypatch.setattr(verify_command, "EXPECTED_TOTAL", len(entries))
-    monkeypatch.setattr(verify_command, "APPROVED_MANIFEST_SHA256", "0" * 64)
+    monkeypatch.setattr(
+        figure_evidence,
+        "APPROVED_FIGURE_MANIFEST",
+        FigureManifestApproval(
+            hashlib.sha256(manifest.read_bytes()).hexdigest(), EXPECTED_SOURCE_COMMIT, 3, 1, 1
+        ),
+    )
     assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
     monkeypatch.setattr(
-        verify_command, "APPROVED_MANIFEST_SHA256", hashlib.sha256(manifest.read_bytes()).hexdigest()
+        figure_evidence,
+        "APPROVED_FIGURE_MANIFEST",
+        FigureManifestApproval("0" * 64, EXPECTED_SOURCE_COMMIT, len(entries), 1, 1),
     )
+    assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
+    _configure_two_entry_verifier(monkeypatch, manifest, entries)
     _curate(root)
     assert verify_command.main(["--project-root", str(root), "--expected-state", "source"]) == 1
 

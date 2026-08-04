@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -23,8 +24,51 @@ _FIGURE_PREFIX = "reports/figures/"
 _MANIFEST_PATH = "reports/figure_curation_manifest.json"
 
 
+@dataclass(frozen=True)
+class FigureManifestApproval:
+    """The one reviewed manifest that may authorize repository curation."""
+
+    manifest_sha256: str
+    source_commit: str
+    total: int
+    keep: int
+    drop: int
+
+
+APPROVED_FIGURE_MANIFEST = FigureManifestApproval(
+    manifest_sha256="aa39003c3189278eda178a39514bfa7f640655f8ddf5f1e3c2bad99380751fd5",
+    source_commit="c2c6059987e71142d7c5524a52ecc2b0c4afcee5",
+    total=150,
+    keep=14,
+    drop=136,
+)
+
+
 class FigureEvidenceError(RuntimeError):
     """Figure bytes or their tracked curation commitments do not agree."""
+
+
+def verify_approved_figure_manifest(
+    source_commit: str,
+    entries: Sequence[ArchiveEntry],
+    manifest_sha256: str,
+    approval: FigureManifestApproval | None = None,
+) -> None:
+    """Require the one reviewed canonical manifest, not merely a valid manifest schema."""
+
+    if approval is None:
+        approval = APPROVED_FIGURE_MANIFEST
+    if manifest_sha256 != approval.manifest_sha256:
+        raise FigureEvidenceError("approved figure evidence manifest SHA-256 differs")
+    if source_commit != approval.source_commit:
+        raise FigureEvidenceError("approved figure evidence source commit differs")
+    keep_count = sum(entry.disposition == "KEEP" for entry in entries)
+    drop_count = sum(entry.disposition == "DROP" for entry in entries)
+    if (len(entries), keep_count, drop_count) != (approval.total, approval.keep, approval.drop):
+        raise FigureEvidenceError(
+            "approved figure evidence counts differ: "
+            f"total={len(entries)} keep={keep_count} drop={drop_count}"
+        )
 
 
 def _raise_diagnostics(diagnostics: Sequence[str]) -> None:

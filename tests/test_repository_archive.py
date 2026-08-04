@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import subprocess
 import sys
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -15,6 +17,8 @@ import pytest
 from scripts import archive_repository_curation as archive_command
 from scripts import restore_curated_figures as restore_command
 from src.release import repository_archive
+from src.release.figure_evidence import FigureEvidenceError, FigureManifestApproval
+from src.release.markdown_links import RepositoryLinkError
 from src.release.repository_archive import (
     ArchiveError,
     create_recovery_package,
@@ -30,6 +34,13 @@ WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE_COMMAND = WORKSPACE_ROOT / "scripts" / "archive_repository_curation.py"
 RESTORE_COMMAND = WORKSPACE_ROOT / "scripts" / "restore_curated_figures.py"
 EXPECTED_SOURCE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+_TEST_APPROVAL = FigureManifestApproval(
+    manifest_sha256="668147987292b42323df710e8be3846fc1f3fe36a000eee11daeba9131acbc8c",
+    source_commit=EXPECTED_SOURCE_COMMIT,
+    total=2,
+    keep=1,
+    drop=1,
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +83,33 @@ def _commit_all(root: Path, message: str) -> str:
 
 
 def _run_command(command: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    if command == ARCHIVE_COMMAND:
+        parsed = archive_command._parser().parse_args(arguments)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        try:
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                archive_command._archive(
+                    parsed.project_root,
+                    Path(parsed.destination),
+                    parsed.owner_project_root,
+                    _TEST_APPROVAL,
+                )
+        except (
+            ArchiveError,
+            FigureEvidenceError,
+            FileExistsError,
+            OSError,
+            RepositoryLinkError,
+            subprocess.CalledProcessError,
+        ) as error:
+            print(f"error: {error}", file=stderr)
+            return subprocess.CompletedProcess(
+                [sys.executable, str(command), *arguments], 1, stdout.getvalue(), stderr.getvalue()
+            )
+        return subprocess.CompletedProcess(
+            [sys.executable, str(command), *arguments], 0, stdout.getvalue(), stderr.getvalue()
+        )
     return subprocess.run(
         [sys.executable, str(command), *arguments],
         cwd=WORKSPACE_ROOT,
@@ -149,6 +187,12 @@ def _create_command_archive(project: _Project, destination: Path) -> None:
         str(destination.parent / "owner"),
     )
     assert completed.returncode == 0, completed.stderr
+
+
+def _archive_with_test_approval(project_root: Path, destination: Path, owner_project_root: str) -> None:
+    """Exercise archive internals with the minimal reviewed fixture contract."""
+
+    archive_command._archive(project_root, destination, owner_project_root, _TEST_APPROVAL)
 
 
 def test_archive_copies_every_entry_and_hash_verifies(tmp_path: Path) -> None:
@@ -679,28 +723,19 @@ def test_archive_command_refuses_an_existing_destination(tmp_path: Path) -> None
 
 
 def test_archive_command_refuses_unresolved_figure_links(tmp_path: Path) -> None:
-    project_root = tmp_path / "project"
-    _write(project_root, "README.md", b"![missing](reports/figures/missing.png)\n")
+    project = _project_with_keep_and_drop(tmp_path / "project")
     _write(
-        project_root,
-        "reports/figure_curation_manifest.json",
-        (
-            json.dumps(
-                {"schema_version": 1, "source_commit": EXPECTED_SOURCE_COMMIT, "entries": []},
-                sort_keys=True,
-                indent=2,
-            )
-            + "\n"
-        ).encode("utf-8"),
+        project.root,
+        "README.md",
+        b"![keep](reports/figures/keep.png)\n![missing](reports/figures/missing.png)\n",
     )
-    _git(project_root, "init", "-q")
-    _commit_all(project_root, "fixture")
+    _commit_all(project.root, "add unresolved link")
     destination = tmp_path / "archive"
 
     completed = _run_command(
         ARCHIVE_COMMAND,
         "--project-root",
-        str(project_root),
+        str(project.root),
         "--destination",
         str(destination),
         "--owner-project-root",
@@ -1063,7 +1098,7 @@ def test_archive_command_removes_its_private_stage_when_receipt_write_fails(
     monkeypatch.setattr(archive_command, "_write_canonical_json", fail_receipt_write)
 
     with pytest.raises(OSError, match="injected receipt write failure"):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
 
     assert not destination.exists()
     assert not list(tmp_path.glob(".*"))
@@ -1091,7 +1126,7 @@ def test_archive_private_root_collision_preserves_unowned_sentinel(
     monkeypatch.setattr(archive_command, "create_recovery_package", fail_package)
 
     with pytest.raises(ArchiveError, match="injected package failure"):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
 
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
@@ -1120,7 +1155,7 @@ def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision
     monkeypatch.setattr(archive_command, "create_recovery_package", interrupt_package)
 
     with pytest.raises(KeyboardInterrupt):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
 
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
@@ -1164,6 +1199,7 @@ def test_archive_command_rejects_plan_reference_mismatch_before_staging(tmp_path
     project = _project_with_keep_and_drop(tmp_path / "source")
     destination = tmp_path / "archive"
     _write(project.root, "README.md", b"\n![keep](reports/figures/keep.png)\n")
+    _commit_all(project.root, "move reference")
 
     completed = _run_command(
         ARCHIVE_COMMAND,
@@ -1180,7 +1216,7 @@ def test_archive_command_rejects_plan_reference_mismatch_before_staging(tmp_path
     _assert_unpublished(destination)
 
 
-def test_archive_command_rejects_plan_disposition_mismatch_before_staging(
+def test_archive_rejects_plan_disposition_mismatch_before_staging(
     tmp_path: Path,
 ) -> None:
     """Catch a canonical KEEP/DROP decision changing while source bytes remain exact."""
@@ -1193,19 +1229,21 @@ def test_archive_command_rejects_plan_disposition_mismatch_before_staging(
     manifest_path.write_bytes(
         (json.dumps(manifest, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     )
+    _commit_all(project.root, "change disposition")
 
-    completed = _run_command(
-        ARCHIVE_COMMAND,
-        "--project-root",
-        str(project.root),
-        "--destination",
-        str(destination),
-        "--owner-project-root",
-        str(tmp_path / "owner"),
+    source_commit, _entries, manifest_sha256 = repository_archive.load_manifest_commitments(manifest_path)
+    changed_approval = FigureManifestApproval(
+        manifest_sha256=manifest_sha256,
+        source_commit=source_commit,
+        total=2,
+        keep=2,
+        drop=0,
     )
 
-    assert completed.returncode != 0
-    assert "disposition differs from manifest" in completed.stderr
+    with pytest.raises(FigureEvidenceError, match="disposition differs from manifest"):
+        archive_command._archive(
+            project.root, destination, str(tmp_path / "owner"), changed_approval
+        )
     _assert_unpublished(destination)
 
 
@@ -1215,6 +1253,7 @@ def test_archive_command_rejects_source_byte_mismatch_before_staging(tmp_path: P
     project = _project_with_keep_and_drop(tmp_path / "source")
     destination = tmp_path / "archive"
     _write(project.root, "reports/figures/drop.png", b"gone")
+    _commit_all(project.root, "change source byte")
 
     completed = _run_command(
         ARCHIVE_COMMAND,
@@ -1250,7 +1289,7 @@ def test_archive_rejects_produced_entry_tuple_mismatch_and_cleans_private_stage(
     monkeypatch.setattr(archive_command, "create_recovery_package", create_with_changed_entries)
 
     with pytest.raises(ArchiveError, match="entries differ from tracked canonical manifest"):
-        archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
 
     _assert_unpublished(destination)
 
@@ -1261,7 +1300,7 @@ def test_archive_command_publishes_a_canonical_two_entry_manifest_fixture(tmp_pa
     project = _project_with_keep_and_drop(tmp_path / "source")
     destination = tmp_path / "archive"
 
-    archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+    _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
 
     assert archive_command.load_and_verify_receipt(destination).entries == (
         repository_archive.ArchiveEntry(
@@ -1275,6 +1314,120 @@ def test_archive_command_publishes_a_canonical_two_entry_manifest_fixture(tmp_pa
             ("README.md:1",),
         ),
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate", "expected_error"),
+    [
+        (
+            "digest",
+            lambda manifest: manifest["entries"][0].update({"sha256": "0" * 64}),
+            "manifest SHA-256 differs",
+        ),
+        (
+            "historical source",
+            lambda manifest: manifest.update({"source_commit": "a" * 40}),
+            "source commit differs",
+        ),
+        (
+            "counts",
+            lambda manifest: manifest["entries"][0].update({"disposition": "KEEP"}),
+            "counts differ",
+        ),
+    ],
+)
+def test_archive_rejects_clean_tracked_manifest_outside_approved_contract_before_staging(
+    tmp_path: Path, name: str, mutate: object, expected_error: str
+) -> None:
+    """Catch an approved-looking tracked manifest drifting in the named commitment."""
+
+    project = _project_with_keep_and_drop(tmp_path / name)
+    destination = tmp_path / "archive"
+    manifest_path = project.root / "reports/figure_curation_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    mutate(manifest)
+    manifest_path.write_bytes(
+        (json.dumps(manifest, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    )
+    _commit_all(project.root, f"replace {name} commitment")
+
+    with pytest.raises(archive_command.FigureEvidenceError, match=expected_error):
+        if name in {"historical source", "counts"}:
+            source_commit, _entries, manifest_sha256 = repository_archive.load_manifest_commitments(
+                manifest_path
+            )
+            approval_source = EXPECTED_SOURCE_COMMIT if name == "historical source" else source_commit
+            archive_command._archive(
+                project.root,
+                destination,
+                str(tmp_path / "owner"),
+                FigureManifestApproval(manifest_sha256, approval_source, 2, 1, 1),
+            )
+        else:
+            archive_command.archive(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
+
+
+def test_archive_rejects_a_dirty_but_manifest_consistent_source_before_staging(tmp_path: Path) -> None:
+    """Catch a package binding HEAD while silently reading a modified working tree."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    _write(project.root, "README.md", b"![keep](reports/figures/keep.png)\n\n")
+
+    with pytest.raises(ArchiveError, match="worktree is not clean"):
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
+
+
+def test_archive_rejects_a_staged_source_change_before_staging(tmp_path: Path) -> None:
+    """Catch a staged change that would otherwise be absent from the recorded HEAD."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    _write(project.root, "README.md", b"![keep](reports/figures/keep.png)\n\n")
+    _git(project.root, "add", "README.md")
+
+    with pytest.raises(ArchiveError, match="worktree is not clean"):
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
+
+
+def test_archive_rejects_an_untracked_source_file_before_staging(tmp_path: Path) -> None:
+    """Catch an untracked source file being omitted from a HEAD-bound publication."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    _write(project.root, "untracked-proof.txt", b"must block")
+
+    with pytest.raises(ArchiveError, match="worktree is not clean"):
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
+
+
+def test_archive_rechecks_cleanliness_before_publication_and_cleans_stage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catch a concurrent source mutation that appears after the initial clean-tree gate."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    original_write = archive_command._write_canonical_json
+
+    def write_receipt_then_dirty(path: Path, value: dict[str, object]) -> None:
+        original_write(path, value)
+        _write(project.root, "concurrent-untracked.txt", b"appeared after archive build")
+
+    monkeypatch.setattr(archive_command, "_write_canonical_json", write_receipt_then_dirty)
+
+    with pytest.raises(ArchiveError, match="worktree is not clean"):
+        _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
+
+    _assert_unpublished(destination)
 
 
 _CANONICAL_COMMITMENT_MANIFEST = b'''{

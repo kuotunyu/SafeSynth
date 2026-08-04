@@ -13,14 +13,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.release.figure_evidence import (
     FigureEvidenceError,
     load_repository_figure_manifest,
+    verify_approved_figure_manifest,
     verify_repository_figure_state,
 )
 from src.release.repository_archive import ArchiveError, load_manifest_commitments
-
-APPROVED_MANIFEST_SHA256 = "aa39003c3189278eda178a39514bfa7f640655f8ddf5f1e3c2bad99380751fd5"
-EXPECTED_TOTAL = 150
-EXPECTED_KEEP = 14
-EXPECTED_DROP = 136
 
 
 def verify(project_root: Path, expected_state: str) -> str:
@@ -31,18 +27,12 @@ def verify(project_root: Path, expected_state: str) -> str:
         source_commit, entries, manifest_sha256 = load_manifest_commitments(manifest_path)
     except ArchiveError as error:
         raise FigureEvidenceError(str(error)) from error
-    if manifest_sha256 != APPROVED_MANIFEST_SHA256:
-        raise FigureEvidenceError("manifest SHA-256 differs from approved figure evidence")
+    verify_approved_figure_manifest(source_commit, entries, manifest_sha256)
     entries = load_repository_figure_manifest(
         project_root, commitments=(source_commit, entries, manifest_sha256)
     )
     keep_count = sum(entry.disposition == "KEEP" for entry in entries)
     drop_count = sum(entry.disposition == "DROP" for entry in entries)
-    if (len(entries), keep_count, drop_count) != (EXPECTED_TOTAL, EXPECTED_KEEP, EXPECTED_DROP):
-        raise FigureEvidenceError(
-            "manifest counts differ from approved figure evidence: "
-            f"total={len(entries)} keep={keep_count} drop={drop_count}"
-        )
     state = verify_repository_figure_state(project_root, entries, expected_state)  # type: ignore[arg-type]
     return f"manifest_sha256={manifest_sha256} total={len(entries)} keep={keep_count} drop={drop_count} state={state}"
 
