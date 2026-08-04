@@ -1082,3 +1082,116 @@ def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision
     assert colliding_root.joinpath("sentinel.txt").read_bytes() == b"another process owns this"
     assert not owned_root.exists()
     assert not destination.exists()
+
+
+_CANONICAL_COMMITMENT_MANIFEST = b'''{
+  "entries": [
+    {
+      "disposition": "DROP",
+      "path": "reports/figures/drop.png",
+      "reference_sources": [],
+      "sha256": "d90ee9ccf6bea1d2942a7b21319338198dec2a746f8a0d0771621f00da2e0864",
+      "size_bytes": 4
+    },
+    {
+      "disposition": "KEEP",
+      "path": "reports/figures/keep.png",
+      "reference_sources": [
+        "README.md:1"
+      ],
+      "sha256": "6ca7ea2feefc88ecb5ed6356ed963f47dc9137f82526fdd25d618ea626d0803f",
+      "size_bytes": 4
+    }
+  ],
+  "schema_version": 1,
+  "source_commit": "0123456789abcdef0123456789abcdef01234567"
+}
+'''
+
+
+def test_load_manifest_commitments_reads_canonical_manifest_without_payload(tmp_path: Path) -> None:
+    """Catch a parser regression that requires an adjacent figures payload."""
+
+    manifest_path = tmp_path / "figure_manifest.json"
+    manifest_path.write_bytes(_CANONICAL_COMMITMENT_MANIFEST)
+
+    source_commit, entries, manifest_sha256 = repository_archive.load_manifest_commitments(
+        manifest_path
+    )
+
+    assert source_commit == "0123456789abcdef0123456789abcdef01234567"
+    assert entries == (
+        repository_archive.ArchiveEntry(
+            path="reports/figures/drop.png",
+            size_bytes=4,
+            sha256="d90ee9ccf6bea1d2942a7b21319338198dec2a746f8a0d0771621f00da2e0864",
+            disposition="DROP",
+            reference_sources=(),
+        ),
+        repository_archive.ArchiveEntry(
+            path="reports/figures/keep.png",
+            size_bytes=4,
+            sha256="6ca7ea2feefc88ecb5ed6356ed963f47dc9137f82526fdd25d618ea626d0803f",
+            disposition="KEEP",
+            reference_sources=("README.md:1",),
+        ),
+    )
+    assert manifest_sha256 == "668147987292b42323df710e8be3846fc1f3fe36a000eee11daeba9131acbc8c"
+
+
+@pytest.mark.parametrize(
+    ("name", "manifest_bytes"),
+    [
+        ("noncanonical JSON", _CANONICAL_COMMITMENT_MANIFEST.replace(b"\n", b"", 1)),
+        (
+            "duplicate JSON key",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(
+                b'  "schema_version": 1,', b'  "schema_version": 1,\n  "schema_version": 1,'
+            ),
+        ),
+        (
+            "duplicate path",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(
+                b"reports/figures/keep.png", b"reports/figures/drop.png"
+            ),
+        ),
+        (
+            "unsorted entries",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(
+                b"reports/figures/drop.png", b"reports/figures/zrop.png"
+            ),
+        ),
+        (
+            "unsafe path",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(
+                b"reports/figures/drop.png", b"reports/figures/../drop.png"
+            ),
+        ),
+        (
+            "invalid SHA-256",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(
+                b"d90ee9ccf6bea1d2942a7b21319338198dec2a746f8a0d0771621f00da2e0864",
+                b"x" * 64,
+            ),
+        ),
+        ("invalid size", _CANONICAL_COMMITMENT_MANIFEST.replace(b'"size_bytes": 4', b'"size_bytes": -1', 1)),
+        (
+            "invalid disposition",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(b'"disposition": "DROP"', b'"disposition": "MAYBE"'),
+        ),
+        (
+            "invalid references",
+            _CANONICAL_COMMITMENT_MANIFEST.replace(b"\"README.md:1\"", b'"README.md:2", "README.md:1"'),
+        ),
+    ],
+)
+def test_load_manifest_commitments_rejects_noncanonical_or_invalid_schema(
+    tmp_path: Path, name: str, manifest_bytes: bytes
+) -> None:
+    """Catch the named schema mutation being accepted as a commitment."""
+
+    manifest_path = tmp_path / "figure_manifest.json"
+    manifest_path.write_bytes(manifest_bytes)
+
+    with pytest.raises(ArchiveError):
+        repository_archive.load_manifest_commitments(manifest_path)

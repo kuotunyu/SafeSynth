@@ -315,9 +315,10 @@ def _parse_entry(raw_entry: object) -> ArchiveEntry:
     return ArchiveEntry(path, size_bytes, digest, disposition, tuple(references))
 
 
-def _load_verified_manifest(archive_root: Path) -> _VerifiedManifest:
-    archive_root = Path(archive_root)
-    manifest_path = archive_root / MANIFEST_NAME
+def _load_manifest_commitment_data(manifest_path: Path) -> _VerifiedManifest:
+    """Parse one canonical manifest without requiring an archive payload."""
+
+    manifest_path = Path(manifest_path)
     if _is_path_alias(manifest_path) or not manifest_path.is_file():
         raise ArchiveError(f"missing manifest: {manifest_path}")
     try:
@@ -349,6 +350,20 @@ def _load_verified_manifest(archive_root: Path) -> _VerifiedManifest:
         raise ArchiveError("manifest schema entries are not sorted")
     if manifest_bytes != _canonical_manifest_bytes(manifest):
         raise ArchiveError("manifest schema is not canonical JSON")
+    return _VerifiedManifest(source_commit, entries, manifest_bytes)
+
+
+def load_manifest_commitments(manifest_path: Path) -> tuple[str, tuple[ArchiveEntry, ...], str]:
+    """Load strict manifest commitments without requiring archived figure bytes."""
+
+    manifest = _load_manifest_commitment_data(manifest_path)
+    return manifest.source_commit, manifest.entries, manifest.sha256
+
+
+def _load_verified_manifest(archive_root: Path) -> _VerifiedManifest:
+    archive_root = Path(archive_root)
+    manifest_path = archive_root / MANIFEST_NAME
+    manifest = _load_manifest_commitment_data(manifest_path)
 
     figure_root = archive_root / "figures"
     if _is_path_alias(figure_root) or not figure_root.is_dir():
@@ -360,17 +375,17 @@ def _load_verified_manifest(archive_root: Path) -> _VerifiedManifest:
         if _is_path_alias(candidate) or not candidate.is_file():
             raise ArchiveError("archived file set contains unsupported paths")
         actual_paths.add(candidate.relative_to(figure_root).as_posix())
-    if actual_paths != set(paths):
+    if actual_paths != {entry.path for entry in manifest.entries}:
         raise ArchiveError("archived file set does not match manifest")
 
-    for entry in entries:
+    for entry in manifest.entries:
         relative_path = _validated_relative_path(entry.path)
         archived_file = _inside_root(figure_root, relative_path)
         if sha256_file(archived_file) != entry.sha256:
             raise ArchiveError(f"SHA-256 mismatch for archived file: {entry.path}")
         if archived_file.stat().st_size != entry.size_bytes:
             raise ArchiveError(f"size mismatch for archived file: {entry.path}")
-    return _VerifiedManifest(source_commit, entries, manifest_bytes)
+    return manifest
 
 
 def load_and_verify_manifest(archive_root: Path) -> tuple[ArchiveEntry, ...]:

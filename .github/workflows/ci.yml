@@ -74,6 +74,9 @@ jobs:
       - name: Test
         run: uv run pytest -q
 
+      - name: Verify curated figure evidence
+        run: uv run python scripts/verify_figure_evidence.py --expected-state curated
+
       # PUB-01: no number reaches the README without a source in results/.
       - name: Verify the README against results/
         run: uv run python -m scripts.verify_readme
