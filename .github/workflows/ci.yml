@@ -11,10 +11,11 @@
 #
 # WHAT THIS JOB DELIBERATELY DOES NOT NEED. No GPU: every test fakes torch.cuda
 # rather than touching it, and no test calls from_pretrained. No network model
-# download. No D:\sdg-data drive: the bulk data lives outside the repository and
-# every test builds its fixtures under tmp_path. The 39 tests that skip locally
-# skip for reasons that hold here too (38 modules have no __main__ guard, and
-# faster-coco-eval is not a dependency - see EVAL-13).
+# download. No D:\sdg-data drive: the bulk data and historical checkpoints live
+# outside the repository. Unit tests isolate those boundaries with tmp_path;
+# evidence tests verify every repository-contained field before explicitly
+# skipping only an unavailable external checkpoint hash. Other intentional skips
+# cover scripts without a __main__ guard and optional evaluation dependencies.
 #
 # THE README VERIFIER IS A GATE. scripts/verify_readme.py compares every number
 # in a README results table against results/detection_metrics.csv, which IS now

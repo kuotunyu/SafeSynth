@@ -263,8 +263,15 @@ def _records(digest: str):
 
 
 def test_the_real_frozen_split_passes_and_returns_its_evidence(
-    frozen_split, real_digest
+    frozen_split, real_digest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    integrity_checks: list[str] = []
+    monkeypatch.setattr(
+        eval_driver,
+        "assert_test_untouched",
+        lambda: integrity_checks.append("checked"),
+    )
+
     evidence = leak_self_check(
         _records(real_digest),
         real_train_names=frozen_split["train"],
@@ -273,14 +280,16 @@ def test_the_real_frozen_split_passes_and_returns_its_evidence(
     )
 
     assert evidence
+    assert integrity_checks == ["checked"]
     assert any("assert_test_untouched" in line for line in evidence)
 
 
 def test_a_planted_overlap_raises_rather_than_reporting_pass(
-    frozen_split, real_digest
+    frozen_split, real_digest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """One train image smuggled into the test list must be fatal."""
 
+    monkeypatch.setattr(eval_driver, "assert_test_untouched", lambda: None)
     poisoned = list(frozen_split["test"]) + [frozen_split["train"][0]]
 
     with pytest.raises(SplitLeakageError):

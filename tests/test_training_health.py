@@ -362,8 +362,13 @@ def test_trainer_callback_checks_system_health_on_logs(tmp_path: Path) -> None:
 
 def test_training_arguments_expose_nan_and_inf_to_the_health_callback(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = load_training_config("configs/training_rfdetr.yaml")
+    monkeypatch.setattr(
+        "src.training.trainer.TrainingArguments",
+        lambda **kwargs: SimpleNamespace(**kwargs),
+    )
 
     arguments = build_training_arguments(
         output_dir=str(tmp_path),
