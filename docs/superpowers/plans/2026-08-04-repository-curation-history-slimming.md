@@ -6,7 +6,7 @@
 
 **Architecture:** A shared Markdown-link resolver produces exact repository-relative targets. A curation planner uses those targets to generate a deterministic KEEP/DROP inventory, while a separate archive module copies and hashes the complete figure tree, creates a verified Git bundle, and restores only KEEP files after the owner-operated history rewrite. A repository-wide link verifier supplies the final fail-closed acceptance gate.
 
-**Tech Stack:** Python 3.12 standard library, dataclasses, pathlib/PurePosixPath, hashlib, json, shutil, subprocess/Git, pytest, Ruff, PowerShell, `git-filter-repo` (owner-operated only).
+**Tech Stack:** Python 3.12 standard library, dataclasses, pathlib/PurePosixPath, hashlib, json, shutil, subprocess/Git, pytest, Ruff, PowerShell, `git-filter-repo` (owner-operated in the formal repository; agent-operated only through a generated runbook in a disposable rehearsal clone).
 
 ## Final-review amendment — archive rebound and staged owner gate
 
@@ -38,7 +38,8 @@ the Stage 1 runbook.
 - Record byte size and SHA-256 for every archived file and verify source/archive equality before allowing history rewrite.
 - Create and verify a complete pre-rewrite Git bundle outside the repository.
 - Do not overwrite or delete an existing archive destination.
-- The agent must not run `git filter-repo`, create a remote, push, force-push, or upload to Hugging Face; the owner runs the exact reviewed history-rewrite command.
+- No agent may run the packaged owner runbook or `git-filter-repo` in the formal repository. An agent may run only a newly generated rehearsal runbook pointed at a disposable clone; `git-filter-repo` may execute only inside that disposable rehearsal. The owner alone runs the exact reviewed packaged command in the formal repository.
+- The agent must not create a remote, push, force-push, or upload to Hugging Face.
 - Integrate the development branch and remove the linked worktree before the owner rewrites history.
 - Restore only the manifest KEEP set after rewriting and verify every tracked Markdown link, not only README links.
 - Require a post-rewrite Git object pack below 120 MiB; investigate rather than weakening this threshold.
@@ -645,195 +646,190 @@ Before committing, inspect `git diff --cached --name-only` and confirm only the 
 
 ---
 
-### Task 6: Build and verify the real recovery archive
+### Task 6: Final tracked review, local integration, and linked-worktree retirement
+
+Tasks 6 through 8 below supersede the earlier archive-before-integration sequence.
+The single detailed executable source of truth for the destructive boundary is
+`docs/superpowers/plans/2026-08-04-repository-curation-v5-tree-ref-safety.md`,
+Tasks 4 and 5. If these summary gates and that v5 safety plan ever differ, stop;
+do not improvise or fall back to a v1-v4 runbook.
 
 **Files:**
-- Read: `reports/repo_slimming_plan.md`
-- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
-- No tracked repository changes expected.
+- Final-review branch: `codex/repository-curation-v5`
+- Linked worktree to retire: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5`
+- Formal repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
 
-**Interfaces:**
-- Consumes: all completed commands and the clean branch HEAD.
-- Produces: complete figure archive, manifest, receipt, verified Git bundle, and owner runbook outside Git.
+- [ ] **Step 1: Complete final tracked review and clean-state verification**
 
-- [ ] **Step 1: Run the complete pre-archive verification suite**
+Review the complete tracked diff and commit sequence from `main` through
+`codex/repository-curation-v5`. Require both the formal repository and linked
+worktree to be clean, the feature branch to descend from `main`, all author and
+committer identities to be `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`,
+and no co-author trailer. Any unexplained file, commit, identity, or trailer
+blocks integration.
 
-```powershell
-uv run pytest -q
-uv run ruff check .
-uv run python scripts/verify_readme.py
-uv run python scripts/verify_repository_links.py
-uv lock --check
-git diff --check
-git status --short --branch
-```
-
-Expected: every verifier passes and the branch is clean.
-
-- [ ] **Step 2: Confirm the approved destination does not exist**
-
-```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
-if (Test-Path -LiteralPath $safeSynthArchive) { throw "approved archive destination already exists" }
-```
-
-- [ ] **Step 3: Create the complete verified archive and bundle**
-
-```powershell
-uv run python scripts/archive_repository_curation.py --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-```
-
-Expected: exit 0 and a receipt reporting all tracked `reports/figures/` files, KEEP/DROP counts, source commit, manifest SHA-256, and bundle SHA-256.
-
-- [ ] **Step 4: Independently re-verify archive and bundle**
-
-```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
-Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
-Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
-git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
-```
-
-Compare both hashes with `archive_receipt.json`. Any mismatch blocks Task 7.
-
-- [ ] **Step 5: Verify contributor identity and clean state**
-
-```powershell
-git log --format='%an <%ae>|%cn <%ce>' | Sort-Object -Unique
-git log --format='%B' | Select-String -Pattern 'Co-Authored-By|Co-authored-by'
-git status --short --branch
-```
-
-Expected: the identity command prints only `kuotunyu <61350295+kuotunyu@users.noreply.github.com>` for author and committer, the trailer scan prints nothing, and the branch is clean.
-
----
-
-### Task 7: Fast-forward integration and owner history-rewrite gate
-
-The v4 package at
-`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`
-is an immutable recovery-only package; its runbook must not be executed. It is
-not a Task 7 input or owner gate.
-
-**Files:**
-- Worktree to retire after integration: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5`
-- Main repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
-- External read: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\OWNER_HISTORY_REWRITE_RUNBOOK.txt`
-
-**Interfaces:**
-- Consumes: verified Task 6 archive/bundle and clean branch.
-- Produces: main fast-forwarded to the completed branch, no linked worktree, and an explicit owner action request.
-- Owner produces: rewritten local history with `reports/figures/` absent before restoration.
-
-- [ ] **Step 1: Verify fast-forward safety without changing either worktree**
-
-```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' status --short --branch
-git merge-base --is-ancestor main codex/repository-curation-v5
-```
-
-Expected: main is clean and the ancestor command exits 0. If either check fails, stop and reconcile without deleting either worktree or rewriting history.
-
-- [ ] **Step 2: Fast-forward main**
+- [ ] **Step 2: Fast-forward the feature branch into local main**
 
 ```powershell
 git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' merge --ff-only codex/repository-curation-v5
 ```
 
-Expected: fast-forward succeeds without a merge commit, so the verified bundle already contains the resulting HEAD object.
+Require a fast-forward with no merge commit. Do not create a remote or publish.
 
-- [ ] **Step 3: Verify main, then remove only the clean linked worktree**
+- [ ] **Step 3: Rerun the complete verification suite on the merged result**
 
 ```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree remove 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5'
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree list
+Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/verify_figure_evidence.py --expected-state source
+uv run pytest -q
+uv run ruff check .
+uv run python scripts/verify_readme.py
+uv run python scripts/verify_repository_links.py
+uv run python scripts/check_forbidden_licences.py
+uv lock --check
+git diff --check
+git status --short --branch
 ```
 
-Expected: both statuses are clean before removal, and only the intended linked worktree is removed. Never use `--force`.
+Every command must pass and the merged formal repository must remain clean.
 
-- [ ] **Step 4: Run the stage-1 owner runbook, stop and report**
+- [ ] **Step 4: Remove only the clean linked worktree and merged feature branch**
 
-The agent must not execute the next command. Ask the owner to copy the complete
-command below, fully close Codex and all editors, and paste it into an external
-Windows PowerShell process. This is the sole owner action: it reads and executes
-the complete immutable v5 stage-1 owner runbook from its exact path.
+Reconfirm the linked worktree is clean, remove exactly
+`.worktrees/repository-curation-v5` without `--force`, delete the merged
+`codex/repository-curation-v5` branch with the safe merged-branch deletion, and
+require `git worktree list --porcelain` to contain exactly one `worktree ` record.
+Do not proceed while any other registered worktree or the merged branch remains.
+
+```powershell
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5' status --short --branch
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree remove 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5'
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' branch -d codex/repository-curation-v5
+git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree list --porcelain
+```
+
+---
+
+### Task 7: Create v5 only after integration and prove it in a disposable all-refs clone
+
+Follow Task 4 of the v5 tree-ref safety plan for the exact operational procedure.
+This task is a mandatory rehearsal gate, not permission to mutate the formal
+repository. The v1-v4 packages remain immutable recovery-only assets and none of
+their runbooks may be executed or offered.
+
+**Files:**
+- Formal repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
+- External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
+- Disposable rehearsal: one unique clone outside the formal repository
+
+- [ ] **Step 1: Verify the formal source state before creating v5**
+
+Require all of the following together: clean status; exactly one worktree;
+source-state figure evidence passes; `git remote -v` is empty; and the exact v5
+destination does not exist. A mismatch is a blocking failure and must not be
+worked around by overwriting, renaming, or reusing an archive.
+
+- [ ] **Step 2: Create the non-overwriting v5 package with all roots explicit**
+
+```powershell
+uv run python scripts/archive_repository_curation.py --project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+```
+
+- [ ] **Step 3: Independently verify every receipt commitment**
+
+Using the strict receipt loader and independent digest/count checks, require
+exactly 150 archived entries, `KEEP=14`, `DROP=136`, payload size `422839340`
+bytes, every entry size and SHA-256, the receipt-matching manifest and bundle
+SHA-256 values, a passing `git bundle verify`, and receipt source HEAD equal to
+the current clean formal `HEAD`. Rerun source-state verification and prove that
+archive creation did not change the formal repository.
+
+- [ ] **Step 4: Rehearse the generated logic in a disposable all-refs clone**
+
+Build a normal disposable clone from the verified bundle. Materialize every
+ordinary bundled branch, including `main` and `codex/rfdetr-four-arm`, and add
+one or more exact `refs/codex/turn-diffs/` refs pointing to the approved source
+tree. Generate a fresh runbook with that disposable clone as its root and run it
+only there. This generated rehearsal runbook is the sole agent exception for
+executing `git-filter-repo`; never run or edit the packaged owner runbook and
+never point a rehearsal runbook at the formal repository.
+
+Require conditional deletion of the exact Codex refs, successful rewriting of
+every ordinary ref, zero reachable historical `reports/figures/` paths across
+all refs, `git fsck --full --strict` success, a reported pack below 120 MiB, and
+the mandatory STOP as the last action.
+
+- [ ] **Step 5: Restore exact KEEP in the rehearsal and run curated acceptance**
+
+Restore from v5 into the disposable clone, stage exactly the 14 manifest KEEP
+paths and zero DROP paths, commit once as the approved identity, and run the
+complete curated suite specified by the v5 safety plan, including the forbidden-
+license scan, strict fsck, and count/pack threshold. Require no remote, only the
+approved author/committer identity, and no co-author trailer.
+
+- [ ] **Step 6: Preserve evidence and reverify the formal repository**
+
+Quarantine the rehearsal clone non-destructively if deletion is not permitted.
+Reverify the unchanged formal HEAD, clean source state, exactly one worktree, and
+no remote. Only a fully passing rehearsal unlocks Task 8.
+
+---
+
+### Task 8: Owner-only formal rewrite, controller checkpoint, and final acceptance
+
+Follow Task 5 of the v5 tree-ref safety plan as the single detailed source of
+truth. Nothing in this task authorizes an agent to execute the packaged owner
+runbook or `git-filter-repo` in the formal repository.
+
+- [ ] **Step 1: Offer the owner-only formal runbook command after rehearsal passes**
+
+Tell the owner to copy the reviewed v5 command, fully close Codex and all
+editors, run it in an external Windows PowerShell 5.1 process, wait for its
+mandatory STOP, reopen Codex only after STOP, and return the complete output.
+Do not offer any v1-v4 command and do not supply the raw internal
+`git-filter-repo` line as a standalone command.
 
 ```powershell
 & ([scriptblock]::Create([System.IO.File]::ReadAllText('D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\OWNER_HISTORY_REWRITE_RUNBOOK.txt', [System.Text.UTF8Encoding]::new($false))))
 ```
 
-The runbook itself checks the clean state, requires `HEAD` to equal the archive's exact source commit, checks every native exit code, performs the guarded rewrite,
-and ends with a mandatory STOP/report-back instruction. It contains no
-restoration, staging, or commit step. The raw
-`uvx git-filter-repo --path reports/figures/ --invert-paths --force` line is
-explanatory only: it is an internal runbook action and is forbidden as a
-standalone owner command.
+- [ ] **Step 2: Stop at the controller boundary**
 
-The owner must wait for the mandatory STOP, reopen Codex only after STOP, and
-return the complete output or any error. Wait for that report before continuing;
-do not infer completion from process disappearance, do not start Task 8, and do
-not restore anything before the separate read-only checkpoint in Step 5 passes.
+The runbook must finish with its mandatory STOP and contain no restoration,
+staging, commit, remote, push, or publication action. Wait for the full owner
+output. Do not infer success from process disappearance and do not restore any
+figure before the read-only checkpoint passes.
 
-- [ ] **Step 5: Confirm the owner rewrite before restoration**
+- [ ] **Step 3: Require the complete read-only pre-restoration checkpoint**
 
-After owner confirmation, read-only check:
+Before any restoration, independently require every item below:
 
-```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' ls-files reports/figures
-```
+- clean status;
+- exactly one registered worktree;
+- an empty `refs/codex/turn-diffs/` namespace;
+- zero reachable `reports/figures/` paths across `git rev-list --objects --all`;
+- passing `git fsck --full --strict`;
+- successful `git count-objects -vH` with the reported pack below 120 MiB;
+- no remote;
+- every author and committer equal to `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`; and
+- no co-author trailer.
 
-Expected: main is clean and `git ls-files reports/figures` prints nothing. If not, stop and diagnose before any copy.
+Any failed or ambiguous check stops the workflow without restoring files.
 
----
+- [ ] **Step 4: Restore and commit the exact KEEP set**
 
-### Task 8: Restore curated evidence and run post-rewrite acceptance
-
-The v4 package at
-`D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4`
-is an immutable recovery-only package; its runbook must not be executed. It is
-not a Task 8 recovery source.
-
-**Files:**
-- Restore: exact manifest KEEP set under `reports/figures/`
-- External read-only recovery source: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
-
-**Interfaces:**
-- Consumes: owner-rewritten main and verified archive.
-- Produces: one `kuotunyu` restoration commit, pack below 120 MiB, complete passing verification, and a publication-ready local repository.
-
-- [ ] **Step 1: Restore only verified KEEP files**
+Use the strict v5 restore command, stage only `reports/figures/`, compare the
+staged paths and digests exactly with the 14 manifest KEEP entries, require zero
+DROP paths, and make the single restoration commit as the approved identity.
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
-uv run python scripts/restore_curated_figures.py --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
-```
-
-Expected: only manifest KEEP paths are restored, and every restored digest matches.
-
-- [ ] **Step 2: Verify staged inventory before committing**
-
-```powershell
+uv run python scripts/restore_curated_figures.py --project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 git add -- reports/figures
 git diff --cached --check
-git diff --cached --name-status
+git diff --cached --name-only
 ```
 
-Compare the staged paths exactly with the KEEP entries in `figure_manifest.json`. Any extra or missing path blocks the commit.
-
-- [ ] **Step 3: Commit using only the approved identity**
-
-```powershell
-git config user.name kuotunyu
-git config user.email 61350295+kuotunyu@users.noreply.github.com
-git commit -m 'docs: restore curated figure evidence'
-```
-
-Verify author, committer, and trailers immediately.
-
-- [ ] **Step 4: Verify the complete curated figure state, then run the post-rewrite suite**
+- [ ] **Step 5: Run complete final acceptance**
 
 ```powershell
 uv run python scripts/verify_figure_evidence.py --expected-state curated
@@ -841,36 +837,17 @@ uv run pytest -q
 uv run ruff check .
 uv run python scripts/verify_readme.py
 uv run python scripts/verify_repository_links.py
+uv run python scripts/check_forbidden_licences.py
 uv lock --check
 git diff --check
+git fsck --full --strict
+git count-objects -vH
 git status --short --branch
 ```
 
-Expected: the curated-state verifier confirms the exact manifest KEEP/DROP state before
-tests run; all remaining commands PASS and the tree is clean.
-
-- [ ] **Step 5: Verify size and contributor invariants**
-
-```powershell
-git count-objects -vH
-git log --format='%an <%ae>|%cn <%ce>' | Sort-Object -Unique
-git log --format='%B' | Select-String -Pattern 'Co-Authored-By|Co-authored-by'
-git remote -v
-```
-
-Expected: `size-pack` is below 120 MiB; only the approved identity appears; no co-author trailer appears; no remote exists. A size above 120 MiB blocks publication and requires an object-size investigation.
-
-- [ ] **Step 6: Verify recovery assets remain intact**
-
-```powershell
-$safeSynthArchive = 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
-Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\figure_manifest.json"
-Get-FileHash -Algorithm SHA256 -LiteralPath "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
-git bundle verify "$safeSynthArchive\SafeSynth-pre-filter-repo.bundle"
-```
-
-Expected: hashes still match `archive_receipt.json` and the bundle verifies. Do not delete the archive.
-
-- [ ] **Step 7: Record completion and start the next separate release design**
-
-Update the project worklog/plan to record the post-rewrite commit, final pack size, KEEP/DROP totals, verification results, and archive manifest digest without committing the machine-local absolute archive path. Commit that documentation as `kuotunyu`, then begin separate specifications for dataset/model cards and external GitHub/Hugging Face publication.
+In addition to command success, require a clean tree, a pack below 120 MiB,
+exactly 14 KEEP and zero DROP figure paths, no remote, only the approved author
+and committer identity, no co-author trailer, and unchanged v5 manifest and
+bundle hashes with a still-verifying bundle. Only then record final acceptance;
+GitHub, Hugging Face, model/dataset cards, and latency publication remain
+separate future work.

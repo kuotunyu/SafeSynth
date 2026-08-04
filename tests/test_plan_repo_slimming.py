@@ -184,14 +184,14 @@ def test_generated_report_defers_owner_steps_to_verified_external_runbook(
     ) is None
 
 
-def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state() -> None:
-    """Catch an owner workflow reviving immutable v1-v3 snapshots or skipping evidence gates."""
+def test_formal_plan_uses_only_v5_for_the_owner_gate_and_requires_curated_state() -> None:
+    """Catch an owner workflow reviving v1-v4 or skipping the v5 rehearsal/evidence gates."""
 
     plan = (
         Path(__file__).resolve().parents[1]
         / "docs/superpowers/plans/2026-08-04-repository-curation-history-slimming.md"
     ).read_text(encoding="utf-8")
-    v4 = "release_archive/2026-08-04-repository-curation-v4"
+    v5 = "release_archive/2026-08-04-repository-curation-v5"
     normalized_plan = plan.replace("\\", "/")
 
     assert "2c2d3ff5198ff600220e5b1e1c606ebc80e07a98" in plan
@@ -203,24 +203,42 @@ def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state(
     assert "create_recovery_package()" not in plan
     assert "internal `_create_recovery_package` builder" in plan
     assert "guarded `scripts/archive_repository_curation.py` command" in plan
-    assert v4 in normalized_plan
+    assert v5 in normalized_plan
     task_4 = plan.split("### Task 4:", 1)[1].split("### Task 5:", 1)[0]
+    task_6 = plan.split("### Task 6:", 1)[1].split("### Task 7:", 1)[0]
     task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]
     task_8 = plan.split("### Task 8:", 1)[1]
     assert "$ExpectedSourceCommit" in task_4
     assert "git rev-parse --verify HEAD" in task_4
     assert "-cne $ExpectedSourceCommit" in task_4
-    assert "stage-1 owner runbook" in task_7
-    assert "stop and report" in task_7
-    assert "git ls-files reports/figures" in task_7
-    assert "requires `HEAD` to equal the archive's exact source commit" in task_7
+    assert "merge --ff-only codex/repository-curation-v5" in task_6
+    assert "verify_figure_evidence.py --expected-state source" in task_6
+    assert "worktree remove" in task_6
+    assert "branch -d codex/repository-curation-v5" in task_6
+    assert "archive_repository_curation.py --project-root" not in task_6
+    assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" not in task_6
+    assert "archive_repository_curation.py --project-root" in task_7
+    assert "disposable all-refs clone" in task_7
+    assert "refs/codex/turn-diffs/" in task_7
+    assert "zero reachable historical `reports/figures/` paths" in task_7
+    assert "git fsck --full --strict" in task_7
+    assert "pack below 120 MiB" in task_7
     assert "restore_curated_figures.py" not in task_7
-    assert v4 in task_7.replace("\\", "/")
-    assert v4 in task_8.replace("\\", "/")
-    assert "v1" not in task_7 and "v2" not in task_7 and "v3" not in task_7
-    assert "v1" not in task_8 and "v2" not in task_8 and "v3" not in task_8
+    assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" not in task_7
+    assert v5 in task_7.replace("\\", "/")
+    assert "immutable recovery-only assets" in task_7
+    assert "OWNER_HISTORY_REWRITE_RUNBOOK.txt" in task_8
+    assert "mandatory STOP" in task_8
+    assert "empty `refs/codex/turn-diffs/` namespace" in task_8
+    assert "git rev-list --objects --all" in task_8
+    assert "git fsck --full --strict" in task_8
+    assert "git count-objects -vH" in task_8
+    assert "no remote" in task_8
+    assert "no co-author trailer" in task_8
+    assert v5 in task_8.replace("\\", "/")
     assert "restore_curated_figures.py" in task_8
     assert "verify_figure_evidence.py --expected-state curated" in task_8
+    assert "check_forbidden_licences.py" in task_8
 
 
 def test_formal_design_records_the_manifest_bound_archive_contract() -> None:

@@ -843,18 +843,7 @@ def _execute_runbook_with_fake_native_commands(
             '  if defined WORKTREE_LINE_2 echo %WORKTREE_LINE_2%\r\n'
             '  exit /b %WORKTREE_EXIT%\r\n'
             ')\r\n'
-            'if "%1"=="for-each-ref" (\r\n'
-            '  if exist "%FOR_EACH_MARKER%" (\r\n'
-            '    if defined NAMESPACE_LINE_1 echo %NAMESPACE_LINE_1%\r\n'
-            '    if defined NAMESPACE_LINE_2 echo %NAMESPACE_LINE_2%\r\n'
-            '    exit /b %NAMESPACE_CHECK_EXIT%\r\n'
-            '  )\r\n'
-            '  type nul >"%FOR_EACH_MARKER%"\r\n'
-            '  if defined TURN_DIFF_LINE_1 echo %TURN_DIFF_LINE_1%\r\n'
-            '  if defined TURN_DIFF_LINE_2 echo %TURN_DIFF_LINE_2%\r\n'
-            '  if defined TURN_DIFF_LINE_3 echo %TURN_DIFF_LINE_3%\r\n'
-            '  exit /b %FOR_EACH_REF_EXIT%\r\n'
-            ')\r\n'
+            'if "%1"=="for-each-ref" goto for_each_ref\r\n'
             'if "%1"=="update-ref" exit /b %UPDATE_REF_EXIT%\r\n'
             'if "%1"=="rev-list" (\r\n'
             '  if defined REV_LIST_LINE_1 echo %REV_LIST_LINE_1%\r\n'
@@ -878,6 +867,17 @@ def _execute_runbook_with_fake_native_commands(
             'if defined SOURCE_TREE_LINE_1 echo %SOURCE_TREE_LINE_1%\r\n'
             'if defined SOURCE_TREE_LINE_2 echo %SOURCE_TREE_LINE_2%\r\n'
             'exit /b %SOURCE_TREE_EXIT%\r\n'
+            ':for_each_ref\r\n'
+            'if exist "%FOR_EACH_MARKER%" goto namespace_check\r\n'
+            'type nul >"%FOR_EACH_MARKER%"\r\n'
+            'if defined TURN_DIFF_LINE_1 echo %TURN_DIFF_LINE_1%\r\n'
+            'if defined TURN_DIFF_LINE_2 echo %TURN_DIFF_LINE_2%\r\n'
+            'if defined TURN_DIFF_LINE_3 echo %TURN_DIFF_LINE_3%\r\n'
+            'exit /b %FOR_EACH_REF_EXIT%\r\n'
+            ':namespace_check\r\n'
+            'if defined NAMESPACE_LINE_1 echo %NAMESPACE_LINE_1%\r\n'
+            'if defined NAMESPACE_LINE_2 echo %NAMESPACE_LINE_2%\r\n'
+            'exit /b %NAMESPACE_CHECK_EXIT%\r\n'
         ).encode("ascii"),
     )
     _write(
@@ -995,6 +995,63 @@ def test_owner_runbook_rev_parse_native_failure_never_reaches_uvx(tmp_path: Path
         "git status --porcelain=v1 --untracked-files=all",
         "git rev-parse --verify HEAD",
     ]
+
+
+def test_owner_runbook_source_tree_native_failure_stops_before_mutation(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        source_tree_exit=29,
+    )
+
+    assert completed.returncode != 0
+    assert "git source-tree resolution failed with exit code 29" in completed.stderr
+    assert _runbook_command_stages(commands) == ["status", "head", "source-tree"]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_worktree_inventory_native_failure_stops_before_mutation(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        worktree_exit=31,
+    )
+
+    assert completed.returncode != 0
+    assert "git worktree inventory failed with exit code 31" in completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+    ]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_initial_codex_inventory_native_failure_stops_before_mutation(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        for_each_ref_exit=37,
+    )
+
+    assert completed.returncode != 0
+    assert "git turn-diff ref inventory failed with exit code 37" in completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+    ]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all(not command.startswith("uvx ") for command in commands)
 
 
 def test_owner_runbook_wrong_clean_head_never_reaches_uvx(tmp_path: Path) -> None:
@@ -1371,6 +1428,50 @@ def test_owner_runbook_stops_when_codex_namespace_is_not_empty_after_deletion(
     assert "namespace is not empty after deletion" in completed.stderr
     assert _runbook_command_stages(commands)[-1] == "turn-diffs"
     assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_post_deletion_namespace_native_failure_stops_before_rewrite(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",),
+        namespace_check_exit=41,
+    )
+
+    assert completed.returncode != 0
+    assert "git turn-diff namespace verification failed with exit code 41" in completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+        "delete",
+        "turn-diffs",
+    ]
+    assert all("git-filter-repo --path" not in command for command in commands)
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
+
+
+def test_owner_runbook_rewrite_native_failure_stops_before_post_rewrite_acceptance(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        uvx_rewrite_exit=61,
+    )
+
+    assert completed.returncode != 0
+    assert "git-filter-repo rewrite failed with exit code 61" in completed.stderr
+    assert _runbook_command_stages(commands)[-1] == "rewrite"
+    assert "all-ref-scan" not in _runbook_command_stages(commands)
+    assert "strict-fsck" not in _runbook_command_stages(commands)
+    assert "count-objects" not in _runbook_command_stages(commands)
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
 
 
 @pytest.mark.parametrize(
