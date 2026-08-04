@@ -755,18 +755,21 @@ Expected: both statuses are clean before removal, and only the intended linked w
 
 - [ ] **Step 4: Run the stage-1 owner runbook, stop and report**
 
-The agent must not execute the next command. Ask the owner to copy the command,
-fully close Codex and all editors, and run the immutable v5 stage-1 owner
-runbook from an external Windows PowerShell process. The runbook checks the
-clean state, requires `HEAD` to equal the archive's exact source commit, checks
-every native exit code, performs only the exact rewrite below, and ends with a
-mandatory STOP/report-back instruction. It contains no restoration, staging, or
-commit step. Explain that `uvx` downloads and runs the missing history tool
-without installing a persistent global command, while the exact rewrite is:
+The agent must not execute the next command. Ask the owner to copy the complete
+command below, fully close Codex and all editors, and paste it into an external
+Windows PowerShell process. This is the sole owner action: it reads and executes
+the complete immutable v5 stage-1 owner runbook from its exact path.
 
 ```powershell
-uvx git-filter-repo --path reports/figures/ --invert-paths --force
+& ([scriptblock]::Create([System.IO.File]::ReadAllText('D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\OWNER_HISTORY_REWRITE_RUNBOOK.txt', [System.Text.UTF8Encoding]::new($false))))
 ```
+
+The runbook itself checks the clean state, requires `HEAD` to equal the archive's exact source commit, checks every native exit code, performs the guarded rewrite,
+and ends with a mandatory STOP/report-back instruction. It contains no
+restoration, staging, or commit step. The raw
+`uvx git-filter-repo --path reports/figures/ --invert-paths --force` line is
+explanatory only: it is an internal runbook action and is forbidden as a
+standalone owner command.
 
 The owner must wait for the mandatory STOP, reopen Codex only after STOP, and
 return the complete output or any error. Wait for that report before continuing;
