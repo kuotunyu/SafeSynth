@@ -300,7 +300,7 @@
     變異測試 13/13（GIF 選圖）。全套 `1465 passed, 42 skipped`。
   - **驗證於**：`741fd6d` @ 2026-08-02
 
-- [~] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
+- [x] **M23** README ＋ `scripts/verify_readme.py` ＋ CI
   - **對應規格**：PUB-01 ~ PUB-05、PUB-10
   - **驗證**：`uv run python scripts/verify_readme.py` 通過——
     README 每張表的數字都能從 `results/` 的原始檔重算；
@@ -317,11 +317,9 @@
     `git ls-files uv.lock` → 已追蹤。
     `ci.yml` 的四個步驟是 `uv sync --locked`、`pytest -q`、
     `verify_readme`、`check_forbidden_licences`。
-  - **這個 `[~]` 只差一件，而且現在無法驗**：「CI 為綠」需要 workflow 真的在
-    GitHub 上跑過一次，而 `git remote -v` 是空的——**這個 repo 還沒有 remote，
-    CI 一次都沒執行過**。第一次 push 之後這條才驗得到。
-    在那之前把它勾成 `[x]` 就是宣稱一件沒發生的事。
-  - **驗證於**：（未完成）
+  - **遠端驗證**：GitHub Actions run `30927093391` 於 2026-08-05 全部通過
+    （locked install、ruff、pytest、`verify_readme`、圖證據與授權掃描）。
+  - **驗證於**：`b6133b2` @ 2026-08-05；GitHub Actions run `30927093391`
 
 - [~] **M24** Hugging Face 上傳 ＋ 發佈總驗收
   - **對應規格**：PUB-06 ~ PUB-11
@@ -344,11 +342,15 @@
     Dataset/model cards、交叉連結、v1.0.0 release notes 與 owner-only 發布手冊已備妥；
     `scripts.verify_hf_release` 會事後複驗檔案邊界、雜湊、COCO 聯集、provenance、
     類別 ID、推論設定、必要揭露與本機路徑洩漏。
-  - **仍維持 `[~]`**：個人 `publish-repo` skill 在目前環境不存在，已用等價且更貼近
-    本 repo 的 read-only gates 補足，但遠端 GitHub repo、第一次 CI、兩個 HF repo、
-    唯一 Contributor 的公開頁面確認與 v1.0.0 Release 目前都不存在。依 PUB-11，
-    這些 git／gh／hf 寫入必須由 `kuotunyu` 本人照 owner runbook 執行。
-  - **驗證於**：（待 owner commit、遠端 CI 與公開頁面總驗收）
+  - **Owner 遠端發布已完成**（2026-08-05）：`kuotunyu/SafeSynth` 已為 public，
+    GitHub Contributors API 只有 `kuotunyu`；dataset commit
+    `ed346b7061b6c7d4f113bddfd1953eed3121480c` 與 model commit
+    `f5621de143756695abc18cc7b3310da131b1bf2c` 都已公開，且遠端 manifest 與本地
+    完全一致，沒有舊 namespace 或 Trainer state。
+  - **狀態仍為 provisional**：GitHub `v1.0.0` tag 與 Release 仍未建立；這是唯一剩餘的
+    PUB-11 owner write。個人 `publish-repo` skill 在目前環境不存在，已用本 repo
+    的等價 read-only gates 補足。所有 git／gh／hf 寫入仍由 `kuotunyu` 本人執行。
+  - **驗證於**：`b6133b2` @ 2026-08-05；HF 公開頁面與檔案唯讀驗證 @ 2026-08-05
 
 ---
 

@@ -8,18 +8,18 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-04（M24 本機 Hugging Face／GitHub 發布素材與驗證器完成）
-- **最後已 commit 程式 checkpoint**：`0e8b95e` docs: record repository curation completion
-- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22` 完成**
+- **更新時間**：2026-08-05（M23 CI 與 M24 GitHub/Hugging Face owner upload 完成）
+- **最後已 commit 程式 checkpoint**：`b6133b2` docs(release): use steven0226 Hugging Face namespace
+- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22`、`M23` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
   `M20` 的 fine-tuned RF-DETR 延遲五次固定時脈量測都未通過 contention gate，
   因此依預先登記規則撤回速度主張、以負面驗證結果結案，
-  **`M23` 是誠實的 `[~]`**（四條本機條件全綠，但「CI 為綠」需要先 push），
+  **`M23` 已完成**（GitHub Actions run `30927093391` 全部通過），
   `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；
-  **`M24` 進行中**（本機包與 cards 完成，只差 owner 遠端發布與公開總驗收）。
-- **⚠️ 未 commit 的改動**：M20 結案文字、HF release builder/verifier、dataset/model
-  cards、owner runbook、release notes 與測試；模型權重與 1.94 GB 資料包只在
-  `<data_root>/publish/`，不進 Git。
+  **`M24` 進行中**（GitHub 與兩個 HF repo 已公開且通過唯讀驗證，只差 v1.0.0
+  tag/release）。
+- **目前待 commit 的改動**：本次 M23/M24 狀態與公開 commit／HF commit 雜湊紀錄；
+  模型權重與 1.94 GB 資料包只在 `<data_root>/publish/`，不進 Git。
 - **最重要的一句話**：RT-DETRv2 的合成組顯著較差；RF-DETR-Nano 的合成組
   點估計稍高但四組 95% CI 全部重疊。兩個架構方向不一致，因此目前只有
   **「沒有穩健、可泛化的合成資料提升」**這個結論，不能宣稱 RF 已證明勝出。
@@ -40,10 +40,9 @@
   RF 四組在本機 RTX 4090 完成；bootstrap 與目前文件凍結主要使用 CPU。
   SafeSynth 的延遲程序已退出、不占 GPU；2026-08-04 重啟後實測為 P8／225 MHz，
   2520 MHz 固定時脈已解除。
-- **下一個動作（一句話、可直接動手）**：跑完整本機發布閘門與乾淨度檢查，然後依
-  `publishing/OWNER_PUBLISH_RUNBOOK.md` 交給 owner 親自 commit／push／upload。
-- **卡住的事**：遠端 GitHub repo、CI 與 Hugging Face 上傳需要 owner 帳號寫入；
-  M20 不再等待重跑，M24 本機部分沒有 blocker。
+- **下一個動作（一句話、可直接動手）**：先提交並推送本次狀態紀錄，確認 CI 綠後，
+  依 `publishing/OWNER_PUBLISH_RUNBOOK.md` 建立 GitHub `v1.0.0` tag/release。
+- **卡住的事**：沒有技術 blocker；只剩 owner 必須親自執行的 tag/release 外部寫入。
 
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
@@ -67,6 +66,20 @@
   uv run pytest -q
   ```
 
+### 2026-08-05 — M23 CI 與 M24 公開 owner upload 完成
+
+- **GitHub**：`https://github.com/kuotunyu/SafeSynth` 已為 public；最新 source
+  commit `b6133b2` 的 author/committer 都是 `kuotunyu`，Contributors API 只有
+  `kuotunyu`（379 contributions）。GitHub Actions run `30927093391` 的 locked
+  install、lint、pytest、README、figure evidence 與 license gates 全部通過。
+- **Hugging Face**：dataset `steven0226/safesynth-hard-hat` 公開 commit
+  `ed346b7061b6c7d4f113bddfd1953eed3121480c`；model
+  `steven0226/safesynth-rtdetrv2-r18` 公開 commit
+  `f5621de143756695abc18cc7b3310da131b1bf2c`。遠端 manifest 與本地完全一致，
+  沒有舊 namespace、optimizer 或 Trainer state。
+- **剩餘**：只差 owner 建立 GitHub `v1.0.0` annotated tag 與 Release；完成後再做
+  最終公開頁面與乾淨工作樹驗收。
+
 ### 2026-08-04 — M24 本機公開發布包完成
 
 - **Dataset 包**：filtered／unfiltered 各 3,500 張、重疊 848 張、唯一影像 6,152 張；
@@ -82,8 +95,8 @@
   實際核對 JSON 後修正，並加入 category-table 回歸測試；發布入口現在也會先
   一次檢查所有來源檔，避免模型缺檔時留下半套資料集；模型驗證器要求
   `0=helmet, 1=head, 2=person` 精確對應。HF 專用測試目前 11/11 通過。
-- **發佈邊界**：遠端寫入維持零次；遵守 PUB-11，由 `kuotunyu` 本人操作所有
-  git／gh／hf 寫入，之後再做 CI、公開卡片與唯一 Contributor 的 read-only 驗收。
+- **發佈邊界**：本段記錄當時仍未做遠端寫入；後續已由 `kuotunyu` 本人完成
+  git／gh／hf 寫入，並在 2026-08-05 通過公開頁面唯讀驗收。
 
 ---
 
