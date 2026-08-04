@@ -369,9 +369,33 @@ def _runbook(owner_project_root: str, source_commit: str) -> str:
             'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code '
             '$LASTEXITCODE. STOP." }'
         ),
+        "$AllRefObjectRows = @(git rev-list --objects --all)",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git all-ref object scan failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        (
+            "$ReachableFigureRows = @($AllRefObjectRows | Where-Object { $_ -cmatch "
+            "'^[0-9a-f]{40} reports/figures(?:/|$)' })"
+        ),
+        (
+            "if ($ReachableFigureRows.Count -ne 0) { throw 'reports/figures remains reachable "
+            "from refs after rewrite. STOP.' }"
+        ),
+        "git fsck --full --strict",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git strict fsck failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        "$CountObjectRows = @(git count-objects -vH)",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git count-objects failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        "$CountObjectRows | ForEach-Object { Write-Host $_ }",
         (
             "Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or "
-            "commit. Report the full output to the controller and wait for the Task 7 "
+            "commit. Return the full output to the controller and wait for the Task 7 "
             "read-only checkpoint.'"
         ),
     )

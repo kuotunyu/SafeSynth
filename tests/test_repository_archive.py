@@ -795,6 +795,8 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
     assert "restore_curated_figures" not in runbook
     assert "git add" not in runbook
     assert "git commit" not in runbook
+    assert "git remote" not in runbook
+    assert "git push" not in runbook
     assert owner_root.joinpath("owner-sentinel.txt").read_bytes() == b"unchanged"
     assert completed.stdout.index("KEEP=1") < completed.stdout.index("DROP=1")
 
@@ -817,6 +819,11 @@ def _execute_runbook_with_fake_native_commands(
     update_ref_exit: int = 0,
     uvx_version_exit: int = 0,
     uvx_rewrite_exit: int = 0,
+    rev_list_exit: int = 0,
+    rev_list_lines: tuple[str, ...] = (),
+    fsck_exit: int = 0,
+    count_objects_exit: int = 0,
+    count_objects_lines: tuple[str, ...] = ("count: 0", "size: 0 bytes"),
 ) -> tuple[subprocess.CompletedProcess[str], list[str], str, Path]:
     owner_root = tmp_path / "owner's project"
     owner_root.mkdir()
@@ -849,6 +856,18 @@ def _execute_runbook_with_fake_native_commands(
             '  exit /b %FOR_EACH_REF_EXIT%\r\n'
             ')\r\n'
             'if "%1"=="update-ref" exit /b %UPDATE_REF_EXIT%\r\n'
+            'if "%1"=="rev-list" (\r\n'
+            '  if defined REV_LIST_LINE_1 echo %REV_LIST_LINE_1%\r\n'
+            '  if defined REV_LIST_LINE_2 echo %REV_LIST_LINE_2%\r\n'
+            '  if defined REV_LIST_LINE_3 echo %REV_LIST_LINE_3%\r\n'
+            '  exit /b %REV_LIST_EXIT%\r\n'
+            ')\r\n'
+            'if "%1"=="fsck" exit /b %FSCK_EXIT%\r\n'
+            'if "%1"=="count-objects" (\r\n'
+            '  if defined COUNT_OBJECTS_LINE_1 echo %COUNT_OBJECTS_LINE_1%\r\n'
+            '  if defined COUNT_OBJECTS_LINE_2 echo %COUNT_OBJECTS_LINE_2%\r\n'
+            '  exit /b %COUNT_OBJECTS_EXIT%\r\n'
+            ')\r\n'
             'exit /b 99\r\n'
             ':rev_parse\r\n'
             'if not "%3"=="HEAD" goto source_tree\r\n'
@@ -885,6 +904,9 @@ def _execute_runbook_with_fake_native_commands(
     environment["UPDATE_REF_EXIT"] = str(update_ref_exit)
     environment["UVX_VERSION_EXIT"] = str(uvx_version_exit)
     environment["UVX_REWRITE_EXIT"] = str(uvx_rewrite_exit)
+    environment["REV_LIST_EXIT"] = str(rev_list_exit)
+    environment["FSCK_EXIT"] = str(fsck_exit)
+    environment["COUNT_OBJECTS_EXIT"] = str(count_objects_exit)
     environment["FOR_EACH_MARKER"] = str(for_each_marker)
     for index, line in enumerate(rev_parse_lines, start=1):
         environment[f"REV_PARSE_LINE_{index}"] = line
@@ -893,6 +915,8 @@ def _execute_runbook_with_fake_native_commands(
         ("WORKTREE_LINE", worktree_lines),
         ("TURN_DIFF_LINE", turn_diff_rows),
         ("NAMESPACE_LINE", namespace_rows_after_deletion),
+        ("REV_LIST_LINE", rev_list_lines),
+        ("COUNT_OBJECTS_LINE", count_objects_lines),
     ):
         for index, line in enumerate(lines, start=1):
             environment[f"{prefix}_{index}"] = line
@@ -936,6 +960,12 @@ def _runbook_command_stages(commands: list[str]) -> list[str]:
             stages.append("delete")
         elif command == "uvx git-filter-repo --path reports/figures/ --invert-paths --force":
             stages.append("rewrite")
+        elif command == "git rev-list --objects --all":
+            stages.append("all-ref-scan")
+        elif command == "git fsck --full --strict":
+            stages.append("strict-fsck")
+        elif command == "git count-objects -vH":
+            stages.append("count-objects")
         else:
             stages.append(f"unexpected:{command}")
     return stages
@@ -1011,11 +1041,112 @@ def test_owner_runbook_matching_head_reaches_rewrite_then_stop(tmp_path: Path) -
         "availability",
         "turn-diffs",
         "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
     ]
     assert "STOP: Stage 1 history rewrite finished" in completed.stdout
     assert "restore_curated_figures" not in runbook
     assert "git add" not in runbook
     assert "git commit" not in runbook
+
+
+def test_owner_runbook_rejects_reachable_figure_path_after_rewrite(tmp_path: Path) -> None:
+    reachable_figure = "b" * 40 + " reports/figures/example.png"
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        rev_list_lines=("a" * 40, "c" * 40, reachable_figure),
+    )
+
+    assert completed.returncode != 0
+    assert "reports/figures remains reachable from refs" in completed.stderr
+    assert _runbook_command_stages(commands)[-2:] == ["rewrite", "all-ref-scan"]
+    assert "strict-fsck" not in _runbook_command_stages(commands)
+    assert "count-objects" not in _runbook_command_stages(commands)
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
+
+
+def test_owner_runbook_stops_when_all_ref_scan_fails(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        rev_list_exit=47,
+    )
+
+    assert completed.returncode != 0
+    assert "git all-ref object scan failed with exit code 47" in completed.stderr
+    assert _runbook_command_stages(commands)[-2:] == ["rewrite", "all-ref-scan"]
+    assert "strict-fsck" not in _runbook_command_stages(commands)
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
+
+
+def test_owner_runbook_stops_when_strict_fsck_fails(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        fsck_exit=53,
+    )
+
+    assert completed.returncode != 0
+    assert "git strict fsck failed with exit code 53" in completed.stderr
+    assert _runbook_command_stages(commands)[-3:] == [
+        "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+    ]
+    assert "count-objects" not in _runbook_command_stages(commands)
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
+
+
+def test_owner_runbook_stops_when_count_objects_fails(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        count_objects_exit=59,
+    )
+
+    assert completed.returncode != 0
+    assert "git count-objects failed with exit code 59" in completed.stderr
+    assert _runbook_command_stages(commands)[-4:] == [
+        "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
+    ]
+    assert "STOP: Stage 1 history rewrite finished" not in completed.stdout
+
+
+def test_owner_runbook_clean_post_rewrite_sequence_reaches_mandatory_stop(
+    tmp_path: Path,
+) -> None:
+    count_output = ("count: 2", "size: 8.00 KiB")
+    completed, commands, runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        rev_list_lines=("a" * 40, "b" * 40 + " reports/README.md"),
+        count_objects_lines=count_output,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert _runbook_command_stages(commands)[-4:] == [
+        "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
+    ]
+    assert all(line in completed.stdout for line in count_output)
+    assert completed.stdout.index(count_output[-1]) < completed.stdout.index(
+        "STOP: Stage 1 history rewrite finished"
+    )
+    assert "STOP: Stage 1 history rewrite finished" in completed.stdout
+    assert "Do not restore, stage, or commit" in completed.stdout
+    assert "return the full output" in completed.stdout.lower()
+    assert "restore_curated_figures" not in runbook
+    assert "git add" not in runbook
+    assert "git commit" not in runbook
+    assert "git remote" not in runbook
+    assert "git push" not in runbook
 
 
 def test_owner_runbook_accepts_zero_exact_codex_tree_refs(tmp_path: Path) -> None:
@@ -1033,6 +1164,9 @@ def test_owner_runbook_accepts_zero_exact_codex_tree_refs(tmp_path: Path) -> Non
         "availability",
         "turn-diffs",
         "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
     ]
     assert all(not command.startswith("git update-ref ") for command in commands)
 
@@ -1056,6 +1190,9 @@ def test_owner_runbook_accepts_one_exact_codex_tree_ref(tmp_path: Path) -> None:
         "delete",
         "turn-diffs",
         "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
     ]
     assert f"git update-ref -d {ref_name} {EXPECTED_SOURCE_TREE}" in commands
 
@@ -1080,6 +1217,9 @@ def test_owner_runbook_accepts_multiple_exact_codex_tree_refs(tmp_path: Path) ->
         "delete",
         "turn-diffs",
         "rewrite",
+        "all-ref-scan",
+        "strict-fsck",
+        "count-objects",
     ]
     for ref in refs:
         assert f"git update-ref -d {ref} {EXPECTED_SOURCE_TREE}" in commands
