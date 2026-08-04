@@ -8,8 +8,8 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-04（RF-DETR 四組訓練與完整評測完成；延遲閘門待安靜重跑）
-- **最後已 commit 程式 checkpoint**：`45cd180` fix(m20): allow Docker desktop GPU client
+- **更新時間**：2026-08-04（v5 歷史瘦身、14 張正式圖證恢復與完整驗收完成）
+- **最後已 commit 程式 checkpoint**：`c74e2fc` docs: restore curated figure evidence
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19`、`M22` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
   **`M20` 進行中**（四組訓練、預測、1,000 次 bootstrap 與結果解讀完成；
@@ -51,10 +51,10 @@
      hard-negative 子集是空的，而候選區域 fallback 未實作
   4. 模型**校準很差**：223,200 個偵測的最高分只有 0.2495。排序good、絕對分數不可用
   5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
-  6. **repo 有 437 MB**，其中 362.9 MB 是 116 個沒有任何文件引用的 Phase 1 診斷圖。
-     從 HEAD 刪不會讓 clone 變小，要 `filter-repo`，而且**要在第一次 push 之前做**
-- **等使用者做的事**：目前沒有。遠端 GitHub repo 仍未建立；歷史瘦身、建立遠端與
-  Hugging Face 上傳屬外部／不可逆步驟，會在本機內容完全驗證後逐步請使用者操作。
+  6. **歷史瘦身已完成**：136 張 DROP 圖已從所有 refs 的歷史移除，Git pack 為
+     **4.62 MiB**；14 張 KEEP 圖由 v5 封存精確恢復，仍保留可重現的完整復原包
+- **等使用者做的事**：目前沒有。遠端 GitHub repo 仍未建立；建立遠端、push 與
+  Hugging Face 上傳仍屬獨立的後續發佈工作。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_colab_results
@@ -67,6 +67,31 @@
 ---
 
 ## 工作日誌
+
+### 2026-08-04 — v5 歷史瘦身與正式驗收完成
+
+- **正式改寫**：不可變 v5 runbook 綁定來源 commit
+  `07d97fc77e5b9b8fc301210fcb81e634b36defc1`。owner 在外部 Windows PowerShell
+  執行後，`main` 改寫為 `402c187fce7263872c11c91a31eae47f59a8cee8`，
+  `codex/rfdetr-four-arm` 改寫為 `1a67a42c7f8d7396cec05e109d5ebd73f81112c2`，
+  並正確停在 mandatory STOP。
+- **controller checkpoint**：Codex 重開後產生的一個冗餘 tree ref，經名稱、型別與
+  object ID 驗證為精確等於改寫後的 `HEAD^{tree}`，再以 expected-old-object 條件式
+  刪除。重新檢查後工作區乾淨、單一 worktree、turn-diff namespace 為空、無 remote、
+  所有 refs 中可達 `reports/figures/` 路徑為 0，strict `git fsck` 通過。
+- **精確恢復**：從 v5 只恢復 14 個 KEEP，逐一比對路徑、大小與 SHA-256，並以
+  `c74e2fc11d23ed9441148915ae07bd79a84061d1`（`docs: restore curated figure evidence`）
+  單獨提交；136 個 DROP 在全部 374 個可達 commits 中均為 0。
+- **完整驗收**：`1755 passed, 50 skipped`；Ruff、README 數值、Markdown 連結、
+  forbidden-licence scan、`uv lock --check`、`git diff --check`、strict `git fsck`
+  全部通過。Git pack 為 **4.62 MiB**（4,730 KiB），figure history 只有一個恢復
+  commit，author／committer 只有
+  `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`，無 co-author trailer。
+- **v5 復原承諾**：KEEP 14／DROP 136；manifest SHA-256
+  `a4ae4c773ffbce263ff5fd65d08df7502d1074bec17a2982016c26b8da684d0e`；bundle SHA-256
+  `1ec20bcee16b8dcf0138691afeb4199fac30696b2bc801035bd695ab6827effa`，`git bundle verify`
+  通過。GitHub repo 建立、push、model／dataset cards、Hugging Face 發佈與 fine-tuned
+  latency 發佈仍是獨立後續工作，本次沒有擴大發佈範圍。
 
 ### 2026-08-04 — v5 owner gate 在建檔前完成文件綁定
 - **已核准的書面規格**：v5 safety specification 是唯一的 owner gate；v1–v4 都是不可變、僅供復原的封存包，任何舊 runbook 都不得執行。v5 package 的建立留給 Task 4；本筆不宣稱 package 存在，也不預先記錄其 hash。
