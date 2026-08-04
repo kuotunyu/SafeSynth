@@ -262,7 +262,7 @@ Expected: clean tree, exactly one worktree, no remote, source-state PASS, and `F
 - [ ] **Step 2: Create the non-overwriting v5 package through the supported command**
 
 ```powershell
-uv run python scripts/archive_repository_curation.py --project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/archive_repository_curation.py --project-root '<project_root>' --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root '<project_root>'
 ```
 
 Expected: one success line with archive path, exact source commit, `KEEP=14`, `DROP=136`, manifest SHA-256, and bundle SHA-256.

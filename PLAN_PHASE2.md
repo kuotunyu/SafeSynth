@@ -130,7 +130,7 @@
     要讓 EVAL-16 有鑑別力，需要**形狀像安全帽但沒被戴著**的干擾物，
     這個資料集在 Test 上沒有足夠數量。
 
-- [~] **M20** 速度對照組（寬鬆授權模型，**不得用 Ultralytics**）
+- [x] **M20** 速度對照組（寬鬆授權模型，**不得用 Ultralytics**）
   - **對應規格**：DEMO-05、[ADR-005](docs/decisions.md#adr-005)
   - **驗證**：所選模型的授權經查證且與 MIT repo 相容，證據寫進 ADR-005；
     `grep -rn "ultralytics" src/ scripts/ notebooks/` → **零命中**；
@@ -195,13 +195,17 @@
     **0.5030 [0.4841, 0.5240]**。四組區間全部重疊，不能宣稱合成資料勝出；
     synthetic arms 又只有一半 real-image exposures，且 H4 AUC 0.9053 失敗。
     與 RT-DETRv2 的負向結果合看，結論是**架構敏感且不確定，沒有穩健提升**。
-  - **③ 還沒做的**：用 fine-tuned RF-DETR checkpoint 取得可發布的延遲表。
-    使用者已鎖定 2520 MHz，clock-spread gate 三次都通過，但 host-contention
-    p95 gate 三次都失敗；`reports/rfdetr_speed_baseline_probe.md` 因此保留 FAIL，
-    不能把數字放進 README。只在機器真正安靜時再重跑，不降低門檻。
+  - **③ 以負面驗證結果結案**（2026-08-04）：fine-tuned RF-DETR checkpoint
+    確實載入並完成前向，五次 2520 MHz 固定時脈正式量測的 clock-spread gate
+    都通過，但 host-contention p95 gate 都失敗；最後一次另在鎖定畫面下執行，
+    仍有 8/9 rows 超標。這排除了操作畫面與降頻，證據指向同一張 Windows 顯示 GPU
+    的排程／背景負載。`reports/rfdetr_speed_baseline_probe.md` 因此保留 FAIL，README
+    刻意不發布 fine-tuned RF-DETR 延遲數字。**不降低門檻、不挑最好的一輪，也不再
+    無限重跑**；若未來有獨立、非顯示用的 NVIDIA GPU，可另開新實驗補量。
   - **驗證於**：`reports/rfdetr_detection_main_table.md`、
-    `results/rfdetr_detection_metrics.csv`、`results/rfdetr_predictions_index.json`；
-    M20 整體仍為 `[~]`，待 ③ 通過後才可標 `[x]`。
+    `results/rfdetr_detection_metrics.csv`、`results/rfdetr_predictions_index.json`、
+    `reports/rfdetr_speed_baseline_probe.md`；M20 的實驗與驗證已完成，但速度主張因
+    預先登記的品質閘門未過而被撤回。
 
 ---
 
@@ -319,7 +323,7 @@
     在那之前把它勾成 `[x]` 就是宣稱一件沒發生的事。
   - **驗證於**：（未完成）
 
-- [ ] **M24** Hugging Face 上傳 ＋ 發佈總驗收
+- [~] **M24** Hugging Face 上傳 ＋ 發佈總驗收
   - **對應規格**：PUB-06 ~ PUB-11
   - **驗證**：合成資料集（filtered ＋ unfiltered ＋ `records.jsonl`）與最佳權重已備妥；
     dataset card 含來源授權鏈（CC0 1.0）、生成方法、filtered/unfiltered 差別與**等量**這件事、
@@ -331,7 +335,20 @@
     **呼叫個人 skill `publish-repo` 跑完整驗收**（不要在本 repo 重寫發佈流程）；
     **commit 歷史零個 `Co-Authored-By:` trailer**，所有 commit 的 author 都是 repo 擁有者；
     轉 public 前讓使用者過目
-  - **驗證於**：（未完成）
+  - **本機發布素材已完成**（2026-08-04）：
+    `scripts.prepare_hf_release` 只打包兩份 COCO 標註實際引用的聯集，輸出
+    3,500 filtered、3,500 unfiltered、848 張重疊、6,152 張唯一影像與完全對應的
+    6,152 筆 provenance；每張影像都重新對 `image_sha256`。模型包只含
+    `config.json`、`model.safetensors`、`preprocessor_config.json`、model card 與
+    release manifest，明確排除 optimizer／scheduler／Trainer state。
+    Dataset/model cards、交叉連結、v1.0.0 release notes 與 owner-only 發布手冊已備妥；
+    `scripts.verify_hf_release` 會事後複驗檔案邊界、雜湊、COCO 聯集、provenance、
+    類別 ID、推論設定、必要揭露與本機路徑洩漏。
+  - **仍維持 `[~]`**：個人 `publish-repo` skill 在目前環境不存在，已用等價且更貼近
+    本 repo 的 read-only gates 補足，但遠端 GitHub repo、第一次 CI、兩個 HF repo、
+    唯一 Contributor 的公開頁面確認與 v1.0.0 Release 目前都不存在。依 PUB-11，
+    這些 git／gh／hf 寫入必須由 `kuotunyu` 本人照 owner runbook 執行。
+  - **驗證於**：（待 owner commit、遠端 CI 與公開頁面總驗收）
 
 ---
 

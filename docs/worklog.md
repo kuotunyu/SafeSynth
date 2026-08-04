@@ -8,16 +8,18 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-04（v5 歷史瘦身、14 張正式圖證恢復與完整驗收完成）
-- **最後已 commit 程式 checkpoint**：`c74e2fc` docs: restore curated figure evidence
-- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M19`、`M22` 完成**
+- **更新時間**：2026-08-04（M24 本機 Hugging Face／GitHub 發布素材與驗證器完成）
+- **最後已 commit 程式 checkpoint**：`0e8b95e` docs: record repository curation completion
+- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
-  **`M20` 進行中**（四組訓練、預測、1,000 次 bootstrap 與結果解讀完成；
-  只差 fine-tuned RF-DETR 延遲通過 contention gate），
+  `M20` 的 fine-tuned RF-DETR 延遲五次固定時脈量測都未通過 contention gate，
+  因此依預先登記規則撤回速度主張、以負面驗證結果結案，
   **`M23` 是誠實的 `[~]`**（四條本機條件全綠，但「CI 為綠」需要先 push），
-  `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；`M24` 未開始。
-- **⚠️ 未 commit 的改動**：RF 結果表、索引、README／PLAN／worklog、README verifier
-  多來源支援及其測試；另有訓練程序產生的報告，凍結前逐一分類。
+  `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；
+  **`M24` 進行中**（本機包與 cards 完成，只差 owner 遠端發布與公開總驗收）。
+- **⚠️ 未 commit 的改動**：M20 結案文字、HF release builder/verifier、dataset/model
+  cards、owner runbook、release notes 與測試；模型權重與 1.94 GB 資料包只在
+  `<data_root>/publish/`，不進 Git。
 - **最重要的一句話**：RT-DETRv2 的合成組顯著較差；RF-DETR-Nano 的合成組
   點估計稍高但四組 95% CI 全部重疊。兩個架構方向不一致，因此目前只有
   **「沒有穩健、可泛化的合成資料提升」**這個結論，不能宣稱 RF 已證明勝出。
@@ -36,11 +38,12 @@
   防止同名 arm／metric 誤對到 RT-DETRv2 的 CSV。
 - **環境**：Python 3.12.13、torch 2.13.0+cu130、transformers 5.14.1。
   RF 四組在本機 RTX 4090 完成；bootstrap 與目前文件凍結主要使用 CPU。
-  使用者已於延遲嘗試後執行 `nvidia-smi -rgc`，SafeSynth 不占 GPU。
-- **下一個動作（一句話、可直接動手）**：完成 RF 結果凍結與全套測試；等機器真正
-  安靜時只重跑一次 fine-tuned RF 延遲，通過才關閉 M20。
-- **卡住的事**：只有 M20 的正式延遲表。2520 MHz clock-spread gate 已連續三次通過，
-  但 host-contention p95 gate 三次失敗；不降低門檻，也不把 FAIL 數字寫入 README。
+  SafeSynth 的延遲程序已退出、不占 GPU；2026-08-04 重啟後實測為 P8／225 MHz，
+  2520 MHz 固定時脈已解除。
+- **下一個動作（一句話、可直接動手）**：跑完整本機發布閘門與乾淨度檢查，然後依
+  `publishing/OWNER_PUBLISH_RUNBOOK.md` 交給 owner 親自 commit／push／upload。
+- **卡住的事**：遠端 GitHub repo、CI 與 Hugging Face 上傳需要 owner 帳號寫入；
+  M20 不再等待重跑，M24 本機部分沒有 blocker。
 
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
@@ -53,8 +56,8 @@
   5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
   6. **歷史瘦身已完成**：136 張 DROP 圖已從所有 refs 的歷史移除，Git pack 為
      **4.62 MiB**；14 張 KEEP 圖由 v5 封存精確恢復，仍保留可重現的完整復原包
-- **等使用者做的事**：目前沒有。遠端 GitHub repo 仍未建立；建立遠端、push 與
-  Hugging Face 上傳仍屬獨立的後續發佈工作。
+- **等使用者做的事**：本機總驗收通過後，由 owner 依 runbook 親自 commit、建立
+  GitHub remote、上傳 HF，並確認 Contributors 只有 `kuotunyu`。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_colab_results
@@ -63,6 +66,24 @@
   uv run ruff check .
   uv run pytest -q
   ```
+
+### 2026-08-04 — M24 本機公開發布包完成
+
+- **Dataset 包**：filtered／unfiltered 各 3,500 張、重疊 848 張、唯一影像 6,152 張；
+  只保留標註聯集，沒有把 14,000 張候選 pool 全部上傳。6,152 筆 provenance 與影像
+  SHA-256 逐筆核對，發布包約 1.94 GB。
+- **Model 包**：發布 validation-selected `real_only/checkpoint-1752`，含 20.2M 參數的
+  `model.safetensors`、三類 config 與 640px RT-DETR processor；optimizer、scheduler、
+  RNG、Trainer state 與 training args 全部排除。
+- **文件**：dataset/model cards 完整揭露 CC0／Apache-2.0 授權鏈、SAM2 不是真實 GT、
+  filtered/unfiltered 等量、四組負面結果、原始座標 AP_small、H4 AUC 0.9053 與絕對 AP
+  禁止保證；GitHub/HF 互相連結，另備 v1.0.0 notes 與 owner-only runbook。
+- **防錯**：初版 dataset card 曾把 COCO 的 1/2/3 類別 ID 誤寫成模型內部的 0/1/2；
+  實際核對 JSON 後修正，並加入 category-table 回歸測試；發布入口現在也會先
+  一次檢查所有來源檔，避免模型缺檔時留下半套資料集；模型驗證器要求
+  `0=helmet, 1=head, 2=person` 精確對應。HF 專用測試目前 11/11 通過。
+- **發佈邊界**：遠端寫入維持零次；遵守 PUB-11，由 `kuotunyu` 本人操作所有
+  git／gh／hf 寫入，之後再做 CI、公開卡片與唯一 Contributor 的 read-only 驗收。
 
 ---
 
@@ -98,7 +119,7 @@
 - **Stage 1 的受保護邊界**：先完成完整 preflight，驗證每個 Codex tree ref 後才可作 conditional deletion；history rewrite 後必須做 all-ref scan、strict `git fsck` 與 object-count report，最後以 mandatory STOP 結束。整個流程不涉及 GPU。
 - **owner handoff**：owner 複製 v5 命令後完整關閉 Codex 與 editors，在外部 Windows PowerShell 執行；只在看到 STOP 後重開 Codex 並交回完整輸出。任何 restoration 都只能在另一個 read-only checkpoint 通過後開始。
 
-### 2026-08-04 — RF-DETR 四組完成，結果凍結只差可信延遲
+### 2026-08-04 — RF-DETR 四組完成，延遲以負面驗證結果結案
 
 - **訓練完成**：`real_only`、`standard_aug`、`unfiltered_syn`、`filtered_syn`
   都以 seed 1337 在 RTX 4090 跑滿 10,900 optimizer steps；四組 run record 的
@@ -113,15 +134,17 @@
   跨架構結論是「效果敏感且不確定」，不是穩健提升。
 - **M21 不觸發**：RT 的 Filtered 沒提升，RF 的 Filtered 也沒有區間分離；依原先
   前置判斷，不再補 6 個長訓練 seed。
-- **延遲仍未凍結**：管理員鎖定 2520 MHz 後連跑三次，clock spread 都是 1.00，
-  但 contention p95 分別有 6/9、5/9、8/9 rows 失敗。三個模型／解析度一起抖動，
-  證據指向 host scheduling，而不是單一模型。正式報告保留 FAIL；不降低門檻，
-  等真正安靜的時段再重跑一次。使用者已執行 `nvidia-smi -rgc`，時脈限制解除。
+- **延遲以負面結果凍結**：管理員鎖定 2520 MHz 的正式量測累計五次，clock spread
+  每次都通過，但 contention p95 每次都失敗；最後一次在鎖定畫面下仍有 8/9 rows
+  超標。三個模型／解析度一起抖動，且模型停止後同一張顯示 GPU 仍有 3–9% 桌面活動，
+  證據指向 Windows 顯示排程／背景負載，而不是權重、降頻或單一模型。正式報告保留
+  FAIL；不降低門檻、不挑最好的一輪，也不再重跑。最後一次失敗報告 SHA-256 為
+  `0dd18c6262ee03106b8282581f7ab521a06643101600424d4960a84fa57aa8dd`。
 - **README 防錯**：先加入兩個會失敗的測試，再讓 metric table 可用
   `<!--metrics-source: ...-->` 指定第二份 CSV。若 RF 表誤貼 RT 的可信數字，現在也會
   FAIL，而不是因 arm／metric 同名而蒙混過關。
-- **[~] 本輪狀態**：全套 pytest、Ruff、README verifier、授權掃描與
-  `git diff --check` 已跑；M20 等可信延遲通過後才能改成 `[x]`。
+- **[x] M20 狀態**：四組準確度複驗、授權檢查與延遲驗證都已執行；延遲品質閘門
+  未通過，所以完成狀態代表「驗證完成並撤回速度主張」，不代表延遲數字合格。
 
 ### 2026-08-02（上午）— M20 ① 收掉，以及變異測試第二次咬到我
 

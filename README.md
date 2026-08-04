@@ -13,6 +13,16 @@ measures, under a controlled four-arm protocol, whether that actually helps.**
 The answer, on this dataset, is **no** — and the interesting part is where the
 "no" stops being true. [Results](#results) has the numbers.
 
+## Release artifacts
+
+- [Source and reproducibility package](https://github.com/kuotunyu/SafeSynth)
+- [Equal-sized filtered/unfiltered synthetic dataset](https://huggingface.co/datasets/kuotunyu/safesynth-hard-hat)
+- [Validation-selected RT-DETRv2-R18 checkpoint](https://huggingface.co/kuotunyu/safesynth-rtdetrv2-r18)
+
+The checkpoint is the `real_only` winner (3,500 real Train images, zero
+synthetic images). Publishing that negative selection, rather than a synthetic
+arm, is part of the experimental result.
+
 This is not a "train a detector on a public dataset" tutorial. The subject of
 the experiment is the *data*, not the model:
 
@@ -287,10 +297,12 @@ detectable synthetic domain rather than useful variation. Taken together, the
 RT and RF runs say the effect is architecture-sensitive and inconclusive, not
 that synthetic data robustly improves detection.
 
-Fine-tuned RF-DETR latency is deliberately absent. Three locked-clock attempts
-failed the pre-registered host-contention p95 gate even though the clock-spread
-gate passed. Those runs are diagnostic evidence, not publishable timings; the
-benchmark remains pending until the machine is genuinely quiet.
+Fine-tuned RF-DETR latency is deliberately absent. Five fixed-clock attempts
+failed the pre-registered host-contention p95 gate even though every clock-spread
+gate passed; the final attempt also ran at the Windows lock screen and still
+failed 8 of 9 measured rows. Those runs are diagnostic evidence, not publishable
+timings. The benchmark is closed without a speed claim rather than lowering the
+gate or selecting the most favourable run.
 
 ### What would have to be true for this to work
 

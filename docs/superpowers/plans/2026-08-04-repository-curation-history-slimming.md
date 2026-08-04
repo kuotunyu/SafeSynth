@@ -529,7 +529,7 @@ in this order, explicitly checking `$LASTEXITCODE` after every native command:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$OwnerProjectRoot = 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+$OwnerProjectRoot = '<project_root>'
 $ExpectedSourceCommit = '<recovery.source_commit>'
 if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { throw 'Owner project root is not a directory. STOP.' }
 Set-Location -LiteralPath $OwnerProjectRoot
@@ -656,8 +656,8 @@ do not improvise or fall back to a v1-v4 runbook.
 
 **Files:**
 - Final-review branch: `codex/repository-curation-v5`
-- Linked worktree to retire: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5`
-- Formal repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
+- Linked worktree to retire: `<project_root>/.worktrees/repository-curation-v5`
+- Formal repository: `<project_root>`
 
 - [ ] **Step 1: Complete final tracked review and clean-state verification**
 
@@ -671,7 +671,7 @@ blocks integration.
 - [ ] **Step 2: Fast-forward the feature branch into local main**
 
 ```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' merge --ff-only codex/repository-curation-v5
+git -C '<project_root>' merge --ff-only codex/repository-curation-v5
 ```
 
 Require a fast-forward with no merge commit. Do not create a remote or publish.
@@ -679,7 +679,7 @@ Require a fast-forward with no merge commit. Do not create a remote or publish.
 - [ ] **Step 3: Rerun the complete verification suite on the merged result**
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+Set-Location -LiteralPath '<project_root>'
 uv run python scripts/verify_figure_evidence.py --expected-state source
 uv run pytest -q
 uv run ruff check .
@@ -702,10 +702,10 @@ require `git worktree list --porcelain` to contain exactly one `worktree ` recor
 Do not proceed while any other registered worktree or the merged branch remains.
 
 ```powershell
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5' status --short --branch
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree remove 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth\.worktrees\repository-curation-v5'
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' branch -d codex/repository-curation-v5
-git -C 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' worktree list --porcelain
+git -C '<project_root>/.worktrees/repository-curation-v5' status --short --branch
+git -C '<project_root>' worktree remove '<project_root>/.worktrees/repository-curation-v5'
+git -C '<project_root>' branch -d codex/repository-curation-v5
+git -C '<project_root>' worktree list --porcelain
 ```
 
 ---
@@ -718,7 +718,7 @@ repository. The v1-v4 packages remain immutable recovery-only assets and none of
 their runbooks may be executed or offered.
 
 **Files:**
-- Formal repository: `C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth`
+- Formal repository: `<project_root>`
 - External create: `D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5\`
 - Disposable rehearsal: one unique clone outside the formal repository
 
@@ -732,7 +732,7 @@ worked around by overwriting, renaming, or reusing an archive.
 - [ ] **Step 2: Create the non-overwriting v5 package with all roots explicit**
 
 ```powershell
-uv run python scripts/archive_repository_curation.py --project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth'
+uv run python scripts/archive_repository_curation.py --project-root '<project_root>' --destination 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5' --owner-project-root '<project_root>'
 ```
 
 - [ ] **Step 3: Independently verify every receipt commitment**
@@ -823,7 +823,7 @@ staged paths and digests exactly with the 14 manifest KEEP entries, require zero
 DROP paths, and make the single restoration commit as the approved identity.
 
 ```powershell
-uv run python scripts/restore_curated_figures.py --project-root 'C:\Users\3Hml\Desktop\mySyntheticData\2_SafeSynth' --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
+uv run python scripts/restore_curated_figures.py --project-root '<project_root>' --archive 'D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v5'
 git add -- reports/figures
 git diff --cached --check
 git diff --cached --name-only

@@ -227,7 +227,7 @@ git config --global user.email "61350295+kuotunyu@users.noreply.github.com"
 要清掉得改寫歷史（這是你親自執行的動作）：
 
 ```bash
-cd "C:/Users/3Hml/Desktop/mySyntheticData/1_DefectForge" && git filter-repo --email-callback 'return b"61350295+kuotunyu@users.noreply.github.com" if b"gm.scu.edu.tw" in email else email' --force
+cd "<path-to-1_DefectForge>" && git filter-repo --email-callback 'return b"61350295+kuotunyu@users.noreply.github.com" if b"gm.scu.edu.tw" in email else email' --force
 ```
 
 本專案（`2_SafeSynth`）從第一筆 commit 就是乾淨的，不需要處理。
