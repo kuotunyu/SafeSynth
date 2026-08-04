@@ -82,3 +82,9 @@ target-version = "py312"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# pycocotools' Cython decoder emits this exact NumPy 2 array-protocol warning;
+# keep every other warning an error instead of weakening warning detection.
+filterwarnings = [
+    "error",
+    "ignore:^__array__ implementation doesn't accept a copy keyword, so passing copy=False failed\\. __array__ must implement 'dtype' and 'copy' keyword arguments\\. To learn more, see the migration guide https\\x3a//numpy\\.org/devdocs/numpy_2_0_migration_guide\\.html#adapting-to-changes-in-the-copy-keyword$:DeprecationWarning",
+]

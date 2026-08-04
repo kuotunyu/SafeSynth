@@ -7209,7 +7209,11 @@ def test_human_review_sheet_splits_into_three_zoomable_pages(
     pages = split_review_sheet(source)
 
     assert len(pages) == 3
-    assert [Image.open(path).size for path in pages] == [
+    page_sizes = []
+    for path in pages:
+        with Image.open(path) as page:
+            page_sizes.append(page.size)
+    assert page_sizes == [
         (1040, 1218),
         (1040, 1218),
         (1040, 1218),

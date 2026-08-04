@@ -57,8 +57,8 @@ def test_contact_sheet_contains_registered_four_panels(tmp_path: Path) -> None:
         columns=1,
     )
 
-    sheet = Image.open(output_path)
-    assert sheet.size == (392, 420)
+    with Image.open(output_path) as sheet:
+        assert sheet.size == (392, 420)
     assert output_path.stat().st_size > 0
 
 

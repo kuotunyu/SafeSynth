@@ -59,5 +59,6 @@ def test_input_sheet_renders_registered_8_by_8_grid(tmp_path: Path) -> None:
         output_path=output_path,
     )
 
-    assert Image.open(output_path).size == (3136, 1808)
+    with Image.open(output_path) as sheet:
+        assert sheet.size == (3136, 1808)
     assert output_path.stat().st_size > 0
