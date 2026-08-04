@@ -11,8 +11,8 @@ Codex chat.
 - Dataset bundle: `${data_root}/publish/safesynth-hard-hat`
 - Model bundle: `${data_root}/publish/safesynth-rtdetrv2-r18`
 - Intended GitHub URL: <https://github.com/kuotunyu/SafeSynth>
-- Intended dataset URL: <https://huggingface.co/datasets/kuotunyu/safesynth-hard-hat>
-- Intended model URL: <https://huggingface.co/kuotunyu/safesynth-rtdetrv2-r18>
+- Intended dataset URL: <https://huggingface.co/datasets/steven0226/safesynth-hard-hat>
+- Intended model URL: <https://huggingface.co/steven0226/safesynth-rtdetrv2-r18>
 
 Run each section only after the controller reports that its read-only gate has
 passed.
@@ -85,10 +85,10 @@ $publishRoot = (uv run python -c "from src.data.paths import load_project_paths;
 $datasetBundle = Join-Path $publishRoot "safesynth-hard-hat"
 $modelBundle = Join-Path $publishRoot "safesynth-rtdetrv2-r18"
 $env:HF_XET_HIGH_PERFORMANCE = "1"
-uvx hf repos create kuotunyu/safesynth-hard-hat --repo-type dataset --exist-ok
-uvx hf repos create kuotunyu/safesynth-rtdetrv2-r18 --repo-type model --exist-ok
-uvx hf upload kuotunyu/safesynth-hard-hat $datasetBundle . --repo-type dataset --commit-message "Release SafeSynth hard-hat dataset v1.0.0"
-uvx hf upload kuotunyu/safesynth-rtdetrv2-r18 $modelBundle . --repo-type model --commit-message "Release SafeSynth RT-DETRv2-R18 v1.0.0"
+uvx hf repos create steven0226/safesynth-hard-hat --repo-type dataset --exist-ok
+uvx hf repos create steven0226/safesynth-rtdetrv2-r18 --repo-type model --exist-ok
+uvx hf upload steven0226/safesynth-hard-hat $datasetBundle . --repo-type dataset --commit-message "Release SafeSynth hard-hat dataset v1.0.0"
+uvx hf upload steven0226/safesynth-rtdetrv2-r18 $modelBundle . --repo-type model --commit-message "Release SafeSynth RT-DETRv2-R18 v1.0.0"
 Remove-Item Env:HF_XET_HIGH_PERFORMANCE
 ```
 

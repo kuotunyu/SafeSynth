@@ -16,8 +16,8 @@ The answer, on this dataset, is **no** — and the interesting part is where the
 ## Release artifacts
 
 - [Source and reproducibility package](https://github.com/kuotunyu/SafeSynth)
-- [Equal-sized filtered/unfiltered synthetic dataset](https://huggingface.co/datasets/kuotunyu/safesynth-hard-hat)
-- [Validation-selected RT-DETRv2-R18 checkpoint](https://huggingface.co/kuotunyu/safesynth-rtdetrv2-r18)
+- [Equal-sized filtered/unfiltered synthetic dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
+- [Validation-selected RT-DETRv2-R18 checkpoint](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18)
 
 The checkpoint is the `real_only` winner (3,500 real Train images, zero
 synthetic images). Publishing that negative selection, rather than a synthetic

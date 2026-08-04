@@ -33,7 +33,7 @@ each released image.
 
 This dataset accompanies the
 [SafeSynth source repository](https://github.com/kuotunyu/SafeSynth) and the
-[released RT-DETRv2-R18 checkpoint](https://huggingface.co/kuotunyu/safesynth-rtdetrv2-r18).
+[released RT-DETRv2-R18 checkpoint](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18).
 
 ## What the labels mean
 

@@ -10,7 +10,7 @@ tags:
   - hard-hat
   - safesynth
 datasets:
-  - kuotunyu/safesynth-hard-hat
+  - steven0226/safesynth-hard-hat
 ---
 
 # SafeSynth RT-DETRv2-R18 Hard-Hat Detector
@@ -22,7 +22,7 @@ images**. The negative selection result is part of the release, not something
 hidden by publishing a synthetic arm.
 
 - Source and reproducibility: [github.com/kuotunyu/SafeSynth](https://github.com/kuotunyu/SafeSynth)
-- Synthetic ablation dataset: [kuotunyu/safesynth-hard-hat](https://huggingface.co/datasets/kuotunyu/safesynth-hard-hat)
+- Synthetic ablation dataset: [steven0226/safesynth-hard-hat](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
 - Base checkpoint: [PekingU/rtdetr_v2_r18vd](https://huggingface.co/PekingU/rtdetr_v2_r18vd)
 
 ## Model details
@@ -77,7 +77,7 @@ import torch
 from PIL import Image
 from transformers import RTDetrImageProcessor, RTDetrV2ForObjectDetection
 
-repo_id = "kuotunyu/safesynth-rtdetrv2-r18"
+repo_id = "steven0226/safesynth-rtdetrv2-r18"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 processor = RTDetrImageProcessor.from_pretrained(repo_id)

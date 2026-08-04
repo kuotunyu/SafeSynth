@@ -17,5 +17,5 @@ result rather than selecting a favourable run.
 
 Companion artifacts:
 
-- Dataset: https://huggingface.co/datasets/kuotunyu/safesynth-hard-hat
-- Model: https://huggingface.co/kuotunyu/safesynth-rtdetrv2-r18
+- Dataset: https://huggingface.co/datasets/steven0226/safesynth-hard-hat
+- Model: https://huggingface.co/steven0226/safesynth-rtdetrv2-r18

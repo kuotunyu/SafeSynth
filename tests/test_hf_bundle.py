@@ -41,6 +41,23 @@ def _record(name: str, payload: bytes | None = None) -> dict:
     }
 
 
+def test_publication_files_use_the_selected_hugging_face_owner() -> None:
+    """Catch cards or commands that would publish into the wrong namespace."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    publication_files = (
+        "README.md",
+        "publishing/RELEASE_NOTES_v1.0.0.md",
+        "publishing/OWNER_PUBLISH_RUNBOOK.md",
+        "publishing/huggingface/dataset/README.md",
+        "publishing/huggingface/model/README.md",
+    )
+    for relative_path in publication_files:
+        text = (project_root / relative_path).read_text(encoding="utf-8")
+        assert "kuotunyu/safesynth" not in text, relative_path
+        assert "steven0226/safesynth" in text, relative_path
+
+
 def test_dataset_bundle_keeps_the_annotation_union_once_with_exact_provenance(
     tmp_path: Path,
 ) -> None:
