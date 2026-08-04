@@ -1180,6 +1180,35 @@ def test_archive_command_rejects_plan_reference_mismatch_before_staging(tmp_path
     _assert_unpublished(destination)
 
 
+def test_archive_command_rejects_plan_disposition_mismatch_before_staging(
+    tmp_path: Path,
+) -> None:
+    """Catch a canonical KEEP/DROP decision changing while source bytes remain exact."""
+
+    project = _project_with_keep_and_drop(tmp_path / "source")
+    destination = tmp_path / "archive"
+    manifest_path = project.root / "reports/figure_curation_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["entries"][0]["disposition"] = "KEEP"
+    manifest_path.write_bytes(
+        (json.dumps(manifest, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    )
+
+    completed = _run_command(
+        ARCHIVE_COMMAND,
+        "--project-root",
+        str(project.root),
+        "--destination",
+        str(destination),
+        "--owner-project-root",
+        str(tmp_path / "owner"),
+    )
+
+    assert completed.returncode != 0
+    assert "disposition differs from manifest" in completed.stderr
+    _assert_unpublished(destination)
+
+
 def test_archive_command_rejects_source_byte_mismatch_before_staging(tmp_path: Path) -> None:
     """Catch a source figure changing after the canonical evidence index was frozen."""
 

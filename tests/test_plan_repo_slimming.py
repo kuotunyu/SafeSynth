@@ -191,7 +191,8 @@ def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state(
         Path(__file__).resolve().parents[1]
         / "docs/superpowers/plans/2026-08-04-repository-curation-history-slimming.md"
     ).read_text(encoding="utf-8")
-    v4 = r"D:\sdg-data\02-safesynth\release_archive\2026-08-04-repository-curation-v4"
+    v4 = "release_archive/2026-08-04-repository-curation-v4"
+    normalized_plan = plan.replace("\\", "/")
 
     assert "2c2d3ff5198ff600220e5b1e1c606ebc80e07a98" in plan
     assert "f514950b142da95bb4c71d3626b9417fb25a3bff" in plan
@@ -199,7 +200,7 @@ def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state(
     assert "forbidden for the owner gate" in plan
     assert "tracked canonical manifest" in plan
     assert re.search(r"21-test dry-run\s+finding", plan)
-    assert v4 in plan
+    assert v4 in normalized_plan
     task_4 = plan.split("### Task 4:", 1)[1].split("### Task 5:", 1)[0]
     task_7 = plan.split("### Task 7:", 1)[1].split("### Task 8:", 1)[0]
     task_8 = plan.split("### Task 8:", 1)[1]
@@ -211,8 +212,8 @@ def test_formal_plan_uses_only_v4_for_the_owner_gate_and_requires_curated_state(
     assert "git ls-files reports/figures" in task_7
     assert "requires `HEAD` to equal the archive's exact source commit" in task_7
     assert "restore_curated_figures.py" not in task_7
-    assert v4 in task_7
-    assert v4 in task_8
+    assert v4 in task_7.replace("\\", "/")
+    assert v4 in task_8.replace("\\", "/")
     assert "v1" not in task_7 and "v2" not in task_7 and "v3" not in task_7
     assert "v1" not in task_8 and "v2" not in task_8 and "v3" not in task_8
     assert "restore_curated_figures.py" in task_8
