@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 
-**Status:** Approved design, awaiting written-spec review
+**Status:** Approved v5 safety design, awaiting written-spec review
 
 **Scope:** Repository figure curation, recoverable archival, and pre-publication Git history slimming only
 
@@ -20,21 +20,39 @@ The repository should remain technically auditable without forcing every future 
 
 This work does not publish to GitHub or Hugging Face. Repository creation, remote configuration, push, Hugging Face upload, and history rewriting remain separate owner-operated release actions.
 
-## 2. Current evidence and defect
+## 2. Current evidence and resolved defects
 
-A read-only audit, excluding the generated slimming report as an input, currently finds:
+A canonical exact-path manifest and a fresh source-state verifier currently find:
 
 | Classification | Files | Current size |
 |---|---:|---:|
-| Referenced evidence to retain | 32 | 57.155 MiB |
-| Unreferenced evidence to archive outside Git | 118 | 346.096 MiB |
+| Referenced evidence to retain | 14 | 2.147 MiB |
+| Unreferenced evidence to archive outside Git | 136 | 401.104 MiB |
 | Total tracked figure entries | 150 | 403.251 MiB |
 
-These counts are provisional until the corrected exact-path parser runs. The deterministic corrected audit, not a hand-maintained number, will be the source of truth.
+The tracked manifest SHA-256 is
+`aa39003c3189278eda178a39514bfa7f640655f8ddf5f1e3c2bad99380751fd5`.
+The deterministic manifest and verifier, not a hand-maintained list, are the
+source of truth.
 
-The existing audit has a self-reference defect. `reports/repo_slimming_plan.md` lists every KEEP and DROP filename, while the audit scans tracked Markdown for figure-like filenames. On the next run, names in the report itself make DROP files look referenced, promoting almost every figure to KEEP. It also identifies references by basename, which can confuse two files with the same name in different directories.
+The original audit had a self-reference defect. `reports/repo_slimming_plan.md`
+listed every KEEP and DROP filename, while the audit scanned tracked Markdown
+for figure-like filenames. On the next run, names in the report itself made DROP
+files look referenced. It also identified references by basename, which could
+confuse two files with the same name in different directories. The implemented
+exact-path collector, canonical manifest, and regression tests resolve both
+defects.
 
-History rewriting must not proceed until this defect is fixed and the audit output is stable.
+A later all-refs rehearsal found a separate history-slimming defect. The Codex
+desktop app maintains a direct tree ref under `refs/codex/turn-diffs/`. The ref
+points to the exact current `HEAD^{tree}`, but `git-filter-repo` does not rewrite
+tree-only refs. Leaving it in place kept 170 historical figure paths reachable
+and left a 406.31 MiB pack even though the rewritten branch history itself was
+correct. A guarded rehearsal that removed only refs equal to the approved source
+tree reduced reachable historical figure paths to zero and the pack to 4.59 MiB.
+The v4 archive remains a valid immutable recovery package, but its Stage 1
+runbook is superseded and must not be executed. History rewriting may proceed
+only from a newly verified, non-overwriting v5 package and runbook.
 
 ## 3. Alternatives considered
 
@@ -44,7 +62,9 @@ This preserves every visual review artifact online, but a clean clone would stil
 
 ### B. Keep only evidence linked by surviving documents — selected
 
-This retains the figures that support readable reports and decisions, archives the remainder outside Git, and is expected to reduce the pack to approximately 100–120 MiB including non-figure history. It balances auditability, clone size, and reversibility.
+This retains the figures that support readable reports and decisions, archives
+the remainder outside Git, and keeps the final pack below the 120 MiB acceptance
+ceiling. It balances auditability, clone size, and reversibility.
 
 ### C. Keep only README presentation images
 
@@ -99,13 +119,46 @@ not a requirement that the new package source equal it. This contract follows th
 21-test dry-run finding that archive contents otherwise could drift from the
 reviewed evidence index.
 
-The implementation also creates a complete pre-rewrite Git bundle outside the repository. The bundle is independently verified before the owner is offered any history-rewrite command. Neither archive is deleted as part of this project.
+The implementation also creates a complete pre-rewrite Git bundle outside the
+repository. The bundle is independently verified before the owner is offered any
+history-rewrite command. It preserves the approved source commit and all refs
+present at archive time, including any direct tree refs. Existing v1-v4 recovery
+packages remain immutable; the safety correction creates a new non-overwriting
+v5 package. No recovery package is deleted as part of this project.
 
 ### 4.4 Owner-operated history rewrite and restoration
 
-The development branch is fully integrated into the main branch and the linked worktree is removed before rewriting history. The owner then runs the exact reviewed `git filter-repo` command on the main repository, in accordance with `CLAUDE.md`.
+The development branch is fully integrated into the main branch and every linked
+worktree is removed before rewriting history. The owner copies the reviewed v5
+command, fully exits Codex and any editor that may modify the repository, and
+then runs the v5 Stage 1 runbook in an external Windows PowerShell process, in
+accordance with `CLAUDE.md`.
 
-The rewrite removes `reports/figures/` from all historical commits. Only the deterministic KEEP set is restored from the verified external archive and committed with the configured identity:
+The v5 runbook is bound to the exact archived source commit and its source tree.
+Before any ref deletion, it performs one complete preflight over every ref under
+`refs/codex/turn-diffs/`. Zero or more refs are allowed, but every discovered ref
+must:
+
+- remain in the exact `refs/codex/turn-diffs/` namespace;
+- resolve to an object of type `tree`; and
+- equal the archived source commit's exact `HEAD^{tree}` object.
+
+If any ref fails any condition, the runbook stops before changing a ref or
+rewriting history. After the complete preflight succeeds, each redundant ref is
+deleted conditionally with both its exact ref name and expected old object ID.
+A concurrent ref change therefore makes Git reject the deletion. Any deletion
+failure stops before history rewriting. The runbook then verifies that the
+namespace is empty before invoking the exact reviewed `git-filter-repo` command.
+
+After rewriting, Stage 1 must verify across all remaining refs that no reachable
+object path begins with `reports/figures/`, print the object-pack report, and end
+with the mandatory STOP/report-back instruction. It contains no restoration,
+staging, commit, remote, or push operation. A residual figure path blocks
+restoration and is diagnosed from the verified bundle.
+
+Only after the owner reports the complete Stage 1 output does the agent perform
+a read-only checkpoint. The deterministic KEEP set is then restored from the
+verified v5 archive and committed with the configured identity:
 
 `kuotunyu <61350295+kuotunyu@users.noreply.github.com>`
 
@@ -117,12 +170,21 @@ No automated author, committer, co-author trailer, or generated identity is perm
 2. Resolve actual Markdown destinations to exact tracked figure paths.
 3. Produce a deterministic KEEP/DROP plan and reviewer-readable report.
 4. Copy the complete figure inventory to the external archive.
-5. Hash-verify the archive and verify a complete Git bundle.
-6. Finish all ordinary branch integration while history is unchanged.
-7. Give the owner an exact, copyable history-rewrite procedure and stop for owner confirmation.
-8. After the owner rewrite, restore only KEEP files from the verified archive.
-9. Verify `verify_figure_evidence.py --expected-state curated`, then run link, repository, test, licensing, identity, and size verification.
-10. Only after all gates pass may the separate GitHub publication project begin.
+5. Finish all ordinary implementation, documentation, and branch integration
+   while history is unchanged.
+6. Build and hash-verify the v5 archive from that final clean source commit and
+   verify its complete all-refs Git bundle.
+7. Rehearse the exact all-refs path in an isolated mirror, including the Codex
+   tree-ref guard, and require zero reachable historical figure paths.
+8. Give the owner an exact, copyable v5 Stage 1 procedure and require Codex and
+   repository-writing editors to be closed before execution.
+9. Guard and remove only redundant Codex tree refs, rewrite history, verify all
+   refs, stop, and obtain the owner's complete output.
+10. After the read-only checkpoint, restore only KEEP files from the verified v5
+    archive.
+11. Verify `verify_figure_evidence.py --expected-state curated`, then run link,
+    repository, test, licensing, identity, recovery, and size verification.
+12. Only after all gates pass may the separate GitHub publication project begin.
 
 ## 6. Failure handling and rollback
 
@@ -131,7 +193,15 @@ The workflow fails closed:
 - An unresolved, escaping, malformed, or ambiguous figure link is reported and blocks approval; it is not silently treated as DROP.
 - A missing tracked canonical manifest, source-state mismatch, curation-plan mismatch, entry-tuple mismatch, count mismatch, copy error, or digest mismatch blocks archive completion before publication.
 - A Git bundle that cannot be verified blocks history rewriting.
+- The v4 runbook is superseded and must not be offered or executed.
 - A history rewrite is never started by the agent and is never suggested while another linked worktree remains active.
+- A Codex turn-diff ref outside the expected namespace, with a non-tree object,
+  or with an object different from the archived source tree blocks all ref
+  deletion and history rewriting.
+- A conditional ref deletion failure or a non-empty turn-diff namespace after
+  deletion blocks history rewriting.
+- Any `reports/figures/` path reachable from any ref after rewriting blocks
+  restoration, committing, and publication.
 - If owner-operated rewriting fails, the original repository remains recoverable from the verified Git bundle, while all current figures remain recoverable from the SHA-256 archive.
 - If a required figure was misclassified, it is restored from the archive in a corrective `kuotunyu` commit before publication.
 
@@ -149,8 +219,15 @@ Tests will cover:
 - code-fence, code-span, and plain-text mentions do not count as links;
 - Markdown links and image links to figures count as references;
 - path traversal and links outside the repository fail closed;
-- output ordering and repeated generation are deterministic; and
-- manifest hashes, complete source state, curation-plan fields, and source/archive entry tuples must match.
+- output ordering and repeated generation are deterministic;
+- manifest hashes, complete source state, curation-plan fields, and source/archive entry tuples must match;
+- the v5 runbook accepts zero, one, or multiple exact source-tree Codex refs;
+- it rejects a wrong tree, non-tree object, malformed ref result, or native Git
+  failure before invoking `git-filter-repo`;
+- it validates the complete ref set before deleting any ref;
+- conditional deletion detects a concurrent ref update and fails closed; and
+- post-rewrite all-ref verification rejects any surviving historical figure
+  path before the mandatory STOP.
 
 ### 7.2 Pre-rewrite acceptance gates
 
@@ -158,6 +235,9 @@ Tests will cover:
 - Every KEEP entry has at least one exact source document.
 - Every tracked figure is present in the external archive with a matching SHA-256 digest.
 - The Git bundle verifies successfully.
+- A disposable all-refs mirror reproduces the source refs, safely handles the
+  Codex tree ref, reaches zero historical figure paths, passes strict Git fsck,
+  and reports a pack below 120 MiB before the owner receives the runbook.
 - The worktree passes the complete test suite, Ruff, README verification, license checks, lock-file checks, and `git diff --check`.
 - `git log` and commit trailers show only the approved `kuotunyu` identity.
 
@@ -165,6 +245,8 @@ Tests will cover:
 
 - Every local Markdown link or image destination resolves; this check covers all tracked Markdown, not only README.
 - No DROP figure remains tracked in Git, while all DROP files remain in the external archive.
+- `git rev-list --objects --all` exposes no historical `reports/figures/` path
+  other than the exact KEEP objects introduced by the single restoration commit.
 - The restored KEEP inventory matches the approved manifest exactly.
 - `verify_figure_evidence.py --expected-state curated` passes before the post-rewrite test suite.
 - `git count-objects -vH` reports a target pack size below 120 MiB. A larger pack blocks publication and triggers investigation rather than weakening the target silently.
@@ -190,9 +272,13 @@ Repository curation and history slimming are complete only when:
 
 1. reference classification is exact-path, deterministic, and tested;
 2. every pre-rewrite figure and the full Git history have verified external recovery copies;
-3. the owner has completed the reviewed history rewrite;
-4. only the approved KEEP set is restored;
-5. every surviving Markdown link resolves;
-6. the Git pack is below 120 MiB;
-7. all project verification gates pass; and
-8. Git authors, committers, and trailers preserve `kuotunyu` as the sole contributor.
+3. the owner has completed the reviewed v5 history rewrite after the guarded
+   Codex tree-ref preflight;
+4. immediately before restoration, all refs are free of every
+   `reports/figures/` path;
+5. after restoration, the only figure history is one new commit containing the
+   approved KEEP set;
+6. every surviving Markdown link resolves;
+7. the Git pack is below 120 MiB;
+8. all project and recovery verification gates pass; and
+9. Git authors, committers, and trailers preserve `kuotunyu` as the sole contributor.
