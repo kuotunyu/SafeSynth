@@ -33,7 +33,7 @@ from src.release.repository_archive import (
     ArchiveEntry,
     ArchiveError,
     ArchiveReceipt,
-    create_recovery_package,
+    _create_recovery_package,
     load_and_verify_manifest,
     load_manifest_commitments,
     sha256_file,
@@ -383,7 +383,7 @@ def _archive(
     stage_root, stage = _private_stage(destination)
     published = False
     try:
-        recovery = create_recovery_package(project_root, stage, plan)
+        recovery = _create_recovery_package(project_root, stage, plan)
         if tuple(recovery.entries) != tracked_entries:
             raise ArchiveError("recovery entries differ from tracked canonical manifest")
         published_bundle = stage / BUNDLE_NAME

@@ -479,7 +479,7 @@ def _verify_bundle_contains_commit(bundle_path: Path, source_commit: str) -> Non
                 raise ArchiveError(f"cannot inspect Git bundle contents: {detail}")
 
 
-def create_recovery_package(
+def _create_recovery_package(
     project_root: Path,
     destination: Path,
     dispositions: Sequence[FigureDisposition],

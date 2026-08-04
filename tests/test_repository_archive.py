@@ -21,7 +21,7 @@ from src.release.figure_evidence import FigureEvidenceError, FigureManifestAppro
 from src.release.markdown_links import RepositoryLinkError
 from src.release.repository_archive import (
     ArchiveError,
-    create_recovery_package,
+    _create_recovery_package,
     create_verified_archive,
     create_verified_git_bundle,
     load_and_verify_manifest,
@@ -193,6 +193,13 @@ def _archive_with_test_approval(project_root: Path, destination: Path, owner_pro
     """Exercise archive internals with the minimal reviewed fixture contract."""
 
     archive_command._archive(project_root, destination, owner_project_root, _TEST_APPROVAL)
+
+
+def test_raw_recovery_package_builder_is_internal_to_the_guarded_archive_command() -> None:
+    """Catch a public raw-builder alias that can bypass manifest and clean-tree gates."""
+
+    assert not hasattr(repository_archive, "create_recovery_package")
+    assert archive_command._create_recovery_package is repository_archive._create_recovery_package
 
 
 def test_archive_copies_every_entry_and_hash_verifies(tmp_path: Path) -> None:
@@ -421,7 +428,7 @@ def test_recovery_package_returns_verified_archive_and_bundle(tmp_path: Path) ->
     project = _project_with_keep_and_drop(tmp_path / "project")
     destination = tmp_path / "recovery"
 
-    receipt = create_recovery_package(project.root, destination, project.plan)
+    receipt = _create_recovery_package(project.root, destination, project.plan)
 
     assert receipt.source_commit == project.commit
     assert receipt.manifest_path == destination / "figure_manifest.json"
@@ -443,11 +450,11 @@ def test_recovery_package_bundle_failure_leaves_no_published_destination(
 
     monkeypatch.setattr(repository_archive, "create_verified_git_bundle", fail_bundle)
     with pytest.raises(ArchiveError, match="injected bundle failure"):
-        create_recovery_package(project.root, destination, project.plan)
+        _create_recovery_package(project.root, destination, project.plan)
 
     assert not destination.exists()
     monkeypatch.setattr(repository_archive, "create_verified_git_bundle", real_create_bundle)
-    assert create_recovery_package(project.root, destination, project.plan).bundle_path.is_file()
+    assert _create_recovery_package(project.root, destination, project.plan).bundle_path.is_file()
 
 
 def test_restore_copy_failure_leaves_no_final_figures_tree(
@@ -501,7 +508,7 @@ def test_recovery_receipt_uses_the_single_verified_manifest_parse(
 
     monkeypatch.setattr(repository_archive.json, "loads", allow_one_parse)
 
-    receipt = create_recovery_package(project.root, tmp_path / "recovery", project.plan)
+    receipt = _create_recovery_package(project.root, tmp_path / "recovery", project.plan)
 
     assert receipt.source_commit == project.commit
     assert calls == 1
@@ -574,7 +581,7 @@ def test_package_rejects_non_windows_before_mutation(
     monkeypatch.setattr(repository_archive, "_is_windows_native", lambda: False, raising=False)
 
     with pytest.raises(ArchiveError, match="Windows"):
-        create_recovery_package(project.root, destination, project.plan)
+        _create_recovery_package(project.root, destination, project.plan)
 
     assert not destination.parent.exists()
 
@@ -698,7 +705,7 @@ def test_recovery_bundle_must_contain_manifest_source_commit(
     )
 
     with pytest.raises(ArchiveError, match="does not contain source commit"):
-        create_recovery_package(project.root, destination, project.plan)
+        _create_recovery_package(project.root, destination, project.plan)
 
     assert not destination.exists()
 
@@ -1123,7 +1130,7 @@ def test_archive_private_root_collision_preserves_unowned_sentinel(
         assert stage == owned_root / "p"
         raise ArchiveError("injected package failure")
 
-    monkeypatch.setattr(archive_command, "create_recovery_package", fail_package)
+    monkeypatch.setattr(archive_command, "_create_recovery_package", fail_package)
 
     with pytest.raises(ArchiveError, match="injected package failure"):
         _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
@@ -1152,7 +1159,7 @@ def test_archive_keyboard_interrupt_cleans_owned_root_without_touching_collision
         assert stage == owned_root / "p"
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(archive_command, "create_recovery_package", interrupt_package)
+    monkeypatch.setattr(archive_command, "_create_recovery_package", interrupt_package)
 
     with pytest.raises(KeyboardInterrupt):
         _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
@@ -1277,7 +1284,7 @@ def test_archive_rejects_produced_entry_tuple_mismatch_and_cleans_private_stage(
 
     project = _project_with_keep_and_drop(tmp_path / "source")
     destination = tmp_path / "archive"
-    original_create = archive_command.create_recovery_package
+    original_create = archive_command._create_recovery_package
 
     def create_with_changed_entries(
         project_root: Path, stage: Path, plan: object
@@ -1286,7 +1293,7 @@ def test_archive_rejects_produced_entry_tuple_mismatch_and_cleans_private_stage(
         changed = replace(recovery.entries[0], disposition="KEEP")
         return replace(recovery, entries=(changed, *recovery.entries[1:]))
 
-    monkeypatch.setattr(archive_command, "create_recovery_package", create_with_changed_entries)
+    monkeypatch.setattr(archive_command, "_create_recovery_package", create_with_changed_entries)
 
     with pytest.raises(ArchiveError, match="entries differ from tracked canonical manifest"):
         _archive_with_test_approval(project.root, destination, str(tmp_path / "owner"))
