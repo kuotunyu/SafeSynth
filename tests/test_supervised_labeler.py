@@ -226,6 +226,11 @@ from scripts.train_supervised_labeler import (
     select_calibration_candidate,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.figure_evidence import (
+    load_repository_figure_manifest,
+    verify_frozen_figure,
+    verify_repository_figure_state,
+)
 from src.synthetic.grounded_labeler import load_whole_image_config
 from src.synthetic.supervised_labeler import (
     filter_prediction_geometry,
@@ -522,6 +527,21 @@ V13_REVIEW_DIAGNOSIS_PATH = (
 V12_GT_CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "supervised_labeler_v12_gt_review.yaml"
 )
+FROZEN_FIGURES_BY_PATH = {
+    entry.path: entry for entry in load_repository_figure_manifest(PROJECT_ROOT)
+}
+
+
+def _verify_frozen_page(page: dict[str, str]) -> None:
+    page_path = PROJECT_ROOT / page["path"]
+    verify_frozen_figure(
+        PROJECT_ROOT,
+        FROZEN_FIGURES_BY_PATH,
+        page_path.relative_to(PROJECT_ROOT).as_posix(),
+        page["sha256"],
+    )
+
+
 SEMANTICS_ERRATUM_PATH = (
     PROJECT_ROOT
     / "reports"
@@ -1114,8 +1134,7 @@ def test_v12_gt_only_primary_review_contains_no_model_output() -> None:
     assert evidence["sealed_reserve_pixels_read"] == 0
     assert len(evidence["pages"]) == 4
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert evidence["validation_images_read"] == 0
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
@@ -1278,8 +1297,7 @@ def test_v12_model_audit_uses_only_the_frozen_adjudicated_cases() -> None:
     assert report["whole_image_generation_run"] is False
     assert len(report["pages"]) == 3
     for page in report["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v12_model_human_review_rejects_the_numeric_pass() -> None:
@@ -1421,8 +1439,7 @@ def test_v13_gt_review_contains_no_model_output_or_training() -> None:
     assert evidence["test_images_read"] == 0
     assert evidence["whole_image_generation_run"] is False
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v13_config_pins_rendered_gt_review_evidence() -> None:
@@ -1749,8 +1766,7 @@ def test_v13_model_review_pages_pin_exact_audit_evidence() -> None:
     assert registration["approve_only_if_problem_count"] == 0
     assert len(manifest["pages"]) == 3
     for page in manifest["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v13_owner_model_review_records_exact_three_misses() -> None:
@@ -1931,8 +1947,7 @@ def test_v14_gt_pages_contain_only_green_gt_and_keep_reserve_sealed() -> None:
     assert evidence["whole_image_generation_run"] is False
     assert len(evidence["pages"]) == 4
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     outcome = config["render_outcome"]
     assert hashlib.sha256(
         V14_GT_EVIDENCE_PATH.read_bytes()
@@ -2269,22 +2284,7 @@ def test_v14_owner_rejection_and_failure_diagnosis_are_exact() -> None:
 
 
 def test_figure_cleanup_keeps_current_evidence_and_removes_legacy_duplicates() -> None:
-    figure_root = PROJECT_ROOT / "reports" / "figures"
-    for name in (
-        "supervised_labeler_v14_audit.png",
-        "supervised_labeler_v14_model_review_page_01.png",
-        "supervised_labeler_v14_model_review_page_02.png",
-        "supervised_labeler_v14_model_review_page_03.png",
-        "supervised_labeler_v13_audit.png",
-        "supervised_labeler_v6_audit.png",
-    ):
-        assert (figure_root / name).is_file()
-    assert not list(figure_root.glob("supervised_labeler_v7_audit*.png"))
-    assert not list(figure_root.glob("supervised_labeler_v8_audit*.png"))
-    assert not list(figure_root.glob("supervised_labeler_v9_audit*.png"))
-    assert not list(figure_root.glob("supervised_labeler_v10_audit*.png"))
-    assert not list(figure_root.glob("supervised_labeler_v11_audit*.png"))
-    assert not list(figure_root.glob("*_failed.png"))
+    verify_repository_figure_state(PROJECT_ROOT, tuple(FROZEN_FIGURES_BY_PATH.values()), "auto")
 
 
 def test_v15_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None:
@@ -2361,9 +2361,7 @@ def test_v15_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -2624,9 +2622,7 @@ def test_v15_model_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
     for page in manifest["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v15_owner_rejects_one_model_failure_and_quarantines_ambiguity() -> None:
@@ -2773,9 +2769,7 @@ def test_v16_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -2944,9 +2938,7 @@ def test_v17_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -3008,9 +3000,7 @@ def test_v18_intervention_and_fresh_gt_pool_are_frozen_before_training() -> None
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in evidence["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -3080,9 +3070,7 @@ def test_v19_intervention_is_preregistered_before_pool_pixels() -> None:
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in rendered["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -3176,9 +3164,7 @@ def test_v20_intervention_is_preregistered_before_pool_pixels() -> None:
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in rendered["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v21_intervention_is_preregistered_before_pool_pixels() -> None:
@@ -3268,9 +3254,7 @@ def test_v21_intervention_is_preregistered_before_pool_pixels() -> None:
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in rendered["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
@@ -3368,9 +3352,7 @@ def test_v22_intervention_is_preregistered_before_pool_pixels() -> None:
         config["render_outcome"]["evidence_file_sha256"]
     )
     for page in rendered["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
     assert config["independence_boundary"]["validation_images_read"] == 0
     assert config["independence_boundary"]["test_images_read"] == 0
     assert config["generation_gate"]["allowed"] is False
@@ -3858,11 +3840,8 @@ def test_v22_owner_review_pages_are_frozen_without_new_inference() -> None:
         registration["pages"],
         strict=True,
     ):
-        page_path = PROJECT_ROOT / page["path"]
         assert page == registered
-        assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
-            page["sha256"]
-        )
+        _verify_frozen_page(page)
     assert manifest["render_model_inference_run"] is False
     assert manifest["source_model_inference_images"] == 48
     assert manifest["validation_images_read"] == 0
@@ -4069,11 +4048,8 @@ def test_v23_gt_primary_render_has_no_model_boxes_or_reserve_pixels() -> None:
         outcome["pages"],
         strict=True,
     ):
-        page_path = PROJECT_ROOT / page["path"]
         assert page == registered
-        assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
-            page["sha256"]
-        )
+        _verify_frozen_page(page)
     assert config["generation_gate"]["allowed"] is False
 
 
@@ -4412,11 +4388,8 @@ def test_v23_model_review_pages_are_frozen_without_new_inference() -> None:
         registration["page_sha256"],
         strict=True,
     ):
-        page_path = PROJECT_ROOT / page["path"]
         assert page["sha256"] == expected_sha
-        assert hashlib.sha256(page_path.read_bytes()).hexdigest() == (
-            expected_sha
-        )
+        _verify_frozen_page(page)
     assert registration["owner_review_status"] == "pending"
     assert config["generation_gate"]["allowed"] is False
 
@@ -5038,9 +5011,7 @@ def test_v19_model_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
     for page in manifest["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v19_owner_rejects_five_miss_and_two_false_positive_cells() -> None:
@@ -5535,9 +5506,7 @@ def test_v18_model_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
     for page in manifest["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v18_owner_rejects_cell_36_and_accepts_occluded_cell_29() -> None:
@@ -5719,9 +5688,7 @@ def test_v17_model_review_pages_are_frozen_without_new_inference() -> None:
     assert manifest["test_images_read"] == 0
     assert manifest["whole_image_generation_run"] is False
     for page in manifest["pages"]:
-        path = PROJECT_ROOT / page["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == page["sha256"]
+        _verify_frozen_page(page)
 
 
 def test_v17_owner_rejects_visual_failures_and_diagnoses_cell_31() -> None:
