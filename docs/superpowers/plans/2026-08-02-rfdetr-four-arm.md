@@ -1,5 +1,10 @@
 # RF-DETR Four-Arm Completion Implementation Plan
 
+> **Historical implementation plan (completed):** The unchecked boxes below preserve the
+> drafted execution sequence; they are not a live backlog. Authoritative completion evidence
+> is recorded in [PLAN_PHASE2.md](../../../PLAN_PHASE2.md) and
+> [docs/worklog.md](../../worklog.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Train, evaluate, and report the frozen four-arm RF-DETR-Nano replication on the local RTX 4090 without waiting at non-blocking checkpoints during the owner's 16-hour unattended window.

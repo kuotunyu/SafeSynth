@@ -1,5 +1,10 @@
 # Repository Curation and History Slimming Implementation Plan
 
+> **Historical implementation plan (completed):** The unchecked boxes below preserve the
+> drafted execution sequence; they are not a live backlog. Authoritative completion evidence
+> is recorded in [PLAN_PHASE2.md](../../../PLAN_PHASE2.md) and
+> [docs/worklog.md](../../worklog.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reduce the unpublished SafeSynth Git repository to a verified pack below 120 MiB while retaining every figure linked by surviving documentation, archiving every current figure externally, and preserving `kuotunyu` as the sole contributor.

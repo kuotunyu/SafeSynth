@@ -1,5 +1,10 @@
 # Repository Curation Evidence Manifest Implementation Plan
 
+> **Historical implementation plan (completed):** The unchecked boxes below preserve the
+> drafted execution sequence; they are not a live backlog. Authoritative completion evidence
+> is recorded in [PLAN_PHASE2.md](../../../PLAN_PHASE2.md) and
+> [docs/worklog.md](../../worklog.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Preserve exact SHA-256 auditability for all 150 curated figures while allowing the 136 approved DROP PNGs to disappear from Git and keeping the post-rewrite suite green.

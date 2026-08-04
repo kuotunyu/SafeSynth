@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,18 @@ def test_publication_files_use_the_selected_hugging_face_owner() -> None:
         text = (project_root / relative_path).read_text(encoding="utf-8")
         assert "kuotunyu/safesynth" not in text, relative_path
         assert "steven0226/safesynth" in text, relative_path
+
+
+def test_project_version_has_matching_release_notes() -> None:
+    """Catch tagging a release whose package metadata still names an older version."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    metadata = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))
+    version = metadata["project"]["version"]
+    release_notes = project_root / "publishing" / f"RELEASE_NOTES_v{version}.md"
+
+    assert release_notes.is_file(), f"missing release notes for project version {version}"
+    assert release_notes.read_text(encoding="utf-8").startswith(f"# SafeSynth v{version}\n")
 
 
 def test_dataset_bundle_keeps_the_annotation_union_once_with_exact_provenance(

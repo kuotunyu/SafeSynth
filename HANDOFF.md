@@ -1,4 +1,9 @@
-# HANDOFF — 02-safesynth-ppe，收尾階段
+# HANDOFF — 02-safesynth-ppe（歷史封存）
+
+> **封存於 2026-08-05**：這是公開發布前的交接快照，下方「剩下的事」與狀態表
+> 不再是現行待辦。GitHub、CI、repo 瘦身、RF-DETR 複驗與 Hugging Face upload
+> 均已完成；權威狀態請看 [PLAN_PHASE2.md](PLAN_PHASE2.md) 與
+> [docs/worklog.md](docs/worklog.md)。目前只差 owner 建立 GitHub `v1.0.0` tag／Release。
 
 > **給新 session 的第一句話**：先讀這份，再讀 [CLAUDE.md](CLAUDE.md)。
 > 這份檔案是「還剩什麼、怎麼做、哪裡有地雷」；CLAUDE.md 是「永遠適用的規則」。

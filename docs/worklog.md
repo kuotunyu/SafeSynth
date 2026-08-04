@@ -8,8 +8,8 @@
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-05（M23 CI 與 M24 GitHub/Hugging Face owner upload 完成）
-- **最後已 commit 程式 checkpoint**：`b6133b2` docs(release): use steven0226 Hugging Face namespace
+- **更新時間**：2026-08-05（v1.0.0 最終 pre-tag 稽核與 metadata 對齊）
+- **最後已 commit 程式 checkpoint**：`8592eb7` docs(release): record public owner uploads
 - **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22`、`M23` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
   `M20` 的 fine-tuned RF-DETR 延遲五次固定時脈量測都未通過 contention gate，
@@ -18,8 +18,9 @@
   `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；
   **`M24` 進行中**（GitHub 與兩個 HF repo 已公開且通過唯讀驗證，只差 v1.0.0
   tag/release）。
-- **目前待 commit 的改動**：本次 M23/M24 狀態與公開 commit／HF commit 雜湊紀錄；
-  模型權重與 1.94 GB 資料包只在 `<data_root>/publish/`，不進 Git。
+- **目前待 commit 的改動**：project version 對齊 `1.0.0`、版本／release-notes
+  一致性回歸測試、歷史 handoff／施工計畫封存說明與一處損壞路徑修復；模型權重
+  與 1.94 GB 資料包只在 `<data_root>/publish/`，不進 Git。
 - **最重要的一句話**：RT-DETRv2 的合成組顯著較差；RF-DETR-Nano 的合成組
   點估計稍高但四組 95% CI 全部重疊。兩個架構方向不一致，因此目前只有
   **「沒有穩健、可泛化的合成資料提升」**這個結論，不能宣稱 RF 已證明勝出。
@@ -65,6 +66,23 @@
   uv run ruff check .
   uv run pytest -q
   ```
+
+### 2026-08-05 — v1.0.0 最終 pre-tag 稽核
+
+- **公開模型實跑**：直接從 `steven0226/safesynth-rtdetrv2-r18` 下載，以 CPU 載入
+  `RTDetrV2ForObjectDetection` 與 `RTDetrImageProcessor`，完成 640×640 inference；
+  logits `[1, 300, 3]`、boxes `[1, 300, 4]`，標籤精確為 helmet/head/person。
+- **找到並防止版本漂移**：`pyproject.toml` 還停在 `0.1.0`，與準備建立的 `v1.0.0`
+  release notes 不一致。新增跨檔一致性測試，先確認它以 `missing release notes for
+  project version 0.1.0` 失敗，再把 project version 對齊為 `1.0.0` 後轉綠。
+- **清理誤導性舊狀態**：`HANDOFF.md`、`instructions_for_me.md` 與四份 agentic
+  implementation plans 都加上歷史封存說明；修復一個由 `\02`／`\r` 被誤解成控制字元
+  而斷裂的資料路徑。M11 仍保留科學閘門的 `[~]`，但標明 failed-and-accepted、不是待辦。
+- **稽核基線**：修正前 fresh full suite 為 `1773 passed, 51 skipped`，修正後為
+  `1774 passed, 51 skipped`；repository links、curated figure evidence、README 數字、
+  forbidden-licence scan、ruff、uv lock、tracked-file control-character scan 與
+  `git diff --check` 全部通過。`pip-audit` 未找到已知漏洞；PyTorch／torchvision 的
+  `+cu130` 自訂 wheel 不在 PyPI，屬工具無法稽核的明確例外。遠端 CI 仍須在 push 後確認。
 
 ### 2026-08-05 — M23 CI 與 M24 公開 owner upload 完成
 

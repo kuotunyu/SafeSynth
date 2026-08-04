@@ -191,7 +191,7 @@
     同 seed 兩次 32/32 SHA256 相同；加入 H4 實驗分支後再回歸仍為
     32/32 SHA256 相同；`small_distant` 皆為 8–20 px）
 
-- [~] **M11** Spike H4：貼上痕跡可偵測度（**放大生成量的硬閘門**）
+- [~] **M11** Spike H4：貼上痕跡可偵測度（**結案：failed-and-accepted，不是待辦**）
   - **對應規格**：[docs/synthesis_spec.md §5](docs/synthesis_spec.md)
   - **驗證**：以當時設定生成 300 張，訓練小型二元分類器分辨「貼上的 patch」與「真實物件 patch」，
     印出 AUC；

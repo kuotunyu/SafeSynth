@@ -1,5 +1,10 @@
 # Repository Curation v5 Tree-Ref Safety Implementation Plan
 
+> **Historical implementation plan (completed):** The unchecked boxes below preserve the
+> drafted execution sequence; they are not a live backlog. Authoritative completion evidence
+> is recorded in [PLAN_PHASE2.md](../../../PLAN_PHASE2.md) and
+> [docs/worklog.md](../../worklog.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Produce and independently prove a fail-closed v5 owner runbook that safely removes only approved Codex tree refs, rewrites every ordinary Git ref free of historical `reports/figures/` paths, and stops before the curated evidence restoration.

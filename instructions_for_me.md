@@ -1,4 +1,8 @@
-# 換你做 — 02-safesynth-ppe
+# 換你做 — 02-safesynth-ppe（歷史封存）
+
+> **封存於 2026-08-05**：下方保留的是實驗期間的人工作業紀錄，不是現在的待辦清單。
+> GitHub、CI 與兩個 Hugging Face repo 都已公開驗收；目前唯一的 owner action 是依
+> [發布手冊](publishing/OWNER_PUBLISH_RUNBOOK.md) 建立 GitHub `v1.0.0` tag／Release。
 
 > 這份檔案只留**需要你親自判斷或執行外部動作**的事。
 > 本機可逆的實作、測試與 commit 已授權自動完成；不會自行建立 remote、push 或發佈。
@@ -159,8 +163,7 @@ uv run python app.py --device cpu
 
 ### ✅ 時機 1：Phase 2 的 Colab 往返 —— **已完成**
 
-四組各 10,900 步跑完，權重已解壓到 `D:\sdg-data-safesynth
-uns\`，
+四組各 10,900 步跑完，權重已解壓到 `<data_root>\runs\`，
 盤點稽核 PASS（0 fatal），主表已算完。實測 L4 約 1.7–1.9 it/s、
 每組約 1.6–1.75 小時、四組約 6.5 小時。
 
