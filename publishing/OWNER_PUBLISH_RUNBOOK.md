@@ -1,5 +1,9 @@
 # SafeSynth owner publishing runbook
 
+> **Completed 2026-08-05:** `v1.0.0` is public and passed the final read-only
+> acceptance gate. This runbook is retained as an auditable record of the exact
+> owner-only publishing sequence; it is not an active checklist.
+
 This runbook contains the **external write operations that must be performed by
 the repository owner (`kuotunyu`) personally**. The preparation and verification
 steps are safe to repeat. Do not paste access tokens into this repository or the

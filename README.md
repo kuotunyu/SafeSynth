@@ -15,6 +15,7 @@ The answer, on this dataset, is **no** — and the interesting part is where the
 
 ## Release artifacts
 
+- [SafeSynth v1.0.0 GitHub Release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0)
 - [Source and reproducibility package](https://github.com/kuotunyu/SafeSynth)
 - [Equal-sized filtered/unfiltered synthetic dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
 - [Validation-selected RT-DETRv2-R18 checkpoint](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18)

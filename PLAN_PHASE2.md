@@ -321,7 +321,7 @@
     （locked install、ruff、pytest、`verify_readme`、圖證據與授權掃描）。
   - **驗證於**：`b6133b2` @ 2026-08-05；GitHub Actions run `30927093391`
 
-- [~] **M24** Hugging Face 上傳 ＋ 發佈總驗收
+- [x] **M24** Hugging Face 上傳 ＋ 發佈總驗收
   - **對應規格**：PUB-06 ~ PUB-11
   - **驗證**：合成資料集（filtered ＋ unfiltered ＋ `records.jsonl`）與最佳權重已備妥；
     dataset card 含來源授權鏈（CC0 1.0）、生成方法、filtered/unfiltered 差別與**等量**這件事、
@@ -347,10 +347,15 @@
     `ed346b7061b6c7d4f113bddfd1953eed3121480c` 與 model commit
     `f5621de143756695abc18cc7b3310da131b1bf2c` 都已公開，且遠端 manifest 與本地
     完全一致，沒有舊 namespace 或 Trainer state。
-  - **狀態仍為 provisional**：GitHub `v1.0.0` tag 與 Release 仍未建立；這是唯一剩餘的
-    PUB-11 owner write。個人 `publish-repo` skill 在目前環境不存在，已用本 repo
-    的等價 read-only gates 補足。所有 git／gh／hf 寫入仍由 `kuotunyu` 本人執行。
-  - **驗證於**：`b6133b2` @ 2026-08-05；HF 公開頁面與檔案唯讀驗證 @ 2026-08-05
+  - **正式發布與最終驗收完成**（2026-08-05）：owner 建立的 annotated tag
+    `v1.0.0` 精確指向 `abbf5a7`，tagger 為 `kuotunyu`；GitHub Release 為正式發布，
+    非 draft／prerelease。該 source checkpoint 的 GitHub Actions run `30940634079`
+    全部通過且 annotations 為 0。Contributors API 仍只有 `kuotunyu`，漏洞警示已啟用；
+    兩個 Hugging Face repo 保持 public，commit SHA 與發布 manifest 均未漂移。
+    個人 `publish-repo` skill 在目前環境不存在，已用本 repo 的等價 read-only gates 補足；
+    所有 git／gh／hf 寫入皆由 `kuotunyu` 本人執行。
+  - **驗證於**：`abbf5a7`、GitHub Release `v1.0.0`、Actions run `30940634079`
+    與 HF 公開 API @ 2026-08-05
 
 ---
 

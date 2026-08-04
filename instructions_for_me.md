@@ -1,8 +1,9 @@
 # 換你做 — 02-safesynth-ppe（歷史封存）
 
 > **封存於 2026-08-05**：下方保留的是實驗期間的人工作業紀錄，不是現在的待辦清單。
-> GitHub、CI 與兩個 Hugging Face repo 都已公開驗收；目前唯一的 owner action 是依
-> [發布手冊](publishing/OWNER_PUBLISH_RUNBOOK.md) 建立 GitHub `v1.0.0` tag／Release。
+> GitHub、CI、兩個 Hugging Face repo 與
+> [`v1.0.0` Release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0)
+> 都已公開驗收；目前沒有尚待執行的 owner action。
 
 > 這份檔案只留**需要你親自判斷或執行外部動作**的事。
 > 本機可逆的實作、測試與 commit 已授權自動完成；不會自行建立 remote、push 或發佈。

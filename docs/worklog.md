@@ -1,26 +1,26 @@
 # Worklog — 02-safesynth-ppe 施工日誌
 
-<!-- 收工時做兩件事：(1) 覆寫「現況快照」 (2) 在「工作日誌」最上面插入一筆。 -->
-<!-- 快照是待證偽的假設，不是真相。真相以 git log 為準——開工時務必交叉驗證。 -->
-<!-- 本檔超過約 18 KB 時把舊日誌摺疊或歸檔（publish-repo gate 2 的門檻是 ~20 KB）。 -->
+<!-- 本檔已於 v1.0.0 發布後凍結為最終稽核紀錄，不再追加逐日施工日誌。 -->
+<!-- 現況快照以 Git／GitHub／Hugging Face 的公開狀態交叉驗證；舊條目保留當時語境。 -->
 
 ## 現況快照
 
 *每次收工覆寫，只留最新一份。*
 
-- **更新時間**：2026-08-05（v1.0.0 最終 pre-tag 稽核與 metadata 對齊）
-- **最後已 commit 程式 checkpoint**：`8592eb7` docs(release): record public owner uploads
-- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22`、`M23` 完成**
+- **更新時間**：2026-08-05（v1.0.0 正式發布與最終唯讀驗收完成）
+- **v1.0.0 source checkpoint／tag target**：`abbf5a7` ci: pin Node 24 setup-uv action
+- **目前里程碑**：Phase 1 全綠。Phase 2 的 **`M15`–`M20`、`M22`–`M24` 完成**
   （`M22` 於 `741fd6d` 收掉——影片分頁與 CUDA 路徑第一次實跑，四條路徑全過），
   `M20` 的 fine-tuned RF-DETR 延遲五次固定時脈量測都未通過 contention gate，
   因此依預先登記規則撤回速度主張、以負面驗證結果結案，
-  **`M23` 已完成**（GitHub Actions run `30927093391` 全部通過），
+  **`M23` 已完成**，最終 source checkpoint 的 GitHub Actions run `30940634079`
+  全部通過且 annotations 為 0；
   `M21` 因沒有得到受支持的 Filtered 提升而依條件結案，不補 seed；
-  **`M24` 進行中**（GitHub 與兩個 HF repo 已公開且通過唯讀驗證，只差 v1.0.0
-  tag/release）。
-- **目前待 commit 的改動**：project version 對齊 `1.0.0`、版本／release-notes
-  一致性回歸測試、歷史 handoff／施工計畫封存說明與一處損壞路徑修復；模型權重
-  與 1.94 GB 資料包只在 `<data_root>/publish/`，不進 Git。
+  **`M24` 已完成**（GitHub `v1.0.0` annotated tag／Release 與兩個 HF repo 均已公開，
+  並通過發布後唯讀驗收）。
+- **目前待 commit 的改動**：只剩本次發布後狀態紀錄與公開 Release 連結；沒有程式、
+  實驗結果、模型或資料包變更。模型權重與 1.94 GB 資料包仍只在
+  `<data_root>/publish/`，不進 Git。
 - **最重要的一句話**：RT-DETRv2 的合成組顯著較差；RF-DETR-Nano 的合成組
   點估計稍高但四組 95% CI 全部重疊。兩個架構方向不一致，因此目前只有
   **「沒有穩健、可泛化的合成資料提升」**這個結論，不能宣稱 RF 已證明勝出。
@@ -41,9 +41,9 @@
   RF 四組在本機 RTX 4090 完成；bootstrap 與目前文件凍結主要使用 CPU。
   SafeSynth 的延遲程序已退出、不占 GPU；2026-08-04 重啟後實測為 P8／225 MHz，
   2520 MHz 固定時脈已解除。
-- **下一個動作（一句話、可直接動手）**：先提交並推送本次狀態紀錄，確認 CI 綠後，
-  依 `publishing/OWNER_PUBLISH_RUNBOOK.md` 建立 GitHub `v1.0.0` tag/release。
-- **卡住的事**：沒有技術 blocker；只剩 owner 必須親自執行的 tag/release 外部寫入。
+- **下一個動作（一句話、可直接動手）**：由 owner 提交並推送本次發布後狀態紀錄，
+  確認文件-only CI 綠後封存專案。
+- **卡住的事**：沒有。
 
 - **⚠️ 已知限制（必須寫進 README，且已經寫了）**：
   1. **H4 未通過（AUC 0.9053，上限 0.60），而訓練結果與它的警告一致。**
@@ -56,8 +56,7 @@
   5. 接受率天花板（K-13）與 hard negative 放置（K-11）維持原狀
   6. **歷史瘦身已完成**：136 張 DROP 圖已從所有 refs 的歷史移除，Git pack 為
      **4.62 MiB**；14 張 KEEP 圖由 v5 封存精確恢復，仍保留可重現的完整復原包
-- **等使用者做的事**：本機總驗收通過後，由 owner 依 runbook 親自 commit、建立
-  GitHub remote、上傳 HF，並確認 Contributors 只有 `kuotunyu`。
+- **等使用者做的事**：只需親自提交並推送本次發布後狀態紀錄；所有公開發布動作已完成。
 - **驗證本快照的指令**：
   ```
   uv run python -m scripts.audit_colab_results
@@ -66,6 +65,22 @@
   uv run ruff check .
   uv run pytest -q
   ```
+
+### 2026-08-05 — v1.0.0 正式發布與最終驗收
+
+- **GitHub Release**：annotated tag `v1.0.0`（tag object `bd3fcf1`）精確指向
+  `abbf5a7`；tagger、source author 與 committer 都是 `kuotunyu`。Release 已公開，
+  非 draft／prerelease，發布頁為
+  `https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0`。
+- **最終 CI 與安全 metadata**：Actions run `30940634079` 的 locked install、ruff、
+  1,774 passed／51 skipped、README、curated figure evidence 與 licence gates 全部通過，
+  annotations 為 0。Node 20 action 已換成釘選 SHA 的 `setup-uv v8.1.0`／Node 24；
+  vulnerability alerts、homepage 與六個 topics 已啟用。
+- **唯一作者驗收**：GitHub Contributors API 只有 `kuotunyu`（380 contributions）；
+  本機／遠端歷史沒有 `Co-Authored-By:` trailer，tag 也由 `kuotunyu` 建立。
+- **Hugging Face 再驗**：dataset 與 model 均為 public；SHA 仍分別為
+  `ed346b7061b6c7d4f113bddfd1953eed3121480c`、
+  `f5621de143756695abc18cc7b3310da131b1bf2c`，沒有發布後漂移。
 
 ### 2026-08-05 — v1.0.0 最終 pre-tag 稽核
 
