@@ -277,10 +277,92 @@ def _runbook(owner_project_root: str, source_commit: str) -> str:
             "if ($ActualSourceCommit[0] -cne $ExpectedSourceCommit) { throw "
             "'Owner repository HEAD does not match archived source commit. STOP.' }"
         ),
+        '$ExpectedSourceTree = @(git rev-parse --verify "$ExpectedSourceCommit^{tree}")',
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git source-tree resolution failed with exit '
+            'code $LASTEXITCODE. STOP." }'
+        ),
+        (
+            'if ($ExpectedSourceTree.Count -ne 1) { throw "git source-tree resolution must '
+            'return exactly one line. STOP." }'
+        ),
+        (
+            "if ($ExpectedSourceTree[0] -cnotmatch '^[0-9a-f]{40}$') { throw "
+            "'Archived source tree is not a canonical object ID. STOP.' }"
+        ),
+        "$ExpectedSourceTree = $ExpectedSourceTree[0]",
+        "$WorktreeRows = @(git worktree list --porcelain)",
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git worktree inventory failed with exit code '
+            '$LASTEXITCODE. STOP." }'
+        ),
+        "$RegisteredWorktrees = @($WorktreeRows | Where-Object { $_ -like 'worktree *' })",
+        (
+            'if ($RegisteredWorktrees.Count -ne 1) { throw "Owner repository must have exactly '
+            'one registered worktree. STOP." }'
+        ),
+        (
+            "$TurnDiffRows = @(git for-each-ref --format='%(refname) %(objectname) "
+            "%(objecttype)' 'refs/codex/turn-diffs/')"
+        ),
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git turn-diff ref inventory failed with exit '
+            'code $LASTEXITCODE. STOP." }'
+        ),
+        "$ValidatedTurnDiffRefs = @()",
+        "foreach ($TurnDiffRow in $TurnDiffRows) {",
+        "    $TurnDiffFields = @($TurnDiffRow -split ' ')",
+        (
+            '    if ($TurnDiffFields.Count -ne 3) { throw "Codex turn-diff ref row must contain '
+            'exactly three fields. STOP." }'
+        ),
+        "    $RefName = $TurnDiffFields[0]",
+        "    $ObjectName = $TurnDiffFields[1]",
+        "    $ObjectType = $TurnDiffFields[2]",
+        (
+            "    if (-not $RefName.StartsWith('refs/codex/turn-diffs/', "
+            "[System.StringComparison]::Ordinal)) { throw 'Codex ref is outside "
+            "refs/codex/turn-diffs/. STOP.' }"
+        ),
+        (
+            "    if ($ObjectType -cne 'tree') { throw 'Codex turn-diff ref must reference a "
+            "tree object. STOP.' }"
+        ),
+        (
+            "    if ($ObjectName -cne $ExpectedSourceTree) { throw 'Codex turn-diff ref does "
+            "not match archived source tree. STOP.' }"
+        ),
+        "    $ValidatedTurnDiffRefs += [PSCustomObject]@{",
+        "        RefName = $RefName",
+        "        ObjectName = $ObjectName",
+        "        ObjectType = $ObjectType",
+        "    }",
+        "}",
         "uvx git-filter-repo --version",
         (
             'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed '
             'with exit code $LASTEXITCODE. STOP." }'
+        ),
+        "foreach ($TurnDiffRef in $ValidatedTurnDiffRefs) {",
+        "    $RefName = $TurnDiffRef.RefName",
+        "    $ExpectedOldObject = $TurnDiffRef.ObjectName",
+        "    git update-ref -d $RefName $ExpectedOldObject",
+        (
+            '    if ($LASTEXITCODE -ne 0) { throw "git conditional ref deletion failed with '
+            'exit code $LASTEXITCODE. STOP." }'
+        ),
+        "}",
+        (
+            "$RemainingTurnDiffRows = @(git for-each-ref --format='%(refname) %(objectname) "
+            "%(objecttype)' 'refs/codex/turn-diffs/')"
+        ),
+        (
+            'if ($LASTEXITCODE -ne 0) { throw "git turn-diff namespace verification failed '
+            'with exit code $LASTEXITCODE. STOP." }'
+        ),
+        (
+            'if ($RemainingTurnDiffRows.Count -ne 0) { throw "Codex turn-diff namespace is not '
+            'empty after deletion. STOP." }'
         ),
         "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
         (

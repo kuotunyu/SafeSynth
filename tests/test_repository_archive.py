@@ -34,6 +34,7 @@ WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE_COMMAND = WORKSPACE_ROOT / "scripts" / "archive_repository_curation.py"
 RESTORE_COMMAND = WORKSPACE_ROOT / "scripts" / "restore_curated_figures.py"
 EXPECTED_SOURCE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+EXPECTED_SOURCE_TREE = "89abcdef0123456789abcdef0123456789abcdef"
 _TEST_APPROVAL = FigureManifestApproval(
     manifest_sha256="668147987292b42323df710e8be3846fc1f3fe36a000eee11daeba9131acbc8c",
     source_commit=EXPECTED_SOURCE_COMMIT,
@@ -790,56 +791,7 @@ def test_archive_command_writes_verified_receipt_and_exact_owner_runbook(
     )
     assert verified.returncode == 0, verified.stderr
     runbook = (destination / "OWNER_HISTORY_REWRITE_RUNBOOK.txt").read_text(encoding="utf-8")
-    assert runbook == "\n".join(
-        (
-            "$ErrorActionPreference = 'Stop'",
-            f"$OwnerProjectRoot = '{owner_root}'",
-            f"$ExpectedSourceCommit = '{project.commit}'",
-            (
-                "if (-not (Test-Path -LiteralPath $OwnerProjectRoot -PathType Container)) { "
-                "throw 'Owner project root is not a directory. STOP.' }"
-            ),
-            "Set-Location -LiteralPath $OwnerProjectRoot",
-            "$GitStatus = @(git status --porcelain=v1 --untracked-files=all)",
-            (
-                'if ($LASTEXITCODE -ne 0) { throw "git status failed with exit code '
-                '$LASTEXITCODE. STOP." }'
-            ),
-            (
-                'if ($GitStatus.Count -ne 0) { throw "Owner repository is not clean. STOP. '
-                'Status:`n$($GitStatus -join [Environment]::NewLine)" }'
-            ),
-            "$ActualSourceCommit = @(git rev-parse --verify HEAD)",
-            (
-                'if ($LASTEXITCODE -ne 0) { throw "git rev-parse failed with exit code '
-                '$LASTEXITCODE. STOP." }'
-            ),
-            (
-                'if ($ActualSourceCommit.Count -ne 1) { throw "git rev-parse must return '
-                'exactly one source commit line. STOP." }'
-            ),
-            (
-                "if ($ActualSourceCommit[0] -cne $ExpectedSourceCommit) { throw "
-                "'Owner repository HEAD does not match archived source commit. STOP.' }"
-            ),
-            "uvx git-filter-repo --version",
-            (
-                'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo availability check failed '
-                'with exit code $LASTEXITCODE. STOP." }'
-            ),
-            "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
-            (
-                'if ($LASTEXITCODE -ne 0) { throw "git-filter-repo rewrite failed with exit code '
-                '$LASTEXITCODE. STOP." }'
-            ),
-            (
-                "Write-Host 'STOP: Stage 1 history rewrite finished. Do not restore, stage, or "
-                "commit. Report the full output to the controller and wait for the Task 7 "
-                "read-only checkpoint.'"
-            ),
-            "",
-        )
-    )
+    assert runbook == archive_command._runbook(str(owner_root), project.commit)
     assert "restore_curated_figures" not in runbook
     assert "git add" not in runbook
     assert "git commit" not in runbook
@@ -854,29 +806,69 @@ def _execute_runbook_with_fake_native_commands(
     status_exit: int = 0,
     rev_parse_exit: int = 0,
     rev_parse_lines: tuple[str, ...] = (),
+    source_tree_exit: int = 0,
+    source_tree_lines: tuple[str, ...] = (EXPECTED_SOURCE_TREE,),
+    worktree_exit: int = 0,
+    worktree_lines: tuple[str, ...] = ("worktree C:/owner",),
+    for_each_ref_exit: int = 0,
+    turn_diff_rows: tuple[str, ...] = (),
+    namespace_check_exit: int = 0,
+    namespace_rows_after_deletion: tuple[str, ...] = (),
+    update_ref_exit: int = 0,
+    uvx_version_exit: int = 0,
+    uvx_rewrite_exit: int = 0,
 ) -> tuple[subprocess.CompletedProcess[str], list[str], str, Path]:
     owner_root = tmp_path / "owner's project"
     owner_root.mkdir()
     fake_commands = tmp_path / "fake-commands"
     fake_commands.mkdir()
     command_log = tmp_path / "commands.log"
+    for_each_marker = tmp_path / "for-each-ref.seen"
     _write(
         fake_commands,
         "git.cmd",
         (
             '@echo off\r\necho git %*>>"%COMMAND_LOG%"\r\n'
             'if "%1"=="status" exit /b %STATUS_EXIT%\r\n'
-            'if "%1"=="rev-parse" (\r\n'
-            '  if defined REV_PARSE_LINE_1 echo %REV_PARSE_LINE_1%\r\n'
-            '  if defined REV_PARSE_LINE_2 echo %REV_PARSE_LINE_2%\r\n'
-            '  exit /b %REV_PARSE_EXIT%\r\n'
-            ')\r\nexit /b 99\r\n'
+            'if "%1"=="rev-parse" goto rev_parse\r\n'
+            'if "%1"=="worktree" (\r\n'
+            '  if defined WORKTREE_LINE_1 echo %WORKTREE_LINE_1%\r\n'
+            '  if defined WORKTREE_LINE_2 echo %WORKTREE_LINE_2%\r\n'
+            '  exit /b %WORKTREE_EXIT%\r\n'
+            ')\r\n'
+            'if "%1"=="for-each-ref" (\r\n'
+            '  if exist "%FOR_EACH_MARKER%" (\r\n'
+            '    if defined NAMESPACE_LINE_1 echo %NAMESPACE_LINE_1%\r\n'
+            '    if defined NAMESPACE_LINE_2 echo %NAMESPACE_LINE_2%\r\n'
+            '    exit /b %NAMESPACE_CHECK_EXIT%\r\n'
+            '  )\r\n'
+            '  type nul >"%FOR_EACH_MARKER%"\r\n'
+            '  if defined TURN_DIFF_LINE_1 echo %TURN_DIFF_LINE_1%\r\n'
+            '  if defined TURN_DIFF_LINE_2 echo %TURN_DIFF_LINE_2%\r\n'
+            '  if defined TURN_DIFF_LINE_3 echo %TURN_DIFF_LINE_3%\r\n'
+            '  exit /b %FOR_EACH_REF_EXIT%\r\n'
+            ')\r\n'
+            'if "%1"=="update-ref" exit /b %UPDATE_REF_EXIT%\r\n'
+            'exit /b 99\r\n'
+            ':rev_parse\r\n'
+            'if not "%3"=="HEAD" goto source_tree\r\n'
+            'if defined REV_PARSE_LINE_1 echo %REV_PARSE_LINE_1%\r\n'
+            'if defined REV_PARSE_LINE_2 echo %REV_PARSE_LINE_2%\r\n'
+            'exit /b %REV_PARSE_EXIT%\r\n'
+            ':source_tree\r\n'
+            'if defined SOURCE_TREE_LINE_1 echo %SOURCE_TREE_LINE_1%\r\n'
+            'if defined SOURCE_TREE_LINE_2 echo %SOURCE_TREE_LINE_2%\r\n'
+            'exit /b %SOURCE_TREE_EXIT%\r\n'
         ).encode("ascii"),
     )
     _write(
         fake_commands,
         "uvx.cmd",
-        b'@echo off\r\necho uvx %*>>"%COMMAND_LOG%"\r\nexit /b 0\r\n',
+        (
+            '@echo off\r\necho uvx %*>>"%COMMAND_LOG%"\r\n'
+            'if "%2"=="--version" exit /b %UVX_VERSION_EXIT%\r\n'
+            'exit /b %UVX_REWRITE_EXIT%\r\n'
+        ).encode("ascii"),
     )
     runbook = tmp_path / "runbook.ps1"
     runbook_text = archive_command._runbook(str(owner_root), expected_commit)
@@ -886,8 +878,24 @@ def _execute_runbook_with_fake_native_commands(
     environment["PATH"] = f"{fake_commands}{os.pathsep}{environment['PATH']}"
     environment["STATUS_EXIT"] = str(status_exit)
     environment["REV_PARSE_EXIT"] = str(rev_parse_exit)
+    environment["SOURCE_TREE_EXIT"] = str(source_tree_exit)
+    environment["WORKTREE_EXIT"] = str(worktree_exit)
+    environment["FOR_EACH_REF_EXIT"] = str(for_each_ref_exit)
+    environment["NAMESPACE_CHECK_EXIT"] = str(namespace_check_exit)
+    environment["UPDATE_REF_EXIT"] = str(update_ref_exit)
+    environment["UVX_VERSION_EXIT"] = str(uvx_version_exit)
+    environment["UVX_REWRITE_EXIT"] = str(uvx_rewrite_exit)
+    environment["FOR_EACH_MARKER"] = str(for_each_marker)
     for index, line in enumerate(rev_parse_lines, start=1):
         environment[f"REV_PARSE_LINE_{index}"] = line
+    for prefix, lines in (
+        ("SOURCE_TREE_LINE", source_tree_lines),
+        ("WORKTREE_LINE", worktree_lines),
+        ("TURN_DIFF_LINE", turn_diff_rows),
+        ("NAMESPACE_LINE", namespace_rows_after_deletion),
+    ):
+        for index, line in enumerate(lines, start=1):
+            environment[f"{prefix}_{index}"] = line
     completed = subprocess.run(
         [
             "powershell.exe",
@@ -907,6 +915,30 @@ def _execute_runbook_with_fake_native_commands(
         command_log.read_text(encoding="utf-8").splitlines() if command_log.exists() else []
     )
     return completed, commands, runbook_text, owner_root
+
+
+def _runbook_command_stages(commands: list[str]) -> list[str]:
+    stages = []
+    for command in commands:
+        if command == "git status --porcelain=v1 --untracked-files=all":
+            stages.append("status")
+        elif command == "git rev-parse --verify HEAD":
+            stages.append("head")
+        elif command.startswith("git rev-parse --verify ") and command.endswith("{tree}"):
+            stages.append("source-tree")
+        elif command == "git worktree list --porcelain":
+            stages.append("worktrees")
+        elif command.startswith("git for-each-ref "):
+            stages.append("turn-diffs")
+        elif command == "uvx git-filter-repo --version":
+            stages.append("availability")
+        elif command.startswith("git update-ref -d "):
+            stages.append("delete")
+        elif command == "uvx git-filter-repo --path reports/figures/ --invert-paths --force":
+            stages.append("rewrite")
+        else:
+            stages.append(f"unexpected:{command}")
+    return stages
 
 
 def test_owner_runbook_quotes_root_and_stops_after_native_status_failure(tmp_path: Path) -> None:
@@ -970,16 +1002,235 @@ def test_owner_runbook_matching_head_reaches_rewrite_then_stop(tmp_path: Path) -
     )
 
     assert completed.returncode == 0, completed.stderr
-    assert commands == [
-        "git status --porcelain=v1 --untracked-files=all",
-        "git rev-parse --verify HEAD",
-        "uvx git-filter-repo --version",
-        "uvx git-filter-repo --path reports/figures/ --invert-paths --force",
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+        "turn-diffs",
+        "rewrite",
     ]
     assert "STOP: Stage 1 history rewrite finished" in completed.stdout
     assert "restore_curated_figures" not in runbook
     assert "git add" not in runbook
     assert "git commit" not in runbook
+
+
+def test_owner_runbook_accepts_zero_exact_codex_tree_refs(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path, rev_parse_lines=(EXPECTED_SOURCE_COMMIT,)
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+        "turn-diffs",
+        "rewrite",
+    ]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+
+
+def test_owner_runbook_accepts_one_exact_codex_tree_ref(tmp_path: Path) -> None:
+    ref_name = "refs/codex/turn-diffs/one"
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"{ref_name} {EXPECTED_SOURCE_TREE} tree",),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+        "delete",
+        "turn-diffs",
+        "rewrite",
+    ]
+    assert f"git update-ref -d {ref_name} {EXPECTED_SOURCE_TREE}" in commands
+
+
+def test_owner_runbook_accepts_multiple_exact_codex_tree_refs(tmp_path: Path) -> None:
+    refs = ("refs/codex/turn-diffs/one", "refs/codex/turn-diffs/two")
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=tuple(f"{ref} {EXPECTED_SOURCE_TREE} tree" for ref in refs),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+        "delete",
+        "delete",
+        "turn-diffs",
+        "rewrite",
+    ]
+    for ref in refs:
+        assert f"git update-ref -d {ref} {EXPECTED_SOURCE_TREE}" in commands
+
+
+def test_owner_runbook_rejects_multiple_registered_worktrees_before_ref_deletion(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        worktree_lines=("worktree C:/owner", "worktree C:/linked"),
+        turn_diff_rows=(
+            f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",
+        ),
+    )
+
+    assert completed.returncode != 0
+    assert "exactly one registered worktree" in completed.stderr
+    assert _runbook_command_stages(commands) == ["status", "head", "source-tree", "worktrees"]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+
+
+def test_owner_runbook_checks_filter_repo_availability_before_ref_deletion(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(
+            f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",
+        ),
+        uvx_version_exit=37,
+    )
+
+    assert completed.returncode != 0
+    assert "availability check failed with exit code 37" in completed.stderr
+    assert _runbook_command_stages(commands) == [
+        "status",
+        "head",
+        "source-tree",
+        "worktrees",
+        "turn-diffs",
+        "availability",
+    ]
+    assert all(not command.startswith("git update-ref ") for command in commands)
+
+
+def test_owner_runbook_rejects_wrong_codex_tree_before_any_deletion(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(
+            "refs/codex/turn-diffs/wrong 0123012301230123012301230123012301230123 tree",
+        ),
+    )
+
+    assert completed.returncode != 0
+    assert "does not match archived source tree" in completed.stderr
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_rejects_non_tree_codex_object_before_any_deletion(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(
+            f"refs/codex/turn-diffs/blob {EXPECTED_SOURCE_TREE} blob",
+        ),
+    )
+
+    assert completed.returncode != 0
+    assert "must reference a tree object" in completed.stderr
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_rejects_malformed_codex_ref_row_before_any_deletion(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"refs/codex/turn-diffs/malformed {EXPECTED_SOURCE_TREE}",),
+    )
+
+    assert completed.returncode != 0
+    assert "exactly three fields" in completed.stderr
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_rejects_out_of_namespace_ref_before_any_deletion(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"refs/heads/main {EXPECTED_SOURCE_TREE} tree",),
+    )
+
+    assert completed.returncode != 0
+    assert "outside refs/codex/turn-diffs/" in completed.stderr
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_validates_all_codex_refs_before_any_deletion(tmp_path: Path) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(
+            f"refs/codex/turn-diffs/valid {EXPECTED_SOURCE_TREE} tree",
+            f"refs/codex/turn-diffs/invalid {EXPECTED_SOURCE_TREE} commit",
+        ),
+    )
+
+    assert completed.returncode != 0
+    assert "must reference a tree object" in completed.stderr
+    assert all(not command.startswith("git update-ref ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_stops_before_rewrite_when_conditional_ref_delete_fails(
+    tmp_path: Path,
+) -> None:
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",),
+        update_ref_exit=43,
+    )
+
+    assert completed.returncode != 0
+    assert "conditional ref deletion failed with exit code 43" in completed.stderr
+    assert any(command.startswith("git update-ref -d ") for command in commands)
+    assert all("git-filter-repo --path" not in command for command in commands)
+
+
+def test_owner_runbook_stops_when_codex_namespace_is_not_empty_after_deletion(
+    tmp_path: Path,
+) -> None:
+    remaining_row = f"refs/codex/turn-diffs/concurrent {EXPECTED_SOURCE_TREE} tree"
+    completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
+        tmp_path,
+        rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
+        turn_diff_rows=(f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",),
+        namespace_rows_after_deletion=(remaining_row,),
+    )
+
+    assert completed.returncode != 0
+    assert "namespace is not empty after deletion" in completed.stderr
+    assert _runbook_command_stages(commands)[-1] == "turn-diffs"
+    assert all("git-filter-repo --path" not in command for command in commands)
 
 
 @pytest.mark.parametrize(
