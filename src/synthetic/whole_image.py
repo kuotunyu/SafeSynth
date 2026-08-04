@@ -8,9 +8,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-import diffusers
-import torch
-
 from src.data.paths import ProjectPaths
 
 
@@ -279,6 +276,9 @@ def load_flux2_text_to_image(
 
     require_verified_generator(model_dir, config)
     generator = config["generator"]
+    import diffusers
+    import torch
+
     if diffusers.__version__ != str(generator["diffusers_version"]):
         raise RuntimeError(
             f"Expected diffusers {generator['diffusers_version']}, "

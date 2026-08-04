@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +18,36 @@ from src.synthetic.whole_image import (
     require_generation_approval,
     require_scaleup_approval,
 )
+
+
+def test_cpu_helpers_import_without_diffusers_runtime() -> None:
+    """Pure metadata helpers must not probe CUDA through Diffusers."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    code = """
+import importlib.abc
+import sys
+
+class BlockDiffusers(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "diffusers" or fullname.startswith("diffusers."):
+            raise ModuleNotFoundError("diffusers intentionally unavailable")
+        return None
+
+sys.meta_path.insert(0, BlockDiffusers())
+from src.synthetic.whole_image import canonical_mapping_sha256
+
+assert canonical_mapping_sha256({"b": 2, "a": 1})
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def _passed_v6_report(config: dict) -> dict:
