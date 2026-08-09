@@ -1,145 +1,209 @@
-# SafeSynth — Targeted Synthetic Data for Hard-Hat Detection
+# SafeSynth：以受控實驗檢驗 Hard-Hat Detection 的 Targeted Synthetic Data
 
-Detecting whether construction workers wear their hard hats fails in exactly the
-situations that matter: workers far from the camera, heads occluded by equipment,
-crowded scenes, dusk and motion blur, and the rare-but-critical bare head. Real
-datasets are thin precisely where the model is weak, and hand-labelling more of
-those cases is expensive.
+工地安全帽偵測最容易在真正重要的情境失效：遠距小目標、遮擋、擁擠、低光、
+motion blur，以及少見但關鍵的 bare head。SafeSynth 不以大量生成取代真實資料，
+而是針對這些 failure modes 建立自動標註的 Synthetic Data，並用嚴格的四組
+controlled ablation 檢驗它是否真的改善 Object Detection。
 
-**This project generates the hard cases instead — with bounding-box labels
-produced automatically by the generator, at zero annotation cost — and then
-measures, under a controlled four-arm protocol, whether that actually helps.**
+> **English Abstract.** SafeSynth generates targeted, automatically labelled
+> hard cases for hard-hat detection and evaluates them under a frozen four-arm
+> protocol. On this dataset, RT-DETRv2 shows a statistically supported decline
+> from synthetic augmentation, while RF-DETR-Nano reverses the point-estimate
+> direction without separating confidence intervals. The result is therefore a
+> negative finding documented with a reproducible protocol and artifacts, with a
+> narrow low-label benefit; it is not a claim that synthetic data robustly
+> improves detection.
 
-The answer, on this dataset, is **no** — and the interesting part is where the
-"no" stops being true. [Results](#results) has the numbers.
+## 核心結論
 
-## Release artifacts
+- **Synthetic Data 沒有穩健提升最終 Test 表現。** RT-DETRv2 的兩個 synthetic
+  arms 在 `primary_map_small` 明顯低於 `real_only`；RF-DETR-Nano 的點估計方向反轉，
+  但四組 confidence intervals 全部重疊。
+- **過濾仍然有可量測價值。** `filtered_syn` 能在 compliance precision 限制下找到
+  operating point，`unfiltered_syn` 則無法達標；這個效果沒有轉化成 AP 優勢。
+- **Synthetic Data 在低標註曝光階段曾有效。** 以 real-image exposure 對齊時，
+  `filtered_syn` 在前幾輪 Validation learning curve 領先，之後由 `real_only` 追過。
+- **H4 artifact gate 預先警告了結果。** Copy-paste artifact 可被小型分類器高準確度
+  分辨，表示 domain gap 不是主觀印象，而是可量測機制。
+- **負面結果照原樣發布。** 最佳 checkpoint 是完全不使用 Synthetic Data 的
+  `real_only`；發布它，而不是挑一個 synthetic arm，正是實驗結論的一部分。
+
+### 公開資源
 
 - [SafeSynth v1.0.0 GitHub Release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0)
-- [Source and reproducibility package](https://github.com/kuotunyu/SafeSynth)
-- [Equal-sized filtered/unfiltered synthetic dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
+- [Source 與 reproducibility package](https://github.com/kuotunyu/SafeSynth)
+- [等量 filtered／unfiltered Synthetic Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
 - [Validation-selected RT-DETRv2-R18 checkpoint](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18)
 
-The checkpoint is the `real_only` winner (3,500 real Train images, zero
-synthetic images). Publishing that negative selection, rather than a synthetic
-arm, is part of the experimental result.
+公開 checkpoint 是 `real_only` winner：使用 3,500 張 real Train images，Synthetic
+Data 為零。
 
-This is not a "train a detector on a public dataset" tutorial. The subject of
-the experiment is the *data*, not the model:
+## 系統架構
 
-- **Targeted, not bulk.** Six scenarios are synthesized on purpose — small/distant
-  objects, partial occlusion, crowding, low light, motion blur, and bare heads —
-  plus hard negatives (yellow machinery, round objects) that look like helmets and
-  must *not* fire.
-- **Labels are free and exact.** SAM 2.1 produces clean cutout masks; the
-  compositor recomputes every bounding box from the visible mask after pasting,
-  including for pre-existing real objects that a paste occludes.
-- **A filter that earns its place.** Geometric and photometric rules (a worn
-  helmet must actually touch a head, visible fraction and size ratios must be
-  plausible, no floating helmets, no clipping artifacts) emit a *filtered* and an
-  *unfiltered* version of the same generated pool, size-matched, so the ablation
-  isolates filtering quality from data quantity.
-- **Honest measurement.** Validation and test are real images only; the generator
-  and the filter never read the test split; the split manifest is frozen with
-  SHA-256 before a single synthetic image is generated.
+SafeSynth 的研究對象是資料，不是偵測器本身。流程先凍結 real-data split，再建立
+可追溯的合成素材與標註；Training、Validation 與 Test 的責任邊界從資料生成開始就
+被分開。
 
-## Status
+```mermaid
+flowchart TB
+    D["Hard Hat Workers<br/>PASCAL VOC"] --> F["Frozen real-data foundation<br/>pHash grouping · group split · SHA-256 manifest"]
+    F --> TR["Real Train"]
+    F --> VA["Real Validation"]
+    F --> TE["Frozen Real Test"]
 
-**Phase 1 is complete, and it produced a negative result worth stating up front.**
+    TR --> S["Targeted Synthetic Data<br/>SAM 2.1 cutouts · scenario-driven composition<br/>visible-mask box recomputation · quality filtering"]
+    TR --> A["Four-arm training"]
+    S -->|"等量 filtered / unfiltered arms"| A
+    A --> V["Validation selection<br/>best checkpoint · compliance operating point"]
+    VA --> V
+    V --> T["Final Test evaluation"]
+    TE --> T
+    T --> R["Image-level bootstrap · error analysis<br/>GitHub Release · Hugging Face"]
 
-The pipeline works: a guarded, frozen 70/15/15 group split; a 7,255-item SAM 2.1
-cutout bank; a deterministic compositor that recomputes every bounding box from
-the visible mask; and a geometric, photometric and quality filter whose ledger
-reconciles exactly. The delivered pool is 14,000 candidates yielding 4,177
-accepted images, exported as size-matched filtered and unfiltered arms of 3,500
-each with 0.5x nested inside 1x. COCO self-evaluation on the emitted ground
-truth returns mAP 1.000, which is the check that the boxes mean what the format
-says they mean.
+    classDef source fill:#E8F1FB,stroke:#2563EB,stroke-width:1.5px,color:#172554
+    classDef synth fill:#F4ECFF,stroke:#7C3AED,stroke-width:1.5px,color:#2E1065
+    classDef experiment fill:#FFF4DD,stroke:#C2410C,stroke-width:1.5px,color:#431407
 
-**But the paste artifacts are detectable.** A pre-registered gate (H4) asked
-whether a small classifier could distinguish pasted patches from real object
-patches, with a pre-registered maximum of **AUC 0.60**. On a group-disjoint,
-class- and size-matched split of 106,144 patches, a HOG+HSV logistic regression
-reaches **AUC 0.9053** (bootstrap 95% CI 0.9013-0.9090). The gate did not pass,
-and this repository does not claim that it did.
+    class D,F,TR,VA,TE source
+    class S synth
+    class A,V,T,R experiment
+```
 
-Nine synthesis routes were tried against it and all failed: feather-parameter
-search, multiband blending, Poisson blending (AUC 0.8869 - it washes out the
-helmet hue that carries the class signal), same-class in-place replacement
-(0.8312), an exact-source paired control (0.9049), FLUX.2 reference-conditioned
-boundary inpainting, whole-person pasting, regional placement, and whole-image
-generation. A feature-family diagnostic shows HOG-only at 0.7792 and HSV-only at
-0.6816 - both resampling/boundary *and* photometric signals exceed the bar, so
-no single-parameter fix exists. An 18-round supervised auto-labeler effort
-(v6 through v23) built to support the last of those routes was also stopped: its
-best checkpoint peaks at confidence 0.14 with true- and false-positive score
-distributions almost completely overlapping, which is an undertrained model
-rather than a labeling-quality problem.
+### 為困難情境生成，而不是 bulk generation
 
-**The decision (ADR-011) is to treat this as a finding and measure what it
-costs.** Generation is capped at 1x real-Train size (2x is explicitly not done,
-since that is exactly the large investment the gate existed to prevent), and the
-four-arm comparison runs with the H4 AUC reported alongside every result. If
-synthetic data still helps, the conclusion is that detectable paste artifacts do
-not prevent transfer. If it does not, AUC 0.9053 is the mechanism. Both outcomes
-are reportable; neither is hidden.
+生成器針對六類情境配置樣本：small／distant objects、partial occlusion、crowding、
+low light、motion blur 與 bare heads；另加入黃色機具、圓形物體等 hard negatives，
+要求模型不能把它們誤認為安全帽。
 
-### Two limits that constrain what this approach can deliver
+標註由生成流程自動產生。SAM 2.1 mask 只用來取得合成素材，絕不作為 Test ground
+truth；compositor 貼上物件後，會依實際 visible mask 重新計算新物件與受遮擋舊物件
+的 bounding boxes。每筆樣本都保留來源圖、來源 bbox、seed、參數、filter score 與
+拒絕原因等 provenance。
 
-**Copy-paste saturates on 3,500 backgrounds.** Acceptance is not a constant: the
-near-duplicate filter compares each candidate against every already-accepted
-sample, so the marginal rate decays as the pool grows. Measured on one config
-and seed: 58.4% at 2,000 candidates, 33.8% at 10,000, 29.8% at 14,000, where
-`NEAR_DUPLICATE_SYNTHETIC` becomes the single largest rejection reason. Reaching
-1x needed 14,000 candidates. This is a ceiling of the method, not a threshold to
-loosen, and it bounds how much distinct synthetic data this route can ever
-produce from this dataset.
+最終從 14,000 個 candidates 得到 4,177 張 accepted images，輸出等量的
+`filtered_syn` 與 `unfiltered_syn` arms，各 3,500 張。Emitted ground truth 的
+COCO self-evaluation 為 mAP 1.000，用來確認輸出 box 與 COCO 格式語義一致。
 
-**Hard-negative placement is only half solved, and is shipped that way on
-purpose.** Distractors were being composited with none of the photometric
-treatment annotated pastes receive, and owner review correctly read every one of
-them as pasted; surface texture by Laplacian variance was 52.4 against 1350.9
-for real helmets. They now run the same path plus a ground-contact shadow,
-reaching 503.3. What is *not* fixed is where they land: without depth
-understanding an object can still sit in mid-air, and a shadow only helps where
-a surface actually exists. A depth-aware size prior was measured and abandoned -
-regressing log(min_side) on normalized cy over 17,815 real annotations gives
-R^2 = 0.0001, so this dataset carries no depth-size relation to exploit.
+### H4 artifact gate 與停止規則
 
-This was accepted rather than fixed because the *labels* are right even where
-the realism is not. The dataset does not annotate a helmet nobody is wearing -
-image 4029 carries three helmets on a meeting-room table and zero helmet boxes -
-so leaving a distractor unannotated matches the real labelling rule exactly. The
-cost is confined to one secondary metric: these distractors skew easy, so
-false positives per hard-negative image measures something weaker than intended.
-The headline metrics, AP_small and bare-head recall, are unaffected.
+Pre-registered H4 gate 的問題是：一個小型分類器能否區分 pasted patches 與 real
+object patches？預先登記的上限為 **AUC 0.60**。在 group-disjoint、class- 與
+size-matched 的 106,144 patches 上，HOG+HSV logistic regression 得到
+**AUC 0.9053**（bootstrap 95% CI 0.9013–0.9090）。H4 **did not pass**，本專案也
+不宣稱通過。
 
-Validation and Test reads remain at zero throughout.
+Feather search、multiband blending、Poisson blending、same-class in-place
+replacement、exact-source paired control、FLUX.2 boundary inpainting、
+whole-person pasting、regional placement 與 whole-image generation 都無法把
+artifact signal 壓到門檻以下。依 [ADR-011](docs/decisions.md#adr-011)，這項失敗被
+視為研究發現：生成規模停在 1x real-Train，不投入 2x，並讓 H4 AUC 與所有結果一起
+揭露。
 
-See [PLAN.md](PLAN.md) for milestones and [docs/](docs/) for the specifications
-each milestone is implemented against.
+## 四組 Controlled Ablation
 
-## Results
+四組共享相同 frozen split、base model、optimizer-step budget 與 evaluation code。
+`filtered_syn` 和 `unfiltered_syn` 從同一 pool 等量抽樣，避免把「資料更多」誤讀為
+「資料更好」。
 
-Four arms, one seed each, RT-DETRv2-R18, an equal optimizer-step budget of
-10,900 steps, every arm scored at its own best-validation checkpoint on the
-**frozen 744-image real Test split**. Every number below is re-aggregatable from
-[`results/detection_metrics.csv`](results/detection_metrics.csv), and
-`scripts/verify_readme.py` fails the build if one of them is not.
+```mermaid
+flowchart TB
+    R["Real Train<br/>3,500 images · 四組共用"]
+    S["同一 Synthetic Pool<br/>兩個 synthetic arms 各取 3,500 images"]
 
-![headline result](reports/figures/headline.png)
+    R ~~~ S
 
-Both panels are the result. The left one alone says the method does not work;
-the right one alone says it does. Reporting either without the other would be
-the selective presentation this project's rules forbid.
+    A1["real_only<br/>Real Train"]
+    A2["standard_aug<br/>Real Train + Standard Augmentation"]
+    A3["unfiltered_syn<br/>Real Train + Unfiltered Synthetic"]
+    A4["filtered_syn<br/>Real Train + Filtered Synthetic"]
 
-The orange whiskers on the left panel are the EVAL-09 intervals, and they are
-there because sorted bars assert a ranking whether or not the data supports
-one. On this figure **none of the three adjacent pairs separates at 95%** — the
-supported statement is the non-adjacent one, `real_only` against either
-synthetic arm.
+    A1 ~~~ A2
+    A2 ~~~ A3
+    A3 ~~~ A4
 
-Two independent implementations computed this table and agree to 8.8e-07.
+    R --> A1
+    R --> A2
+    R --> A3
+    R --> A4
+    S -->|"Unfiltered sample"| A3
+    S -->|"Quality-filtered sample"| A4
+
+    A1 --> B["每組固定 10,900 optimizer steps"]
+    A2 --> B
+    A3 --> B
+    A4 --> B
+    B --> V["Real-only Validation<br/>各組選自己的 best checkpoint"]
+    V --> T["同一 frozen real Test<br/>744 images"]
+
+    classDef source fill:#E8F1FB,stroke:#2563EB,stroke-width:1.5px,color:#172554
+    classDef pool fill:#F4ECFF,stroke:#7C3AED,stroke-width:1.5px,color:#2E1065
+    classDef arm fill:#FFF4DD,stroke:#C2410C,stroke-width:1.5px,color:#431407
+    classDef eval fill:#F3F4F6,stroke:#475569,stroke-width:1.5px,color:#111827
+
+    class R source
+    class S pool
+    class A1,A2,A3,A4 arm
+    class B,V,T eval
+```
+
+本研究採 four-arm（四組）設計，而不是 five-arm；**第五組 Full-real 不適用**，
+因為 `real_only` 已經使用 **all real Train data**，沒有更高的 real-data ceiling。
+
+固定 optimizer steps 會形成一個必須明示的 confound：synthetic arms 的 dataset 較大，
+所以每張真實影像只被看見約一半次數。這不是註腳，而是結果表中的
+`real-image exposures` 欄位。
+
+## Evaluation Protocol 與防洩漏
+
+```mermaid
+sequenceDiagram
+    participant RT as Real Train
+    participant M as Arm-specific Training
+    participant V as Real Validation
+    participant T as Frozen Real Test
+    participant R as Reporting
+
+    RT->>M: 固定 optimizer-step budget 訓練
+    M->>V: 提交各 checkpoints 的 predictions
+    V-->>M: 選擇 best-validation checkpoint
+    M->>V: 對 selected checkpoint 執行 score sweep
+    V-->>M: 凍結 compliance operating point
+    M->>T: 執行一次 final prediction
+    T-->>R: Test predictions 與 ground truth
+    R->>R: 以 Test images 為單位做 bootstrap
+    R->>R: 合併 H4、error analysis 與 limitations
+
+    Note over M,T: Test 不參與 checkpoint 或 threshold 選擇
+```
+
+- Validation 與 Test 只含 real images；generator 與 filter 不讀取 Test。
+- Split manifest 在生成前以 seed、來源檔 SHA-256 與 pHash groups 凍結，同群影像不得
+  分到不同 split。
+- 每個 arm 用自己的 Validation-selected checkpoint 與 operating point，最後才在同一
+  frozen Test 上評測。
+- Confidence intervals 以 Test **images** 為重抽樣單位；同一張擁擠影像中的多個 head
+  不能被當成互相獨立。
+- Validation 和 Test 的 generator/filter reads 始終為零。
+
+資料集本身有重要缺陷，而且必須在結果之前說清楚：
+[SHEL5K（Sensors 2022）](https://www.mdpi.com/1424-8220/22/6/2315) 對同一批
+5,000 張影像重新標註後得到 75,570 labels，原版只有 25,502；`person` 尤其不完整。因此
+**All claims are relative; never absolute AP**：所有主張都只比較同一 frozen Test 上
+arm A 與 arm B，不能把絕對 AP 當成資料集或模型的品質保證。
+
+## 實驗結果
+
+下列 RT-DETRv2-R18 四組各使用一個 seed、相同 10,900 optimizer steps，並在 frozen
+744-image real Test split 上評測。所有數字都能從
+[`results/detection_metrics.csv`](results/detection_metrics.csv) 重新聚合；CI 會執行
+`scripts/verify_readme.py`，數字與來源不一致時直接失敗。
+
+![主要實驗結果](reports/figures/headline.png)
+
+左右兩個 panel 必須一起閱讀：左圖顯示 full-budget Test 結果，右圖顯示低 real-label
+exposure 階段的 learning curve。只報其中一張會形成 selective presentation。
+
+兩套獨立實作計算主表，差異不超過 8.8e-07。
 
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real-image exposures |
 |---|---:|---:|---:|---:|
@@ -148,16 +212,13 @@ Two independent implementations computed this table and agree to 8.8e-07.
 | `unfiltered_syn` | 0.3759 | 0.4597 | 0.9898 | 24.91 |
 | `filtered_syn` | 0.3664 | 0.4858 | 0.9886 | 24.91 |
 
-`primary_*` covers `helmet` and `head`; `person` is reported separately because
-it is the badly annotated class. **Synthetic data did not help.** Both synthetic
-arms sit below the real-only baseline on both headline metrics.
+`primary_*` 只涵蓋 `helmet` 與 `head`；標註品質差的 `person` 分開報告。
+兩個 synthetic arms 在兩項 headline detection metrics 都低於 `real_only`。
 
-### Which of those gaps survive a confidence interval
+### Confidence interval 改變了哪些說法
 
-EVAL-09, 1,000 percentile bootstrap resamples over Test **images** (not
-instances — twenty heads in one crowded photo are not independent observations):
-
-Each cell is the point estimate with its interval in brackets.
+EVAL-09 對 Test images 做 1,000 次 percentile bootstrap。每格是 point estimate 與
+95% interval：
 
 | Arm | primary_map_small <!--split: test--> | bare_head_recall <!--split: test--> | ap.person <!--split: test--> |
 |---|---|---|---|
@@ -166,34 +227,21 @@ Each cell is the point estimate with its interval in brackets.
 | `unfiltered_syn` | 0.3759 [0.3474, 0.4064] | 0.9898 [0.9789, 0.9977] | 0.0080 [0.0034, 0.0191] |
 | `filtered_syn` | 0.3664 [0.3426, 0.3956] | 0.9886 [0.9808, 0.9954] | 0.0074 [0.0024, 0.0242] |
 
-Reading them changes three claims, and only one of the changes is in this
-project's favour:
+- **`real_only` 優於兩個 synthetic arms：有支持。** `primary_map_small` intervals
+  不重疊。
+- **`real_only` 優於 `standard_aug`：沒有支持。** Intervals 重疊，0.0275 的點估計
+  差距仍在 sampling uncertainty 內。
+- **`filtered_syn` 在 detection metrics 優於 `unfiltered_syn`：沒有支持。** 三個
+  metrics 的 intervals 都重疊。
 
-- **`real_only` beats both synthetic arms: supported.** The intervals are
-  disjoint on `primary_map_small`. The headline result is not a one-seed
-  accident.
-- **`real_only` beats `standard_aug`: NOT supported.** Those intervals overlap.
-  The 0.0275 point gap is inside the noise, and this README previously read it
-  as a ranking. It is not one.
-- **`filtered_syn` beats `unfiltered_syn` on detection: NOT supported.** The
-  intervals overlap on all three metrics. Filtering's measurable effect is at
-  the compliance operating point, not here — see below.
+Bootstrap 衡量的是 744-image Test sample 的 sampling uncertainty，不是不同 training
+seeds 的 run-to-run variance；四組依然都只有 single seed。
 
-An interval is not a seed. These are still single-seed runs, and the bootstrap
-quantifies sampling noise in the 744-image Test split, not run-to-run variance.
+### Bare-head recall 的兩種讀法
 
-Two columns need reading carefully rather than at face value.
-
-**Real-image exposures is a confound, not a footnote.** Fixing optimizer steps
-(TRAIN-07) means the arms carrying twice the data see each real photograph half
-as often — 24.91 passes against 49.83. That is a real difference between the
-arms and it is in the table for that reason.
-
-**The bare-head recall column is a ceiling, not a result.** RT-DETRv2 emits a
-fixed 300 queries per image, so matched at IoU 0.50 with no score floor almost
-every bare head finds some box and all four arms score ~0.99. Read at the frozen
-operating point instead, the same metric separates them by half a point of
-recall:
+RT-DETRv2 每張影像固定輸出 300 queries；若在 IoU 0.50 且沒有 score floor 時配對，
+幾乎每個 bare head 都能找到某個 box，所以 headline `bare_head_recall` 接近 ceiling。
+在 frozen operating point 讀取同一指標，差異才會顯現：
 
 | Arm | bare_head_recall_at_op | bare_head_recall <!--split: test--> |
 |---|---:|---:|
@@ -202,34 +250,23 @@ recall:
 | `standard_aug` | 0.4687 | 0.9875 |
 | `unfiltered_syn` | 0.3572 | 0.9898 |
 
-The right-hand column is the ceiling; the left is the same metric read at the
-frozen operating point. The spread goes from 0.0023 to 0.5359.
+右欄是無 score floor 的 ceiling；左欄才是 frozen compliance operating point。兩者的
+spread 分別為 0.0023 與 0.5359。
 
-### Where the synthetic data did work
+### Synthetic Data 在哪個區間有效
 
-Annotation is the resource this method claims to save, so the arms are also
-compared at equal *annotation* budget rather than equal compute. Re-indexed onto
-passes over the real training set (validation, single seed):
+若把橫軸改成 real Train 被看過的次數，在第一個 pass 時，`filtered_syn` 的 Validation
+mAP 是 0.0904，`real_only` 是 0.0267；第二個 pass 分別為 0.2768 與 0.1864，
+baseline 在第四與第五個 pass 之間反超。完整曲線與四組結果見
+[`reports/exposure_analysis.md`](reports/exposure_analysis.md)。
 
-at one pass over the real training set `filtered_syn` scores 0.0904 validation
-mAP against `real_only`'s 0.0267; at two passes, 0.2768 against 0.1864; the
-baseline overtakes it between the fourth and fifth. The full curve, both
-metrics and all four arms are in
-[`reports/exposure_analysis.md`](reports/exposure_analysis.md) — those are
-validation learning-curve readings rather than final Test results, so they live
-in their own report and are not quoted as table rows here.
+因此，在真實標註稀少時，composites 最多提供 **+0.090 mAP**；這項領先在第四個 pass
+後消失。這是「相同 labels、更多 compute」的比較，不是所有條件完全相同的比較。
 
-The composites are worth up to **+0.090 mAP** while real labels are scarce, and
-that lead is gone by the fourth pass. This dataset supplies 5,000 labelled
-images, which is the regime where synthetic augmentation has least to offer.
-The caveat travels with the claim: matching real exposure *unmatches* compute,
-so each row is *same labels, more compute* — the trade synthetic data offers,
-but not *same conditions*.
+### Filtering 唯一改變的部署條件
 
-### The one thing filtering decided
-
-Each arm selected its own compliance operating point on Validation by the same
-rule (maximise bare-head recall subject to ≥0.80 compliance precision):
+每組都在 Validation 以同一規則選 operating point：在 compliance precision 至少
+0.80 的限制下最大化 bare-head recall。
 
 | Arm | operating_point | op_bare_head_recall | op_compliance_precision |
 |---|---:|---:|---:|
@@ -238,48 +275,14 @@ rule (maximise bare-head recall subject to ≥0.80 compliance precision):
 | `filtered_syn` | 0.07 | 0.6395 | 0.8076 |
 | `unfiltered_syn` | — | — | — |
 
-`unfiltered_syn` cannot reach the required precision at any threshold where it
-detects anything. Filtering is the difference between an arm that can be
-deployed as a compliance check and one that cannot — which is the clearest
-result the filtering pipeline produced, inside an otherwise negative outcome.
+`unfiltered_syn` 在任何仍會產生 detection 的 threshold 上都達不到 precision 要求；
+`filtered_syn` 可以。Filtering 的可量測價值在 compliance operating point，不在 AP。
 
-### Why the result went the way it did
+### RF-DETR-Nano replication
 
-**H4 predicted it.** The pre-registered artifact gate asked whether a classifier
-could tell a pasted patch from a real one, with a maximum of AUC 0.60. It
-measured **0.9053**. The composites carry a detectable domain gap, and the
-detection result is consistent with that warning. The gate was registered before
-the training run and is reported beside every number here.
-
-**The targeting did not land.** `small_distant` took the largest slice-isolable
-share of the synthetic budget at 21.7%, and `small_object` is the slice that
-moved *least* favourably: −0.0572 against −0.0412 for `crowded` and −0.0477 for
-`low_light`. Whatever the synthetic images did, they did not move the slice they
-were aimed at.
-
-**The regression is asymmetric.** Against the baseline, `filtered_syn` repairs
-73 false negatives and introduces 1,304 — eighteen broken for every one fixed —
-while fixing 715 false positives at the cost of 291 new ones. Figures for all
-four categories, including the new false positives, are in
-[`reports/figures/error_analysis/`](reports/figures/error_analysis/); the
-new-false-positive grid is not optional and is rendered by construction.
-
-### Why four arms and not five
-
-The general protocol these projects follow has a fifth arm: a full-real upper
-bound, showing what the model reaches with all the real data available. **This
-project has no such arm because Real-only already is it** — `real_only` trains
-on the entire real Train split, so there is no higher real-data ceiling left to
-add. Stating that is cheaper than letting a reader conclude an arm was dropped.
-
-### RF-DETR-Nano replication: the direction changed, the conclusion did not
-
-The same four-arm protocol was repeated on RF-DETR-Nano with seed 1337 and the
-same 10,900 optimizer-step budget. Each arm was evaluated at its own
-best-validation checkpoint on the same frozen 744-image real Test split, with
-1,000 percentile-bootstrap resamples over Test images. Every number in the
-table comes from
-[`results/rfdetr_detection_metrics.csv`](results/rfdetr_detection_metrics.csv).
+RF-DETR-Nano 使用相同四組、seed 1337、10,900 optimizer steps、同一 frozen Test，並以
+Test images 做 1,000 次 percentile bootstrap。來源為
+[`results/rfdetr_detection_metrics.csv`](results/rfdetr_detection_metrics.csv)。
 
 <!--metrics-source: rfdetr_detection_metrics.csv-->
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real_image_exposures <!--split: test--> |
@@ -289,91 +292,155 @@ table comes from
 | `unfiltered_syn` | 0.4959 [0.4747, 0.5194] | 0.5774 | 0.9750 [0.9596, 0.9865] | 24.91 |
 | `filtered_syn` | 0.5030 [0.4841, 0.5240] | 0.5818 | 0.9863 [0.9777, 0.9938] | 24.91 |
 
-Unlike RT-DETRv2, RF-DETR-Nano gives the synthetic arms slightly higher point
-estimates than `real_only`. **That is not a supported synthetic-data win:** all
-four `primary_map_small` intervals overlap, every arm is still a single seed,
-and the synthetic arms received only half as many real-image exposures. The H4
-artifact gate also failed at AUC 0.9053, so any apparent gain may reflect the
-detectable synthetic domain rather than useful variation. Taken together, the
-RT and RF runs say the effect is architecture-sensitive and inconclusive, not
-that synthetic data robustly improves detection.
+RF-DETR-Nano 的 synthetic arms 點估計略高於 `real_only`，但四組
+`primary_map_small` intervals 全部重疊，且每組仍只有 single seed；這不是有統計
+支持的 Synthetic Data win。RT-DETRv2 與 RF-DETR 合在一起，只能支持「效果對
+architecture 敏感且尚無定論」，不能支持「Synthetic Data 穩健改善 detection」。
 
-Fine-tuned RF-DETR latency is deliberately absent. Five fixed-clock attempts
-failed the pre-registered host-contention p95 gate even though every clock-spread
-gate passed; the final attempt also ran at the Windows lock screen and still
-failed 8 of 9 measured rows. Those runs are diagnostic evidence, not publishable
-timings. The benchmark is closed without a speed claim rather than lowering the
-gate or selecting the most favourable run.
+### 為什麼結果會這樣
 
-### What would have to be true for this to work
-
-Every number above is a **single seed**, and EVAL-10 forbids reading a fraction
-of a point as a win. The gaps here are large enough to be directional, but the
-crossover point is not a measured constant.
-
-The experiment this points at is a **real-data-fraction ablation**: retrain on
-10%, 25% and 50% of the real training set with and without the same synthetic
-pool. If the exposure reading above is right, the gap should widen as the real
-fraction shrinks. It is also cheaper than the run already done, because every
-arm in it trains on less data.
+- **H4 事先指出 domain gap。** AUC 0.9053 表示 real 與 pasted patches 有明顯可分訊號。
+- **Targeting 沒有命中預定 slice。** `small_distant` 佔 synthetic budget 中最大的
+  可隔離份額 21.7%，但 `small_object` 反而是變化最不利的 slice：−0.0572；
+  `crowded` 為 −0.0412，`low_light` 為 −0.0477。
+- **Regression 不對稱。** 相較 `real_only`，`filtered_syn` 修復 73 個 false negatives，
+  卻新增 1,304 個；修復 715 個 false positives，同時新增 291 個。完整四類 error grids
+  位於 [`reports/figures/error_analysis/`](reports/figures/error_analysis/)。
 
 ## Demo
 
-![compliance demo](assets/demo.gif)
+![Compliance demo](assets/demo.gif)
 
-Eight validation frames, annotated by the shipped `real_only` weights at the
-EVAL-04 operating point of 0.07. Green is a helmeted head, red is a bare one,
-and the caption carries the frame's `compliant / total` and rate — the colour
-is the **compliance verdict**, not the class, so a red box means a person
-without a hard hat rather than a detection the model was unsure about.
+這是八張 Validation frames 組成的 montage，不是連續影片。綠框代表 helmeted head，
+紅框代表 bare head；顏色表示 **compliance verdict**，不是模型信心。Caption 顯示
+`compliant / total` 與 compliance rate。
 
-**This is a montage of still frames, not a video.** DEMO-04 asks for a recorded
-clip; there is no site footage here, and the dataset cannot stand in for one —
-its images are usually described as video-derived, but the frozen pHash
-grouping says 4,643 of 4,808 groups are a single image and the largest is 8
-frames, so no run of consecutive frames exists. What the dataset does have is
-501 images containing both a helmeted and a bare head, which is what DEMO-04
-actually asks the picture to show.
+Frames 只從 Validation 選取，不使用 Test；選圖規則先平衡兩種 verdict，再選 drawn
+boxes 較少的畫面。資料集常被描述為 video-derived，但 frozen pHash grouping 顯示
+4,808 groups 中有 4,643 組只有一張圖，最大 group 也只有 8 frames，沒有可當成連續
+site footage 的片段。資料集中另有 501 張圖同時包含 helmeted 與 bare heads，足以
+展示 compliance logic。
 
-Frames come from Validation, never Test, and are chosen by a stated rule:
-balance between the two verdicts first, then fewest drawn boxes. Run it with
-`uv run python -m scripts.make_demo_gif`. The live demo is `app.py`:
+從公開 Hugging Face checkpoint 啟動 live demo：
 
-```bash
-uv run python app.py --device cpu
+```powershell
+uvx hf download steven0226/safesynth-rtdetrv2-r18 --local-dir models/safesynth-rtdetrv2-r18
+uv run python app.py --device cpu --weights models/safesynth-rtdetrv2-r18
+```
+
+重新產生 README GIF 是 maintainer workflow，需要外部 Validation images 與本機 training
+run，不屬於 clean-clone quickstart：
+
+```powershell
+uv run python -m scripts.make_demo_gif
 ```
 
 ## Dataset
 
-[Hard Hat Workers](https://www.kaggle.com/datasets/andrewmvd/hard-hat-detection)
-(Kaggle `andrewmvd/hard-hat-detection`, CC0 1.0): 5,000 images, PASCAL VOC boxes,
-three classes — `helmet` (18,966), `head` (5,785), `person` (751).
+來源是 [Hard Hat Workers](https://www.kaggle.com/datasets/andrewmvd/hard-hat-detection)
+（Kaggle `andrewmvd/hard-hat-detection`，CC0 1.0）：5,000 張 images、PASCAL VOC
+boxes，三類為 `helmet` 18,966、`head` 5,785、`person` 751。
 
-Every upstream source describes these images as 416x416. Measuring them says
-otherwise: 416x415 is the plurality at 2,461 images, against 2,192 at 416x416,
-324 at 415x416 and 23 at 415x415. The difference is one pixel and nothing
-raises, but `head` averages roughly 34x34 = 1,156 px², which sits right beside
-the COCO small/medium boundary of 1,024 — so a single global rescale factor
-would move objects between buckets and quietly change what `AP_small` measures.
-Predictions are therefore mapped back per image, with `scale_x` and `scale_y`
-computed separately.
+上游通常把解析度寫成 416×416，實際量測則有四種：416×415 為 2,461 張、416×416
+為 2,192 張、415×416 為 324 張、415×415 為 23 張。雖然只差一 pixel，但 `head`
+平均約 34×34 = 1,156 px²，接近 COCO small／medium 的 1,024 px² 邊界。Predictions
+因此逐圖分別計算 `scale_x` 與 `scale_y` 映回原座標，不能使用單一 global scale。
 
-A documented caveat shapes the entire evaluation design: SHEL5K
-([Sensors 2022](https://www.mdpi.com/1424-8220/22/6/2315)) re-annotated these
-same 5,000 images and produced 75,570 labels against the original 25,502, and
-describes the `person` class as poorly labelled. Roughly two thirds of true
-objects carry no box here. Absolute AP on this benchmark is therefore depressed
-for every class, which is why **every claim in this repository is relative** —
-arm A versus arm B on one identical frozen test set — and never absolute. See
-[docs/data_protocol.md](docs/data_protocol.md).
+公開 Synthetic Dataset 包含等量 filtered／unfiltered annotations 與
+`records.jsonl` provenance。SAM 2.1 automatic masks 只負責合成素材，不是任何
+Validation 或 Test ground truth。
 
-## Environment
+## 已知限制（Limitations）
 
-Windows 11 native (no WSL), RTX 4090, Python 3.12, uv. Setup and the pinned
-versions are in [docs/environment.md](docs/environment.md).
+### 原始標註不完整
 
-## License
+SHEL5K 對相同影像重新標註後，labels 約為原版三倍；原始 `person` 類尤其不完整。
+這會壓低絕對 AP，因此本專案只做同一 frozen Test 上的相對 arm comparison，並將
+`person` 從 primary metrics 分開。
 
-Code is MIT. The source dataset is CC0 1.0; SAM 2.1 weights are Apache-2.0;
-generated images are released as CC0 1.0 to match their source. See
-[LICENSE](LICENSE).
+### Copy-paste 在有限 backgrounds 上會飽和
+
+Near-duplicate filter 會讓 marginal acceptance rate 隨 pool 成長下降：同一 config 與
+seed 下，2,000 candidates 時為 58.4%，10,000 時為 33.8%，14,000 時為 29.8%；
+`NEAR_DUPLICATE_SYNTHETIC` 最終成為最大拒絕原因。這是由 3,500 backgrounds 與
+方法本身形成的 ceiling，不適合靠放寬 threshold 掩蓋。
+
+### Hard-negative placement 只解決了一半
+
+Distractors 加入與 annotated pastes 相同的 photometric path 與 ground-contact shadow
+後，Laplacian variance 從 52.4 提升到 503.3；real helmets 為 1350.9。但沒有 depth
+理解時，物件仍可能落在不合理位置。以 17,815 real annotations 對 normalized `cy`
+回歸 `log(min_side)` 的 R² 只有 0.0001，資料本身沒有可用的 depth-size relation。
+
+未佩戴的獨立安全帽不屬於 `helmet` label；例如 image 4029 的桌面上有三頂安全帽，
+ground truth 仍是零個 helmet boxes。因此 hard-negative 的 label semantics 正確，
+限制主要落在 realism 與 hard-negative false-positive metric 的難度。
+
+### Single seed 與 latency
+
+Bootstrap interval 不能取代多 seed training。最直接的後續研究是 real-data-fraction
+ablation，以不同 real Train 比例檢查低標註區間的 crossover 是否重現。
+
+Fine-tuned RF-DETR latency 不列入 release：五次 fixed-clock 測試都未通過預先登記的
+host-contention p95 gate，即使 clock-spread gates 全部通過。這些紀錄只作 diagnostic
+evidence，不降低 gate，也不挑選最有利的一次做 speed claim。
+
+## 安裝與重現
+
+專案以 Windows 11 native、Python 3.12、uv 與 RTX 4090 開發；不使用 WSL。完整版本
+與 CUDA 說明見 [docs/environment.md](docs/environment.md)。
+
+```powershell
+git clone https://github.com/kuotunyu/SafeSynth.git
+Set-Location SafeSynth
+uv sync --locked
+```
+
+不需要外部 bulk data 即可驗證 repository 內的公開 evidence：
+
+```powershell
+uv run python -m scripts.verify_readme
+uv run python -m scripts.check_forbidden_licences
+uv run pytest -q
+```
+
+`scripts.verify_hf_release` 驗證的是完整 owner-upload payload，不是 repository-only
+check。下載或準備好兩個 release bundles 後才能執行：
+
+```powershell
+uv run python -m scripts.verify_hf_release --dataset <dataset-bundle> --model <model-bundle>
+```
+
+Training 與資料生成需要下載公開 dataset／model weights，並依
+[configs/paths.yaml](configs/paths.yaml) 設定 repository 之外的 data root。執行順序與
+防洩漏規則分別記錄在：
+
+| 工作 | 文件 |
+|---|---|
+| Data、split、COCO conversion | [docs/data_protocol.md](docs/data_protocol.md) |
+| Cutout bank 與 composition | [docs/synthesis_spec.md](docs/synthesis_spec.md) |
+| Filtering rules | [docs/filtering_spec.md](docs/filtering_spec.md) |
+| Four-arm training | [docs/training_spec.md](docs/training_spec.md) |
+| Metrics、bootstrap、error analysis | [docs/evaluation_spec.md](docs/evaluation_spec.md) |
+| Experiment protocol 與 leakage guards | [docs/experiment_protocol.md](docs/experiment_protocol.md) |
+| Reproducibility decisions | [docs/decisions.md](docs/decisions.md) |
+
+Phase 1 的資料處理、SAM 2.1 inference、composition 與 filtering 在本機完成，API spend
+為 $0。[RT-DETRv2 training summary](results/colab/training_summary.json) 記錄 NVIDIA L4、
+bf16 四組 wall-clock 分別為 1.774、1.792、1.603、1.604 小時，合計 6.773 GPU-hours；
+Colab compute units 的實際扣用量沒有保存在 release artifacts，因此不補做推估。
+EVAL-09 的 image-level bootstrap 使用 16 CPU workers，實測 2 小時 20 分，紀錄在
+[worklog](docs/worklog.md)。RF-DETR 四組在本機 RTX 4090 完成，但公開 evidence 沒有可供
+引用的完整 wall-clock record。
+
+大型 training artifacts 與逐次執行證據保存在外部 data root；公開結果、metrics、
+release bundle 與驗證程式保留在 repository。
+
+## License 與引用
+
+程式碼採 [MIT License](LICENSE)。來源 dataset 為 CC0 1.0，SAM 2.1 weights 為
+Apache-2.0；生成影像沿用來源授權，以 CC0 1.0 發布。
+
+引用本專案時，請引用 [SafeSynth v1.0.0](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0)
+與對應的 [Hugging Face Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)，
+並保留本 README 對 negative result、artifact gate 與 annotation defects 的說明。
