@@ -1,6 +1,6 @@
 [project]
 name = "safesynth-ppe"
-version = "1.0.0"
+version = "1.0.1"
 description = "Targeted synthetic data for PPE (hard hat) detection: SAM2 cutouts, scenario-driven composition, and geometric quality filtering, with fully automatic bounding-box labels."
 readme = "README.md"
 license = { file = "LICENSE" }

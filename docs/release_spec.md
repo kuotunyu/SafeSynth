@@ -6,10 +6,11 @@
 
 ---
 
-## 1. Demo（`src/inference/demo_gradio.py`，本機 4090，原生 Windows）
+## 1. Demo（`app.py`，原生 Windows）
 
-> ⚠️ 原始計畫寫「本機 4090，WSL2」。**本專案不使用 WSL**（[ADR-002](decisions.md#adr-002)），
-> demo 直接在原生 Windows 的 uv 環境跑。
+> **本專案不使用 WSL**（[ADR-002](decisions.md#adr-002)）。Demo 由 `app.py` 啟動，
+> UI 組裝位於 `src/inference/demo_ui.py`，推論與 overlay 邏輯位於
+> `src/inference/demo.py`。預設使用 CPU；CLI 可明確選擇 CUDA。
 
 ### DEMO-01 — 形式：Gradio，上傳圖片或影片
 不做 webcam 即時（工地場景在攝影頭前不好重現，且不該假設使用者手邊有 webcam）。
@@ -37,30 +38,32 @@
 ### DEMO-04 — README 的 demo GIF
 錄一段短 GIF 放進 README。選材要能看出這個專案的價值：
 **畫面裡要同時有戴帽與沒戴帽的人**，最好再有一個遠距小物件。
-GIF 檔放 `assets/`（`.gitignore` 目前擋掉 `assets/*`，發佈時要對這個檔案加例外）。
+GIF 固定為 `assets/demo.gif`；Desktop、Mobile 與範例影像放在 `assets/demo/`。
+這些檔案是公開展示證據，必須由 repository link verifier 檢查。
 
-### DEMO-05 — 速度對照組
-使用**寬鬆授權**（Apache-2.0 級）的另一個偵測器跑同樣四組資料當速度基準。
-**不用 Ultralytics YOLO**——AGPL-3.0 會傳染到 `import` 它的程式碼，
-與 MIT repo 牴觸（[ADR-001](decisions.md#adr-001) 已因同一理由否決它）。
-具體選型見 [training_spec.md](training_spec.md)，並在該處記錄一則 ADR。
+### DEMO-05 — Cross-check 與 latency 邊界
+RF-DETR-Nano 已依同一 four-arm protocol 完成 cross-check。主成果仍以
+RT-DETRv2-R18 為準；RF-DETR-Nano 只用來檢查結論是否依賴單一 architecture。
 
-主成果仍以 RT-DETRv2 為準；速度對照只是佐證「我知道怎麼在準確度與延遲之間選型」。
+**不用 Ultralytics YOLO**——AGPL-3.0 與本 repo 的 MIT 發布邊界不相容
+（[ADR-001](decisions.md#adr-001)）。固定時脈 latency benchmark 未通過
+host-contention p95 gate，因此公開 README 不主張 RF-DETR latency。
 
 ---
 
 ## 2. README
 
-### PUB-01 — 結構
-英文為主，開頭一段繁中摘要。章節順序：
+### PUB-01 — 結構與語言
+正體中文（`zh-TW`）為主；專有名詞與不自然的翻譯保留原文。
+`Installation & Reproduction` 全段使用英文，降低外部使用者的重現門檻。章節順序：
 
-1. **Problem** — 為什麼工地 PPE 偵測會在困難情境失敗、為什麼標註成本是瓶頸
-2. **Method** — mermaid 流程圖：資料凍結 → SAM2 cutout → 情境化合成 → 幾何過濾 → 四組訓練 → 評測
-3. **Experiments** — 四組設計說明 ＋ **防洩漏聲明** ＋ 為什麼只有四組（見 PUB-03）
-4. **Results** — 主表 ＋ AP_small／bare-head recall 的對照圖 ＋ 合成量曲線 ＋ FP/FN 對照 grid
-5. **Reproduce** — 從零開始的完整步驟（含 Windows 原生的注意事項）
-6. **Limitations** — 資料集標註缺陷、`person` 類、任何負面結果
-7. **License & Citations**
+1. **核心發現** — 結論、headline figure 與研究邊界
+2. **Demo** — 真實 UI screenshot 與 Validation montage
+3. **實驗流程** — 單一 Mermaid evidence chain 與 four-arm comparison table
+4. **主要結果** — 主表與 RF-DETR-Nano replication
+5. **負結果與證據邊界** — H4、annotation defect、provenance 與限制
+6. **Installation & Reproduction** — 英文環境、驗證、Demo 與 protocol 指令
+7. **授權與引用**
 
 ### PUB-02 — ⚠️ 資料集缺陷必須在 README 正文交代，不能只放 Limitations
 SHEL5K 重標同樣 5,000 張圖得到 75,570 個標註 vs 原版 25,502，約 2/3 真實物件未標註。
@@ -81,11 +84,11 @@ README 每一個數字都必須能追回 `results/` 或 `reports/` 底下的檔�
 寫 `scripts/verify_readme.py` 自動核對主表數字能從原始檔重算，並跑給使用者看。
 **不要放靜態假 badge**（`publish-repo` gate 5 會抓 `shields.io`）。
 
-### PUB-05 — 成本與環境揭露
-- Colab compute units 實際用量
-- 本機 GPU 型號與訓練/評測時數
-- **Phase 1 全部在本機完成、零 API 花費**這件事值得寫出來
-  （標註成本歸零是這個專案的核心賣點）
+### PUB-05 — 環境與效能揭露
+- Windows 原生環境與 Python／uv 版本必須可查。
+- Demo 必須標示實際 device、dtype、resolution、checkpoint 與 threshold。
+- 沒有通過 host-contention gate 的 latency 不得成為公開效能主張。
+- 不公開缺少可重建 ledger 的 compute-unit、耗時或成本數字。
 
 ---
 
@@ -117,10 +120,9 @@ HF card ↔ GitHub README 互相連結（`publish-repo` gate 9 的要求）。
 
 ## 4. 發佈前的檢查
 
-### PUB-09 — 呼叫個人 skill `publish-repo`
-**不要在這個 repo 內重寫發佈流程**：
-維護者的 publishing workflow 涵蓋洩漏掃描、體積檢查、必備檔案、CI、數字可追溯性、
-stale 文件偵測、commit 切分與 tag/Release；repo 內只保留可公開驗證的產物契約。
+### PUB-09 — Owner-only publishing
+GitHub tag／Release 與 Hugging Face 上傳都是 owner-only 寫入。Repo 內只保留可公開驗證的
+release notes、Model Card、Dataset Card 與 verification commands；不保留個人操作手冊。
 
 ### PUB-10 — 本 repo 自己要先備妥的
 - `.github/workflows/ci.yml`：至少 `uv sync --locked` → `pytest`

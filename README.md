@@ -5,141 +5,111 @@
 **Targeted Synthetic Data 對 Hard-Hat Detection 真的有效嗎？**
 
 以 frozen split、four-arm controlled ablation、artifact gate 與 image-level bootstrap，
-把「看起來更像資料」轉成可重現、可否證的實驗。
+把「看起來合理」的 Synthetic Data 轉成可重現、可否證的實驗。
 
 [![CI](https://github.com/kuotunyu/SafeSynth/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/SafeSynth/actions/workflows/ci.yml)
 
 [Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat) ·
 [Model](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18) ·
-[Release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0) ·
+[Latest Release](https://github.com/kuotunyu/SafeSynth/releases/latest) ·
 [Experiment Protocol](docs/experiment_protocol.md)
 
 </div>
 
-> **結論先講：** 在 RT-DETRv2-R18 上，加入 Synthetic Data 反而降低
-> `primary_map_small`；RF-DETR-Nano 的 point estimate 方向相反，但 confidence
-> intervals 重疊。SafeSynth 因此不是一份「Synthetic Data 一定有效」的宣傳，
-> 而是一套能辨識失敗、保存負結果、公開證據的研究流程。
+> **結論先講：** RT-DETRv2-R18 加入 Synthetic Data 後，`primary_map_small` 反而下降；
+> RF-DETR-Nano 的 point estimate 方向相反，但 confidence intervals 重疊。
+> SafeSynth 保存這個負結果，而不是只挑一個看起來成功的數字。
 
----
-
-## 核心發現與一眼看懂
+## 核心發現
 
 - **RT-DETRv2-R18：** `real_only` 取得最高 `primary_map_small = 0.4511`；最佳
   synthetic arm 為 `unfiltered_syn = 0.3759`。
 - **RF-DETR-Nano：** `filtered_syn = 0.5030` 高於 `real_only = 0.4841`，但 95%
-  bootstrap intervals 仍重疊，不能宣稱穩健提升。
-- **Artifact gate：** pre-registered H4 上限是 AUC 0.60，實測 **AUC 0.9053**；
-  H4 **did not pass**，顯示 pasted 與 real patches 存在明顯可分訊號。
-- **研究立場：** All claims are relative; never absolute AP。所有主張只比較同一個
+  bootstrap intervals 重疊，不能宣稱穩健提升。
+- **Artifact gate：** pre-registered H4 上限為 AUC 0.60，實測 **AUC 0.9053**；
+  H4 **did not pass**，代表 pasted 與 real patches 仍有明顯可分訊號。
+- **研究邊界：** All claims are relative; never absolute AP。所有主張只比較同一個
   frozen Test 上的 arm-to-arm 差異。
 
 ![SafeSynth 主要實驗結果](reports/figures/headline.png)
 
----
+## Demo
 
-## 系統架構與 Pipeline
+Demo 先呈現 Before／After 與偵測結果，再顯示 compliance verdict、counts、confidence、
+latency、checkpoint 與 runtime。預設使用公開的 `real_only` checkpoint，不因展示需求改寫
+模型或 threshold。
 
-### 1. 從資料到結論端到端流程
+![SafeSynth evidence-first demo](assets/demo/demo_ui_desktop.png)
 
-SafeSynth 不追求無限制 bulk generation；它先定義實際 failure modes，再生成、過濾、
-訓練與評估。Validation 負責選 checkpoint 與 operating point，Test 僅在最後執行一次。
+<details>
+<summary><strong>查看 Validation montage</strong></summary>
 
-```mermaid
-%%{init: {'themeVariables': {'fontSize': '18px'}}}%%
-flowchart TD
-    subgraph DataStage ["階段一：凍結資料基礎 (Frozen Data Foundation)"]
-        direction LR
-        Raw[("Hard Hat Workers 原生資料集<br/>(PASCAL VOC 5,000 張)")] --> Split["pHash 雜湊去重群組劃分<br/>(防禦跨切分洩漏)"] --> Set[("凍結資料切分<br/>(Train · Val · Test)")]
-    end
+![SafeSynth validation montage](assets/demo.gif)
 
-    subgraph SynthStage ["階段二：定向合成與幾何過濾 (Targeted Synthesis)"]
-        direction LR
-        Fail["四大 Failure Modes 定義<br/>(微小 · 遮蔽 · 密集 · 低光)"] --> SAM["SAM 2.1 高精度摳圖<br/>(情境驅動定向合成)"] --> Filter["幾何檢查與品質過濾器<br/>(產出結構化 Provenance)"]
-    end
+Montage 使用 Validation 影像，不使用 Test。黃色為 helmeted head，紅色為 bare head；
+caption 顯示 `compliant / total` 與 compliance rate。
 
-    subgraph ExpStage ["階段三：四組受控消融實驗 (Controlled Experiment)"]
-        direction LR
-        Arms[("四組訓練分組 (Four Arms)<br/>(相同 10,900 Step 預算)")] --> Val["Validation 門禁選取<br/>(Checkpoint · Operating Point)"] --> Test[("Frozen Real Test 評測<br/>(Image-level Bootstrap 檢定)")]
-    end
+</details>
 
-    subgraph PubStage ["階段四：客觀證據發布 (Public Evidence)"]
-        direction LR
-        Test --> Evidence(["指標與負結果公開報告<br/>(GitHub · Hugging Face Hub)"])
-    end
+## 實驗流程
 
-    DataStage --> SynthStage --> ExpStage --> PubStage
-
-    classDef srcStyle fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#212529
-    classDef procStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#212529
-    classDef evalStyle fill:#e6fcf5,stroke:#0ca678,stroke-width:2px,color:#212529
-
-    class Raw,Set,Arms srcStyle
-    class Split,Fail,SAM,Filter,Val,Test procStyle
-    class Evidence evalStyle
-
-    style DataStage fill:#f8f9fa,stroke:#1971c2,stroke-width:2px,color:#1971c2,stroke-dasharray: 4 4
-    style SynthStage fill:#faf5ff,stroke:#7b1fa2,stroke-width:2px,color:#7b1fa2,stroke-dasharray: 4 4
-    style ExpStage fill:#fffcf0,stroke:#f59f00,stroke-width:2px,color:#f59f00,stroke-dasharray: 4 4
-    style PubStage fill:#f4fbf7,stroke:#0ca678,stroke-width:2px,color:#0ca678,stroke-dasharray: 4 4
-```
-
-### 2. 四組受控消融架構 (Four-arm Controlled Ablation)
-
-四組實驗共用同一個 split、base model、seed、optimizer-step budget 與 evaluation code。
-Synthetic arms 與 `real_only` 的差別只在 training stream，避免把更多訓練步數誤認成
-Synthetic Data 的效果。
+SafeSynth 先凍結資料，再針對實際 failure modes 生成與過濾影像。Validation 只用來選
+checkpoint 與 operating point；Frozen Test 最後執行一次，並公開完整結果與負結果。
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '18px'}}}%%
-flowchart TD
-    subgraph InputStage ["階段一：訓練資料串流 (Training Streams)"]
+flowchart TB
+    subgraph DataStage ["Frozen data foundation"]
         direction LR
-        R[("真實資料 Real Train<br/>(3,500 張影像)")]
-        U[("未過濾合成 Unfiltered<br/>(3,500 張影像)")]
-        F[("過濾合成 Filtered<br/>(3,500 張影像)")]
+        Raw["Hard Hat Workers<br/>5,000 images"] --> Split["pHash groups<br/>Train · Val · Test"] --> Failure["Failure modes<br/>small · occluded · crowded · low-light"]
     end
 
-    subgraph ArmStage ["階段二：四組消融對照組 (Four Training Arms)"]
+    subgraph SynthesisStage ["Targeted synthesis"]
         direction LR
-        A1["1. real_only<br/>(純真實樣本)"]
-        A2["2. standard_aug<br/>(標準影像增強)"]
-        A3["3. unfiltered_syn<br/>(真實 + 未過濾合成)"]
-        A4["4. filtered_syn<br/>(真實 + 過濾後合成)"]
+        Mask["SAM 2.1<br/>mask extraction"] --> Compose["Scenario-driven<br/>copy-paste"] --> Filter["Geometry filter<br/>provenance ledger"]
     end
 
-    subgraph EvalStage ["階段三：等步數預算與嚴格評測 (Budget & Evaluation)"]
+    subgraph EvidenceStage ["Controlled evidence"]
         direction LR
-        Budget["相同 10,900 Optimizer Steps<br/>(消除訓練步數 Confound)"] --> Val["Real Validation 驗證集<br/>(選取最佳 Checkpoint 與門檻)"] --> Test[("Frozen Real Test 測試集<br/>(744 張圖獨立客觀檢驗)")]
+        Arms["Four training arms<br/>10,900 steps each"] --> Val["Real Validation<br/>checkpoint · threshold"] --> Test["Frozen Real Test<br/>image-level bootstrap"]
     end
 
-    R --> A1 & A2 & A3 & A4
-    U --> A3
-    F --> A4
-    A1 & A2 & A3 & A4 --> Budget
+    Publish["Public artifacts<br/>GitHub · Dataset · Model"]
 
-    classDef srcStyle fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#212529
-    classDef armStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#212529
-    classDef evalStyle fill:#e6fcf5,stroke:#0ca678,stroke-width:2px,color:#212529
+    DataStage --> SynthesisStage --> EvidenceStage --> Publish
 
-    class R,U,F,Test srcStyle
-    class A1,A2,A3,A4 armStyle
-    class Budget,Val evalStyle
+    classDef data fill:#ede8de,stroke:#7f919a,stroke-width:2px,color:#17201e
+    classDef synthesis fill:#f0deda,stroke:#c37d72,stroke-width:2px,color:#17201e
+    classDef evidence fill:#dfe8df,stroke:#7f9d8a,stroke-width:2px,color:#17201e
+    classDef publish fill:#e1b45b,stroke:#bd8730,stroke-width:2px,color:#17201e
 
-    style InputStage fill:#f8f9fa,stroke:#1971c2,stroke-width:2px,color:#1971c2,stroke-dasharray: 4 4
-    style ArmStage fill:#faf5ff,stroke:#7b1fa2,stroke-width:2px,color:#7b1fa2,stroke-dasharray: 4 4
-    style EvalStage fill:#f4fbf7,stroke:#0ca678,stroke-width:2px,color:#0ca678,stroke-dasharray: 4 4
+    class Raw,Split,Failure data
+    class Mask,Compose,Filter synthesis
+    class Arms,Val,Test evidence
+    class Publish publish
+
+    style DataStage fill:#f7f4ed,stroke:#7f919a,stroke-width:1px,color:#17201e
+    style SynthesisStage fill:#f7f4ed,stroke:#c37d72,stroke-width:1px,color:#17201e
+    style EvidenceStage fill:#f7f4ed,stroke:#7f9d8a,stroke-width:1px,color:#17201e
 ```
 
-本研究採 **four-arm** 設計，而不是 five-arm。**第五組 Full-real 不適用**，因為
-`real_only` 已使用 **all real Train data**，不存在更高的 real-data ceiling。
+四組實驗共用 split、base model、seed、optimizer-step budget 與 evaluation code；只有
+training stream 不同。
 
----
+| Arm | Training stream | 實驗角色 |
+|---|---|---|
+| `real_only` | 全部 Real Train | 主 baseline |
+| `standard_aug` | Real Train + standard augmentation | augmentation control |
+| `unfiltered_syn` | Real Train + unfiltered synthetic | generation effect |
+| `filtered_syn` | Real Train + filtered synthetic | filtering effect |
+
+本研究採 **four-arm**，不是 five-arm。第五組 Full-real 不適用，因為 `real_only` 已使用
+**all real Train data**，不存在更高的 real-data ceiling。
 
 ## 主要結果
 
-數值可由 [`results/detection_metrics.csv`](results/detection_metrics.csv) 重新聚合；CI 會
-執行 `scripts.verify_readme`，避免 README 與實驗輸出分離。
+下表由 [`results/detection_metrics.csv`](results/detection_metrics.csv) 重新聚合；CI 執行
+`scripts.verify_readme`，避免 README 與實驗輸出分離。
 
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real-image exposures |
 |---|---:|---:|---:|---:|
@@ -148,18 +118,14 @@ flowchart TD
 | `unfiltered_syn` | 0.3759 | 0.4597 | 0.9898 | 24.91 |
 | `filtered_syn` | 0.3664 | 0.4858 | 0.9886 | 24.91 |
 
-三個重點：
-
-1. `real_only` 在 RT-DETRv2-R18 的主要 detection metrics 上勝出。
-2. Synthetic arms 的 real-image exposures 只有一半；這是一個重要的 data exposure
-   confound，不應把差距全部歸因於影像品質。
-3. `filtered_syn` 達成 compliance precision 的 deployment constraint，但沒有換到更高 AP。
+Synthetic arms 的 real-image exposures 只有一半，因此差距不能全部歸因於合成影像品質。
+`filtered_syn` 達成 compliance precision 的 deployment constraint，但沒有換到更高 AP。
 
 <details>
-<summary><strong>RF-DETR-Nano replication</strong></summary>
+<summary><strong>RF-DETR-Nano replication 與 confidence intervals</strong></summary>
 
 相同 four-arm protocol 換成 RF-DETR-Nano 後，Synthetic Data 的 point estimate 轉為正向；
-然而 interval 仍重疊，所以這裡只報告「model-dependent signal」，不報告穩健 win。
+interval 仍重疊，因此只報告 model-dependent signal，不宣稱穩健 win。
 
 <!--metrics-source: rfdetr_detection_metrics.csv-->
 | Arm | primary_map_small <!--split: test--> | primary_map <!--split: test--> | bare_head_recall <!--split: test--> | real_image_exposures <!--split: test--> |
@@ -171,38 +137,15 @@ flowchart TD
 
 </details>
 
----
+## 負結果帶來什麼
 
-## 為什麼負結果仍然重要
-
-- **H4 提前指出 domain gap。** AUC 0.9053 表示 real 與 pasted patches 有明顯可分訊號；
+- **H4 先指出 domain gap。** AUC 0.9053 顯示 real 與 pasted patches 有明顯可分訊號；
   依 [ADR-011](docs/decisions.md#adr-011)，專案停止擴增到 2x，保留 1x 實驗結果。
 - **Filter 不是免費午餐。** 它改善特定 deployment constraint，卻沒有保證提升 detector AP。
-- **Model choice 會改變方向。** RT-DETRv2 與 RF-DETR-Nano 的結果不同，提醒我們不能從
+- **Model choice 會改變方向。** RT-DETRv2 與 RF-DETR-Nano 的結果不同，不能從
   single architecture 推廣成普遍結論。
 
----
-
-## 互動式 Demo 展示
-
-Demo 採 evidence-first 介面：先顯示影像與偵測框，再呈現 compliance verdict、counts、
-confidence、latency、checkpoint 與 runtime。沒有裝飾性 dashboard，也不隱藏模型限制。
-
-![SafeSynth evidence-first demo](assets/demo/demo_ui_desktop.png)
-
-<details>
-<summary><strong>Validation montage</strong></summary>
-
-![SafeSynth validation montage](assets/demo.gif)
-
-Montage 使用 Validation 影像，不使用 Test。黃色為 helmeted head，紅色為 bare head；
-caption 顯示 `compliant / total` 與 compliance rate。
-
-</details>
-
----
-
-## 證據與資料邊界
+## 證據邊界
 
 - 原始資料是 [Hard Hat Workers](https://www.kaggle.com/datasets/andrewmvd/hard-hat-detection)
   （CC0 1.0），共 5,000 張影像。
@@ -210,13 +153,13 @@ caption 顯示 `compliant / total` 與 compliance rate。
   標註後得到 **75,570 labels**，原始版本只有 **25,502**；因此 `person` 不承擔主要結論。
 - Synthetic Dataset 公開 filtered / unfiltered annotations、image SHA-256 與
   `records.jsonl` provenance；它們不是 Validation 或 Test ground truth。
-- Split 以 pHash groups 凍結，並以 SHA-256 manifest 驗證；generator 與 filter 不讀取
+- Split 以 pHash groups 凍結並以 SHA-256 manifest 驗證；generator 與 filter 不讀取
   Validation / Test labels。
 
 <details>
-<summary><strong>已知限制</strong></summary>
+<summary><strong>Known limitations</strong></summary>
 
-- 原始 annotation 不完整，因此所有數值只適合做同一 frozen Test 上的相對比較。
+- 原始 annotation 不完整，所有數值只適合做同一 frozen Test 上的相對比較。
 - Copy-paste 在有限 backgrounds 上會飽和，且 H4 已證實殘留 artifact signal。
 - 主實驗與 replication 都是 single-seed training；bootstrap 衡量 Test image sampling
   uncertainty，不等同 run-to-run variance。
@@ -224,17 +167,15 @@ caption 顯示 `compliant / total` 與 compliance rate。
 
 </details>
 
----
+## Installation & Reproduction
 
-## 快速開始與重現步驟
+### Requirements
 
-### 環境需求
+- Windows 11, native environment (WSL is not used)
+- Python 3.12 and [uv](https://docs.astral.sh/uv/)
+- CPU for verification and the default demo path; CUDA is optional for faster inference or training
 
-- Windows 11 (原生環境；不使用 WSL)
-- Python 3.12 與 [uv](https://docs.astral.sh/uv/)
-- CPU 用於驗證與 Demo 展示；CUDA 可選用於訓練或快速推論
-
-### 複製專案與驗證門禁
+### Clone and verify
 
 ```powershell
 git clone https://github.com/kuotunyu/SafeSynth.git
@@ -247,7 +188,7 @@ uv run python -m scripts.verify_readme
 uv run python -m scripts.check_forbidden_licences
 ```
 
-### 使用公開權重執行 Demo
+### Run the demo with public weights
 
 ```powershell
 uvx hf download steven0226/safesynth-rtdetrv2-r18 `
@@ -258,11 +199,13 @@ uv run python app.py `
   --weights models/safesynth-rtdetrv2-r18
 ```
 
-伺服器啟動後於瀏覽器開啟 `http://127.0.0.1:7860`。若有相容 NVIDIA GPU，可將 `--device cpu` 換為 `--device cuda`。
+Open `http://127.0.0.1:7860` after the server starts. On a compatible NVIDIA GPU, replace
+`--device cpu` with `--device cuda`.
 
-### 實驗流程規範
+### Reproduce the experiments
 
-大檔影像與權重依規範存放於 Git 外部。於 [`configs/paths.yaml`](configs/paths.yaml) 設定資料路徑後，依循凍結規範執行：
+Large images and checkpoints stay outside Git. Configure the data locations in
+[`configs/paths.yaml`](configs/paths.yaml), then follow the frozen contracts:
 
 - [Data protocol](docs/data_protocol.md)
 - [Synthesis specification](docs/synthesis_spec.md)
@@ -271,7 +214,7 @@ uv run python app.py `
 - [Evaluation specification](docs/evaluation_spec.md)
 - [Environment and CUDA notes](docs/environment.md)
 
-公開發布產物可獨立驗證：
+Verify locally prepared release bundles with:
 
 ```powershell
 uv run python -m scripts.verify_hf_release `
@@ -279,22 +222,23 @@ uv run python -m scripts.verify_hf_release `
   --model <model-bundle>
 ```
 
----
+<details>
+<summary><strong>Repository map</strong></summary>
 
-## 專案結構
-
-| 目錄 / 檔案 | 內容職責規範 |
+| Path | Responsibility |
 |---|---|
-| `src/` | 資料、合成、訓練、推論、評測與發布核心代碼 |
-| `configs/` | 凍結實驗組態與超參數設定 |
-| `scripts/` | 可重現命令列進入點與驗證工具 |
-| `tests/` | 單元測試、合約測試、證據與回歸測試 |
-| `results/` | 機器可讀輕量指標（供 README 驗證對齊） |
-| `reports/` | 科學報告與精選證據圖表 |
-| `publishing/` | 發布說明與 Hugging Face Model Card |
+| `src/` | Data, synthesis, training, inference, evaluation and release code |
+| `configs/` | Frozen experiment configuration |
+| `scripts/` | Reproducible command-line entry points and verification gates |
+| `tests/` | Unit, contract, evidence and regression tests |
+| `results/` | Machine-readable metrics used by README verification |
+| `reports/` | Scientific reports and curated figures |
+| `publishing/` | Release notes and Hugging Face cards |
 
----
+</details>
 
-## 授權與聲明
+## 授權與引用
 
-原始程式碼採 [MIT License](LICENSE) 釋出。原生資料集採用 CC0 1.0；SAM 2.1 權重遵循 Apache-2.0。引用本研究時，請使用不可變之 [SafeSynth v1.0.0 release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0) 與 [Hugging Face Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)。
+原始程式碼採 [MIT License](LICENSE)；原始資料集採 CC0 1.0；SAM 2.1 權重遵循
+Apache-2.0。引用本研究時，請固定對應的 [GitHub Release](https://github.com/kuotunyu/SafeSynth/releases)
+並搭配 [Hugging Face Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)。
