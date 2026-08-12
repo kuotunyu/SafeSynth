@@ -309,6 +309,25 @@ architecture 敏感且尚無定論」，不能支持「Synthetic Data 穩健改�
 
 ## Demo
 
+![SafeSynth evidence-first demo](assets/demo/demo_ui_desktop.png)
+
+Live demo 預設載入一張公開資料集中的精選範例，啟動後就能看到真實推論結果，不必先
+準備檔案。中央 evidence stage 可拖曳比較 Before／After；右側用人數、合規率與文字
+圖例解釋結果，下方同時公開 model-only、end-to-end latency、checkpoint、threshold、
+resolution、dtype 與 device。使用者也能上傳自己的工地影像，或切換到影片逐幀分析。
+
+<details>
+<summary>Mobile 版面預覽</summary>
+
+<img src="assets/demo/demo_ui_mobile.png" alt="SafeSynth mobile demo" width="390">
+
+</details>
+
+研究方法與限制預設收合，但不隱藏負面結果：Synthetic Data 在這個 dataset 上沒有改善
+detection，因此 demo 供應的是 Validation-selected `real_only` checkpoint。
+
+### Validation montage
+
 ![Compliance demo](assets/demo.gif)
 
 這是八張 Validation frames 組成的 montage，不是連續影片。綠框代表 helmeted head，
