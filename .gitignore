@@ -66,6 +66,10 @@ INTERVIEW_PREP.md
 !/assets/.gitkeep
 # DEMO-04: the README's demo GIF is the one asset that ships.
 !/assets/demo.gif
+# DEMO-05: the live demo ships one curated CC0 example and its UI stylesheet.
+!/assets/demo/
+!/assets/demo/example.jpg
+!/assets/demo_ui.css
 
 # --- Python ---
 __pycache__/
@@ -85,6 +89,7 @@ build/
 
 # --- Tooling / OS ---
 .worktrees/
+.superpowers/
 .vscode/
 .idea/
 .claude/settings.local.json
