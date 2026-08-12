@@ -12,6 +12,8 @@ kaggle.json
 interview*.md
 INTERVIEW_PREP.md
 *.discarded-*
+*.private.md
+PROGRESS.md
 
 # --- Large data & outputs ---
 # Bulk data actually lives on D:\sdg-data\02-safesynth (see configs/paths.yaml);
@@ -92,6 +94,7 @@ build/
 .superpowers/
 .vscode/
 .idea/
+.agents/
 .claude/
 .impeccable/
 .githooks/

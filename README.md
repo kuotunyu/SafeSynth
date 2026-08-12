@@ -21,7 +21,9 @@
 > intervals 重疊。SafeSynth 因此不是一份「Synthetic Data 一定有效」的宣傳，
 > 而是一套能辨識失敗、保存負結果、公開證據的研究流程。
 
-## 一眼看懂
+---
+
+## 核心發現與一眼看懂
 
 - **RT-DETRv2-R18：** `real_only` 取得最高 `primary_map_small = 0.4511`；最佳
   synthetic arm 為 `unfiltered_syn = 0.3759`。
@@ -34,89 +36,105 @@
 
 ![SafeSynth 主要實驗結果](reports/figures/headline.png)
 
-## 從資料到結論
+---
+
+## 系統架構與 Pipeline
+
+### 1. 從資料到結論端到端流程
 
 SafeSynth 不追求無限制 bulk generation；它先定義實際 failure modes，再生成、過濾、
 訓練與評估。Validation 負責選 checkpoint 與 operating point，Test 僅在最後執行一次。
 
 ```mermaid
-flowchart TB
-    subgraph P1["01 · Frozen data foundation"]
+%%{init: {'themeVariables': {'fontSize': '18px'}}}%%
+flowchart TD
+    subgraph DataStage ["階段一：凍結資料基礎 (Frozen Data Foundation)"]
         direction LR
-        D["Hard Hat Workers<br/>PASCAL VOC"] --> S["pHash group split<br/>Train · Validation · Test"]
+        Raw[("Hard Hat Workers 原生資料集<br/>(PASCAL VOC 5,000 張)")] --> Split["pHash 雜湊去重群組劃分<br/>(防禦跨切分洩漏)"] --> Set[("凍結資料切分<br/>(Train · Val · Test)")]
     end
 
-    subgraph P2["02 · Targeted synthesis"]
+    subgraph SynthStage ["階段二：定向合成與幾何過濾 (Targeted Synthesis)"]
         direction LR
-        F["Failure modes<br/>small · occluded · crowded · low-light"] --> G["SAM 2.1 cutouts<br/>scenario-driven composition"]
-        G --> Q["Geometry checks<br/>quality filter · provenance"]
+        Fail["四大 Failure Modes 定義<br/>(微小 · 遮蔽 · 密集 · 低光)"] --> SAM["SAM 2.1 高精度摳圖<br/>(情境驅動定向合成)"] --> Filter["幾何檢查與品質過濾器<br/>(產出結構化 Provenance)"]
     end
 
-    subgraph P3["03 · Controlled experiment"]
+    subgraph ExpStage ["階段三：四組受控消融實驗 (Controlled Experiment)"]
         direction LR
-        A["Four training arms<br/>same optimizer-step budget"] --> V["Validation selection<br/>checkpoint · operating point"]
-        V --> T["Frozen real Test<br/>image-level bootstrap"]
+        Arms[("四組訓練分組 (Four Arms)<br/>(相同 10,900 Step 預算)")] --> Val["Validation 門禁選取<br/>(Checkpoint · Operating Point)"] --> Test[("Frozen Real Test 評測<br/>(Image-level Bootstrap 檢定)")]
     end
 
-    subgraph P4["04 · Public evidence"]
-        E["Metrics · error analysis<br/>GitHub · Hugging Face"]
+    subgraph PubStage ["階段四：客觀證據發布 (Public Evidence)"]
+        direction LR
+        Test --> Evidence(["指標與負結果公開報告<br/>(GitHub · Hugging Face Hub)"])
     end
 
-    S --> F
-    S --> A
-    Q --> A
-    T --> E
+    DataStage --> SynthStage --> ExpStage --> PubStage
 
-    classDef foundation fill:#E7EEF0,stroke:#5F777D,color:#203136,stroke-width:1.5px
-    classDef synthesis fill:#F1E5DE,stroke:#9B6E5D,color:#3E2A23,stroke-width:1.5px
-    classDef experiment fill:#EEE8D7,stroke:#8F7A45,color:#3A321F,stroke-width:1.5px
-    classDef evidence fill:#E5E8F0,stroke:#68718C,color:#272B3A,stroke-width:1.5px
-    class D,S foundation
-    class F,G,Q synthesis
-    class A,V,T experiment
-    class E evidence
-    linkStyle default stroke:#858B8F,stroke-width:1.4px
+    classDef srcStyle fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#212529
+    classDef procStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#212529
+    classDef evalStyle fill:#e6fcf5,stroke:#0ca678,stroke-width:2px,color:#212529
+
+    class Raw,Set,Arms srcStyle
+    class Split,Fail,SAM,Filter,Val,Test procStyle
+    class Evidence evalStyle
+
+    style DataStage fill:#f8f9fa,stroke:#1971c2,stroke-width:2px,color:#1971c2,stroke-dasharray: 4 4
+    style SynthStage fill:#faf5ff,stroke:#7b1fa2,stroke-width:2px,color:#7b1fa2,stroke-dasharray: 4 4
+    style ExpStage fill:#fffcf0,stroke:#f59f00,stroke-width:2px,color:#f59f00,stroke-dasharray: 4 4
+    style PubStage fill:#f4fbf7,stroke:#0ca678,stroke-width:2px,color:#0ca678,stroke-dasharray: 4 4
 ```
 
-## Four-arm Controlled Ablation
+### 2. 四組受控消融架構 (Four-arm Controlled Ablation)
 
 四組實驗共用同一個 split、base model、seed、optimizer-step budget 與 evaluation code。
 Synthetic arms 與 `real_only` 的差別只在 training stream，避免把更多訓練步數誤認成
 Synthetic Data 的效果。
 
 ```mermaid
-flowchart TB
-    R["Real Train<br/>3,500 images"]
-    U["Unfiltered Synthetic<br/>3,500 images"]
-    F["Filtered Synthetic<br/>3,500 images"]
+%%{init: {'themeVariables': {'fontSize': '18px'}}}%%
+flowchart TD
+    subgraph InputStage ["階段一：訓練資料串流 (Training Streams)"]
+        direction LR
+        R[("真實資料 Real Train<br/>(3,500 張影像)")]
+        U[("未過濾合成 Unfiltered<br/>(3,500 張影像)")]
+        F[("過濾合成 Filtered<br/>(3,500 張影像)")]
+    end
 
-    R --> A1["real_only"]
-    R --> A2["standard_aug"]
-    R --> A3["unfiltered_syn"]
-    R --> A4["filtered_syn"]
+    subgraph ArmStage ["階段二：四組消融對照組 (Four Training Arms)"]
+        direction LR
+        A1["1. real_only<br/>(純真實樣本)"]
+        A2["2. standard_aug<br/>(標準影像增強)"]
+        A3["3. unfiltered_syn<br/>(真實 + 未過濾合成)"]
+        A4["4. filtered_syn<br/>(真實 + 過濾後合成)"]
+    end
+
+    subgraph EvalStage ["階段三：等步數預算與嚴格評測 (Budget & Evaluation)"]
+        direction LR
+        Budget["相同 10,900 Optimizer Steps<br/>(消除訓練步數 Confound)"] --> Val["Real Validation 驗證集<br/>(選取最佳 Checkpoint 與門檻)"] --> Test[("Frozen Real Test 測試集<br/>(744 張圖獨立客觀檢驗)")]
+    end
+
+    R --> A1 & A2 & A3 & A4
     U --> A3
     F --> A4
+    A1 & A2 & A3 & A4 --> Budget
 
-    A1 --> B["10,900 optimizer steps"]
-    A2 --> B
-    A3 --> B
-    A4 --> B
-    B --> V["Real Validation<br/>select checkpoint + threshold"]
-    V --> T["Frozen Real Test<br/>744 images"]
+    classDef srcStyle fill:#e7f5ff,stroke:#1971c2,stroke-width:2px,color:#212529
+    classDef armStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#212529
+    classDef evalStyle fill:#e6fcf5,stroke:#0ca678,stroke-width:2px,color:#212529
 
-    classDef real fill:#E7EEF0,stroke:#5F777D,color:#203136,stroke-width:1.5px
-    classDef synth fill:#F1E5DE,stroke:#9B6E5D,color:#3E2A23,stroke-width:1.5px
-    classDef arm fill:#F5EFD9,stroke:#9A8249,color:#3B321F,stroke-width:1.5px
-    classDef eval fill:#E5E8F0,stroke:#68718C,color:#272B3A,stroke-width:1.5px
-    class R real
-    class U,F synth
-    class A1,A2,A3,A4 arm
-    class B,V,T eval
-    linkStyle default stroke:#858B8F,stroke-width:1.4px
+    class R,U,F,Test srcStyle
+    class A1,A2,A3,A4 armStyle
+    class Budget,Val evalStyle
+
+    style InputStage fill:#f8f9fa,stroke:#1971c2,stroke-width:2px,color:#1971c2,stroke-dasharray: 4 4
+    style ArmStage fill:#faf5ff,stroke:#7b1fa2,stroke-width:2px,color:#7b1fa2,stroke-dasharray: 4 4
+    style EvalStage fill:#f4fbf7,stroke:#0ca678,stroke-width:2px,color:#0ca678,stroke-dasharray: 4 4
 ```
 
 本研究採 **four-arm** 設計，而不是 five-arm。**第五組 Full-real 不適用**，因為
 `real_only` 已使用 **all real Train data**，不存在更高的 real-data ceiling。
+
+---
 
 ## 主要結果
 
@@ -153,6 +171,8 @@ flowchart TB
 
 </details>
 
+---
+
 ## 為什麼負結果仍然重要
 
 - **H4 提前指出 domain gap。** AUC 0.9053 表示 real 與 pasted patches 有明顯可分訊號；
@@ -161,7 +181,9 @@ flowchart TB
 - **Model choice 會改變方向。** RT-DETRv2 與 RF-DETR-Nano 的結果不同，提醒我們不能從
   single architecture 推廣成普遍結論。
 
-## Demo
+---
+
+## 互動式 Demo 展示
 
 Demo 採 evidence-first 介面：先顯示影像與偵測框，再呈現 compliance verdict、counts、
 confidence、latency、checkpoint 與 runtime。沒有裝飾性 dashboard，也不隱藏模型限制。
@@ -177,6 +199,8 @@ Montage 使用 Validation 影像，不使用 Test。黃色為 helmeted head，�
 caption 顯示 `compliant / total` 與 compliance rate。
 
 </details>
+
+---
 
 ## 證據與資料邊界
 
@@ -200,15 +224,17 @@ caption 顯示 `compliant / total` 與 compliance rate。
 
 </details>
 
-## Installation & Reproduction
+---
 
-### Requirements
+## 快速開始與重現步驟
 
-- Windows 11 (native; WSL is not used)
-- Python 3.12 and [uv](https://docs.astral.sh/uv/)
-- CPU for verification and demo; CUDA is optional for training or faster inference
+### 環境需求
 
-### Clone and verify
+- Windows 11 (原生環境；不使用 WSL)
+- Python 3.12 與 [uv](https://docs.astral.sh/uv/)
+- CPU 用於驗證與 Demo 展示；CUDA 可選用於訓練或快速推論
+
+### 複製專案與驗證門禁
 
 ```powershell
 git clone https://github.com/kuotunyu/SafeSynth.git
@@ -221,7 +247,7 @@ uv run python -m scripts.verify_readme
 uv run python -m scripts.check_forbidden_licences
 ```
 
-### Run the demo with the public checkpoint
+### 使用公開權重執行 Demo
 
 ```powershell
 uvx hf download steven0226/safesynth-rtdetrv2-r18 `
@@ -232,13 +258,11 @@ uv run python app.py `
   --weights models/safesynth-rtdetrv2-r18
 ```
 
-Open `http://127.0.0.1:7860` after the server starts. Replace `--device cpu` with
-`--device cuda` when a compatible NVIDIA GPU is available.
+伺服器啟動後於瀏覽器開啟 `http://127.0.0.1:7860`。若有相容 NVIDIA GPU，可將 `--device cpu` 換為 `--device cuda`。
 
-### Reproduce the experiment
+### 實驗流程規範
 
-Bulk images and checkpoints are intentionally stored outside Git. Configure the data root in
-[`configs/paths.yaml`](configs/paths.yaml), then follow the frozen specifications:
+大檔影像與權重依規範存放於 Git 外部。於 [`configs/paths.yaml`](configs/paths.yaml) 設定資料路徑後，依循凍結規範執行：
 
 - [Data protocol](docs/data_protocol.md)
 - [Synthesis specification](docs/synthesis_spec.md)
@@ -247,7 +271,7 @@ Bulk images and checkpoints are intentionally stored outside Git. Configure the 
 - [Evaluation specification](docs/evaluation_spec.md)
 - [Environment and CUDA notes](docs/environment.md)
 
-The release payloads can be verified independently:
+公開發布產物可獨立驗證：
 
 ```powershell
 uv run python -m scripts.verify_hf_release `
@@ -255,21 +279,22 @@ uv run python -m scripts.verify_hf_release `
   --model <model-bundle>
 ```
 
-## Repository map
+---
 
-| Path | Purpose |
+## 專案結構
+
+| 目錄 / 檔案 | 內容職責規範 |
 |---|---|
-| `src/` | Data, synthesis, training, inference, evaluation, and release code |
-| `configs/` | Frozen experiment and runtime configuration |
-| `scripts/` | Reproducible command-line entry points |
-| `tests/` | Unit, contract, evidence, and regression tests |
-| `results/` | Compact machine-readable metrics used by README verification |
-| `reports/` | Scientific reports and curated evidence figures |
-| `publishing/` | Release notes and Hugging Face cards |
+| `src/` | 資料、合成、訓練、推論、評測與發布核心代碼 |
+| `configs/` | 凍結實驗組態與超參數設定 |
+| `scripts/` | 可重現命令列進入點與驗證工具 |
+| `tests/` | 單元測試、合約測試、證據與回歸測試 |
+| `results/` | 機器可讀輕量指標（供 README 驗證對齊） |
+| `reports/` | 科學報告與精選證據圖表 |
+| `publishing/` | 發布說明與 Hugging Face Model Card |
 
-## License
+---
 
-Source code is released under the [MIT License](LICENSE). The source dataset is CC0 1.0;
-SAM 2.1 weights are Apache-2.0. When referencing this work, use the immutable
-[SafeSynth v1.0.0 release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0) and the
-[Hugging Face Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat).
+## 授權與聲明
+
+原始程式碼採 [MIT License](LICENSE) 釋出。原生資料集採用 CC0 1.0；SAM 2.1 權重遵循 Apache-2.0。引用本研究時，請使用不可變之 [SafeSynth v1.0.0 release](https://github.com/kuotunyu/SafeSynth/releases/tag/v1.0.0) 與 [Hugging Face Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)。
