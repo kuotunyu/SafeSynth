@@ -40,17 +40,20 @@ SafeSynth 不追求無限制 bulk generation；它先定義實際 failure modes�
 訓練與評估。Validation 負責選 checkpoint 與 operating point，Test 僅在最後執行一次。
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph P1["01 · Frozen data foundation"]
+        direction LR
         D["Hard Hat Workers<br/>PASCAL VOC"] --> S["pHash group split<br/>Train · Validation · Test"]
     end
 
     subgraph P2["02 · Targeted synthesis"]
+        direction LR
         F["Failure modes<br/>small · occluded · crowded · low-light"] --> G["SAM 2.1 cutouts<br/>scenario-driven composition"]
         G --> Q["Geometry checks<br/>quality filter · provenance"]
     end
 
     subgraph P3["03 · Controlled experiment"]
+        direction LR
         A["Four training arms<br/>same optimizer-step budget"] --> V["Validation selection<br/>checkpoint · operating point"]
         V --> T["Frozen real Test<br/>image-level bootstrap"]
     end
@@ -59,7 +62,7 @@ flowchart LR
         E["Metrics · error analysis<br/>GitHub · Hugging Face"]
     end
 
-    S --> G
+    S --> F
     S --> A
     Q --> A
     T --> E
