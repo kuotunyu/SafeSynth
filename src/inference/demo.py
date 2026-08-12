@@ -20,16 +20,22 @@ from typing import Any
 
 from src.inference.compliance import ComplianceStatus
 
-# BGR, because the drawing goes through cv2. Green/red is the conventional
-# reading for pass/fail, and the two are far enough apart in luminance
-# (0.29*0+0.59*200 vs 0.29*60+0.59*60) to survive a greyscale screenshot.
-COMPLIANT_COLOUR = (60, 200, 60)
-NON_COMPLIANT_COLOUR = (60, 60, 220)
-NEUTRAL_COLOUR = (170, 170, 170)
+# BGR, because the drawing goes through cv2. These low-saturation colours align
+# with the demo's visual system; the caption and summary carry the verdict too,
+# so colour is never the only semantic channel.
+COMPLIANT_COLOUR = (138, 157, 127)  # RGB #7F9D8A after reversal
+NON_COMPLIANT_COLOUR = (114, 125, 195)  # RGB #C37D72 after reversal
+NEUTRAL_COLOUR = (154, 145, 127)  # RGB #7F919A after reversal
 
 STATUS_COLOUR = {
     ComplianceStatus.COMPLIANT: COMPLIANT_COLOUR,
     ComplianceStatus.NON_COMPLIANT: NON_COMPLIANT_COLOUR,
+}
+
+SEMANTIC_LABEL = {
+    ComplianceStatus.COMPLIANT: "已佩戴",
+    ComplianceStatus.NON_COMPLIANT: "未佩戴",
+    None: "僅定位",
 }
 
 
@@ -57,8 +63,11 @@ class DrawnBox:
         would be a different thing entirely.
         """
 
-        verdict = "" if self.status is None else f" · {self.status.value}"
-        return f"{self.label} {self.score:.2f}{verdict}"
+        verdict = f" · {self.status.value}" if self.status is not None else ""
+        return (
+            f"{self.label} · {SEMANTIC_LABEL[self.status]} · "
+            f"{self.score:.2f}{verdict}"
+        )
 
     def caption_for_width(self, pixels_per_character: float) -> str:
         """As much of the caption as fits over a box this wide.

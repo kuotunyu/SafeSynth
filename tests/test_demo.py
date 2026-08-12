@@ -78,6 +78,21 @@ def test_the_caption_carries_class_confidence_and_verdict() -> None:
     assert ComplianceStatus.NON_COMPLIANT.value in box.caption
 
 
+def test_captions_carry_a_zh_tw_semantic_label() -> None:
+    """The visual verdict remains understandable without relying on red/green."""
+
+    boxes = drawn_boxes(
+        [_detection(0, 0.9), _detection(1, 0.8), _detection(2, 0.7)],
+        class_names=CLASSES,
+        score_threshold=0.0,
+    )
+    captions = {box.label: box.caption for box in boxes}
+
+    assert "已佩戴" in captions["helmet"]
+    assert "未佩戴" in captions["head"]
+    assert "僅定位" in captions["person"]
+
+
 def test_a_person_caption_has_no_verdict_appended() -> None:
     box = drawn_boxes(
         [_detection(2, 0.5)], class_names=CLASSES, score_threshold=0.0
