@@ -130,8 +130,7 @@ mask 反向映射：resize_to -> crop 邊長 -> 原圖座標
 
 **CUT-10 — 用 RGBA PNG ＋ JSONL manifest，不用 `.npz`。**
 約 8,000 個 cutout × 約 5 KB ≈ 40 MB，載入速度無關緊要；真正重要的是
-**人（和 Claude）可以直接打開資料夾用眼睛看**——CLAUDE.md 明訂「自己產的圖要自己打開檢視」，
-`.npz` 不透明，會讓這條規則失效。
+**reviewer 可以直接打開資料夾目視檢查**；`.npz` 不透明，會讓人工品質門檻失效。
 
 ```
 ${data_root}/cutouts/

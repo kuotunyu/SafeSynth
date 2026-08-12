@@ -297,7 +297,7 @@ C: 只留 repo（程式碼、設定、文件、manifest、小圖）。
 ### 後果
 
 - 需要一個 HSV ＋ 輪廓圓度的挖料器，以及一個程序形狀渲染器（皆 Phase 1）
-- 需要一次人工簽核，會出現在 `instructions_for_me.md` 的「換你做」清單
+- 使用挖料素材前需要一次人工純度簽核
 - hard negative 佔生成預算約 13%——夠大到能移動誤報率，且因為不增加標註所以很便宜
 
 ### 待查證
@@ -415,7 +415,7 @@ HF 的 `rt_detr_v2` model 頁面，其 `RTDetrV2ForObjectDetection` autodoc 範�
 
 ### 後果
 
-- `pyproject.toml`、`docs/environment.md`、`CLAUDE.md` 三處的版本要同步
+- `pyproject.toml` 與 `docs/environment.md` 的版本要同步
 - Phase 1 的 SAM2 程式碼要用 v5 idiom 撰寫並明確指定 dtype
 
 ### 待查證（M1 執行時）
@@ -798,8 +798,8 @@ ADR-004 的強制簽核是為了擋**挖料的汙染風險**（「沒有標註�
 程序生成的素材是我們畫出來的，**不可能是真實安全帽**，該風險不存在。
 H6 對挖料的簽核仍然有效且仍是使用挖料素材的前提。
 
-即便如此，程序生成的 contact sheet 仍會列進 `instructions_for_me.md`
-供 kuotunyu 有空時過目——只是它不阻擋 M13。
+即便如此，程序生成的 contact sheet 仍應交由 maintainer 抽查——只是這項抽查
+不阻擋後續 composition。
 
 ### 後果
 

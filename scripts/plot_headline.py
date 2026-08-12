@@ -12,7 +12,7 @@ its own it says the method works.
 
 Neither panel is the answer; the pair is. Showing only the left would hide where
 the effect lives, and showing only the right would be the selective reporting
-CLAUDE.md forbids.
+the reporting contract forbids.
 
 Everything is read from results/detection_metrics.csv and the arms' raw
 trainer_state.json (EVAL-12). Nothing is typed in by hand.

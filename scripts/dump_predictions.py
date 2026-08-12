@@ -7,7 +7,7 @@ split), so it happens here once and the artefacts are reused.
 
 Predictions land on the DATA drive, not in the repository. At 300 queries per
 image and 744 test images an arm produces on the order of 200,000 detections;
-CLAUDE.md keeps the project folder to code, config, docs and small figures.
+The public repository keeps only code, config, docs and small figures.
 
 Boxes are written in each image's OWN original annotation coordinates (DATA-25:
 the split holds 416x416, 416x415, 415x416 and 415x415 images, so scale_x and

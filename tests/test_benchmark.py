@@ -895,7 +895,7 @@ def test_one_column_cannot_label_two_different_statistics() -> None:
 
 
 # --------------------------------------------------------------------------
-# Forbidden-package scan (ADR-005 / PLAN_PHASE2.md M20)
+# Forbidden-package scan (ADR-005)
 # --------------------------------------------------------------------------
 
 

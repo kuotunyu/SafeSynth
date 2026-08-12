@@ -1,4 +1,4 @@
-"""PLAN_PHASE2.md M20 / ADR-005: no importable file here may name the forbidden
+"""ADR-005: no importable file here may name the forbidden
 AGPL-3.0 detector stack.
 
 WHY THIS IS A SCRIPT AND NOT A SENTENCE. `reports/speed_baseline_probe.md` used to
@@ -39,7 +39,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # file text never contains the term, which is what makes an exemption unnecessary.
 _FORBIDDEN_PACKAGE_FRAGMENTS = ("ultra", "lytics")
 
-# PLAN_PHASE2.md M20 states the scan roots: the directories whose contents can be
+# ADR-005 states the scan roots: the directories whose contents can be
 # imported. `reports/` and `docs/` are prose about the decision, not code bound by
 # it, so naming the package there is legitimate and is not scanned.
 SCAN_ROOTS = ("src", "scripts", "notebooks")
@@ -132,7 +132,7 @@ def format_scan_lines(scan: dict[str, Any]) -> list[str]:
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "ADR-005 / PLAN_PHASE2.md M20: fail when importable code names the "
+            "ADR-005: fail when importable code names the "
             f"forbidden AGPL-3.0 package {forbidden_package_name()!r}."
         )
     )

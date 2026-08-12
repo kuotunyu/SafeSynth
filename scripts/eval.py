@@ -942,7 +942,7 @@ def format_count(row: MetricRow | None) -> str:
 
 
 def h4_gate_note(path: Path = H4_GATE_PATH) -> str:
-    """The H4 artifact-detectability AUC, which CLAUDE.md requires beside results.
+    """The H4 artifact-detectability AUC required beside every result table.
 
     Read from `reports/h4_artifact_gate_m13.json` rather than transcribed, so it
     cannot go stale relative to the gate that produced it.
@@ -953,7 +953,7 @@ def h4_gate_note(path: Path = H4_GATE_PATH) -> str:
     if payload is None or any(key not in payload for key in required):
         return (
             f"**H4 artifact-detectability AUC unavailable** - `{path.name}` is missing or "
-            f"incomplete, and CLAUDE.md requires that number beside every result table. "
+            f"incomplete, and the reporting contract requires that number beside every result table. "
             f"Do not publish this table until it can be read."
         )
     low, high = (float(value) for value in payload["auc_ci95"])

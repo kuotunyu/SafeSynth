@@ -1,7 +1,6 @@
 # Evaluation Spec — 合規邏輯、指標與錯誤分析
 
-> **Phase 2。** 對應里程碑見 [PLAN_PHASE2.md](../PLAN_PHASE2.md)。
-> 協定層（防洩漏、五組定義、呈現規範）見 [experiment_protocol.md](experiment_protocol.md)。
+> 協定層（防洩漏、分組定義、呈現規範）見 [experiment_protocol.md](experiment_protocol.md)。
 > 訓練見 [training_spec.md](training_spec.md)。相關決策：[ADR-003](decisions.md#adr-003)。
 > **所有門檻數值都在 [`configs/evaluation.yaml`](../configs/evaluation.yaml)，本文件只寫判定式與 config key。**
 

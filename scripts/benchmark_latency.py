@@ -20,8 +20,8 @@ RF-DETR variants are Apache-2.0; XL and 2XL are PML-1.0 and must not be used. Th
 licence is re-verified against the Hub at run time rather than trusted from the
 ADR text.
 
-THE AGPL SCAN IS PERFORMED, NOT QUOTED. The repository-wide check (PLAN_PHASE2.md
-M20) is "no file under src/, scripts/ or notebooks/ mentions the forbidden
+THE AGPL SCAN IS PERFORMED, NOT QUOTED. The repository-wide check (ADR-005)
+is "no file under src/, scripts/ or notebooks/ mentions the forbidden
 package". It lives in `scripts/check_forbidden_licences.py`, which is a standalone
 CI-usable checker; this script CALLS it and renders whatever it returns - files
 read, matches found, and the path of every match. There is no stored sentence to
@@ -779,7 +779,7 @@ def render_report(
             "Apache-2.0. XL and 2XL are PML-1.0 and must not be used here."
         ),
         "",
-        "### Forbidden-package scan (PLAN_PHASE2.md M20)",
+        "### Forbidden-package scan (ADR-005)",
         "",
         *format_forbidden_scan(forbidden_scan),
         "",

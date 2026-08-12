@@ -9,7 +9,7 @@ capability nobody can exercise.
 
 Nothing here deletes anything. It reads `git ls-files`, reads every tracked
 Markdown file, and writes one report. `git filter-repo` is the user's action
-(CLAUDE.md reserves history rewrites), so this script deliberately cannot
+(history rewrites require an explicit owner-only procedure), so this script deliberately cannot
 perform it.
 
 REFERENCED means "a tracked .md links to it". Deliberately not "any tracked

@@ -1,4 +1,4 @@
-"""Tests for the ADR-005 / PLAN_PHASE2.md M20 forbidden-package checker.
+"""Tests for the ADR-005 forbidden-package checker.
 
 The thing this file exists to prevent is a checker that can only say "clean". The
 predecessor of `scripts/check_forbidden_licences.py` was a string constant in the

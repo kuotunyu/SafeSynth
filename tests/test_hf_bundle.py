@@ -49,7 +49,6 @@ def test_publication_files_use_the_selected_hugging_face_owner() -> None:
     publication_files = (
         "README.md",
         "publishing/RELEASE_NOTES_v1.0.0.md",
-        "publishing/OWNER_PUBLISH_RUNBOOK.md",
         "publishing/huggingface/dataset/README.md",
         "publishing/huggingface/model/README.md",
     )

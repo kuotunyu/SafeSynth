@@ -378,7 +378,7 @@ FIRST VIEWPORT: Product identity, image/video navigation, real comparison, plain
 language verdict, upload action, and latency evidence without scrolling.
 FORM: User-pinned evidence stage; concept seed c7cf1f99.
 FINISH: Unreviewed and undocumented is unfinished; this build ends with browser
-verification, the finish verdict, and DESIGN.md.
+verification and an explicit finish verdict.
 -->
 <header class="ss-product-bar">
   <div class="ss-brand">

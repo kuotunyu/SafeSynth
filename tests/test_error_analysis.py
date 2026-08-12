@@ -373,7 +373,7 @@ def test_the_outcome_order_puts_the_cost_categories_where_they_are_read() -> Non
     tables are read top-down. `new_false_positive` sits third, next to the
     `fixed_*` pair it has to be compared against; pushed to the bottom of the
     table it reads as an afterthought, which is the presentational half of the
-    selective reporting CLAUDE.md forbids."""
+    selective reporting the experiment protocol forbids."""
 
     assert ea.OUTCOMES == (
         "fixed_false_negative",
@@ -1152,12 +1152,12 @@ def test_render_comparison_grid_writes_a_small_png(tmp_path: Path) -> None:
     )
     assert written == destination
     assert destination.is_file()
-    # CLAUDE.md keeps only small images in the project folder.
+    # The public repository keeps only small images.
     assert destination.stat().st_size < 400_000
 
 
 def test_a_full_grid_stays_inside_the_repo_size_budget(tmp_path: Path) -> None:
-    """CLAUDE.md keeps only small images in the project folder, and four of these
+    """The public repository keeps only small images, and four of these
     grids ship together.
 
     Worst case on purpose: twelve items over per-pixel-noise images, which is

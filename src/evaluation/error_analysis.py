@@ -28,7 +28,7 @@ and the best arm missed is none of them: it is not "neither got it right". That
 case is `new_false_negative`, the recall-side twin of `new_false_positive`, and
 it is counted in every counts table this module renders. Dropping it would leave
 a hole exactly where a synthetic-data regression would fall, which is the
-failure mode CLAUDE.md's ban on selective reporting is about. Figures are still
+failure mode the selective-reporting guard is designed to prevent. Figures are still
 rendered only for the configured categories.
 
 Every analysis threshold comes from `configs/evaluation.yaml`. The rendering
@@ -99,7 +99,7 @@ OUTCOMES = (
 
 # Categories that may never be dropped from a rendered report. Synthetic data
 # buys recall by spending precision; a report that shows only what it fixed is
-# the selective reporting CLAUDE.md forbids.
+# selective reporting.
 MANDATORY_CATEGORIES = (NEW_FALSE_POSITIVE,)
 
 ANCHOR_GROUND_TRUTH = "ground_truth"
@@ -139,7 +139,7 @@ DEFAULT_PAYLOAD_PATH = PROJECT_ROOT / "reports" / "error_analysis.json"
 # Figure geometry only. Changing any of these changes how a grid looks and cannot
 # change a single number in the report, which is why they live here and not in
 # configs/evaluation.yaml. Sized to keep a 12-sample grid comfortably inside the
-# few-hundred-kilobyte range CLAUDE.md allows in the project folder.
+# few-hundred-kilobyte range allowed in the public repository.
 CROP_ZOOM = 3.0
 MIN_CROP_PX = 48.0
 # Two ITEMS (four panels) per row, not three. Each cell carries a three-line
@@ -470,7 +470,7 @@ def assert_reportable_categories(categories: Sequence[str]) -> None:
     """Refuse a category list that cannot honestly be rendered.
 
     `new_false_positive` is structurally mandatory. A grid that shows only what
-    the best arm fixed is an advertisement, and CLAUDE.md forbids selective
+    the best arm fixed is an advertisement, and the protocol forbids selective
     reporting outright, so every path that could produce a report goes through
     this function rather than trusting the caller to have read the rule.
     """
@@ -497,7 +497,7 @@ def assert_reportable_categories(categories: Sequence[str]) -> None:
         raise ErrorAnalysisConfigError(
             f"error_analysis.categories omits {missing}. Those categories carry the COST "
             "of synthetic data; a report without them shows only the benefit, which is "
-            "the selective reporting CLAUDE.md forbids. Refusing to render."
+            "the experiment protocol forbids selective reporting. Refusing to render."
         )
 
 
@@ -2144,7 +2144,7 @@ def _negative_result_section(analysis: ErrorAnalysis) -> list[str]:
                 f"**No synthetic arm beats `{verdict.baseline_arm}` on `{verdict.metric}`.** "
                 "This is the negative-result path. Per docs/experiment_protocol.md §7 the "
                 "result is reported as it is and the following checklist is walked; "
-                "CLAUDE.md forbids hiding it or quietly reporting a different metric."
+                "The experiment protocol forbids hiding it or quietly reporting a different metric."
             ),
             "",
         ]

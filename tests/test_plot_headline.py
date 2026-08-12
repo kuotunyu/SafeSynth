@@ -1,6 +1,6 @@
 """The headline figure's data selection, which is where it can lie quietly.
 
-The picture itself is checked by eye (CLAUDE.md). What is pinned here is which
+The picture itself is checked by eye. What is pinned here is which
 ROWS reach it. detection_metrics.csv carries the same metric names on four
 splits - `test` plus three scenario slices - so selecting by metric name alone
 plots a slice while the caption says Test, and nothing raises.

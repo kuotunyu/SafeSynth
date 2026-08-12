@@ -464,7 +464,7 @@ def test_crowded_slice_qualifier_and_near_miss() -> None:
 
 
 def test_crowded_slice_does_not_count_person() -> None:
-    """CLAUDE.md: `person` must never carry load in a decision. This is a decision.
+    """ADR-003: `person` must never carry load in a decision. This is a decision.
 
     On the real frozen Test split 8 of the 160 crowded images reached the
     threshold only because their `person` boxes were counted (image ids 4170,

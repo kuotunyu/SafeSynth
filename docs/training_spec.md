@@ -1,6 +1,5 @@
 # Training Spec — RT-DETRv2 四組對照訓練
 
-> **Phase 2。** 對應里程碑 M15–M16、M21，見 [PLAN_PHASE2.md](../PLAN_PHASE2.md)。
 > 協定層見 [experiment_protocol.md](experiment_protocol.md)、指標見 [evaluation_spec.md](evaluation_spec.md)。
 > **所有數值都在 [`configs/training.yaml`](../configs/training.yaml)，本文件只寫需求與判定式。**
 
@@ -144,9 +143,8 @@ config 裡沒有 `freeze_backbone` 旗標，只有 `freeze_backbone_batch_norms`
 在原生 Windows 的 4090 上以最小步數跑通並存出 checkpoint，確認能重新載回。
 **smoke test 沒過不准上 Colab**——在 Colab 上除錯又慢又燒額度。
 
-**TRAIN-14 — 交接文件。**
-M15 完成時 `instructions_for_me.md` 必須寫到「照做就行」：
-notebooks 複製到 Drive 的哪個路徑、從 Drive 開啟、Runtime 選型、
+**TRAIN-14 — Colab 執行說明。**
+執行說明必須具體到「照做就行」：notebooks 複製到 Drive 的哪個路徑、從 Drive 開啟、Runtime 選型、
 需要的 Secrets 名稱、預估時數與 compute units、
 跑完要下載哪些檔案放回 `results/colab/` 的哪個路徑。
 
@@ -154,7 +152,7 @@ notebooks 複製到 Drive 的哪個路徑、從 Drive 開啟、Runtime 選型、
 
 ## 4. 產出回收與盤點
 
-**TRAIN-15 — 對照 `instructions_for_me.md` 的預期清單逐項確認，缺檔就停下來給清單。**
+**TRAIN-15 — 對照執行說明的預期產物逐項確認，缺檔就停下來列出清單。**
 不要用假設硬做。
 
 **TRAIN-16 — 所有表格數字一律從 raw 輸出（log / metrics 檔）重新聚合計算**，
@@ -228,8 +226,7 @@ A100 的 CU 成本高約 55%、速度快約 2.2 倍，只在趕時間或一直�
 Colab 上經常是 **dataloader 受限而非 GPU 受限**，T4 尤其如此。
 **第一次跑完就把實際值回填 `configs/training.yaml`**——第一次的估計一定不準。
 
-預估用量表在 `configs/training.yaml` 的 `budget`，並在 M15 的
-`instructions_for_me.md` 中給出實際的 per-run 估計。
+預估用量表在 `configs/training.yaml` 的 `budget`，每次執行前另給出實際的 per-run 估計。
 
 **規則**：
 - **實際跑之前先把預估用量算給使用者看**

@@ -1,6 +1,5 @@
 # Release Spec — Demo、README 與發佈
 
-> **Phase 2。** 對應里程碑見 [PLAN_PHASE2.md](../PLAN_PHASE2.md)。
 > 指標定義見 [evaluation_spec.md](evaluation_spec.md)。
 > **發佈流程本身不在這裡**——那是個人 skill `publish-repo` 的職責，
 > 本文件只規範「發佈前必須備妥什麼」。
@@ -73,8 +72,8 @@ SHEL5K 重標同樣 5,000 張圖得到 75,570 個標註 vs 原版 25,502，約 2
 五組（此處四組）對照協定本質上就是相對比較，正好對症。
 
 ### PUB-03 — 說明為什麼是四組不是五組
-CLAUDE.md 的實驗鐵律寫五組，其中第五組「Full-real 上限」標了「適用時」。
-SafeSynth 的 Real-only **本來就吃全部真實 Train**，沒有更高的真實資料上限可言，
+第五組「Full-real 上限」只適用於 Real-only 是縮減子集的實驗。SafeSynth 的 Real-only
+**本來就吃全部真實 Train**，沒有更高的真實資料上限可言，
 所以第五組不適用。**README 要主動說明這件事**，否則讀者會以為漏做一組。
 
 ### PUB-04 — 數字可追溯
@@ -120,10 +119,8 @@ HF card ↔ GitHub README 互相連結（`publish-repo` gate 9 的要求）。
 
 ### PUB-09 — 呼叫個人 skill `publish-repo`
 **不要在這個 repo 內重寫發佈流程**：
-已有的個人 skill 涵蓋洩漏掃描、體積檢查、必備檔案、CI、數字可追溯性、
-stale 文件偵測、commit 切分、tag/Release、INDEX.md 更新。
-而且**同名時個人 skill 會覆蓋專案 skill**，重寫也不會生效
-（見 [skills_roadmap.md](skills_roadmap.md)）。
+維護者的 publishing workflow 涵蓋洩漏掃描、體積檢查、必備檔案、CI、數字可追溯性、
+stale 文件偵測、commit 切分與 tag/Release；repo 內只保留可公開驗證的產物契約。
 
 ### PUB-10 — 本 repo 自己要先備妥的
 - `.github/workflows/ci.yml`：至少 `uv sync --locked` → `pytest`

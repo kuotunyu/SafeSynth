@@ -1,6 +1,6 @@
 """Measure this machine's training speed, so a schedule can be stated instead of guessed.
 
-CLAUDE.md forbids reporting hours derived from "roughly N times slower than X".
+The reporting contract forbids hours derived from "roughly N times slower than X".
 That rule exists because it was broken once: the Colab estimate was extrapolated
 at 2-2.5x and came in at 3x, which turned a stated 4-5 hours into an overnight
 job nobody was warned about. Every number this script prints is measured here.

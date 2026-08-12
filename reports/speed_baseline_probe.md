@@ -106,7 +106,7 @@ ADR-005 forbids AGPL-3.0 detector stacks in this repository: importing one would
 
 Only the nano / small / medium / base / large RF-DETR variants are Apache-2.0. XL and 2XL are PML-1.0 and must not be used here.
 
-### Forbidden-package scan (PLAN_PHASE2.md M20)
+### Forbidden-package scan (ADR-005)
 
 ADR-005 forbids the AGPL-3.0 detector stack because importing it would make the importing file a derivative work. The counts below are the return value of `scripts/check_forbidden_licences.py`, a standalone checker that exits non-zero when it finds a match - they are not a stored sentence. The search term is assembled from fragments at run time so the literal appears in no source file, which is why NO file is exempt from the scan, the checker included.
 

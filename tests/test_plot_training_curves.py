@@ -1,6 +1,6 @@
 """Curve re-aggregation: the numbers, not the pixels.
 
-The figure itself is checked by eye (CLAUDE.md requires it). What is worth
+The figure itself is checked by eye. What is worth
 pinning here is everything the figure and its summary table are derived from,
 because a wrong best-step or a decay computed the wrong way round would produce
 a plausible-looking chart that says the opposite of the truth.

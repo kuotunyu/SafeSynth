@@ -6,7 +6,6 @@
 > 具體怎麼做見：[training_spec.md](training_spec.md)（`TRAIN-*`）、
 > [evaluation_spec.md](evaluation_spec.md)（`EVAL-*`）、
 > [release_spec.md](release_spec.md)（`DEMO-*`、`PUB-*`）。
-> 里程碑見 [PLAN_PHASE2.md](../PLAN_PHASE2.md)。
 
 ---
 
@@ -25,8 +24,7 @@
 
 ### 為什麼沒有第五組「Full-real 上限」
 
-CLAUDE.md 的通用實驗鐵律列了第五組並標註「適用時」。**本專案不適用**：
-那一組的用途是「當 Real-only 是刻意縮減的 few-shot 子集時，
+第五組「Full-real 上限」只適用於 Real-only 是刻意縮減的 few-shot 子集時，
 拿完整真實資料當作能力上限來參照」。
 SafeSynth 的 **Real-only 本來就吃全部真實 Train**，沒有更高的真實資料上限存在。
 

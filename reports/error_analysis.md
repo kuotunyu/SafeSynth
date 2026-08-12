@@ -111,7 +111,7 @@ Headline metric: `eval_map`.
 | `filtered_syn` | 0.3200 | -0.0364 |
 | `unfiltered_syn` | 0.2988 | -0.0577 |
 
-**No synthetic arm beats `real_only` on `eval_map`.** This is the negative-result path. Per docs/experiment_protocol.md §7 the result is reported as it is and the following checklist is walked; CLAUDE.md forbids hiding it or quietly reporting a different metric.
+**No synthetic arm beats `real_only` on `eval_map`.** This is the negative-result path. Per docs/experiment_protocol.md §7 the result is reported as it is and the following checklist is walked; selective reporting or silently switching metrics is not allowed.
 
 | # | question | where the evidence is |
 |---:|---|---|

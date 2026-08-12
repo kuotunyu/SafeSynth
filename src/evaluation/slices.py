@@ -338,7 +338,7 @@ def small_object_images(
 def primary_instance_count(sample: Sample, *, config: SliceConfig | None = None) -> int:
     """Instances of `metrics.primary_classes` on one image.
 
-    `person` is excluded on purpose. CLAUDE.md forbids that class carrying load
+    `person` is excluded on purpose. ADR-003 forbids that class carrying load
     in any decision, and ADR-003 records that its annotations are the least
     complete in the dataset, so letting it push an image over a threshold would
     define a slice on the strength of the labels we trust least.
@@ -734,8 +734,8 @@ def render_profile_markdown(profile: Mapping[str, Any]) -> str:
             (
                 f"- `crowded` — at least {thresholds['slice_crowded_min_instances']} annotated "
                 + " + ".join(f"`{name}`" for name in thresholds["primary_classes"])
-                + " instances. **`person` is deliberately not counted.** CLAUDE.md "
-                "forbids that class carrying load in any decision and ADR-003 records "
+                + " instances. **`person` is deliberately not counted.** ADR-003 "
+                "forbids that class carrying load in any decision and records "
                 "its annotations as the least complete in the dataset, so counting it "
                 "would admit images to this slice on the strength of the labels we "
                 "trust least."

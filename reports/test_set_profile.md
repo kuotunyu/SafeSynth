@@ -33,7 +33,7 @@ Half-open `[low, high)` in 416-space px²: `small` [0, 1024), `medium` [1024, 92
 Slices are **not** mutually exclusive; one image can be in all three. Rules, all config-driven:
 
 - `small_object` — at least 1 box(es) in the `small` bucket
-- `crowded` — at least 8 annotated `helmet` + `head` instances. **`person` is deliberately not counted.** CLAUDE.md forbids that class carrying load in any decision and ADR-003 records its annotations as the least complete in the dataset, so counting it would admit images to this slice on the strength of the labels we trust least.
+- `crowded` — at least 8 annotated `helmet` + `head` instances. **`person` is deliberately not counted.** ADR-003 records its annotations as the least complete in the dataset, so counting it would admit images to this slice on the strength of the labels we trust least.
 - `low_light` — the darkest 25% of images by mean BT.601 luma (rank based, so the count is exactly `floor(n * pct / 100)`)
 
 | Slice | Images | % of Test |

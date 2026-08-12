@@ -1,7 +1,7 @@
 # PUB-10: lint and the full test suite on every push and pull request.
 #
 # WHY windows-latest AND NOT ubuntu-latest. This project is Windows-native by
-# decision (ADR-002, CLAUDE.md), and the test suite encodes that. The clearest
+# decision (ADR-002), and the test suite encodes that. The clearest
 # case is tests/test_paths.py, which asserts that the configured data root
 # "D:/bulk" resolves unchanged: PureWindowsPath("D:/bulk").is_absolute() is
 # True, PurePosixPath("D:/bulk").is_absolute() is False, so on Linux the loader
@@ -82,7 +82,7 @@ jobs:
       - name: Verify the README against results/
         run: uv run python -m scripts.verify_readme
 
-      # PLAN_PHASE2 M20 / ADR-005: importing an AGPL-3.0 detector would make the
+# ADR-005: importing an AGPL-3.0 detector would make the
       # importing file a derivative work and break the MIT licence. The scanner
       # exits non-zero on a hit and is proved in both directions by
       # tests/test_forbidden_licences.py.

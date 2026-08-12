@@ -1,6 +1,6 @@
 """The slope arithmetic behind every hours figure this project reports.
 
-CLAUDE.md forbids extrapolated schedules because one was wrong by 3x and cost
+The reporting contract forbids extrapolated schedules because one was wrong by 3x and cost
 the user a night. The replacement is this calculation, so it had better be
 right: a factor-of-two error here produces a confident, measured-looking, wrong
 number - the exact failure mode the rule exists to prevent.

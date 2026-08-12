@@ -41,7 +41,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-# PLAN_PHASE2.md M23 invokes this as `uv run python scripts/verify_readme.py`,
+# The release gate may invoke this as `uv run python scripts/verify_readme.py`,
 # which puts scripts/ - not the repository root - on sys.path, so `import src`
 # would fail. Prepending the root keeps BOTH that invocation and
 # `python -m scripts.verify_readme` working.
@@ -90,14 +90,14 @@ _GENERIC_ACCOUNT_NAMES = frozenset(
 # supposed to be there.
 _PUBLISHED_EMAIL_DOMAINS = frozenset({"users.noreply.github.com"})
 
-# The exact list already in use in this repository: PLAN.md M0 requires a scan
+# The exact list already in use in this repository: the release gate requires a scan
 # for "words expressing an unfinished state", and the publish-repo skill spells
 # that scan out as this grep. Matched case-sensitively, exactly as that grep
 # runs, so an English word like "todo" inside a URL is not a false positive.
 FORBIDDEN_WORDS = ("下一步", "尚未", "待驗收", "待確認", "TODO", "待補")
 
-# docs/worklog.md keeps a standing "what the user still has to do" bullet. That
-# bullet is a handover queue, not an unfinished document, so it is exempt - and
+# Historical maintainer worklogs may keep a standing "what the user still has to do"
+# bullet. That queue is not an unfinished document, so it is exempt - and
 # only it: the exemption starts at this marker and ends at the next top-level
 # bullet, heading or rule, so a placeholder elsewhere in the worklog is caught.
 WORKLOG_RELATIVE_PATH = "docs/worklog.md"
@@ -186,7 +186,7 @@ class DisclosureTopic:
 
 
 # The literals below are not tunable parameters; they are the exact strings the
-# disclosure has to contain, taken from CLAUDE.md's project table (the SHEL5K
+# disclosure has to contain, taken from the release contract (the SHEL5K
 # re-annotation counts) and from docs/release_spec.md PUB-02/PUB-03. Writing
 # them anywhere but here would mean checking a different claim than the one the
 # specification names.
@@ -755,7 +755,7 @@ def worklog_exempt_lines(lines: Sequence[str]) -> set[int]:
 def check_forbidden_words(
     documents: Mapping[str, str], words: Sequence[str] = FORBIDDEN_WORDS
 ) -> list[Failure]:
-    """PLAN.md M0: no "unfinished" placeholder survives into published prose."""
+    """No "unfinished" placeholder survives into published prose."""
 
     failures: list[Failure] = []
     for name in sorted(documents):

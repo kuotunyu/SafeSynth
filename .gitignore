@@ -92,6 +92,29 @@ build/
 .superpowers/
 .vscode/
 .idea/
-.claude/settings.local.json
+.claude/
+.impeccable/
+.githooks/
 Thumbs.db
 desktop.ini
+
+# --- Local collaboration and project-management records ---
+# These files are useful in the maintainer's workspace but are not part of the
+# public research package.
+/CLAUDE.md
+/DESIGN.md
+/HANDOFF.md
+/PLAN.md
+/PLAN_PHASE2.md
+/PRODUCT.md
+/instructions_for_me.md
+/docs/superpowers/
+/docs/skills_roadmap.md
+/docs/worklog.md
+/docs/worklog_archive.md
+/publishing/OWNER_PUBLISH_RUNBOOK.md
+/reports/phase1_preflight.json
+/reports/phase1_preflight.md
+/reports/repo_slimming_plan.md
+/scripts/audit_phase1_handoff.py
+/tests/test_handoff_audit.py
