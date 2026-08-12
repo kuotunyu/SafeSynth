@@ -16,6 +16,7 @@ from src.inference.demo_ui import (
     format_evidence_html,
     format_source_html,
     format_summary_html,
+    format_video_summary_html,
     load_example_image,
 )
 
@@ -166,3 +167,27 @@ def test_demo_css_pins_readable_type_and_responsive_evidence_layout() -> None:
     assert "font-size: 16px" in css
     assert "@media (max-width: 720px)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
+
+
+def test_video_summary_is_localized_and_reports_truncation() -> None:
+    html = format_video_summary_html(
+        n_frames=120,
+        truncated=True,
+        mean_compliance_rate=0.625,
+    )
+
+    assert "影片分析完成" in html
+    assert "120 frames" in html
+    assert "62%" in html
+    assert "已達處理上限" in html
+
+
+def test_video_summary_does_not_invent_a_zero_rate() -> None:
+    html = format_video_summary_html(
+        n_frames=4,
+        truncated=False,
+        mean_compliance_rate=None,
+    )
+
+    assert "不適用" in html
+    assert "0%" not in html

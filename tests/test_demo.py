@@ -353,6 +353,26 @@ def test_a_clip_is_annotated_frame_by_frame_and_written_out(tmp_path) -> None:
     assert not result.truncated
 
 
+def test_video_progress_is_monotonic_and_ends_at_decoded_frame_count(tmp_path) -> None:
+    import app
+
+    clip = _write_clip(tmp_path / "in.mp4", 5)
+    updates: list[tuple[int, int | None]] = []
+
+    result = app.annotate_video(
+        _FakeDetector(),
+        clip,
+        0.07,
+        tmp_path / "out.mp4",
+        progress_callback=lambda current, total: updates.append((current, total)),
+    )
+
+    assert result is not None
+    assert [current for current, _total in updates] == [1, 2, 3, 4, 5]
+    assert updates[-1][0] == result.n_frames
+    assert all(total == 5 for _current, total in updates)
+
+
 def test_a_file_that_decodes_nothing_returns_none_rather_than_raising(tmp_path) -> None:
     """What the UI hits when handed something that is not a video."""
 

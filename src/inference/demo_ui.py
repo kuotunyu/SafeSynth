@@ -105,6 +105,36 @@ def format_error_html(message: str) -> str:
     return f'<div class="ss-error" role="alert">{escape(message)}</div>'
 
 
+def format_video_summary_html(
+    *,
+    n_frames: int,
+    truncated: bool,
+    mean_compliance_rate: float | None,
+) -> str:
+    """Render a clip result without implying that missing verdicts equal zero."""
+
+    if mean_compliance_rate is None:
+        rate = "不適用"
+        rate_detail = "沒有可判定的安全帽佩戴狀態"
+    else:
+        rate = f"{round(mean_compliance_rate * 100)}%"
+        rate_detail = "平均合規率"
+    limit = (
+        "<strong>已達處理上限</strong>，較長影片只分析前段。"
+        if truncated
+        else "已完成全部可解碼 frames。"
+    )
+    return f"""
+<section class="ss-video-summary" aria-live="polite">
+  <div>
+    <h2>影片分析完成</h2>
+    <p>已處理 <strong>{n_frames} frames</strong>；{limit}</p>
+  </div>
+  <div class="ss-video-rate"><strong>{rate}</strong><span>{rate_detail}</span></div>
+</section>
+""".strip()
+
+
 def load_example_image(path: Path) -> np.ndarray:
     """Load a shipped example with camera orientation applied and RGB pinned."""
 

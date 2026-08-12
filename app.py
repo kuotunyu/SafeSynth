@@ -28,6 +28,7 @@ import argparse
 import json
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,6 +45,7 @@ from src.inference.demo_ui import (
     format_evidence_html,
     format_source_html,
     format_summary_html,
+    format_video_summary_html,
     load_example_image,
 )
 from src.training.ingest import latest_checkpoint
@@ -213,10 +215,18 @@ class VideoResult:
     e2e_ms: float
     n_frames: int
     truncated: bool
+    mean_compliance_rate: float | None
 
 
 # spec: DEMO-02
-def annotate_video(detector, source, threshold: float, destination: Path | None = None):
+def annotate_video(
+    detector,
+    source,
+    threshold: float,
+    destination: Path | None = None,
+    *,
+    progress_callback: Callable[[int, int | None], None] | None = None,
+):
     """Annotate up to MAX_VIDEO_FRAMES of a clip; None if nothing decoded.
 
     Lifted out of the Gradio callback so it can be exercised without a browser.
@@ -229,6 +239,12 @@ def annotate_video(detector, source, threshold: float, destination: Path | None 
 
     capture = cv2.VideoCapture(str(source))
     fps = capture.get(cv2.CAP_PROP_FPS) or 12.0
+    raw_total = capture.get(cv2.CAP_PROP_FRAME_COUNT)
+    progress_total = (
+        min(int(raw_total), MAX_VIDEO_FRAMES)
+        if np.isfinite(raw_total) and raw_total > 0
+        else None
+    )
     frames, rates, model_times, e2e_times = [], [], [], []
     while len(frames) < MAX_VIDEO_FRAMES:
         ok, frame = capture.read()
@@ -241,6 +257,8 @@ def annotate_video(detector, source, threshold: float, destination: Path | None 
         e2e_times.append(e2e_ms)
         if summary.compliance_rate is not None:
             rates.append(summary.compliance_rate)
+        if progress_callback is not None:
+            progress_callback(len(frames), progress_total)
     capture.release()
     if not frames:
         return None
@@ -260,7 +278,8 @@ def annotate_video(detector, source, threshold: float, destination: Path | None 
     writer.release()
 
     truncated = len(frames) == MAX_VIDEO_FRAMES
-    mean_rate = f"{sum(rates) / len(rates):.2f}" if rates else "n/a"
+    mean_compliance_rate = sum(rates) / len(rates) if rates else None
+    mean_rate = f"{mean_compliance_rate:.2f}" if mean_compliance_rate is not None else "n/a"
     return VideoResult(
         path=out,
         note=(
@@ -272,6 +291,7 @@ def annotate_video(detector, source, threshold: float, destination: Path | None 
         e2e_ms=float(np.median(e2e_times)),
         n_frames=len(frames),
         truncated=truncated,
+        mean_compliance_rate=mean_compliance_rate,
     )
 
 
@@ -315,20 +335,32 @@ def build_interface(detector: Detector, threshold: float):
     def on_reset():
         return presentation_outputs(default_presentation)
 
-    def on_video(path):
+    def on_video(path, progress=gr.Progress()):  # noqa: B008 - Gradio injection API.
         if not path:
             return None, "", ""
-        result = annotate_video(detector, path, threshold)
+        try:
+            result = annotate_video(
+                detector,
+                path,
+                threshold,
+                progress_callback=lambda current, total: progress(
+                    (current, total),
+                    desc="正在逐幀分析影片",
+                    unit="frames",
+                ),
+            )
+        except Exception as error:  # noqa: BLE001 - recover at the browser boundary.
+            print(f"video inference failed: {type(error).__name__}: {error}", file=sys.stderr)
+            message = "影片分析失敗。請確認檔案可播放，再重新執行。"
+            return path, format_error_html(message), ""
         if result is None:
             message = "無法從這個影片讀取任何 frames。請改用一般 MP4 檔案再試一次。"
-            return None, format_error_html(message), ""
-        video_summary = f"""
-<section class="ss-video-summary" aria-live="polite">
-  <h2>影片分析完成</h2>
-  <p>已處理 <strong>{result.n_frames}</strong> frames{f'，並依上限截取前 {MAX_VIDEO_FRAMES} frames' if result.truncated else ''}。</p>
-</section>
-""".strip()
-        return str(result.path), video_summary, format_evidence_html(
+            return path, format_error_html(message), ""
+        return str(result.path), format_video_summary_html(
+            n_frames=result.n_frames,
+            truncated=result.truncated,
+            mean_compliance_rate=result.mean_compliance_rate,
+        ), format_evidence_html(
             result.model_ms,
             result.e2e_ms,
             detector,
