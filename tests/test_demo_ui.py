@@ -98,6 +98,7 @@ def test_example_loader_applies_rgb_conversion(tmp_path) -> None:
     assert isinstance(loaded, np.ndarray)
     assert loaded.shape == (7, 9, 3)
     assert loaded.dtype == np.uint8
+    assert loaded.flags.writeable
 
 
 def test_curated_example_records_its_released_dataset_source() -> None:
@@ -165,6 +166,7 @@ def test_demo_css_pins_readable_type_and_responsive_evidence_layout() -> None:
 
     assert "font-size: 18px" in css
     assert "font-size: 16px" in css
+    assert ".ss-disclosure button span" in css
     assert "@media (max-width: 720px)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
 

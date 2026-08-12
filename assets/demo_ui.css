@@ -533,6 +533,10 @@ body,
   padding: 14px 2px !important;
 }
 
+.ss-disclosure button span {
+  font-size: 18px !important;
+}
+
 .ss-disclosure-copy {
   display: grid;
   gap: clamp(22px, 3vw, 44px);

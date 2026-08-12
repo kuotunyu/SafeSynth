@@ -153,7 +153,7 @@ def load_uploaded_image(path: str | Path) -> np.ndarray:
 
     try:
         with Image.open(path) as image:
-            return np.asarray(ImageOps.exif_transpose(image).convert("RGB"))
+            return np.asarray(ImageOps.exif_transpose(image).convert("RGB")).copy()
     except (OSError, ValueError, UnidentifiedImageError) as error:
         raise DemoInputError("無法讀取這個影像。請使用 JPG、PNG 或 WEBP。") from error
 

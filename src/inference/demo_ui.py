@@ -139,4 +139,4 @@ def load_example_image(path: Path) -> np.ndarray:
     """Load a shipped example with camera orientation applied and RGB pinned."""
 
     with Image.open(path) as image:
-        return np.asarray(ImageOps.exif_transpose(image).convert("RGB"))
+        return np.asarray(ImageOps.exif_transpose(image).convert("RGB")).copy()
