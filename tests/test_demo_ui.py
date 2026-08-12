@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from src.inference.demo import FrameSummary
@@ -28,6 +29,19 @@ class _DetectorMetadata:
     device = "cpu"
     dtype = "float32"
     checkpoint = Path("safesynth-rtdetrv2-r18")
+
+
+class _FakeDetector(_DetectorMetadata):
+    def __call__(self, _image):
+        return (
+            [
+                {"category_id": 0, "score": 0.9, "bbox": [5, 5, 15, 15]},
+                {"category_id": 1, "score": 0.8, "bbox": [30, 5, 15, 15]},
+                {"category_id": 2, "score": 0.7, "bbox": [10, 30, 30, 25]},
+            ],
+            191.4,
+            198.2,
+        )
 
 
 def test_summary_html_leads_with_plain_language_counts() -> None:
@@ -87,3 +101,68 @@ def test_example_loader_applies_rgb_conversion(tmp_path) -> None:
 
 def test_curated_example_records_its_released_dataset_source() -> None:
     assert DEFAULT_EXAMPLE_SOURCE == "images/hard_hat_workers863.png"
+
+
+def test_present_image_returns_before_after_and_real_metrics() -> None:
+    import app
+
+    image = np.zeros((64, 64, 3), dtype=np.uint8)
+
+    result = app.present_image(_FakeDetector(), image, 0.07, source_label="使用者影像")
+
+    assert result.comparison[0] is image
+    assert result.comparison[1].shape == image.shape
+    assert "使用者影像" in result.summary_html
+    assert "1 位正確佩戴" in result.summary_html
+    assert "198 ms" in result.evidence_html
+    assert result.error_html == ""
+
+
+def test_present_image_preserves_the_input_when_inference_fails() -> None:
+    import app
+
+    class _BrokenDetector(_DetectorMetadata):
+        def __call__(self, _image):
+            raise RuntimeError("model failed")
+
+    image = np.zeros((32, 48, 3), dtype=np.uint8)
+    result = app.present_image(_BrokenDetector(), image, 0.07, source_label="使用者影像")
+
+    assert result.comparison[0] is image
+    assert result.comparison[1] is image
+    assert "分析失敗" in result.error_html
+    assert "model failed" not in result.error_html
+
+
+def test_uploaded_image_loader_rejects_corrupt_files(tmp_path) -> None:
+    import app
+
+    invalid = tmp_path / "broken.png"
+    invalid.write_bytes(b"not an image")
+
+    with pytest.raises(app.DemoInputError, match="無法讀取這個影像"):
+        app.load_uploaded_image(invalid)
+
+
+def test_build_interface_exposes_the_evidence_first_surface() -> None:
+    import app
+
+    source = Path(app.__file__).read_text(encoding="utf-8")
+
+    assert "gr.ImageSlider(" in source
+    assert "gr.UploadButton(" in source
+    assert "gr.Textbox(" not in source
+    assert 'gr.Tab("圖片偵測")' in source
+    assert 'gr.Tab("影片偵測")' in source
+    assert '"研究方法與限制"' in source
+
+
+def test_demo_css_pins_readable_type_and_responsive_evidence_layout() -> None:
+    css = (Path(__file__).parents[1] / "assets" / "demo_ui.css").read_text(
+        encoding="utf-8"
+    )
+
+    assert "font-size: 18px" in css
+    assert "font-size: 16px" in css
+    assert "@media (max-width: 720px)" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css

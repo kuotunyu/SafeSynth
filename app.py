@@ -33,10 +33,19 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.evaluation.detection import load_evaluation_config
 from src.inference.demo import draw_on, drawn_boxes, summarise
+from src.inference.demo_ui import (
+    ImagePresentation,
+    format_error_html,
+    format_evidence_html,
+    format_source_html,
+    format_summary_html,
+    load_example_image,
+)
 from src.training.ingest import latest_checkpoint
 from src.training.metrics import predictions_to_coco
 
@@ -44,10 +53,15 @@ CLASS_NAMES = ("helmet", "head", "person")
 PROCESSOR_ID = "PekingU/rtdetr_v2_r18vd"
 DEFAULT_ARM = "real_only"
 MAX_VIDEO_FRAMES = 120
+DEFAULT_EXAMPLE_PATH = PROJECT_ROOT / "assets" / "demo" / "example.jpg"
 
 
 class DemoStartupError(RuntimeError):
     """Raised when the demo cannot find weights to serve."""
+
+
+class DemoInputError(ValueError):
+    """Raised when a user-selected file is not a readable image."""
 
 
 def resolve_weights(runs_root: Path, arm: str, seed: int) -> Path:
@@ -130,6 +144,48 @@ def annotate(detector: Detector, image: np.ndarray, threshold: float):
         detections, class_names=CLASS_NAMES, score_threshold=threshold
     )
     return draw_on(image, boxes), summarise(boxes), model_ms, end_to_end_ms
+
+
+def load_uploaded_image(path: str | Path) -> np.ndarray:
+    """Load a browser upload with orientation and colour channels normalized."""
+
+    try:
+        with Image.open(path) as image:
+            return np.asarray(ImageOps.exif_transpose(image).convert("RGB"))
+    except (OSError, ValueError, UnidentifiedImageError) as error:
+        raise DemoInputError("無法讀取這個影像。請使用 JPG、PNG 或 WEBP。") from error
+
+
+def present_image(
+    detector: Detector,
+    image: np.ndarray,
+    threshold: float,
+    *,
+    source_label: str,
+) -> ImagePresentation:
+    """Run inference and convert it to the four independently updated UI regions."""
+
+    try:
+        annotated, summary, model_ms, e2e_ms = annotate(detector, image, threshold)
+    except Exception as error:  # noqa: BLE001 - UI boundary preserves the upload.
+        print(f"image inference failed: {type(error).__name__}: {error}", file=sys.stderr)
+        message = "分析失敗，請重新執行；若問題持續，請查看終端機紀錄。"
+        return ImagePresentation(
+            comparison=(image, image),
+            summary_html=format_error_html(message),
+            evidence_html="",
+            source_html=format_source_html(source_label),
+            error_html=format_error_html(message),
+        )
+
+    return ImagePresentation(
+        comparison=(image, annotated),
+        summary_html=format_summary_html(summary, source_label=source_label),
+        evidence_html=format_evidence_html(
+            model_ms, e2e_ms, detector, threshold=threshold
+        ),
+        source_html=format_source_html(source_label),
+    )
 
 
 def performance_line(model_ms: float, e2e_ms: float, detector: Detector) -> str:
@@ -222,58 +278,213 @@ def annotate_video(detector, source, threshold: float, destination: Path | None 
 def build_interface(detector: Detector, threshold: float):
     import gradio as gr
 
-    def on_image(image):
-        if image is None:
-            return None, "upload an image", ""
-        annotated, summary, model_ms, e2e_ms = annotate(detector, image, threshold)
-        return annotated, summary.render(), performance_line(model_ms, e2e_ms, detector)
+    default_image = load_example_image(DEFAULT_EXAMPLE_PATH)
+    default_presentation = present_image(
+        detector,
+        default_image,
+        threshold,
+        source_label="精選範例",
+    )
+
+    def presentation_outputs(presentation: ImagePresentation):
+        return (
+            presentation.comparison,
+            presentation.summary_html,
+            presentation.evidence_html,
+            presentation.source_html,
+            presentation.error_html,
+        )
+
+    def on_image(path):
+        if not path:
+            return presentation_outputs(default_presentation)
+        try:
+            image = load_uploaded_image(path)
+        except DemoInputError as error:
+            return (
+                default_presentation.comparison,
+                default_presentation.summary_html,
+                default_presentation.evidence_html,
+                default_presentation.source_html,
+                format_error_html(str(error)),
+            )
+        return presentation_outputs(
+            present_image(detector, image, threshold, source_label="使用者影像")
+        )
+
+    def on_reset():
+        return presentation_outputs(default_presentation)
 
     def on_video(path):
         if not path:
-            return None, "upload a clip", ""
+            return None, "", ""
         result = annotate_video(detector, path, threshold)
         if result is None:
-            return None, "could not read any frame from that file", ""
-        return str(result.path), result.note, performance_line(
-            result.model_ms, result.e2e_ms, detector
+            message = "無法從這個影片讀取任何 frames。請改用一般 MP4 檔案再試一次。"
+            return None, format_error_html(message), ""
+        video_summary = f"""
+<section class="ss-video-summary" aria-live="polite">
+  <h2>影片分析完成</h2>
+  <p>已處理 <strong>{result.n_frames}</strong> frames{f'，並依上限截取前 {MAX_VIDEO_FRAMES} frames' if result.truncated else ''}。</p>
+</section>
+""".strip()
+        return str(result.path), video_summary, format_evidence_html(
+            result.model_ms,
+            result.e2e_ms,
+            detector,
+            threshold=threshold,
         )
 
-    header = f"""
-# SafeSynth — hard-hat compliance
-
-Green is a helmeted head (**compliant**), red is a bare head
-(**non-compliant**), grey is a `person` box, which carries **no verdict** —
-that class is badly annotated in this dataset and was deliberately removed from
-the compliance path.
-
-**The score threshold is {threshold:.2f}, and that is not a typo.** Across
-223,200 test detections this model's highest score is 0.2495: the ranking is
-good and the calibration is not. The operating point was selected on Validation
-against a 0.80 compliance-precision floor and then frozen.
-
-Serving `{DEFAULT_ARM}` from `{detector.checkpoint.name}` — the four-arm
-experiment found that **synthetic data did not improve detection** on this
-dataset, so the real-only weights are the best ones and those are what ships.
+    header = """
+<!--
+THESIS: Evidence before explanation; visitors see a real result before setup prose.
+OWN-WORLD: A restrained field-inspection desk: warm paper, graphite evidence stage,
+Morandi status colours, safety-yellow action, and measured technical typography.
+STORY: Result -> inspect Before/After -> understand counts -> verify execution
+conditions -> upload evidence -> open research limitations.
+FIRST VIEWPORT: Product identity, image/video navigation, real comparison, plain-
+language verdict, upload action, and latency evidence without scrolling.
+FORM: User-pinned evidence stage; concept seed c7cf1f99.
+FINISH: Unreviewed and undocumented is unfinished; this build ends with browser
+verification, the finish verdict, and DESIGN.md.
+-->
+<header class="ss-product-bar">
+  <div class="ss-brand">
+    <span class="ss-brand-mark" aria-hidden="true">SS</span>
+    <span><strong>SafeSynth</strong><small>Hard-hat compliance research demo</small></span>
+  </div>
+  <div class="ss-product-links">
+    <span class="ss-ready"><i aria-hidden="true"></i>CPU ready</span>
+    <a href="https://github.com/kuotunyu/SafeSynth" target="_blank" rel="noreferrer">GitHub</a>
+    <a href="https://huggingface.co/datasets/steven0226/safesynth-hard-hat" target="_blank" rel="noreferrer">Dataset</a>
+    <a href="https://huggingface.co/steven0226/safesynth-rtdetrv2-r18" target="_blank" rel="noreferrer">Model</a>
+  </div>
+</header>
+<section class="ss-intro">
+  <h1>先看偵測證據，<br>再讀研究結論。</h1>
+  <p>比較原始影像與模型標註，直接檢查每一位人員的安全帽佩戴狀態。所有結果使用同一個 frozen operating point。</p>
+</section>
 """
 
-    with gr.Blocks(title="SafeSynth") as interface:
-        gr.Markdown(header)
-        with gr.Tab("Image"):
-            image_in = gr.Image(type="numpy", label="upload a site photo")
-            image_out = gr.Image(label="annotated")
-            image_summary = gr.Textbox(label="frame summary", interactive=False)
-            image_perf = gr.Textbox(label="performance", interactive=False)
-            image_in.change(
-                on_image, image_in, [image_out, image_summary, image_perf]
-            )
-        with gr.Tab("Video"):
-            video_in = gr.Video(label=f"upload a clip (first {MAX_VIDEO_FRAMES} frames)")
-            video_out = gr.Video(label="annotated")
-            video_summary = gr.Textbox(label="clip summary", interactive=False)
-            video_perf = gr.Textbox(label="performance (median)", interactive=False)
-            video_in.change(
-                on_video, video_in, [video_out, video_summary, video_perf]
-            )
+    research_copy = f"""
+<div class="ss-disclosure-copy">
+  <section>
+    <h3>判定規則</h3>
+    <p><strong>helmet</strong> 代表戴安全帽的頭部，標為「已佩戴」；<strong>head</strong> 代表未戴安全帽的頭部，標為「未佩戴」。<strong>person</strong> 只用於定位，不納入合規率。</p>
+  </section>
+  <section>
+    <h3>固定 operating point</h3>
+    <p><strong>threshold {threshold:.2f}</strong> 不是輸入錯誤。模型排名能力良好但 confidence calibration 偏低；此門檻依 Validation 的 0.80 compliance-precision floor 選定，之後固定不變。</p>
+  </section>
+  <section>
+    <h3>研究結論與限制</h3>
+    <p>四組 ablation 顯示 synthetic data 在這個 dataset 上<strong>沒有改善 detection</strong>。因此 demo 使用實驗中表現最佳的 <strong>real_only</strong> weights，並公開負面結果，而不是挑選對假設有利的展示。</p>
+  </section>
+</div>
+"""
+
+    with gr.Blocks(title="SafeSynth", fill_width=True) as interface:
+        gr.HTML(header, elem_classes="ss-header-wrap")
+        with gr.Tabs(elem_classes="ss-tabs"):
+            with gr.Tab("圖片偵測"):
+                with gr.Row(elem_classes="ss-evidence-hero"):
+                    with gr.Column(scale=8, elem_classes="ss-image-stage"):
+                        image_source = gr.HTML(default_presentation.source_html)
+                        comparison = gr.ImageSlider(
+                            value=default_presentation.comparison,
+                            type="numpy",
+                            label="原始影像與模型標註比較",
+                            show_label=False,
+                            buttons=["fullscreen", "download"],
+                            height="auto",
+                            max_height=620,
+                            elem_classes="ss-comparison",
+                        )
+                        gr.HTML(
+                            '<p class="ss-slider-help"><b>Before</b> 原始影像 <span></span> 拖曳中線比較 <span></span> <b>After</b> 模型標註</p>'
+                        )
+                    with gr.Column(scale=4, elem_classes="ss-summary-panel"):
+                        image_summary = gr.HTML(default_presentation.summary_html)
+                        image_upload = gr.UploadButton(
+                            "上傳你的工地影像",
+                            file_types=["image"],
+                            file_count="single",
+                            type="filepath",
+                            variant="primary",
+                            size="lg",
+                            elem_classes="ss-upload",
+                        )
+                        image_reset = gr.Button(
+                            "回到精選範例",
+                            variant="secondary",
+                            size="lg",
+                            elem_classes="ss-reset",
+                        )
+                        image_error = gr.HTML(default_presentation.error_html)
+                image_evidence = gr.HTML(
+                    default_presentation.evidence_html,
+                    elem_classes="ss-evidence-wrap",
+                )
+                with gr.Accordion(
+                    "研究方法與限制",
+                    open=False,
+                    elem_classes="ss-disclosure",
+                ):
+                    gr.HTML(research_copy)
+
+                image_outputs = [
+                    comparison,
+                    image_summary,
+                    image_evidence,
+                    image_source,
+                    image_error,
+                ]
+                image_upload.upload(
+                    on_image,
+                    image_upload,
+                    image_outputs,
+                    show_progress="full",
+                )
+                image_reset.click(
+                    on_reset,
+                    inputs=None,
+                    outputs=image_outputs,
+                    show_progress="hidden",
+                )
+            with gr.Tab("影片偵測"):
+                gr.HTML(
+                    f"""
+<section class="ss-video-intro">
+  <h2>短影片逐幀檢查</h2>
+  <p>為維持可預測的處理時間，每次最多分析前 <strong>{MAX_VIDEO_FRAMES}</strong> frames；完成後提供標註影片與實測 latency。</p>
+</section>
+"""
+                )
+                with gr.Row(elem_classes="ss-video-workspace"):
+                    video_in = gr.Video(label="影片來源", sources=["upload"])
+                    video_out = gr.Video(label="標註結果", interactive=False)
+                video_summary = gr.HTML()
+                video_perf = gr.HTML(elem_classes="ss-evidence-wrap")
+                video_in.change(
+                    on_video,
+                    video_in,
+                    [video_out, video_summary, video_perf],
+                    show_progress="full",
+                )
+                with gr.Accordion(
+                    "研究方法與限制",
+                    open=False,
+                    elem_classes="ss-disclosure",
+                ):
+                    gr.HTML(research_copy)
+        gr.HTML(
+            """
+<footer class="ss-footer">
+  <p>SafeSynth · Controlled synthetic-data ablations for hard-hat detection</p>
+  <p>可重現的模型、資料與研究紀錄皆已公開。</p>
+</footer>
+"""
+        )
     return interface
 
 
@@ -317,7 +528,21 @@ def main(argv: list[str] | None = None) -> int:
     detector(warmup)
 
     build_interface(detector, threshold).launch(
-        server_port=args.port, share=args.share, inbrowser=False
+        server_port=args.port,
+        share=args.share,
+        inbrowser=False,
+        css_paths=PROJECT_ROOT / "assets" / "demo_ui.css",
+        footer_links=[
+            {"text": "GitHub", "url": "https://github.com/kuotunyu/SafeSynth"},
+            {
+                "text": "Dataset",
+                "url": "https://huggingface.co/datasets/steven0226/safesynth-hard-hat",
+            },
+            {
+                "text": "Model",
+                "url": "https://huggingface.co/steven0226/safesynth-rtdetrv2-r18",
+            },
+        ],
     )
     return 0
 
