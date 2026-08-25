@@ -91,12 +91,14 @@ def _normalized(text: str) -> str:
     return re.sub(r"\\+", "/", text).casefold()
 
 
-def _is_narrow_ci_runner_path(relative_path: str, normalized_line: str) -> bool:
+def _is_narrow_ci_runner_path(
+    relative_path: str, normalized_line: str, match_start: int
+) -> bool:
     normalized_path = relative_path.replace("\\", "/").casefold()
     runner_root = "".join(_CI_RUNNER_ROOT_FRAGMENTS)
     return (
         normalized_path.startswith(".github/workflows/")
-        and runner_root in normalized_line
+        and normalized_line.startswith(runner_root, match_start)
     )
 
 
@@ -114,13 +116,13 @@ def scan_text(relative_path: str, text: str) -> list[str]:
                 break
         if specific_marker_found:
             continue
-        if (
-            _DRIVE_ROOT_PATTERN.search(normalized)
-            and not _is_narrow_ci_runner_path(relative_path, normalized)
-        ):
-            findings.append(
-                f"{relative_path}:{line_number}: absolute-windows-drive-path"
-            )
+        for drive_match in _DRIVE_ROOT_PATTERN.finditer(normalized):
+            if _is_narrow_ci_runner_path(
+                relative_path, normalized, drive_match.start()
+            ):
+                continue
+            findings.append(f"{relative_path}:{line_number}: absolute-windows-drive-path")
+            break
     return findings
 
 

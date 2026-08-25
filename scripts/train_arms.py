@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import socket
 from collections.abc import Callable, Mapping, Sequence
@@ -171,6 +172,20 @@ _PUBLIC_PATH_FIELDS = frozenset(
         "summary",
     }
 )
+_FAILURE_ERROR_CODE = "training_arm_failed"
+_REDACTED_ERROR_MESSAGE = "redacted_non_portable_path"
+_WINDOWS_ABSOLUTE_PATH_PATTERN = re.compile(
+    r"(?<![a-z0-9])[a-z]:[\\/]+", re.IGNORECASE
+)
+
+
+def _safe_failure_message(value: Any) -> str:
+    if not isinstance(value, str):
+        return _REDACTED_ERROR_MESSAGE
+    normalized = re.sub(r"\\+", "/", value)
+    if _WINDOWS_ABSOLUTE_PATH_PATTERN.search(normalized):
+        return _REDACTED_ERROR_MESSAGE
+    return value
 
 
 def _portable_payload(
@@ -183,7 +198,7 @@ def _portable_payload(
     """Serialize path-valued public payload fields at the publication boundary."""
 
     if isinstance(value, Mapping):
-        return {
+        portable = {
             str(key): _portable_payload(
                 item,
                 project_root=project_root,
@@ -192,6 +207,11 @@ def _portable_payload(
             )
             for key, item in value.items()
         }
+        if portable.get("status") == "failed":
+            if not isinstance(portable.get("error_type"), str):
+                portable["error_type"] = "UnknownError"
+            portable["error_code"] = _FAILURE_ERROR_CODE
+        return portable
     if isinstance(value, (list, tuple)):
         return [
             _portable_payload(
@@ -202,6 +222,8 @@ def _portable_payload(
             )
             for item in value
         ]
+    if field == "error":
+        return _safe_failure_message(value)
     if field not in _PUBLIC_PATH_FIELDS or not isinstance(value, (str, Path)):
         return value
     rendered = str(value)
@@ -698,6 +720,7 @@ def run_jobs(
             summary["arms"][job.arm] = {
                 "status": "failed",
                 "error_type": type(error).__name__,
+                "error_code": _FAILURE_ERROR_CODE,
                 "error": str(error),
                 "finished_at_utc": _utc_now(),
             }

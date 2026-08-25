@@ -28,6 +28,16 @@ def _external_drive_path(*, slash: str = "\\", drive: str = "D") -> str:
     return f"{drive}:{slash}sdg-data{slash}02-safesynth{slash}artifact.json"
 
 
+def _ci_runner_path(*, slash: str) -> str:
+    return (
+        f"C:{slash}Users{slash}runneradmin{slash}work{slash}project{slash}checkout"
+    )
+
+
+def _private_drive_path(*, slash: str, drive: str) -> str:
+    return f"{drive}:{slash}private{slash}release{slash}artifact.json"
+
+
 @pytest.mark.parametrize(
     ("text", "marker"),
     [
@@ -105,10 +115,26 @@ def test_generic_drive_rule_includes_scripts_and_source(path: str) -> None:
     ]
 
 
-def test_ci_runner_drive_path_is_not_a_public_artifact_finding() -> None:
-    runner_path = f"C:{'/'}Users{'/'}runneradmin{'/'}work{'/'}project"
+@pytest.mark.parametrize("slash", ["\\", "\\\\", "/"])
+def test_ci_runner_drive_path_is_not_a_public_artifact_finding(slash: str) -> None:
+    runner_path = _ci_runner_path(slash=slash)
 
     assert scanner.scan_text(".github/workflows/ci.yml", runner_path) == []
+
+
+@pytest.mark.parametrize("slash", ["\\", "\\\\", "/"])
+@pytest.mark.parametrize("private_drive", ["C", "D"])
+@pytest.mark.parametrize("private_first", [False, True])
+def test_ci_runner_exemption_does_not_hide_another_drive_path(
+    slash: str, private_drive: str, private_first: bool
+) -> None:
+    runner_path = _ci_runner_path(slash=slash)
+    private_path = _private_drive_path(slash=slash, drive=private_drive)
+    paths = (private_path, runner_path) if private_first else (runner_path, private_path)
+
+    assert scanner.scan_text(".github/workflows/ci.yml", " then ".join(paths)) == [
+        ".github/workflows/ci.yml:1: absolute-windows-drive-path"
+    ]
 
 
 def _run_git(root: Path, *arguments: str) -> None:

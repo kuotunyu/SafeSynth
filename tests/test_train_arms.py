@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import re
 import shutil
 from dataclasses import replace
 from pathlib import Path
@@ -133,6 +134,10 @@ def _jobs(job_inputs):
         pool_tag="m13_pool_1x",
         sealed_test_names=("test-a.png",),
     )
+
+
+def _failure_path(*, slash: str, drive: str = "D") -> str:
+    return f"{drive}:{slash}private{slash}training{slash}checkpoint.bin"
 
 
 def _materialize_required_inputs(job_inputs) -> Path:
@@ -435,8 +440,107 @@ def test_first_training_failure_stops_later_arms_and_is_recorded(job_inputs) -> 
     assert calls == ["real_only", "filtered_syn"]
     payload = json.loads(summary.read_text(encoding="utf-8"))
     assert payload["arms"]["filtered_syn"]["status"] == "failed"
+    assert payload["arms"]["filtered_syn"]["error_type"] == "RuntimeError"
+    assert payload["arms"]["filtered_syn"]["error_code"] == "training_arm_failed"
     assert payload["arms"]["filtered_syn"]["error"] == "CUDA out of memory"
     assert payload["arms"]["standard_aug"]["status"] == "pending"
+
+
+@pytest.mark.parametrize("slash", ["\\", "\\\\", "/"])
+def test_failure_summary_redacts_the_entire_path_bearing_message(
+    job_inputs, slash: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    job = _jobs(job_inputs)[0]
+    private_path = _failure_path(slash=slash)
+
+    def fail_with_path(received_job, config):
+        raise RuntimeError(f"could not open {private_path}")
+
+    summary = job_inputs.runs_root.parent / "reports" / "orchestration.json"
+    code = _module().run_jobs(
+        (job,),
+        config=job_inputs.config,
+        train_one=fail_with_path,
+        summary_path=summary,
+        run_records_root=job_inputs.runs_root.parent / "records",
+        project_root=job_inputs.paths.project_root,
+        data_root=job_inputs.paths.data_root,
+    )
+
+    assert code == 1
+    rendered = summary.read_text(encoding="utf-8")
+    normalized_rendered = re.sub(r"\\+", "/", rendered).casefold()
+    normalized_private_path = re.sub(r"\\+", "/", private_path).casefold()
+    assert normalized_private_path not in normalized_rendered
+    failure = json.loads(rendered)["arms"][job.arm]
+    assert failure == {
+        "error": "redacted_non_portable_path",
+        "error_code": "training_arm_failed",
+        "error_type": "RuntimeError",
+        "finished_at_utc": failure["finished_at_utc"],
+        "status": "failed",
+    }
+    captured = capsys.readouterr()
+    normalized_output = re.sub(
+        r"\\+", "/", captured.out + captured.err
+    ).casefold()
+    assert normalized_private_path not in normalized_output
+
+
+def test_rewritten_historical_attempt_redacts_path_and_adds_stable_code(
+    job_inputs,
+) -> None:
+    job = _jobs(job_inputs)[0]
+    private_path = _failure_path(slash="\\")
+    summary = job_inputs.runs_root.parent / "reports" / "orchestration.json"
+    prior = {
+        "started_at_utc": "2026-08-01T00:00:00+00:00",
+        "updated_at_utc": "2026-08-01T01:00:00+00:00",
+        "arms": {"real_only": {"status": "pending"}},
+        "attempts": [
+            {
+                "arms": {
+                    "real_only": {
+                        "status": "failed",
+                        "error_type": "OSError",
+                        "error": f"could not read {private_path}",
+                    }
+                }
+            }
+        ],
+    }
+    _module().atomic_write_json(summary, prior)
+
+    def train_one(received_job, config):
+        _write_checkpoint(received_job, 10_900)
+        return {
+            "arm": received_job.arm,
+            "seed": received_job.seed,
+            "total_steps": received_job.total_steps,
+            "train_loss": 1.0,
+            "eval_metrics": {},
+            "composition": received_job.composition.summary(),
+        }
+
+    code = _module().run_jobs(
+        (job,),
+        config=job_inputs.config,
+        train_one=train_one,
+        summary_path=summary,
+        run_records_root=job_inputs.runs_root.parent / "records",
+        project_root=job_inputs.paths.project_root,
+        data_root=job_inputs.paths.data_root,
+    )
+
+    assert code == 0
+    rendered = summary.read_text(encoding="utf-8")
+    normalized_rendered = re.sub(r"\\+", "/", rendered).casefold()
+    normalized_private_path = re.sub(r"\\+", "/", private_path).casefold()
+    assert normalized_private_path not in normalized_rendered
+    failure = json.loads(rendered)["attempts"][0]["arms"]["real_only"]
+    assert failure["error"] == "redacted_non_portable_path"
+    assert failure["error_type"] == "OSError"
+    assert failure["error_code"] == "training_arm_failed"
 
 
 def test_resume_archives_prior_attempt_and_keeps_preflight_provenance(job_inputs) -> None:
