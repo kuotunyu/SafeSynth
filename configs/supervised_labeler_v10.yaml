@@ -202,7 +202,7 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v10_training.json"
-  report_file_sha256: "e748eb819ef1986df202a43411e51a1b77c700750fda5c0c26e263e21b7da36e"
+  report_file_sha256: "e6a3055a60927877699815e6b0560a2bd2fa6cf3c93b78fccca1775917529f6c"
   split_manifest_sha256: "9b36cedc3c159614f668b5fafaa12ad33f36d8ff84d62aba69337e1097aa4d6b"
   checkpoint_sha256: "e987c97fa72f68a80520afa237c3d7b00ca9d27af10853b95ef154a68a7d35bb"
   checkpoint_epoch: 2

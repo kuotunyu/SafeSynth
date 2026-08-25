@@ -1,8 +1,8 @@
 {
   "first_images": 32,
-  "first_summary": "D:\\sdg-data\\02-safesynth\\synthetic\\m10_seed42\\summary.json",
+  "first_summary": "local_only_not_published",
   "mismatches": [],
   "passed": true,
   "second_images": 32,
-  "second_summary": "D:\\sdg-data\\02-safesynth\\synthetic\\m10_repro_after_h4\\summary.json"
+  "second_summary": "local_only_not_published"
 }

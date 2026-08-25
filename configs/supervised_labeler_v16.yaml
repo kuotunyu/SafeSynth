@@ -237,12 +237,12 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_failed"
   report_path: "reports/supervised_labeler_v16_training.json"
-  report_file_sha256: "ee006f833f5ca5d09c7aa3f068f53b689779d4cca7ab1203afc16f22358ba37c"
+  report_file_sha256: "60504991bf8b9fdb1b273e4c723c64d3f2b0411686c9be3a935268bf2c1beaaa"
   markdown_path: "reports/supervised_labeler_v16_training.md"
   markdown_file_sha256: "b9d61ddf303d7fac16b877c7fac825ee0c8c47e58fdf98f215f29d1c9a299344"
   split_manifest_sha256: "8ff4de5dbf981a701548ecd3924b16aa594977fa7005ab610c0e3a4c638f7f3d"
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v16_train20260809_split20260731\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v16_train20260809_split20260731/best
   checkpoint_sha256: "15f968b856546ad85e0b9ca9440e354eb2d0a946e2b02fed0edefa23b2303878"
   checkpoint_epoch: 2
   score_threshold: 0.030
@@ -271,8 +271,8 @@ numeric_audit_outcome:
 audit_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v16_audit_diagnosis.json"
-  report_file_sha256: "4b4e2c84c0966bfc90c1a68927a4b97e479695b6607ed2053d002686411c491e"
-  report_sha256: "00ba8e2a6339c9a90371b9b83e11caf7bac2d5594b27509dc3fec00fcf506427"
+  report_file_sha256: "b234f562571cc63bb1c243ad76c760b0921551bc257f981410fee812baddca55"
+  report_sha256: "5bbb8f73bb52557eea43ff08fb78a503382a0c9541bbf5cbca30e8f08ebc467c"
   failed_check: "audit_precision"
   cells_with_false_positives: 14
   cells_with_false_negatives: 12

@@ -276,12 +276,12 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v17_training.json"
-  report_file_sha256: "3d48e6354e9ce5b44be39df9b3715dc38481a28a271a9d5f5100e7f6e5f7354a"
+  report_file_sha256: "bb89ac14abe4203ad8308ba786909aef2f3a3867216521ff1934fee3c4e6280c"
   markdown_path: "reports/supervised_labeler_v17_training.md"
   markdown_file_sha256: "7ba5d05fbbb502302305bd8d6ce58f82bf8f45fc847f34f339feab8d3a283532"
   split_manifest_sha256: "51daf490a065b669a0189ec6e9e33b096a49c4ede2a8d4c703e6dc6d6e573d5b"
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v17_train20260809_split20260801\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v17_train20260809_split20260801/best
   checkpoint_sha256: "af92663dc6853a20c928d05c4c21c0b1aa74f05a4385090b7349e245455529da"
   checkpoint_epoch: 3
   score_threshold: 0.040
@@ -311,8 +311,8 @@ model_review_registration:
   status: "supervised_labeler_v17_model_review_pages_frozen"
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v17_model_review_manifest.json"
-  manifest_file_sha256: "bae2a1bf526757990536cf94f03b3d8c29e07dd648ca3456438f49754b5bff8a"
-  manifest_sha256: "4a62edbe5f0e5cdae61e8d4e596fd636351f42096fcc89cda3fe60432a99c289"
+  manifest_file_sha256: "77ccee290f86004734a6599dad6445265fa3944d9561fc4728d8080604a8521a"
+  manifest_sha256: "03acfed7642a47458d20ea67cd7b22e5208b8a8ed776a1e125b7bcd6aa28d0d6"
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -334,8 +334,8 @@ model_review_registration:
 owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v17_model_human_review.json"
-  review_file_sha256: "54052471150c79a326f5a89b73f192b58ced1275c1efcd583e36a20c72c17e69"
-  review_sha256: "2680f377fc9feca6243e9ca92ac4af6b025b58cf55a15888d9aa2c601b40fa69"
+  review_file_sha256: "2793b5e447864a8e580491bb1d48a4540674c9da0cfd9d70a19586f736767292"
+  review_sha256: "ebee06fcd624c6b0e1dc8fd315362ea8bc06af4529750afdc65c4477f9de3925"
   problem_count: 5
   model_false_positive_cells: [5, 21, 31]
   model_missed_helmeted_head_cells: [4, 12]
@@ -347,8 +347,8 @@ owner_model_review_outcome:
 owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v17_review_diagnosis.json"
-  report_file_sha256: "5be7a4d8424ebf4ffbe3bb66cd345f416cd0ee6b09e9e23abff805b2669a4439"
-  report_sha256: "719b7420039f76980ab2c44f363f4450a088e6851acc993d5a050755a99e17c0"
+  report_file_sha256: "925ffee4601ef249519997c1720cf52c36e122da7384c0446c7d16a10dfd0ddf"
+  report_sha256: "34c2d9dc7198c482765790a71070bf3531f248df47aa9bf6d41e267f9b31c34c"
   cell_31_image_id: 2262
   cell_31_oversized_background_predictions: 4
   cell_31_rendering_bug: false

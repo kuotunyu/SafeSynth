@@ -1,9 +1,11 @@
-"""Fail when tracked UTF-8 text contains known personal home paths.
+"""Fail when tracked UTF-8 text contains non-portable public paths.
 
 The gate enumerates files from Git rather than walking selected directories, so
 reports, notebooks, workflow files, and future tracked locations are all in
-scope. Search values are assembled at runtime: the scanner is itself scanned
-without embedding the private values or adding an exemption for its own source.
+scope for personal identifiers. Generic drive-root paths are rejected on public
+artifact surfaces, while CI setup and test implementation files stay outside
+that narrower rule. Search values are assembled at runtime so the scanner can
+scan its own source without embedding the private values.
 """
 
 from __future__ import annotations
@@ -19,6 +21,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 _ACCOUNT_FRAGMENTS = ("3", "Hml")
 _LOGIN_FRAGMENTS = ("tun", "2404")
+_DRIVE_ROOT_PATTERN = re.compile(r"(?<![a-z0-9])[a-z]:/", re.IGNORECASE)
+_PUBLIC_ARTIFACT_PREFIXES = (
+    "assets/",
+    "configs/",
+    "docs/",
+    "model_cards/",
+    "notebooks/",
+    "publishing/",
+    "reports/",
+    "results/",
+    "splits/",
+)
+_PUBLIC_ARTIFACT_FILES = ("README.md",)
 
 
 class PublicPathScanError(RuntimeError):
@@ -60,16 +75,33 @@ def _normalized(text: str) -> str:
     return re.sub(r"\\+", "/", text).casefold()
 
 
+def _is_public_artifact_surface(relative_path: str) -> bool:
+    normalized_path = relative_path.replace("\\", "/")
+    return normalized_path in _PUBLIC_ARTIFACT_FILES or normalized_path.startswith(
+        _PUBLIC_ARTIFACT_PREFIXES
+    )
+
+
 def scan_text(relative_path: str, text: str) -> list[str]:
     """Return sanitized path/line/kind findings for one UTF-8 text file."""
 
     findings: list[str] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
         normalized = _normalized(line)
+        specific_marker_found = False
         for marker, patterns in _marker_patterns():
             if any(pattern in normalized for pattern in patterns):
                 findings.append(f"{relative_path}:{line_number}: {marker}")
+                specific_marker_found = True
                 break
+        if specific_marker_found:
+            continue
+        if _is_public_artifact_surface(relative_path) and _DRIVE_ROOT_PATTERN.search(
+            normalized
+        ):
+            findings.append(
+                f"{relative_path}:{line_number}: absolute-windows-drive-path"
+            )
     return findings
 
 
@@ -124,11 +156,11 @@ def format_scan_lines(result: ScanResult) -> list[str]:
     lines = [
         f"tracked UTF-8 files scanned : {result.files_scanned}",
         f"binary/non-UTF-8 skipped    : {len(result.skipped_binary)}",
-        f"personal-path findings      : {len(result.findings)}",
+        f"non-portable path findings  : {len(result.findings)}",
     ]
     lines.extend(f"  {finding}" for finding in result.findings)
     if result.clean:
-        lines.append("PASS: tracked UTF-8 text contains no known personal home paths.")
+        lines.append("PASS: tracked public text contains no non-portable paths.")
     else:
         lines.append("FAIL: replace every finding with a portable public value.")
     return lines
@@ -136,7 +168,7 @@ def format_scan_lines(result: ScanResult) -> list[str]:
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Scan all Git-tracked UTF-8 text for known personal home paths."
+        description="Scan Git-tracked UTF-8 text for non-portable public paths."
     )
     parser.add_argument(
         "--project-root",

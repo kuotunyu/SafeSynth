@@ -135,20 +135,20 @@ future_v23_intervention:
   revealed_development_evidence:
     training_report: "reports/supervised_labeler_v22_training.json"
     training_report_file_sha256: >-
-      daf6ca094a152e2246750081f4e775e50e5a77282e0c61526838217882ff7779
+      f817c21e875e05a679a2ed39587017f0ddfafd3ade9a4c6067b4ea3faed85151
     audit_evidence: "reports/supervised_labeler_v22_audit_evidence.json"
     audit_evidence_file_sha256: >-
       63bf91ce5621e262391dfac4a5ffc44238234e55668d72a1e3be71ccd1fa0721
     owner_review: "reports/supervised_labeler_v22_model_human_review.json"
     owner_review_file_sha256: >-
-      2453d3f8fe898904eda4b700daf2431fa08a12155cc1f000cd811f8d5951d499
+      bcd46d4c1c303baba5fa49e3bd1ca1ffcc779bb5a698fa5df1e7393b0eff9d41
     owner_review_sha256: >-
-      d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee
+      7b45723eb3ed85c0344cc92d64f15162c1997cc1b358c5561cf4704c07e661a4
     diagnosis: "reports/supervised_labeler_v22_review_diagnosis.json"
     diagnosis_file_sha256: >-
-      d9e64990569a0cec11f74954d9f299401b369a93ca0e3966d5fe3fb56da0c74f
+      27cc87542a917496b156c4e89cb6185bf710f10018383dadf7f06b2ac3909685
     diagnosis_sha256: >-
-      68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e
+      6a0d4e5c0fb35b75f6bfcdb93548b56e238e525410ae25d6d9daa682880a98e4
     numeric_audit_passed: true
     owner_visual_gate_passed: false
     score_threshold: 0.035

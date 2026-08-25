@@ -69,7 +69,7 @@ Measured with `torch.cuda.max_memory_allocated()` after `reset_peak_memory_stats
 
 | Model | Role | Weights measured | Head | Model class | Params (M) | Native input | Logits | Boxes | Detections |
 |---|---|---|---|---|---:|---:|---|---|---:|
-| RT-DETRv2-R18 | primary detector (Apache-2.0) | `D:/sdg-data/02-safesynth/runs/real_only/seed_1337/checkpoint-1752` | fine-tuned, 3 classes | `RTDetrV2ForObjectDetection` | 20.08 | 640 | `[1, 300, 3]` | `[1, 300, 4]` | 2 |
+| RT-DETRv2-R18 | primary detector (Apache-2.0) | `local_only_not_published` | fine-tuned, 3 classes | `RTDetrV2ForObjectDetection` | 20.08 | 640 | `[1, 300, 3]` | `[1, 300, 4]` | 2 |
 | RF-DETR-Nano | speed baseline (Apache-2.0, ADR-005) | `Roboflow/rf-detr-nano` | pretrained, 91 classes | `RfDetrForObjectDetection` | 30.47 | 384 | `[1, 300, 91]` | `[1, 300, 4]` | 83 |
 
 Every model above completed a real forward pass on a real project image; the shapes are read off the returned tensors, not assumed. `Head` is the class list read back off `config.id2label` after loading, and it is what decides the banner at the top of this report. `Detections` counts what survives the post-processing threshold, and carries meaning for this project's classes only on a fine-tuned row.

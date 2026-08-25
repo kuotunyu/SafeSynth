@@ -26,6 +26,7 @@ from scripts.train_supervised_labeler import (
     _predict,
 )
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.synthetic.compose import _load_context
 from src.synthetic.whole_image import canonical_mapping_sha256
 
@@ -422,7 +423,9 @@ def main() -> None:
             registration["source_training_report_sha256"]
         ),
         "source_numeric_audit_status": str(source_report["status"]),
-        "checkpoint_path": str(checkpoint_dir),
+        "checkpoint_path": public_artifact_path(
+            checkpoint_dir, project_root=PROJECT_ROOT
+        ),
         "checkpoint_sha256": str(registration["checkpoint_sha256"]),
         "audit_manifest_sha256": str(audit["manifest_sha256"]),
         "score_threshold": threshold,

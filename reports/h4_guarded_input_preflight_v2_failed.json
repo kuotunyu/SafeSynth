@@ -9,7 +9,7 @@
   "n_images": 64,
   "observed_input_issue_count": null,
   "observed_input_issue_count_minimum": 2,
-  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260728",
+  "output_dir": "local_only_not_published",
   "review_findings": [
     {
       "background_file": "images/hard_hat_workers1818.png",

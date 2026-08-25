@@ -56,7 +56,7 @@
     "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
     "schema_version": 1
   },
-  "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\IDEA-Research--grounding-dino-tiny\\a2bb814dd30d776dcf7e30523b00659f4f141c71",
+  "model_dir": "local_only_not_published",
   "passed": true,
   "repo_id": "IDEA-Research/grounding-dino-tiny",
   "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71"

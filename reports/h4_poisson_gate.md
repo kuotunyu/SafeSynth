@@ -1,6 +1,6 @@
 # Spike H4 — paste-artifact detectability
 
-- Source run: `D:\sdg-data\02-safesynth\synthetic\m11_h4_poisson_seed42` (300 images)
+- Source run: `local_only_not_published` (300 images)
 - Examples: 2028 (1626 train / 402 group-disjoint test)
 - HOG + HSV logistic-regression AUC: **0.8869**
 - Bootstrap 95% CI: 0.8551–0.9170

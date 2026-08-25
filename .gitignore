@@ -16,7 +16,7 @@ INTERVIEW_PREP.md
 PROGRESS.md
 
 # --- Large data & outputs ---
-# Bulk data actually lives on D:\sdg-data\02-safesynth (see configs/paths.yaml);
+# Bulk data lives under ${SAFESYNTH_DATA_ROOT} (see configs/paths.yaml);
 # these rules exist so an accidental local copy never reaches git.
 # Leading "/" anchors them to the repo root — an unanchored "data/" would also
 # swallow src/data/, which is source code.
@@ -45,7 +45,7 @@ PROGRESS.md
 /results/colab/**/*.pt
 /results/colab/**/*.bin
 # The raw per-arm detection dumps are ~32 MB each and belong on the data drive
-# (D:/sdg-data/...); scripts/dump_predictions.py writes them there and
+# (${SAFESYNTH_DATA_ROOT}/...); scripts/dump_predictions.py writes them there and
 # results/predictions/ only ever holds working copies.
 /results/predictions/
 

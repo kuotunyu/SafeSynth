@@ -10,7 +10,7 @@
   "destination_free_gib": 1688.9530181884766,
   "download_bytes": 15980131711,
   "download_gib": 14.882657407782972,
-  "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\black-forest-labs--FLUX.2-klein-base-4B\\a3b4f4849157f664bdbc776fd7453c2783562f4d",
+  "model_dir": "local_only_not_published",
   "passed": true,
   "registered_license": "apache-2.0",
   "registered_revision": "a3b4f4849157f664bdbc776fd7453c2783562f4d",

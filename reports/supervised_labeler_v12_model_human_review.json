@@ -24,9 +24,9 @@
   "model_evidence_file_sha256": "740c47a3a4c6b85ea4c8ece3f2fb14472301b362b52db351d7b1454653d6ae60",
   "model_evidence_path": "reports/supervised_labeler_v12_model_audit_evidence.json",
   "model_evidence_sha256": "f3770008bc6b1a73ab0e643bcf1ad65141a777c2ac51086203314e9211a0d25a",
-  "numeric_audit_report_file_sha256": "155e5a54faf575df216f70a43ca1d01a510bca8ba2e6a896a8ede72d2f9aedb6",
+  "numeric_audit_report_file_sha256": "df21b9670a74f94fa2fdafff779fc24c4b954d33b4e86ddf9205b22be57a9804",
   "numeric_audit_report_path": "reports/supervised_labeler_v12_model_audit.json",
-  "numeric_audit_report_sha256": "67b688064d2bc06ba6b167449a500af6f433369bdecaa1e4bee8fea551486df1",
+  "numeric_audit_report_sha256": "0dffe9d2e4a06f67db35afa594c12c451d1c907bf17aec1ce552d7761d39e1ce",
   "numeric_audit_status": "v12_numeric_audit_passed_owner_review_pending",
   "pages": [
     {
@@ -68,7 +68,7 @@
   ],
   "problem_count": 10,
   "review_note": "Owner reported magenta boxes on background, faces, unworn helmets, or other objects in cells 03, 10, 13, 20, 25, 27, 29, and 45; real helmeted heads were missed in cells 26 and 43.",
-  "review_sha256": "31874624fa0728954eb95508c6a76297f4569f226f3f26f1eb7fcf853302ebb7",
+  "review_sha256": "493296cf0d45602f0aa0fb5c3d2176d289fd99925a94d4334aed937509eee030",
   "reviewed_by": "kuotunyu",
   "reviewed_on": "2026-07-29",
   "schema_version": 1,

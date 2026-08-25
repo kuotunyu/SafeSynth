@@ -117,7 +117,8 @@ if raw.startswith("{"):
 **需求**：`LongPathsEnabled = 0`，260 字元上限是活的。
 HF 快取先沿用 C: 預設（與兄弟專案一致；SAM2 large 權重約 898 MB，C: 吃得下）。
 若 HF 快取的 blob 檔名撞到上限，把 `configs/paths.yaml` 的 `hf_home` 設成短路徑
-（例如 `D:/hf`）並重跑。`kagglehub` 快取同理可用 `KAGGLEHUB_CACHE` 重導。
+（例如 `${SAFESYNTH_DATA_ROOT}/hf-cache`）並重跑。`kagglehub` 快取同理可用
+`KAGGLEHUB_CACHE` 重導。
 **驗證**：下載完成且能載入模型。
 
 ### ENV-10 — 檔案與雜湊的跨平台一致性
@@ -189,8 +190,8 @@ uv add "huggingface_hub[cli]"
 | 4 | `uv run python -c "from transformers import Sam2Model, Sam2Processor; print('ok')"` | `ok` |
 | 5 | `uv run python -c "import cv2, scipy, imagehash, pycocotools, kagglehub; print('ok')"` | `ok` |
 | 6 | `uv run python -c "import numpy, cv2; print(cv2.connectedComponentsWithStats(numpy.eye(4, dtype='uint8'))[0])"` | 一個整數（確認 cv2 正常） |
-| 7 | `uv run python -c "import yaml,pathlib; d=yaml.safe_load(open('configs/paths.yaml')); print(d['data_root'])"` | `D:/sdg-data/02-safesynth` |
-| 8 | `Test-Path D:\sdg-data\02-safesynth` | `True`（M2 建立後） |
+| 7 | `uv run python -c "from src.data.paths import load_project_paths; print(load_project_paths().data_root)"` | `${SAFESYNTH_DATA_ROOT}` 的 resolved path，未設定時為 ignored `data/` |
+| 8 | `$env:SAFESYNTH_DATA_ROOT -and (Test-Path $env:SAFESYNTH_DATA_ROOT)` | 外接資料根已設定時為 `True` |
 | 9 | `uv run python -c "import os,dotenv; dotenv.load_dotenv('../.env'); print('KAGGLE_API_TOKEN' in os.environ)"` | `True`（**只印布林，不印值**） |
 | 10 | `uv lock --check` | 無輸出（lock 與 pyproject 一致） |
 

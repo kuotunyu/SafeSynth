@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PATHS_CONFIG = PROJECT_ROOT / "configs" / "paths.yaml"
+DATA_ROOT_ENVIRONMENT_VARIABLE = "SAFESYNTH_DATA_ROOT"
 _VARIABLE_PATTERN = re.compile(r"\$\{([^}]+)\}")
 
 
@@ -77,7 +79,9 @@ def load_project_paths(config_path: Path = PATHS_CONFIG) -> ProjectPaths:
     project_root = config_path.parents[1]
     config = load_raw_config(config_path)
 
-    data_root_value = str(config["data_root"])
+    data_root_value = (
+        os.environ.get(DATA_ROOT_ENVIRONMENT_VARIABLE) or str(config["data_root"])
+    )
     data_root = _resolve_path(data_root_value, project_root, {})
     variables = {"data_root": data_root.as_posix()}
     configured_paths = config["paths"]

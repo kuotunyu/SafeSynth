@@ -5,8 +5,6 @@
   "geometry_fingerprint_sha256": "0d21edbb2e53f632367ad2b548cf972a89ea85623ea498d7daaede92c2bb6b44",
   "h4_auc_computed": false,
   "input_issue_max_count": 0,
-  "model_inference_run": false,
-  "n_images": 64,
   "issue_groups": {
     "face_obvious_composite": [
       5,
@@ -50,8 +48,10 @@
       64
     ]
   },
+  "model_inference_run": false,
+  "n_images": 64,
   "observed_input_issue_count": 33,
-  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260731",
+  "output_dir": "local_only_not_published",
   "reviewed_by": "kuotunyu",
   "root_seed": 20260731,
   "schema_version": 1,

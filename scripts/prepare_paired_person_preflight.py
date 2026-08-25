@@ -1085,7 +1085,7 @@ def main() -> None:
         "geometry_fingerprint_sha256": _canonical_sha256(geometry),
         "contact_sheet": _repo_relative(sheet_path),
         "contact_sheet_sha256": _sha256(sheet_path),
-        "output_dir": str(output_dir),
+        "output_dir": _repo_relative(output_dir),
     }
     _write_json(
         paths.reports / f"{artifact_stem}.json",
@@ -1121,6 +1121,7 @@ def main() -> None:
             f"`{payload['geometry_fingerprint_sha256']}`"
         ),
         f"- Contact sheet: `{_repo_relative(sheet_path)}`",
+        f"- Output directory: `{payload['output_dir']}`",
         "",
         (
             "Each cell shows the full CPU draft on the left and an enlarged "

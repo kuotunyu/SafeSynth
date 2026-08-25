@@ -3,11 +3,11 @@
 # Rationale: docs/decisions.md ADR-002.
 
 # ---------------------------------------------------------------------------
-# Bulk data lives on D: (1.7 TB free; C: has ~186 GB). The project folder on C:
-# stays clean so the git repo only ever contains code, configs, docs, manifests
-# and small curated figures.
+# The ignored repository-local data directory is a portable fallback. Set the
+# SAFESYNTH_DATA_ROOT environment variable to keep large data on an external
+# volume without recording that machine-specific location in public config.
 # ---------------------------------------------------------------------------
-data_root: "D:/sdg-data/02-safesynth"
+data_root: "data"
 
 paths:
   # --- under data_root (NOT tracked by git) ---
@@ -28,13 +28,13 @@ paths:
   tests: "tests"
 
 # ---------------------------------------------------------------------------
-# Hugging Face cache stays on C: default (C:/Users/<user>/.cache/huggingface),
-# matching the sibling projects. The SAM 2.1 large checkpoint is ~898 MB, which
-# C: can absorb comfortably.
+# Hugging Face cache uses the platform default under %USERPROFILE% unless an
+# operator supplies a local override. The SAM 2.1 large checkpoint is ~898 MB.
 #
 # CAVEAT: LongPathsEnabled is 0 on this machine (verified 2026-07-27), so the
 # 260-character MAX_PATH limit is live. If HF cache blob names ever trip it, set
-# hf_home to a short path such as "D:/hf" and re-run. See docs/troubleshooting.md.
+# hf_home to a short portable value such as
+# "${SAFESYNTH_DATA_ROOT}/hf-cache" and re-run. See docs/troubleshooting.md.
 # ---------------------------------------------------------------------------
 hf_home: null
 

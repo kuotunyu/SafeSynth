@@ -44,6 +44,20 @@ def test_load_paths_expands_declared_variables(tmp_path: Path) -> None:
     assert paths.pinned_version is None
 
 
+def test_data_root_environment_override_preserves_external_storage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = tmp_path / "project" / "configs" / "paths.yaml"
+    write_config(config_path)
+    external_root = tmp_path / "external-data"
+    monkeypatch.setenv("SAFESYNTH_DATA_ROOT", str(external_root))
+
+    paths = load_project_paths(config_path)
+
+    assert paths.data_root == external_root.resolve()
+    assert paths.hardhat_raw == external_root / "raw" / "dataset"
+
+
 def test_pin_dataset_version_preserves_comments(tmp_path: Path) -> None:
     config_path = tmp_path / "project" / "configs" / "paths.yaml"
     write_config(config_path)

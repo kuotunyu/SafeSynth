@@ -834,7 +834,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         metavar="KEY=PATH",
         help=(
             "benchmark a model from local fine-tuned weights instead of its Hub "
-            "checkpoint, e.g. rtdetrv2_r18=D:/.../checkpoint-1752. The processor and "
+            "checkpoint, e.g. rtdetrv2_r18=${SAFESYNTH_DATA_ROOT}/runs/.../"
+            "checkpoint-1752. The processor and "
             "the licence evidence still come from the Hub id."
         ),
     )

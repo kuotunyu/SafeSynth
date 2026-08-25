@@ -4,7 +4,7 @@
 - Annotations: 2370
 - Filter pass/reject: 169 / 131
 - COCO self-evaluation bbox mAP: `1.000`
-- Output: `D:\sdg-data\02-safesynth\synthetic\m11_h4_poisson_seed42`
+- Output: `local_only_not_published`
 - Hard negatives: **not used**; M9 remains blocked on kuotunyu signoff.
 
 ## Scenario counts

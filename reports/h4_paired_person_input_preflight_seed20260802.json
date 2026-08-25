@@ -22,7 +22,7 @@
   "model_inference_run": false,
   "n_images": 64,
   "observed_input_issue_count": null,
-  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_paired_person_preflight_seed20260802",
+  "output_dir": "local_only_not_published",
   "reviewed_by": "internal_cpu_audit",
   "root_seed": 20260802,
   "scene_matching": {

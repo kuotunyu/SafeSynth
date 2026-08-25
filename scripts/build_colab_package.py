@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from src.data.paths import PROJECT_ROOT, ProjectPaths, load_project_paths
+from src.release.public_paths import public_artifact_path
 
 POOL_TAG = "m13_pool_1x"
 SUBSETS = ("filtered_1x", "unfiltered_1x", "filtered_0_5x", "unfiltered_0_5x")
@@ -136,7 +137,7 @@ def main() -> None:
         else paths.data_root / "colab" / "safesynth_train_data.zip"
     )
     result = build(output, paths=paths)
-    result["path"] = str(output)
+    result["path"] = public_artifact_path(output, project_root=PROJECT_ROOT)
     result["size_gb"] = round(result["bytes"] / 1e9, 2)
     (PROJECT_ROOT / "reports" / "colab_package.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",

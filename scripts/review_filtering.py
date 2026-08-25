@@ -185,7 +185,7 @@ def main() -> None:
     grid.save(figure_path, optimize=True)
 
     result = {
-        "source_run": str(run_dir),
+        "source_run": _repo_relative(run_dir),
         "n_total": len(records),
         "n_pass": len(passed),
         "n_reject": len(rejected),
@@ -203,7 +203,7 @@ def main() -> None:
     lines = [
         "# M12 filter ledger verification",
         "",
-        f"- Source: `{run_dir}`",
+        f"- Source: `{result['source_run']}`",
         f"- Total / pass / reject: {len(records)} / {len(passed)} / {len(rejected)}",
         f"- First-reason funnel: `{dict(sorted(first_reasons.items()))}`",
         "- All seven ledger and enum checks: **PASS**",

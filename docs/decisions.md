@@ -121,8 +121,9 @@ Windows 的 CUDA 版本從來不上傳 PyPI）。一個裸的 `pip install torch
 而 `pycocotools` 2.0.11 的 `cp312-abi3-win_amd64` wheel 一顆涵蓋 3.12/3.13/3.14，
 在原生 Windows 上**不需要 MSVC 就能裝**（`pycocotools-windows` 那個套件停在 2020，已死）。
 
-**大檔放 D:。** `data_root: "D:/sdg-data/02-safesynth"`，與兄弟專案一致。
-C: 只留 repo（程式碼、設定、文件、manifest、小圖）。
+**大檔放外接資料根。** 本機以 `SAFESYNTH_DATA_ROOT` 指向外接儲存；公開
+`configs/paths.yaml` 只保留 ignored `data/` fallback。repo 只留程式碼、設定、
+文件、manifest 與小圖。
 
 ### 後果
 

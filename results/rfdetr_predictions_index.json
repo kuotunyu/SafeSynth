@@ -5,7 +5,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 223200,
     "n_images": 744,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/filtered_syn_test_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "test"
@@ -16,7 +16,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 226800,
     "n_images": 756,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/filtered_syn_val_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "val"
@@ -27,7 +27,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 223200,
     "n_images": 744,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/real_only_test_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "test"
@@ -38,7 +38,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 226800,
     "n_images": 756,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/real_only_val_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "val"
@@ -49,7 +49,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 223200,
     "n_images": 744,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/standard_aug_test_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "test"
@@ -60,7 +60,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 226800,
     "n_images": 756,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/standard_aug_val_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "val"
@@ -71,7 +71,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 223200,
     "n_images": 744,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/unfiltered_syn_test_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "test"
@@ -82,7 +82,7 @@
     "coordinates": "original per-image annotation space (DATA-25)",
     "n_detections": 226800,
     "n_images": 756,
-    "path": "D:/sdg-data/02-safesynth/runs_rfdetr_predictions/unfiltered_syn_val_seed1337.json",
+    "path": "local_only_not_published",
     "score_threshold": 0.0,
     "seed": 1337,
     "split": "val"

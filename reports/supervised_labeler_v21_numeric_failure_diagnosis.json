@@ -459,7 +459,7 @@
       "truth_boxes": 13
     }
   },
-  "report_sha256": "b3541e10f6efc673af74267bb028c156b63224fdfa20da1a80467ff3ee12d297",
+  "report_sha256": "a285abfa596f594abbbc16ab38e57446925e6847240adfa7c3a14b5e873ca759",
   "root_cause_summary": {
     "precision_improved_from_v20": "False positives fell from 29 in v20 to 11 in v21 and precision rose from 0.7583 to 0.8642.",
     "recall_gate_failure": "The frozen checkpoint missed 34 of 104 worn helmeted heads, so the preregistered 0.70 recall gate failed at 0.6731.",
@@ -473,7 +473,7 @@
   "source_files": {
     "audit_evidence_file_sha256": "a7d14a877de93631504b4dc9a628d89584081bfa4cd99368c85d58af69403bb0",
     "audit_manifest_file_sha256": "929f1b234728097e5d7436183116fc5f9e4d9fd69bd408135973366f6fc95ca4",
-    "training_report_file_sha256": "fe85c3e074405e31f7c9ad47fa441ec49cf695d1e68a9ee04da07554e12eef57"
+    "training_report_file_sha256": "a107c70d6f1b207037fe799288fe3b4c4d067117e6df52f2253aaac543ac56a7"
   },
   "source_image_pixels_read": 0,
   "status": "v21_numeric_failure_diagnosed_without_new_inference",

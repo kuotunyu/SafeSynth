@@ -320,14 +320,14 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v19_training.json"
   report_file_sha256: >-
-    68136e39419ddaf5d1fc88eacb9882fe0f45b3047583ce2508c4107c301dc165
+    df876d56aff256ebfa9248ab0317c72268bbb5d826cfa94ae7cd422e8f1f38a9
   markdown_path: "reports/supervised_labeler_v19_training.md"
   markdown_file_sha256: >-
     3d340e1c1f65981acb6c52197224770f64b947efc268ee5db4be8f62fb329fc4
   split_manifest_sha256: >-
     1cebdf094dfa5df1ce94305cc325c0eb1cd49071413bed09ce3235340099b264
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v19_train20260809_split20260803\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v19_train20260809_split20260803/best
   checkpoint_sha256: >-
     d8b61ad89ae7526bc486ad1eb0a7b63c6cce5bd319760e1292d347dc68ddbe0c
   checkpoint_epoch: 4
@@ -363,9 +363,9 @@ model_review_registration:
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v19_model_review_manifest.json"
   manifest_file_sha256: >-
-    89860fd3e4aa6843a1efdaef98f386c21ea91680e9c639d4dabdbd866253d6de
+    71ee2019539ef9b5392db8e3f3eef88ed69275898a1ce48fa48aa8f4068b7cd5
   manifest_sha256: >-
-    664d222b28ad3b49ee5ca63aae2dddd54954ffe2d5dfd3e24aba8d7fea9e986f
+    95ee09b1ca40c79ca7899559a0fe1945aa86a43b9b1767cc3e78e1737d6f6c06
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -391,9 +391,9 @@ owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v19_model_human_review.json"
   review_file_sha256: >-
-    0ebbca5f0fa45f894020216a1b1cf4a63de3b02552d8de819c0ba07562aaab13
+    bc2189492838eefe20e3268eea9e0bda5818c73535501cf0ccb5334acf6ebf73
   review_sha256: >-
-    53655c25aeb09916435f9ebb6a2a0a17367fcd709435799d9cb3e671856edcb6
+    1a8c54f865621d64fa81fc4251cc9f6f1bf2f9a6ca55af726fa40194111d1979
   problem_count: 7
   model_false_positive_cells: [22, 25]
   model_missed_helmeted_head_cells: [10, 14, 23, 28, 48]
@@ -406,9 +406,9 @@ owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v19_review_diagnosis.json"
   report_file_sha256: >-
-    5cef1f8dae5886fcf5ef28a31f177a342d9b5895b598f4fc689301db7fc23c18
+    1bffc3b63721f50d89ceb69452b66bb586e1a906d598e631fd9310f4c8ad2403
   report_sha256: >-
-    aafc264096aad9933b63bc622a760ef5362a8ae82a6841805afd17dd79deaf01
+    7224d603d3509e1fd874a7cfb08fae8c8ea1b4a63e6bcf9e7164a93368ac9179
   reported_cells_true_positives: 10
   reported_cells_false_positives: 5
   reported_cells_false_negatives: 7

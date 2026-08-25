@@ -477,8 +477,8 @@ def _render_details_from_existing(
         json.dumps(
             {
                 "capture_geometry_verified": True,
-                "contact_sheet": str(full_sheet),
-                "detail_contact_sheet": str(detail_sheet),
+                "contact_sheet": _repo_relative(full_sheet),
+                "detail_contact_sheet": _repo_relative(detail_sheet),
                 "h4_auc_computed": False,
             },
             indent=2,
@@ -562,10 +562,10 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "contact_sheet": str(contact_sheet),
+                "contact_sheet": _repo_relative(contact_sheet),
                 "h4_auc_computed": False,
                 "n_images": n_images,
-                "output_dir": str(output_dir),
+                "output_dir": _repo_relative(output_dir),
                 "status": "pending_kuotunyu_visual_review",
             },
             indent=2,

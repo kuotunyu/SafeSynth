@@ -31,7 +31,7 @@
     "revision": "5650961749fa93567c0d46fc7f43ea4f9e914107",
     "schema_version": 1
   },
-  "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\PekingU--rtdetr_v2_r18vd\\5650961749fa93567c0d46fc7f43ea4f9e914107",
+  "model_dir": "local_only_not_published",
   "passed": true,
   "repo_id": "PekingU/rtdetr_v2_r18vd",
   "revision": "5650961749fa93567c0d46fc7f43ea4f9e914107"

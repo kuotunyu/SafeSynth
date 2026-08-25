@@ -248,7 +248,7 @@ def main() -> None:
         "geometry_fingerprint_sha256": _geometry_fingerprint(records),
         "contact_sheet": _repo_relative(sheet_path),
         "contact_sheet_sha256": _sha256(sheet_path),
-        "output_dir": str(output_dir),
+        "output_dir": _repo_relative(output_dir),
     }
     json_path = paths.reports / "h4_guarded_input_preflight.json"
     json_path.write_text(
@@ -270,6 +270,7 @@ def main() -> None:
             f"`{payload['geometry_fingerprint_sha256']}`"
         ),
         f"- Contact sheet: `{_repo_relative(sheet_path)}`",
+        f"- Output directory: `{payload['output_dir']}`",
         "",
         (
             "Each numbered cell shows the full DRAFT on the left and an enlarged "

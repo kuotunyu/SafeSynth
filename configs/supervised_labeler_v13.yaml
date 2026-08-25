@@ -217,12 +217,12 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v13_training.json"
-  report_file_sha256: "d6efabb116591c3db9a969610f8ffe15235e7a0f6c6afa4c602ec6561cdb4f00"
+  report_file_sha256: "c75a0c0d721d72b89d0ad8efe7417fdfb7ba14952dbcef115889d05c1585acb7"
   markdown_path: "reports/supervised_labeler_v13_training.md"
   markdown_file_sha256: "2a9c9b337b1af66db2695f627c272ac1ff4e362d019da898a80a756aa5d409c2"
   split_manifest_sha256: "556801da8cdefe3975a339cd3992bbe685bff5a176685aff5e7d09af3f609a95"
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v13_train20260809_split20260915\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v13_train20260809_split20260915/best
   checkpoint_sha256: "c6783be45f67638b96d9a075f6af8ac6f4c6b3628551edd0ef9b440f57f2ea65"
   checkpoint_epoch: 2
   score_threshold: 0.05
@@ -252,8 +252,8 @@ model_review_registration:
   status: "supervised_labeler_v13_model_review_pages_frozen"
   owner_review_status: "pending_kuotunyu"
   manifest_path: "reports/supervised_labeler_v13_model_review_manifest.json"
-  manifest_file_sha256: "2a2c25e0ebf537ed70cb551dce452ae1fea2cbbfb28989c4c6302d6492d1b768"
-  manifest_sha256: "3534045318b19641c11edce5724ddaf26328603e67e23e93a5c0468146bbcea9"
+  manifest_file_sha256: "821de4d1551a85f3abc443fae5c281d1d9caa44781402bc1791b300fc029e2c5"
+  manifest_sha256: "bd287ad92b9a8ff4462241f59f871ee0808db71c99350f62bc9cabc2f18d8ea1"
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -285,8 +285,8 @@ human_review_outcome:
     model_missed_helmeted_head_cells: [3, 22, 34]
   problem_image_ids: [4507, 3593, 681]
   evidence_path: "reports/supervised_labeler_v13_model_human_review.json"
-  evidence_file_sha256: "f689bb594b5bc2955160d441cde265d5bd7e92abe48622c569dadd1f40335e1b"
-  evidence_sha256: "3c6cdaab840fa547f617830e4088d9bf8a1394ae9ebf92a1411156de3f8bfbd0"
+  evidence_file_sha256: "ee2256e15df63596dd5c18c015131b59e153998fd51b0a76667bffc4a934da00"
+  evidence_sha256: "3521d1a91bfe2e13cc44db791f4e872489a207f6a3a8fb21010f927559219d55"
   generation_allowed: false
   validation_images_read: 0
   test_images_read: 0
@@ -295,7 +295,7 @@ human_review_outcome:
 review_diagnosis_outcome:
   status: "v13_owner_miss_diagnosis_complete"
   report_path: "reports/supervised_labeler_v13_review_diagnosis.json"
-  report_file_sha256: "f0fbcba3fa5a188a3203209647f99414e16849e88b064c4caf4409429b77d628"
+  report_file_sha256: "9f3aa6c0715ffd26184f67609ab2f939255e3fc97db94dabbf771d0b2fbd54ed"
   already_revealed_images_read: 3
   cell_03:
     image_id: 4507

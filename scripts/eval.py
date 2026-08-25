@@ -3,7 +3,7 @@
 Usage:
 
     uv run python -m scripts.eval
-    uv run python -m scripts.eval --runs-root D:/sdg-data/02-safesynth/runs
+    uv run python -m scripts.eval --runs-root (Join-Path $env:SAFESYNTH_DATA_ROOT "runs")
 
 What this file is and is not. Every metric, bucket, bootstrap, CSV column and
 leak assertion already exists in `src/evaluation/detection.py` and
@@ -69,6 +69,7 @@ from src.evaluation.slices import (
     load_slice_config,
     scenario_slices,
 )
+from src.release.public_paths import public_artifact_path
 from src.training.arms import (
     ARMS,
     ArmComposition,
@@ -994,7 +995,10 @@ def render_main_table(
             "threshold and a different coordinate space."
         ),
         "",
-        f"- Weights root: `{runs_root}`",
+        (
+            "- Weights root: `"
+            f"{public_artifact_path(runs_root, project_root=PROJECT_ROOT)}`"
+        ),
         f"- Frozen Test images: **{n_test_images:,}** (real only, never Validation)",
         (
             "- Coordinates: predictions are mapped back to **each image's own** width and "
@@ -1418,7 +1422,9 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
                 "checkpoint": result.checkpoint.name,
                 "n_images": result.metrics.n_images,
                 "n_detections": result.metrics.n_detections,
-                "path": predictions_path.as_posix(),
+                "path": public_artifact_path(
+                    predictions_path, project_root=PROJECT_ROOT
+                ),
                 "coordinates": "original per-image annotation space (DATA-25)",
                 "score_threshold": MAP_SCORE_THRESHOLD,
             }

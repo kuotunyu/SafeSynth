@@ -339,14 +339,14 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_failed"
   report_path: "reports/supervised_labeler_v21_training.json"
   report_file_sha256: >-
-    fe85c3e074405e31f7c9ad47fa441ec49cf695d1e68a9ee04da07554e12eef57
+    a107c70d6f1b207037fe799288fe3b4c4d067117e6df52f2253aaac543ac56a7
   markdown_path: "reports/supervised_labeler_v21_training.md"
   markdown_file_sha256: >-
     7b8e9e8c7b7e3780f07bd919bbc9478c28a7365f82b4dca4a8fffe31639f4df9
   split_manifest_sha256: >-
     252fb9dd2707d411184618855e350a81e43bde3ed63c5d59c8ff9f2845617f70
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v21_train20260809_split20260805\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v21_train20260809_split20260805/best
   checkpoint_sha256: >-
     02b9cf083e0919b20d37bcd86f5cf916d20aff15cb0f8461c6f35ffea6e47d7e
   checkpoint_epoch: 6
@@ -384,9 +384,9 @@ numeric_failure_diagnosis:
   report_path: >-
     reports/supervised_labeler_v21_numeric_failure_diagnosis.json
   report_file_sha256: >-
-    f6c331dd15ddd384df6d3f23b2c3ed29c1ce1ac43dac2afa567c62f8fb6af382
+    ea729816701b4a91cc9864fd6c38614b1fb5fed3c00e55528918b575ad948338
   report_sha256: >-
-    b3541e10f6efc673af74267bb028c156b63224fdfa20da1a80467ff3ee12d297
+    a285abfa596f594abbbc16ab38e57446925e6847240adfa7c3a14b5e873ca759
   false_positive_type_counts:
     empty_gt_false_positive: 5
     semantic_false_positive: 6

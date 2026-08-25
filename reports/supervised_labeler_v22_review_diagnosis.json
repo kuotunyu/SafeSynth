@@ -3,7 +3,7 @@
   "experiment_id": "supervised_labeler_v22",
   "future_intervention_constraint": "Do not change the v22 threshold or geometry after audit. Replay miss image IDs 487 and 93 as positives and false-positive image IDs 2969, 972, and 3405 as hard negatives only in a preregistered fresh base-initialized model with a new independent audit.",
   "match_iou": 0.5,
-  "report_sha256": "68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e",
+  "report_sha256": "6a0d4e5c0fb35b75f6bfcdb93548b56e238e525410ae25d6d9daa682880a98e4",
   "reported_cell_diagnoses": [
     {
       "cell": 4,
@@ -99,7 +99,7 @@
   "scope": "frozen_audit_evidence_only",
   "score_threshold": 0.035,
   "source_image_pixels_read": 0,
-  "source_owner_review_sha256": "d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee",
+  "source_owner_review_sha256": "7b45723eb3ed85c0344cc92d64f15162c1997cc1b358c5561cf4704c07e661a4",
   "status": "v22_owner_review_diagnosed_without_new_inference",
   "test_images_read": 0,
   "validation_images_read": 0,

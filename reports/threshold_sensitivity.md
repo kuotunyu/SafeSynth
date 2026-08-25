@@ -1,6 +1,6 @@
 # M12 filter threshold sensitivity
 
-- Source records: `D:\sdg-data\02-safesynth\synthetic\m13_pool_1x\records.jsonl`
+- Source records: `local_only_not_published`
 - Samples: 14000
 - Baseline acceptance: 29.84%
 - Alarm threshold: 15.0 percentage points

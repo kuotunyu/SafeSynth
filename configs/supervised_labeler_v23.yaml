@@ -342,11 +342,11 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: supervised_labeler_audit_passed
   report_path: reports/supervised_labeler_v23_training.json
-  report_file_sha256: f1dd8e72498e190a504f6ac5bae853574f73b426f5e4e33908a3a07cdc067eec
+  report_file_sha256: f5bb7b36a755c420ac823960bd4ea77b1ff1c97534946d578f79af84623e58d4
   markdown_path: reports/supervised_labeler_v23_training.md
   markdown_file_sha256: 0c5c31c8ea19a2e69f8b9c3d0944640be3296665bafd5976879db6fc85b74266
   split_manifest_sha256: 0bf0ac61aedd57b9b5ff05379b33f5d09963e37ed77d2fa57e70d44b466cffd4
-  checkpoint_path: D:\sdg-data\02-safesynth\runs\supervised_labeler_v23_train20260809_split20260807\best
+  checkpoint_path: ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v23_train20260809_split20260807/best
   checkpoint_sha256: c01173bd843531c82b5fddee71efc659c2735de9f839ac383e43837c3e6051c6
   checkpoint_epoch: 3
   score_threshold: 0.035
@@ -377,8 +377,8 @@ model_review_registration:
   status: supervised_labeler_v23_model_review_pages_frozen
   owner_review_status: pending
   manifest_path: reports/supervised_labeler_v23_model_review_manifest.json
-  manifest_file_sha256: 2867ececb3f7a0a215ee2a2c8f6ddef251530b00270e572b6eba5bb92dd9756d
-  manifest_sha256: d072fa09ce9c590dbade7e744a9648db192caa85b52dea41a92af4c7a1e345b4
+  manifest_file_sha256: 5e4a7b4091cebecfa123ee90d1c60451b034ef714f2e99bc50805ff1aed1c7c2
+  manifest_sha256: 0fc8d981a4e5f6553af7dfe3da38f21bc2820b2f9ab4186f1d8c8579cf63173f
   reviewed_images: 48
   approve_only_if_problem_count: 0
   page_paths:

@@ -364,14 +364,14 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v22_training.json"
   report_file_sha256: >-
-    daf6ca094a152e2246750081f4e775e50e5a77282e0c61526838217882ff7779
+    f817c21e875e05a679a2ed39587017f0ddfafd3ade9a4c6067b4ea3faed85151
   markdown_path: "reports/supervised_labeler_v22_training.md"
   markdown_file_sha256: >-
     038f15aaf367e448dd179db331e6a7dd227a09788ebcbe81b352dcc8b9d4525b
   split_manifest_sha256: >-
     f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v22_train20260809_split20260806\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v22_train20260809_split20260806/best
   checkpoint_sha256: >-
     de5f4801095a0edd32c9b084cd12cb3e71ea51634e9541e8b6c0e208aebad73f
   checkpoint_epoch: 4
@@ -408,9 +408,9 @@ model_review_registration:
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v22_model_review_manifest.json"
   manifest_file_sha256: >-
-    d8e78fbbe81c14a8dfa00463867c2d3a1f533994a5715df2c9e0b4efccc5b242
+    266050464b06c8b8a545641d6d4a67c87475185f33b8caf6814dbe341060ea60
   manifest_sha256: >-
-    2134cd21dc4a8f4f3cc84ed5b37727d8693595ae96bc80c9a16050997eced52b
+    19d32a8c04833c5192da20a97b99e35ce16697d31ffa410d307fb0090aac0f95
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -436,9 +436,9 @@ owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v22_model_human_review.json"
   review_file_sha256: >-
-    2453d3f8fe898904eda4b700daf2431fa08a12155cc1f000cd811f8d5951d499
+    bcd46d4c1c303baba5fa49e3bd1ca1ffcc779bb5a698fa5df1e7393b0eff9d41
   review_sha256: >-
-    d196dbabce4955b61fa2f30f126d9273647bd76f5e88acad05e39c3836fbb8ee
+    7b45723eb3ed85c0344cc92d64f15162c1997cc1b358c5561cf4704c07e661a4
   problem_count: 5
   model_false_positive_cells: [4, 28, 32]
   model_missed_helmeted_head_cells: [6, 34]
@@ -452,9 +452,9 @@ owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v22_review_diagnosis.json"
   report_file_sha256: >-
-    d9e64990569a0cec11f74954d9f299401b369a93ca0e3966d5fe3fb56da0c74f
+    27cc87542a917496b156c4e89cb6185bf710f10018383dadf7f06b2ac3909685
   report_sha256: >-
-    68a9accd5fa18d88109e9ee7d694ee2589e43c2192fe57f322eadf9dce26d98e
+    6a0d4e5c0fb35b75f6bfcdb93548b56e238e525410ae25d6d9daa682880a98e4
   reported_cells_true_positives: 5
   reported_cells_false_positives: 4
   reported_cells_false_negatives: 2

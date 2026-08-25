@@ -52,4 +52,4 @@ available without making it the default.
 - `reports/figures/h2_sam2_larger.png`
 
 Machine-readable masks and metrics are stored outside Git at
-`D:/sdg-data/02-safesynth/cache/h2/h2_results.json`.
+`local_only_not_published`.

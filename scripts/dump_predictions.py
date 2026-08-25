@@ -29,6 +29,7 @@ import torch
 from PIL import Image
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.training.arms import ARMS
 from src.training.data import load_coco_samples
 from src.training.ingest import latest_checkpoint
@@ -213,7 +214,9 @@ def main(argv: list[str] | None = None) -> int:
                 "checkpoint": checkpoint.name,
                 "n_images": len(samples),
                 "n_detections": len(records),
-                "path": destination.as_posix(),
+                "path": public_artifact_path(
+                    destination, project_root=PROJECT_ROOT
+                ),
                 "coordinates": "original per-image annotation space (DATA-25)",
                 "score_threshold": 0.0,
             }

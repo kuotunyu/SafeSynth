@@ -136,7 +136,8 @@ uv sync --reinstall-package torch --reinstall-package torchvision
 **根因**：本機 `LongPathsEnabled = 0`，260 字元上限是活的。
 HF 快取的 blob 檔名很長，加上深層目錄容易超標。
 
-**解法**：把 `configs/paths.yaml` 的 `hf_home` 設成短路徑（例如 `D:/hf`），
+**解法**：把 `configs/paths.yaml` 的 `hf_home` 設成短路徑（例如
+`${SAFESYNTH_DATA_ROOT}/hf-cache`），
 `kagglehub` 則用 `KAGGLEHUB_CACHE` 重導。
 
 **預防**：[ENV-09](environment.md)。

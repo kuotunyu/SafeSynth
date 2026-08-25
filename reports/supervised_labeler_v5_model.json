@@ -31,7 +31,7 @@
     "revision": "282494075698cab9faa1096ae26856890030c817",
     "schema_version": 1
   },
-  "model_dir": "D:\\sdg-data\\02-safesynth\\cache\\models\\PekingU--rtdetr_v2_r50vd\\282494075698cab9faa1096ae26856890030c817",
+  "model_dir": "local_only_not_published",
   "passed": true,
   "repo_id": "PekingU/rtdetr_v2_r50vd",
   "revision": "282494075698cab9faa1096ae26856890030c817"

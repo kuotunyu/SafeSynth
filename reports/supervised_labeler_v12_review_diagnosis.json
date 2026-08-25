@@ -1,7 +1,7 @@
 {
   "audit_manifest_sha256": "1681734f98cc7a428d9a2c45d33cf1132d1dd4f378fb3040afd75cf627947b0a",
   "checkpoint_sha256": "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4",
-  "diagnosis_sha256": "af4ccf8d447557d1d759b04722a6325d979bf047ec1ca0a5af6c8416dee816fa",
+  "diagnosis_sha256": "4554b33b88db11af78eea19b378d57eb6931f1d458746dfb438ca61216c91754",
   "experiment_id": "supervised_labeler_v12",
   "false_positive_diagnoses": [
     {
@@ -387,7 +387,7 @@
     27,
     45
   ],
-  "owner_review_sha256": "31874624fa0728954eb95508c6a76297f4569f226f3f26f1eb7fcf853302ebb7",
+  "owner_review_sha256": "493296cf0d45602f0aa0fb5c3d2176d289fd99925a94d4334aed937509eee030",
   "postprocessing": {
     "max_aspect_ratio": 4.0,
     "max_relative_area": 0.15,

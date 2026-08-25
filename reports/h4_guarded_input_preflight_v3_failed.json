@@ -5,13 +5,13 @@
   "geometry_fingerprint_sha256": "ff1fcf4fc6b5054f8013232a18c579f75a991cad81dde0816efebd30eaa144d1",
   "h4_auc_computed": false,
   "input_issue_max_count": 0,
-  "model_inference_run": false,
-  "n_images": 64,
   "known_input_issue_cells": [
     64
   ],
+  "model_inference_run": false,
+  "n_images": 64,
   "observed_input_issue_count": 1,
-  "output_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\h4_guarded_input_preflight_seed20260729",
+  "output_dir": "local_only_not_published",
   "reviewed_by": "development_sanity_check",
   "root_seed": 20260729,
   "schema_version": 1,

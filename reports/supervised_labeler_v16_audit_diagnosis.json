@@ -311,7 +311,7 @@
       "truth_boxes": 5
     }
   ],
-  "report_sha256": "00ba8e2a6339c9a90371b9b83e11caf7bac2d5594b27509dc3fec00fcf506427",
+  "report_sha256": "5bbb8f73bb52557eea43ff08fb78a503382a0c9541bbf5cbca30e8f08ebc467c",
   "schema_version": 1,
   "scope": {
     "audit_evidence_rows_read": 48,
@@ -324,6 +324,6 @@
   "split_manifest_sha256": "8ff4de5dbf981a701548ecd3924b16aa594977fa7005ab610c0e3a4c638f7f3d",
   "status": "v16_failed_audit_diagnosed_without_new_inference",
   "threshold_policy": "Diagnostic only. The one-shot audit cannot select a new threshold after outcomes are visible.",
-  "training_report_file_sha256": "ee006f833f5ca5d09c7aa3f068f53b689779d4cca7ab1203afc16f22358ba37c",
+  "training_report_file_sha256": "60504991bf8b9fdb1b273e4c723c64d3f2b0411686c9be3a935268bf2c1beaaa",
   "training_report_path": "reports/supervised_labeler_v16_training.json"
 }

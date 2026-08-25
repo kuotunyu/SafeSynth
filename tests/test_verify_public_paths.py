@@ -24,6 +24,10 @@ def _windows_home(*, slash: str = "\\", account: str | None = None) -> str:
     return f"C:{slash}Users{slash}{name}"
 
 
+def _external_drive_path(*, slash: str = "\\", drive: str = "D") -> str:
+    return f"{drive}:{slash}sdg-data{slash}02-safesynth{slash}artifact.json"
+
+
 @pytest.mark.parametrize(
     ("text", "marker"),
     [
@@ -53,12 +57,55 @@ def test_raw_escaped_notebook_and_case_variants_are_reported(
         "reports/figures/evidence.png",
         "docs/reproduction.md",
         "local_only_not_published",
-        "C:/Users/runneradmin/work/project",
         "USER=runner",
     ],
 )
 def test_portable_and_ci_paths_do_not_trigger_the_gate(text: str) -> None:
     assert scanner.scan_text("reports/evidence.json", text) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        _external_drive_path(),
+        _external_drive_path(slash="\\\\"),
+        _external_drive_path(slash="\\\\\\\\"),
+        _external_drive_path(slash="/"),
+        _external_drive_path(drive="d"),
+    ],
+)
+def test_public_surfaces_reject_generic_windows_drive_paths(text: str) -> None:
+    findings = scanner.scan_text("reports/evidence.json", f"safe\n{text}\n")
+
+    assert findings == [
+        "reports/evidence.json:2: absolute-windows-drive-path"
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "https://example.com/releases/report.json",
+        "doi:10.5281/zenodo.123456",
+        "reports/figures/evidence.png",
+        "${SAFESYNTH_DATA_ROOT}/runs/checkpoint",
+        "local_only_not_published",
+    ],
+)
+def test_urls_relative_paths_and_portable_placeholders_are_not_drive_paths(
+    text: str,
+) -> None:
+    assert scanner.scan_text("reports/evidence.json", text) == []
+
+
+def test_generic_drive_rule_is_limited_to_public_artifact_surfaces() -> None:
+    assert scanner.scan_text("tests/fixture.py", _external_drive_path()) == []
+
+
+def test_ci_runner_drive_path_is_not_a_public_artifact_finding() -> None:
+    runner_path = f"C:{'/'}Users{'/'}runneradmin{'/'}work{'/'}project"
+
+    assert scanner.scan_text(".github/workflows/ci.yml", runner_path) == []
 
 
 def _run_git(root: Path, *arguments: str) -> None:
@@ -116,6 +163,14 @@ def test_scanner_source_does_not_contain_the_private_values_it_searches_for() ->
 
     assert _account_name().casefold() not in source.casefold()
     assert _login_name().casefold() not in source.casefold()
+
+
+def test_scanner_source_does_not_embed_a_generic_drive_fixture() -> None:
+    source = (scanner.PROJECT_ROOT / "scripts" / "verify_public_paths.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert _external_drive_path().casefold() not in source.casefold()
 
 
 def test_repository_itself_has_no_tracked_personal_paths() -> None:

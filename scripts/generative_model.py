@@ -12,7 +12,8 @@ from typing import Any
 
 from huggingface_hub import HfApi, hf_hub_download
 
-from src.data.paths import load_project_paths
+from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.synthetic.generative_inpaint import (
     load_generative_config,
     model_directory,
@@ -237,7 +238,7 @@ def main() -> None:
         pass
     report = {
         **remote,
-        "model_dir": str(target),
+        "model_dir": public_artifact_path(target, project_root=PROJECT_ROOT),
         "destination_free_gib": shutil.disk_usage(destination).free / 1024**3,
         "already_verified": local_verified,
         "action": args.action,

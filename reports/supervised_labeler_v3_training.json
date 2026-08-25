@@ -1341,7 +1341,7 @@
       "true_positives": 6
     }
   ],
-  "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v3_train20260809_split20260811\\best",
+  "checkpoint_path": "local_only_not_published",
   "checkpoint_sha256": "1e62be7a814d3c2aa9f32277cf8b0087cef51170fcda4e9ffe2a09692c10bdf7",
   "checks": {
     "audit_median_matched_iou": true,

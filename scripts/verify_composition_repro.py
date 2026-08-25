@@ -7,7 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.data.paths import load_project_paths
+from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 
 
 def _read(path: Path) -> dict[str, Any]:
@@ -37,8 +38,8 @@ def main() -> None:
         if first_hashes.get(sample_id) != second_hashes.get(sample_id)
     ]
     result = {
-        "first_summary": str(first_path),
-        "second_summary": str(second_path),
+        "first_summary": public_artifact_path(first_path, project_root=PROJECT_ROOT),
+        "second_summary": public_artifact_path(second_path, project_root=PROJECT_ROOT),
         "first_images": len(first_hashes),
         "second_images": len(second_hashes),
         "mismatches": mismatches,

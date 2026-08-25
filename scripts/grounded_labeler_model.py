@@ -12,6 +12,7 @@ from typing import Any
 from huggingface_hub import HfApi, hf_hub_download
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.synthetic.grounded_labeler import (
     labeler_directory,
     load_whole_image_config,
@@ -133,7 +134,7 @@ def main() -> None:
         manifest = None
     report = {
         **remote,
-        "model_dir": str(model_dir),
+        "model_dir": public_artifact_path(model_dir, project_root=PROJECT_ROOT),
         "already_verified": manifest is not None,
         "manifest": manifest,
     }

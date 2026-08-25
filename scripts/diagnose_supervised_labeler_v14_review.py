@@ -24,6 +24,7 @@ from scripts.train_supervised_labeler import (
     _predict,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import public_artifact_path
 from src.synthetic.grounded_labeler import box_iou_xyxy
 from src.synthetic.supervised_labeler import filter_prediction_geometry
 
@@ -301,7 +302,9 @@ def main() -> None:
             "review_sha256": _sha256(REVIEW_PATH),
             "training_path": str(TRAINING_PATH.relative_to(PROJECT_ROOT)),
             "training_sha256": _sha256(TRAINING_PATH),
-            "checkpoint_path": str(checkpoint_path),
+            "checkpoint_path": public_artifact_path(
+                checkpoint_path, project_root=PROJECT_ROOT
+            ),
             "checkpoint_sha256": _sha256(checkpoint_path),
             "score_threshold": score_threshold,
             "match_iou": match_iou,

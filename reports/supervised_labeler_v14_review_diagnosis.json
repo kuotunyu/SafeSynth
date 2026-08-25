@@ -170,7 +170,7 @@
     "unmatched_prediction_above_threshold": 2
   },
   "frozen_inputs": {
-    "checkpoint_path": "D:\\sdg-data\\02-safesynth\\runs\\supervised_labeler_v14_train20260809_split20260729\\best\\model.safetensors",
+    "checkpoint_path": "local_only_not_published",
     "checkpoint_sha256": "03de04a6981c9893d0f38e8300fec9bfc774a789317a884bdc8176418994735c",
     "config_path": "configs\\supervised_labeler_v14.yaml",
     "config_sha256": "af0788d6374d7e03248373337adc36b8bf2190502c815991d1e52d1b647b5e82",
@@ -184,12 +184,12 @@
       "selection_basis": "Preregistered before v14 pool pixels. Limits cover the diagnosed v13 cell 03 candidate (relative area about 0.616, height about 0.853) with margin."
     },
     "review_path": "reports\\supervised_labeler_v14_model_human_review.json",
-    "review_sha256": "cfa03fa43d776c78693f151bca87e175adee8f30de4f4f8594b15d2acd839c4d",
+    "review_sha256": "28cd00fe8c8214a96a454766f7921660e7e301d9ea838281125943767cde34eb",
     "score_threshold": 0.05,
     "split_path": "splits\\supervised_labeler_v14_split.json",
     "split_sha256": "d77697fef5d9356de0fdab35264b44d45cad46fd5882c0df5cc9f57175acd757",
     "training_path": "reports\\supervised_labeler_v14_training.json",
-    "training_sha256": "5cfe685c305f8bbd97577ea759e0ea3be81013c81057403f3c5ed9226ff82d7a"
+    "training_sha256": "15370767400dcea6a5c435c103773dae22fae438b297b49d98e6acae60ff007c"
   },
   "generation_allowed": false,
   "schema_version": 1,

@@ -18,7 +18,7 @@
   "passed": false,
   "person_context_matching": false,
   "real_control_matching": "exact original source annotation paired per paste",
-  "run_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\m11_h4_seed42",
+  "run_dir": "local_only_not_published",
   "seed": 57721,
   "split": "group-disjoint 4/5 train, 1/5 test",
   "test_classes": [

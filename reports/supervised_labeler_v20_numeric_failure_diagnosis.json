@@ -452,7 +452,7 @@
       "truth_boxes": 19
     }
   },
-  "report_sha256": "1c611b00d5d66a61beca9f516987b13ec5e8ff38c16e179094fcc1b4d558598c",
+  "report_sha256": "2a5e41a52dc3905c4a79a38921fda0e94c673e517a1ded46402054437bb9c521",
   "root_cause_summary": {
     "precision_gate_failure": "The frozen checkpoint produced 29 false positives against 91 true positives, so the preregistered 0.85 precision gate failed at 0.7583.",
     "rendering_bug": false,
@@ -465,7 +465,7 @@
   "source_files": {
     "audit_evidence_file_sha256": "222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a",
     "audit_manifest_file_sha256": "c15c64bc1043f2ff39517c838114bc62d32f6d09e99eecf881bcdf273a2acac1",
-    "training_report_file_sha256": "415012415df1000c326d3551d60855cb87dd70543315f3b58b004f17052c4b62"
+    "training_report_file_sha256": "9bd08719fb6e0e4fef0697a8b7cca3571a4a320c8cf65782e72b319ce3f26e3e"
   },
   "source_image_pixels_read": 0,
   "status": "v20_numeric_failure_diagnosed_without_new_inference",

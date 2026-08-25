@@ -312,14 +312,14 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v18_training.json"
   report_file_sha256: >-
-    f135d42e8c23780164c81e60996f0c61f54fde48de23ab5d99cf4bb0f67e78fa
+    33e96170b122216ef619dd1aace4eca8eafa769d4f235198bf57b8348bc0c489
   markdown_path: "reports/supervised_labeler_v18_training.md"
   markdown_file_sha256: >-
     2f30e5ed71a2e6dcc7c44b92bcd2801a5dbff49849798165464459879eacf1f8
   split_manifest_sha256: >-
     530f1ab435118e2a6d052dfb9b430402301cfe73f5307cb0a8bcb67562eea398
   checkpoint_path: >-
-    D:\sdg-data\02-safesynth\runs\supervised_labeler_v18_train20260809_split20260802\best
+    ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v18_train20260809_split20260802/best
   checkpoint_sha256: >-
     20629e557613d0c766a68c1a8351cd5b92714095c6e0c9e1ce1d5f53fe6de57e
   checkpoint_epoch: 5
@@ -355,9 +355,9 @@ model_review_registration:
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v18_model_review_manifest.json"
   manifest_file_sha256: >-
-    f4a2cce1a2cb8bee2c54543641421cbf74663937bdf191499d296a30ef4d54d7
+    19b58a4be4f06a05c9e7aa4760698f8db2a7a2dde190b8faf9436136a6b6e324
   manifest_sha256: >-
-    810ac0c20f2a0ce7eff803608a9d4bebec2f793cf6149af1f0d14d8dcd1bb168
+    082ed9c97e14a7f6c837f6db3dc1b9fcec6b1692a3377e6bb81d2561bdcad0a9
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -383,9 +383,9 @@ owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v18_model_human_review.json"
   review_file_sha256: >-
-    42f6d3f07f0ea62874121bfc803ec7dbae09f2c4c1cf8849908484b814cbceb6
+    30dba2674d45712c1fda276e16c2d6378128cb933fd4dfea5dd82fc2bd2980d0
   review_sha256: >-
-    974cdc27d029943c0bd4b1a68545cc21d72041c4fa63dcf7fcc341efc5419608
+    bb9f2b3bf0af78e7085495194e5e19fc1b642de0b546bd3a0cf9faef52b2d5f8
   problem_count: 1
   model_false_positive_cells: [36]
   model_missed_helmeted_head_cells: []
@@ -399,9 +399,9 @@ owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v18_review_diagnosis.json"
   report_file_sha256: >-
-    6eb68eeb81d97e3165764342958ee36f85f76c72fdd51dceae78002c9d7bac15
+    23f78b594667bfd27568802d84ca94e5bd3608bb4f90ecb6d6cfadb876684e3e
   report_sha256: >-
-    6a420b0758002a18c1b18652b6634e77e1bbb478787fe773a4761a7b107201ba
+    f39e01636f4cfaa5e423037c4706e9fbb4650ea3c5c726557ecd76a54336d008
   cell_36_image_id: 4618
   cell_36_score: 0.0289306640625
   cell_36_score_margin_above_threshold: 0.0009306640625

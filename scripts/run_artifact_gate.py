@@ -15,6 +15,7 @@ from src.filtering.artifact_gate import (
     build_patch_examples,
     train_artifact_classifier,
 )
+from src.release.public_paths import public_artifact_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,11 +62,7 @@ def _render_roc(labels: np.ndarray, scores: np.ndarray, output: Path) -> None:
 def _repo_relative(path) -> str:
     """Repo-relative POSIX path; absolute paths leak the local username."""
 
-    candidate = Path(path)
-    try:
-        return candidate.resolve().relative_to(PROJECT_ROOT).as_posix()
-    except ValueError:
-        return candidate.as_posix()
+    return public_artifact_path(path, project_root=PROJECT_ROOT)
 
 
 def main() -> None:
@@ -98,7 +95,7 @@ def main() -> None:
         if not args.match_person_context:
             raise
         result = {
-            "run_dir": str(run_dir),
+            "run_dir": _repo_relative(run_dir),
             "seed": args.seed,
             "person_context_matching": True,
             "status": "infeasible",
@@ -137,7 +134,7 @@ def main() -> None:
     threshold = float(config["artifact_gate"]["max_auc_for_scaleup"])
     result.update(
         {
-            "run_dir": str(run_dir),
+            "run_dir": _repo_relative(run_dir),
             "max_auc_for_scaleup": threshold,
             "passed": float(result["auc"]) <= threshold,
             "split": "group-disjoint 4/5 train, 1/5 test",

@@ -4,7 +4,7 @@
 - Annotations: 84063
 - Filter pass/reject: 3664 / 6336
 - COCO self-evaluation bbox mAP: `1.000`
-- Output: `D:\sdg-data\02-safesynth\synthetic\m13_pool_1x`
+- Output: `local_only_not_published`
 - Hard negatives: procedural bank wired; distractors carry no annotation (ADR-004).
 - Generative boundary inpainting: **not used**.
 

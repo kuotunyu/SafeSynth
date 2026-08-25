@@ -16,7 +16,7 @@
   "n_train": 1642,
   "passed": false,
   "real_control_matching": "same class + same fold + nearest log(pixel width, pixel height)",
-  "run_dir": "D:\\sdg-data\\02-safesynth\\synthetic\\m11_h4_seed42",
+  "run_dir": "local_only_not_published",
   "seed": 42,
   "split": "group-disjoint 4/5 train, 1/5 test",
   "test_classes": [
