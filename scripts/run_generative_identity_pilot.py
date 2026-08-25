@@ -13,7 +13,8 @@ from typing import Any
 import numpy as np
 from PIL import Image, ImageDraw
 
-from src.data.paths import ProjectPaths, load_project_paths
+from src.data.paths import PROJECT_ROOT, ProjectPaths, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.synthetic.compose import generate
 from src.synthetic.generative_inpaint import (
     GenerativeBoundaryInpainter,
@@ -90,17 +91,7 @@ class RecordingInpainter:
 def _repo_relative(path) -> str:
     """Repo-relative POSIX path; absolute paths leak the local username."""
 
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        return (
-            candidate.resolve()
-            .relative_to(_Path(__file__).resolve().parents[1])
-            .as_posix()
-        )
-    except ValueError:
-        return candidate.as_posix()
+    return public_artifact_path(path, project_root=PROJECT_ROOT)
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -315,9 +306,9 @@ def _write_report(
         "root_seed": int(config["pilot"]["root_seed"]),
         "n_images": int(config["pilot"]["n_images"]),
         "scenario": "context_replacement",
-        "contact_sheet": str(contact_sheet_path),
+        "contact_sheet": _repo_relative(contact_sheet_path),
         "contact_sheet_sha256": _sha256(contact_sheet_path),
-        "detail_contact_sheet": str(detail_sheet_path),
+        "detail_contact_sheet": _repo_relative(detail_sheet_path),
         "detail_contact_sheet_sha256": _sha256(detail_sheet_path),
         "evidence_alignment": "inline_or_deterministic_geometry_verified",
         "identity_counts": counts,

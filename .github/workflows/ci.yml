@@ -88,3 +88,6 @@ jobs:
       # tests/test_forbidden_licences.py.
       - name: Scan for forbidden licences
         run: uv run python -m scripts.check_forbidden_licences
+
+      - name: Scan tracked text for personal paths
+        run: uv run python -m scripts.verify_public_paths

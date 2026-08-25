@@ -28,7 +28,7 @@
       }
     }
   },
-  "archive": "C:\\Users\\3Hml\\Downloads\\flux2_v2_diagnostic_results.zip",
+  "archive": "local_only_not_published",
   "archive_sha256": "33bd82ae1625137b0a42aaf92473e94c95591eb29a1d846bf4833b060003e7c6",
   "cases": {
     "case_07": {
@@ -236,7 +236,7 @@
       }
     }
   },
-  "detail_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\flux2_v2_diagnostic_detail.png",
+  "detail_sheet": "reports/figures/flux2_v2_diagnostic_detail.png",
   "detail_sheet_sha256": "0008702bc8e23e6c45dce3e3b49ae491ced3b969bac7c5e373084f7722b4c18c",
   "diagnostic_only": true,
   "execution": {

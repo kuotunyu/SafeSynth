@@ -23,6 +23,6 @@
       1.0
     ]
   },
-  "source_h4": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\h4_artifact_gate.json",
+  "source_h4": "reports/h4_artifact_gate.json",
   "unanchored_pasted_vs_real_score_auc": 0.8134011455658701
 }

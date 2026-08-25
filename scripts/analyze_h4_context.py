@@ -8,8 +8,9 @@ from typing import Any
 
 import numpy as np
 
-from src.data.paths import load_project_paths
+from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.filtering.artifact_gate import has_person_context, roc_auc
+from src.release.public_paths import public_artifact_path
 
 
 def _read_json(path: Path) -> Any:
@@ -73,7 +74,9 @@ def main() -> None:
         scores[key].append(float(score))
 
     result: dict[str, Any] = {
-        "source_h4": str(paths.reports / "h4_artifact_gate.json"),
+        "source_h4": public_artifact_path(
+            paths.reports / "h4_artifact_gate.json", project_root=PROJECT_ROOT
+        ),
         "scope": "held-out head/helmet examples; existing H4 classifier scores",
         "counts": {key: len(values) for key, values in scores.items()},
         "score_p10_p50_p90": {

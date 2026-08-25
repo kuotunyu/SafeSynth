@@ -12,6 +12,7 @@ import yaml
 from PIL import Image, ImageDraw
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 
 COLORS = {
     "helmet": (255, 196, 0),
@@ -27,17 +28,7 @@ SECTION_HEIGHT = 28
 def _repo_relative(path) -> str:
     """Repo-relative POSIX path; absolute paths leak the local username."""
 
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        return (
-            candidate.resolve()
-            .relative_to(_Path(__file__).resolve().parents[1])
-            .as_posix()
-        )
-    except ValueError:
-        return candidate.as_posix()
+    return public_artifact_path(path, project_root=PROJECT_ROOT)
 
 
 def _read_json(path: Path) -> Any:
@@ -202,7 +193,7 @@ def main() -> None:
         "checks": checks,
         "review_pass_sample_ids": [item["sample_id"] for item in passed_review],
         "review_reject_sample_ids": [item["sample_id"] for item in rejected_review],
-        "review_figure": str(figure_path),
+        "review_figure": _repo_relative(figure_path),
     }
     (paths.reports / "filter_ledger.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",

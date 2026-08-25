@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import public_artifact_path
 
 VARIANTS = (
     "v1_reference_strength_085",
@@ -48,17 +49,7 @@ METHOD_DECISION = {
 def _repo_relative(path) -> str:
     """Repo-relative POSIX path; absolute paths leak the local username."""
 
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        return (
-            candidate.resolve()
-            .relative_to(_Path(__file__).resolve().parents[1])
-            .as_posix()
-        )
-    except ValueError:
-        return candidate.as_posix()
+    return public_artifact_path(path, project_root=PROJECT_ROOT)
 
 
 def _sha256(path: Path) -> str:
@@ -320,11 +311,11 @@ def main() -> None:
     _render_detail_sheet(case_payloads, detail_path)
     report = {
         "aggregate": aggregate,
-        "archive": str(args.archive),
+        "archive": _repo_relative(args.archive),
         "archive_sha256": _sha256(args.archive),
         "cases": result_cases,
         "diagnostic_only": True,
-        "detail_sheet": str(detail_path),
+        "detail_sheet": _repo_relative(detail_path),
         "detail_sheet_sha256": _sha256(detail_path),
         "execution": {
             "gpu": manifest["gpu"],

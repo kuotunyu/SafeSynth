@@ -187,6 +187,7 @@ uv run ruff check .
 uv run pytest -q
 uv run python -m scripts.verify_readme
 uv run python -m scripts.check_forbidden_licences
+uv run python -m scripts.verify_public_paths
 ```
 
 ### Run the demo with public weights

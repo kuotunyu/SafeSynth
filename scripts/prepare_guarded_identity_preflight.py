@@ -14,6 +14,7 @@ import yaml
 from PIL import Image, ImageDraw
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import public_artifact_path
 from src.synthetic.compose import generate
 
 
@@ -71,17 +72,7 @@ class CpuInputCapture:
 def _repo_relative(path) -> str:
     """Repo-relative POSIX path; absolute paths leak the local username."""
 
-    from pathlib import Path as _Path
-
-    candidate = _Path(path)
-    try:
-        return (
-            candidate.resolve()
-            .relative_to(_Path(__file__).resolve().parents[1])
-            .as_posix()
-        )
-    except ValueError:
-        return candidate.as_posix()
+    return public_artifact_path(path, project_root=PROJECT_ROOT)
 
 
 def _sha256(path: Path) -> str:
@@ -255,7 +246,7 @@ def main() -> None:
         "observed_input_issue_count": None,
         "reviewed_by": None,
         "geometry_fingerprint_sha256": _geometry_fingerprint(records),
-        "contact_sheet": str(sheet_path),
+        "contact_sheet": _repo_relative(sheet_path),
         "contact_sheet_sha256": _sha256(sheet_path),
         "output_dir": str(output_dir),
     }

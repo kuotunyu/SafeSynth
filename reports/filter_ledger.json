@@ -20,7 +20,7 @@
   "n_pass": 196,
   "n_reject": 104,
   "n_total": 300,
-  "review_figure": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\filter_pass_reject_grid.png",
+  "review_figure": "reports/figures/filter_pass_reject_grid.png",
   "review_pass_sample_ids": [
     "s42_000034",
     "s42_000002",

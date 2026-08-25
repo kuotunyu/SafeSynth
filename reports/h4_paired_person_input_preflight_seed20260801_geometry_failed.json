@@ -1,7 +1,7 @@
 {
   "architecture": "paired_person_insert_v6",
   "attempted_backgrounds": 695,
-  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_paired_person_input_preflight_seed20260801_geometry_failed.png",
+  "contact_sheet": "reports/figures/h4_paired_person_input_preflight_seed20260801_geometry_failed.png",
   "contact_sheet_sha256": "ddfffea5a174bca49b7a27ae09e2d1bf1db9fd9fc007fb12f7f0d2e35172ec4a",
   "distinct_backgrounds": 64,
   "donor_first_reject_reasons": {

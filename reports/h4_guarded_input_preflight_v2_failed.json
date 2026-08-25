@@ -1,6 +1,6 @@
 {
   "architecture": "guarded_context_replacement_v2",
-  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_guarded_input_preflight_v2_failed.png",
+  "contact_sheet": "reports/figures/h4_guarded_input_preflight_v2_failed.png",
   "contact_sheet_sha256": "fa1a7d95229599288dd677dc02b7b8b46a3d9d34e1e954a5a1e5a10daab6e426",
   "geometry_fingerprint_sha256": "beda026df3975f0eee43f8dd1531719824b64bef36a5fd68b53f0375d35a4129",
   "h4_auc_computed": false,

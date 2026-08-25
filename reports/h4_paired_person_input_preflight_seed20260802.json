@@ -2,7 +2,7 @@
   "architecture": "paired_person_scene_matched_insert_v6b",
   "attempted_backgrounds": 2762,
   "available_feature_rows": 3500,
-  "contact_sheet": "C:\\Users\\3Hml\\Desktop\\mySyntheticData\\2_SafeSynth\\reports\\figures\\h4_paired_person_input_preflight_seed20260802.png",
+  "contact_sheet": "reports/figures/h4_paired_person_input_preflight_seed20260802.png",
   "contact_sheet_sha256": "3f35eb69c18215ed09e8267bc0b241bd994b4ac9a3f913fb521aa87c4fca8270",
   "distinct_backgrounds": 64,
   "donor_first_reject_reasons": {
