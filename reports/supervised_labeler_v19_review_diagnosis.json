@@ -3,7 +3,7 @@
   "experiment_id": "supervised_labeler_v19",
   "future_intervention_constraint": "Do not change the v19 threshold or geometry after audit. Replay the five miss image IDs as positives and the two false-positive image IDs as hard negatives only in a preregistered fresh model with a new independent audit.",
   "match_iou": 0.5,
-  "report_sha256": "7224d603d3509e1fd874a7cfb08fae8c8ea1b4a63e6bcf9e7164a93368ac9179",
+  "report_sha256": "b3b1774b569ed6a1561aa5f910b1e9f5840b7e55d4794d5dea5ed409452c391d",
   "reported_cell_diagnoses": [
     {
       "cell": 10,
@@ -126,7 +126,7 @@
   "scope": "frozen_audit_evidence_only",
   "score_threshold": 0.028,
   "source_image_pixels_read": 0,
-  "source_owner_review_sha256": "1a8c54f865621d64fa81fc4251cc9f6f1bf2f9a6ca55af726fa40194111d1979",
+  "source_owner_review_sha256": "4616a7ea7c156a30d4305b1c51b5d4206d952b6abd63a345674e7ecf00f43dca",
   "status": "v19_owner_review_diagnosed_without_new_inference",
   "test_images_read": 0,
   "validation_images_read": 0,

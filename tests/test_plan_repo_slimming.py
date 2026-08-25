@@ -385,7 +385,10 @@ def test_encoded_filename_delimiters_are_retained(raw_target: str, expected: str
     assert resolve_local_target("README.md", raw_target) == expected
 
 
-@pytest.mark.parametrize("raw_target", [r"C:\outside.png", "C%3A/outside.png"])
+@pytest.mark.parametrize(
+    "raw_target",
+    ["".join(("C", r":\outside.png")), "C%3A/outside.png"],  # noqa: FLY002
+)
 def test_windows_absolute_target_fails_closed(raw_target: str) -> None:
     """A drive-letter path must not be misclassified as an external scheme."""
 

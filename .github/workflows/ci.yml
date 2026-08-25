@@ -50,8 +50,8 @@ jobs:
       # cu130 torch wheel plus its CUDA payload does not fit there next to a uv
       # cache. Both the cache and the virtual environment go on C:, and
       # UV_LINK_MODE=copy because uv cannot hardlink across volumes.
-      UV_CACHE_DIR: C:\uv-cache
-      UV_PROJECT_ENVIRONMENT: C:\safesynth-venv
+      UV_CACHE_DIR: ${{ runner.temp }}\uv-cache
+      UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}\safesynth-venv
       UV_LINK_MODE: copy
 
     steps:

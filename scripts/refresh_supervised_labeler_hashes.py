@@ -25,6 +25,10 @@ import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import (
+    LOCAL_ONLY_NOT_PUBLISHED,
+    runtime_artifact_reference,
+)
 from src.synthetic.whole_image import canonical_mapping_sha256
 
 HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -147,6 +151,16 @@ PRODUCTION_UPPER_FILES = (
     "reports/supervised_labeler_v22_review_diagnosis.json",
 )
 
+PRODUCTION_RUNTIME_REFERENCE_FIELDS = {
+    **{
+        path: frozenset({"checkpoint_path"})
+        for path in PRODUCTION_SCRUBBED_FILES
+        if path.startswith("reports/supervised_labeler") and path.endswith(".json")
+    },
+    "results/predictions_index.json": frozenset({"path"}),
+    "results/rfdetr_predictions_index.json": frozenset({"path"}),
+}
+
 
 class HashRefreshError(RuntimeError):
     """Raised when the frozen evidence does not match the allowlisted schema."""
@@ -177,6 +191,14 @@ class RefreshResult:
     @property
     def change_count(self) -> int:
         return len(self.changes)
+
+
+@dataclass(frozen=True)
+class RuntimeReferenceResult:
+    """Files whose reloadable marker was restored to a portable reference."""
+
+    changed_files: tuple[str, ...]
+    dry_run: bool
 
 
 @dataclass
@@ -286,6 +308,119 @@ def _mapping_changes(
             changes.extend(_mapping_changes(left, right, trail + (index,)))
         return changes
     return [] if before == after else [(trail, before, after)]
+
+
+def _restore_runtime_value(
+    source: Any,
+    current: Any,
+    *,
+    allowed_fields: frozenset[str],
+    project_root: Path,
+    source_data_root: Path,
+    trail: FieldPath = (),
+) -> Any:
+    if type(source) is not type(current):
+        raise HashRefreshError(
+            f"runtime reference schema changed at {_display_field(trail)}"
+        )
+    if isinstance(source, Mapping):
+        if set(source) != set(current):
+            raise HashRefreshError(
+                f"runtime reference schema keys changed at {_display_field(trail)}"
+            )
+        return {
+            key: _restore_runtime_value(
+                source[key],
+                current[key],
+                allowed_fields=allowed_fields,
+                project_root=project_root,
+                source_data_root=source_data_root,
+                trail=trail + (str(key),),
+            )
+            for key in current
+        }
+    if isinstance(source, list):
+        if len(source) != len(current):
+            raise HashRefreshError(
+                f"runtime reference schema length changed at {_display_field(trail)}"
+            )
+        return [
+            _restore_runtime_value(
+                left,
+                right,
+                allowed_fields=allowed_fields,
+                project_root=project_root,
+                source_data_root=source_data_root,
+                trail=trail + (index,),
+            )
+            for index, (left, right) in enumerate(zip(source, current, strict=True))
+        ]
+    if (
+        _field_name(trail) in allowed_fields
+        and current == LOCAL_ONLY_NOT_PUBLISHED
+    ):
+        if not isinstance(source, str):
+            raise HashRefreshError(
+                f"runtime reference schema is not a string at {_display_field(trail)}"
+            )
+        return runtime_artifact_reference(
+            source,
+            project_root=project_root,
+            data_root=source_data_root,
+        )
+    return current
+
+
+def restore_runtime_references(
+    project_root: Path,
+    *,
+    source_revision: str,
+    runtime_reference_fields: Mapping[str, frozenset[str]],
+    dry_run: bool,
+) -> RuntimeReferenceResult:
+    """Restore exact reloadable fields from pre-scrub evidence, or fail closed."""
+
+    root = project_root.resolve()
+    source_paths = _load_document(
+        "configs/paths.yaml",
+        _git(root, "show", f"{source_revision}:configs/paths.yaml"),
+    )
+    if not isinstance(source_paths, Mapping):
+        raise HashRefreshError("source configs/paths.yaml schema is not a mapping")
+    raw_data_root = source_paths.get("data_root")
+    if not isinstance(raw_data_root, str) or not Path(raw_data_root).is_absolute():
+        raise HashRefreshError("source configs/paths.yaml has no absolute data_root")
+    source_data_root = Path(raw_data_root).resolve()
+
+    changed: list[str] = []
+    rendered: dict[str, bytes] = {}
+    for path in sorted(runtime_reference_fields):
+        target = root / path
+        if not target.is_file() or not path.endswith(".json"):
+            raise HashRefreshError(f"runtime reference file is missing or unsupported: {path}")
+        source_value = _load_document(
+            path,
+            _git(root, "show", f"{source_revision}:{path}"),
+        )
+        current_bytes = target.read_bytes()
+        current_value = _load_document(path, current_bytes)
+        restored = _restore_runtime_value(
+            source_value,
+            current_value,
+            allowed_fields=runtime_reference_fields[path],
+            project_root=root,
+            source_data_root=source_data_root,
+        )
+        newline = "\r\n" if b"\r\n" in current_bytes else "\n"
+        restored_bytes = _json_bytes(restored, newline=newline)
+        if restored_bytes != current_bytes:
+            changed.append(path)
+            rendered[path] = restored_bytes
+
+    if not dry_run:
+        for path in changed:
+            (root / path).write_bytes(rendered[path])
+    return RuntimeReferenceResult(changed_files=tuple(changed), dry_run=dry_run)
 
 
 def _is_hash_field(field: FieldPath) -> bool:
@@ -666,6 +801,12 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="report deterministic changes without writing files",
     )
     parser.add_argument(
+        "--restore-runtime-references-from",
+        default=None,
+        metavar="REVISION",
+        help="restore allowlisted reloadable references from a pre-scrub revision",
+    )
+    parser.add_argument(
         "--base-revision",
         default="HEAD",
         help="committed revision containing the pre-scrub evidence",
@@ -682,6 +823,20 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parse_args(argv)
     try:
+        if arguments.restore_runtime_references_from is not None:
+            restored = restore_runtime_references(
+                arguments.project_root,
+                source_revision=arguments.restore_runtime_references_from,
+                runtime_reference_fields=PRODUCTION_RUNTIME_REFERENCE_FIELDS,
+                dry_run=arguments.dry_run,
+            )
+            if restored.changed_files:
+                action = "would restore" if restored.dry_run else "restored"
+                for path in restored.changed_files:
+                    print(f"runtime-reference: {action} {path}")
+            else:
+                print("runtime-reference: no changes")
+            return 0
         result = refresh_hash_chain(
             arguments.project_root,
             scrubbed_files=PRODUCTION_SCRUBBED_FILES,

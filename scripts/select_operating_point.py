@@ -36,6 +36,7 @@ from src.inference.compliance import (
     select_operating_point,
     sweep_operating_points,
 )
+from src.release.public_paths import resolve_runtime_artifact
 from src.training.data import load_coco_samples
 from src.training.ingest import latest_checkpoint
 from src.training.metrics import predictions_to_coco
@@ -102,7 +103,15 @@ def best_checkpoint(paths, arm: str, seed: int) -> Path:
     return resolved if resolved.is_dir() else last
 
 
-def stored_predictions(arm: str, seed: int, split: str = "val") -> list[dict] | None:
+def stored_predictions(
+    arm: str,
+    seed: int,
+    split: str = "val",
+    *,
+    data_root: Path | None = None,
+    index_path: Path | None = None,
+    artifact_override: Path | None = None,
+) -> list[dict] | None:
     """Reuse scripts/dump_predictions.py output when it exists.
 
     Inference over validation is about 200 CPU-seconds per arm and produces
@@ -111,16 +120,20 @@ def stored_predictions(arm: str, seed: int, split: str = "val") -> list[dict] | 
     to running the model.
     """
 
-    index_path = PROJECT_ROOT / "results" / "predictions_index.json"
+    index_path = index_path or PROJECT_ROOT / "results" / "predictions_index.json"
     if not index_path.is_file():
         return None
     index = json.loads(index_path.read_text(encoding="utf-8"))
     entry = index.get(f"{arm}/{split}/seed_{seed}")
     if entry is None:
         return None
-    stored = Path(entry["path"])
-    if not stored.is_file():
-        return None
+    stored = resolve_runtime_artifact(
+        entry["path"],
+        project_root=PROJECT_ROOT,
+        data_root=data_root,
+        artifact_override=artifact_override,
+        expected_kind="file",
+    )
     print(f"reusing stored predictions: {stored.name} ({entry['n_detections']} boxes)")
     return json.loads(stored.read_text(encoding="utf-8"))
 
@@ -276,6 +289,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=None, help="debug: fewer images")
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
     parser.add_argument("--figure", type=Path, default=FIGURE_PATH)
+    parser.add_argument("--data-root", type=Path, default=None)
     return parser.parse_args(argv)
 
 
@@ -293,7 +307,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(f"{args.arm} @ {checkpoint.name}: {len(samples)} validation images")
-    records = None if args.limit else stored_predictions(args.arm, args.seed)
+    records = (
+        None
+        if args.limit
+        else stored_predictions(
+            args.arm, args.seed, data_root=args.data_root or paths.data_root
+        )
+    )
     if records is None:
         started = time.perf_counter()
         records = predict(checkpoint, samples)

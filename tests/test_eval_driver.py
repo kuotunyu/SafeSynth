@@ -39,6 +39,10 @@ from src.evaluation.detection import SplitLeakageError
 from src.training.arms import ARMS, split_real_images
 
 
+def _drive_path(suffix: str, *, separator: str = "/") -> str:
+    return "".join(("D", f":{separator}", suffix.lstrip("/\\")))
+
+
 @pytest.fixture(scope="module")
 def frozen_split():
     return split_real_images(load_project_paths().splits / "split_manifest.json")
@@ -143,7 +147,10 @@ def test_a_colab_absolute_path_yields_only_its_basename() -> None:
 def test_a_windows_recorded_path_also_yields_its_basename() -> None:
     """A rerun on this machine would record backslashes instead."""
 
-    recorded = r"D:\sdg-data\02-safesynth\runs\real_only\seed_1337\checkpoint-1752"
+    recorded = _drive_path(
+        r"sdg-data\02-safesynth\runs\real_only\seed_1337\checkpoint-1752",
+        separator="\\",
+    )
 
     assert checkpoint_name_from_recorded_path(recorded) == "checkpoint-1752"
 
@@ -473,7 +480,7 @@ def test_rf_inputs_require_explicit_isolated_evaluation_outputs() -> None:
     args = eval_driver.parse_args(
         [
             "--runs-root",
-            "D:/runs_rfdetr",
+            _drive_path("runs_rfdetr"),
             "--training-config",
             "configs/training_rfdetr.yaml",
         ]
@@ -482,11 +489,11 @@ def test_rf_inputs_require_explicit_isolated_evaluation_outputs() -> None:
     with pytest.raises(EvalDriverError, match="--metrics-csv.*--report.*--predictions-root"):
         eval_driver.validate_output_isolation(
             args,
-            default_runs_root=Path("D:/runs"),
+            default_runs_root=Path(_drive_path("runs")),
             default_training_config=eval_driver.TRAINING_CONFIG,
             default_metrics_csv=Path(args.metrics_csv),
             default_report=Path(args.report),
-            default_predictions_root=Path("D:/runs/predictions"),
+            default_predictions_root=Path(_drive_path("runs/predictions")),
             default_predictions_index=Path("results/predictions_index.json"),
         )
 

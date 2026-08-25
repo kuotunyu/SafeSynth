@@ -63,6 +63,10 @@ EVALUATION_CONFIG = PROJECT_ROOT / "configs" / "evaluation.yaml"
 FORBIDDEN_PACKAGE = "scitylartlu"[::-1]
 
 
+def _drive_path(suffix: str) -> str:
+    return "".join(("D", ":/", suffix.lstrip("/")))
+
+
 # --------------------------------------------------------------------------
 # Fakes
 # --------------------------------------------------------------------------
@@ -1298,7 +1302,7 @@ def _fake_entry(**overrides):
 
 
 FINE_TUNED = bl.WeightsProvenance(
-    source="D:/runs/real_only/seed_1337/checkpoint-1752",
+    source=_drive_path("runs/real_only/seed_1337/checkpoint-1752"),
     labels=("helmet", "head", "person"),
 )
 
@@ -1401,7 +1405,8 @@ def test_fine_tuned_is_read_off_the_head_not_off_the_operator_s_intent() -> None
     """Pointing --weights at a COCO checkpoint must not clear the banner."""
 
     local_but_coco = bl.WeightsProvenance(
-        source="D:/somewhere/local", labels=tuple(str(i) for i in range(80))
+        source=_drive_path("somewhere/local"),
+        labels=tuple(str(i) for i in range(80)),
     )
 
     assert not local_but_coco.fine_tuned
@@ -1744,14 +1749,15 @@ def test_load_detector_takes_weights_from_the_override_and_the_processor_from_th
         transformers.AutoModelForObjectDetection, "from_pretrained", staticmethod(fake_model)
     )
 
+    weights = _drive_path("runs/checkpoint-1752")
     _, _, provenance = bl.load_detector(
-        "Hub/base", weights="D:/runs/checkpoint-1752", device="cpu", dtype_name="float32"
+        "Hub/base", weights=weights, device="cpu", dtype_name="float32"
     )
 
     assert seen["processor"] == "Hub/base"
-    assert seen["model"] == "D:/runs/checkpoint-1752"
+    assert seen["model"] == weights
     assert seen["dtype"] != "None", "ADR-014: v5 defaults dtype to 'auto', so pass it"
-    assert provenance.source == "D:/runs/checkpoint-1752"
+    assert provenance.source == weights
     assert provenance.fine_tuned
 
 

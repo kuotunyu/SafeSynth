@@ -126,16 +126,16 @@ future_v21_intervention:
   revealed_development_evidence:
     training_report: "reports/supervised_labeler_v20_training.json"
     training_report_file_sha256: >-
-      9bd08719fb6e0e4fef0697a8b7cca3571a4a320c8cf65782e72b319ce3f26e3e
+      cb80b2bd50fba8aa253e0ebd1182fedadfdfcaaac07ae154a8c59bfa7894204e
     audit_evidence: "reports/supervised_labeler_v20_audit_evidence.json"
     audit_evidence_file_sha256: >-
       222b7e8b34a20c8505d2dd207968b952abff8cfb881b1af751cf17228cef2e1a
     diagnosis: >-
       reports/supervised_labeler_v20_numeric_failure_diagnosis.json
     diagnosis_file_sha256: >-
-      a632f5ad1068ddb36cf40f24f9a96615a366a29fba43b9e1cb2d997e4024b029
+      f7487501165d1666ffb2154f6a2d520f1e653f000dd2480dfd24e58b26b3da3b
     diagnosis_sha256: >-
-      2a5e41a52dc3905c4a79a38921fda0e94c673e517a1ded46402054437bb9c521
+      2ef3d8c9d86bab6a9fff86f3fad9252b2bac9585efa1bcfc92bec1249ec93d45
     failed_gate: "numeric_audit_precision"
     numeric_audit_passed: false
     score_threshold: 0.021

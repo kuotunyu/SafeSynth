@@ -69,7 +69,7 @@ from src.evaluation.slices import (
     load_slice_config,
     scenario_slices,
 )
-from src.release.public_paths import public_artifact_path
+from src.release.public_paths import public_artifact_path, runtime_artifact_reference
 from src.training.arms import (
     ARMS,
     ArmComposition,
@@ -1422,8 +1422,10 @@ def main(argv: list[str] | None = None, *, load_model: Callable[..., Any] | None
                 "checkpoint": result.checkpoint.name,
                 "n_images": result.metrics.n_images,
                 "n_detections": result.metrics.n_detections,
-                "path": public_artifact_path(
-                    predictions_path, project_root=PROJECT_ROOT
+                "path": runtime_artifact_reference(
+                    predictions_path,
+                    project_root=PROJECT_ROOT,
+                    data_root=project_paths.data_root,
                 ),
                 "coordinates": "original per-image annotation space (DATA-25)",
                 "score_threshold": MAP_SCORE_THRESHOLD,

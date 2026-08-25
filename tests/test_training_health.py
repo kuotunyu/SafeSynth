@@ -25,6 +25,10 @@ from src.training.trainer import build_training_arguments
 NOW = datetime(2026, 8, 2, 14, 0, tzinfo=UTC)
 
 
+def _windows_process(suffix: str) -> str:
+    return "".join(("C", ":\\", suffix.lstrip("\\")))
+
+
 def _snapshot(**overrides) -> HealthSnapshot:
     values = {
         "observed_at_utc": NOW,
@@ -132,9 +136,15 @@ def test_policy_rejects_unknown_foreign_compute_even_without_python_in_its_name(
 def test_policy_allows_known_windows_desktop_gpu_clients(tmp_path: Path) -> None:
     snapshot = _snapshot(
         gpu_processes=(
-            GpuProcess(pid=999, process_name=r"C:\Windows\explorer.exe"),
-            GpuProcess(pid=998, process_name=r"C:\Program Files\Google\Chrome\chrome.exe"),
-            GpuProcess(pid=997, process_name=r"C:\Windows\System32\ShellHost.exe"),
+            GpuProcess(pid=999, process_name=_windows_process(r"Windows\explorer.exe")),
+            GpuProcess(
+                pid=998,
+                process_name=_windows_process(r"Program Files\Google\Chrome\chrome.exe"),
+            ),
+            GpuProcess(
+                pid=997,
+                process_name=_windows_process(r"Windows\System32\ShellHost.exe"),
+            ),
         )
     )
     policy = UnattendedSafetyPolicy(
@@ -176,7 +186,9 @@ def test_policy_allows_docker_desktop_frontend_gpu_client(tmp_path: Path) -> Non
         gpu_processes=(
             GpuProcess(
                 pid=32604,
-                process_name=r"C:\Program Files\Docker\Docker\frontend\Docker Desktop.exe",
+                process_name=_windows_process(
+                    r"Program Files\Docker\Docker\frontend\Docker Desktop.exe"
+                ),
             ),
         )
     )

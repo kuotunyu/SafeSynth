@@ -5,7 +5,6 @@ from __future__ import annotations
 import gc
 import json
 from collections.abc import Sequence
-from pathlib import Path
 from typing import Any
 
 import torch
@@ -20,6 +19,7 @@ from scripts.train_supervised_labeler import (
     _sha256,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 from src.synthetic.grounded_labeler import box_iou_xyxy
 from src.synthetic.supervised_labeler import filter_prediction_geometry
 
@@ -211,7 +211,11 @@ def main() -> None:
         _,
         consumed_audit,
     ) = _build_datasets(config_path=CONFIG_PATH, split_path=SPLIT_PATH)
-    checkpoint = Path(report["checkpoint_path"])
+    checkpoint = resolve_checkpoint_reference(
+        report["checkpoint_path"],
+        expected_sha256=report["checkpoint_sha256"],
+        project_root=PROJECT_ROOT,
+    )
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
         raise RuntimeError("Passed v8 checkpoint changed")
 

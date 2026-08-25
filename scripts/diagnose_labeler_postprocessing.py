@@ -6,7 +6,6 @@ import gc
 import json
 from collections.abc import Mapping, Sequence
 from functools import partial
-from pathlib import Path
 from typing import Any
 
 import torch
@@ -22,6 +21,7 @@ from scripts.train_supervised_labeler import (
     _sha256,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 from src.synthetic.supervised_labeler import filter_prediction_geometry
 
 REPORT_PATH = (
@@ -177,7 +177,11 @@ def main() -> None:
             config_path=paths["config"],
             split_path=paths["split"],
         )
-        checkpoint = Path(report["checkpoint_path"])
+        checkpoint = resolve_checkpoint_reference(
+            report["checkpoint_path"],
+            expected_sha256=report["checkpoint_sha256"],
+            project_root=PROJECT_ROOT,
+        )
         if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
             raise RuntimeError(f"{experiment} checkpoint changed")
         processor = AutoImageProcessor.from_pretrained(

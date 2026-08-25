@@ -34,6 +34,7 @@ from src.inference.compliance import (
     select_operating_point,
     sweep_operating_points,
 )
+from src.release.public_paths import resolve_runtime_artifact
 from src.training.arms import ARMS
 from src.training.data import load_coco_samples
 from src.training.metrics import build_coco_ground_truth
@@ -84,14 +85,36 @@ def split_samples(paths, split: str):
     )
 
 
-def stored(index: dict, arm: str, split: str, seed: int) -> list[dict]:
+def stored(
+    index: dict,
+    arm: str,
+    split: str,
+    seed: int,
+    *,
+    data_root: Path | None = None,
+    artifact_override: Path | None = None,
+) -> list[dict]:
     entry = index.get(f"{arm}/{split}/seed_{seed}")
     if entry is None:
         raise DerivedMetricsError(f"no stored {split} predictions for {arm}")
-    return json.loads(Path(entry["path"]).read_text(encoding="utf-8"))
+    stored_path = resolve_runtime_artifact(
+        entry["path"],
+        project_root=PROJECT_ROOT,
+        data_root=data_root,
+        artifact_override=artifact_override,
+        expected_kind="file",
+    )
+    return json.loads(stored_path.read_text(encoding="utf-8"))
 
 
-def derived_rows(paths, index: dict, seed: int, config: dict) -> list[dict]:
+def derived_rows(
+    paths,
+    index: dict,
+    seed: int,
+    config: dict,
+    *,
+    data_root: Path | None = None,
+) -> list[dict]:
     threshold = float(config["compliance"]["score_threshold"])
     test_samples = split_samples(paths, "test")
     test_gt = build_coco_ground_truth(test_samples, CLASS_NAMES)
@@ -101,7 +124,7 @@ def derived_rows(paths, index: dict, seed: int, config: dict) -> list[dict]:
     for arm in ARMS:
         recall = bare_head_recall(
             test_gt,
-            stored(index, arm, "test", seed),
+            stored(index, arm, "test", seed, data_root=data_root),
             config=config,
             score_threshold=threshold,
         )
@@ -125,7 +148,9 @@ def derived_rows(paths, index: dict, seed: int, config: dict) -> list[dict]:
         )
 
         points = sweep_operating_points(
-            detections_from_coco(stored(index, arm, "val", seed)),
+            detections_from_coco(
+                stored(index, arm, "val", seed, data_root=data_root)
+            ),
             val_samples,
             split="val",
             config=config,
@@ -183,6 +208,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--metrics-csv", type=Path, default=METRICS_CSV)
     parser.add_argument("--index", type=Path, default=INDEX_PATH)
+    parser.add_argument("--data-root", type=Path, default=None)
     return parser.parse_args(argv)
 
 
@@ -203,7 +229,13 @@ def main(argv: list[str] | None = None) -> int:
         existing = list(csv.DictReader(handle))
 
     try:
-        new_rows = derived_rows(paths, index, args.seed, config)
+        new_rows = derived_rows(
+            paths,
+            index,
+            args.seed,
+            config,
+            data_root=args.data_root or paths.data_root,
+        )
     except DerivedMetricsError as error:
         print(f"cannot derive: {error}")
         return 2

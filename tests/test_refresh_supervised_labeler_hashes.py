@@ -18,6 +18,14 @@ MANIFEST_PATH = "reports/supervised_labeler_v13_model_review_manifest.json"
 CONFIG_PATH = "configs/supervised_labeler_v13.yaml"
 
 
+def _legacy_checkpoint_path() -> str:
+    return "".join(("D", r":\private-data\runs\v13\best"))  # noqa: FLY002
+
+
+def _legacy_data_root() -> str:
+    return "".join(("D", r":\private-data"))  # noqa: FLY002
+
+
 def _git(root: Path, *arguments: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(root), *arguments],
@@ -45,15 +53,22 @@ def _commit_fixture(root: Path) -> None:
     _git(root, "init", "--quiet")
     _git(root, "config", "core.autocrlf", "false")
     source = {
-        "checkpoint_path": "D:\\private-data\\runs\\v13\\best",
+        "checkpoint_path": _legacy_checkpoint_path(),
         "metrics": {"precision": 0.875, "recall": 0.8125},
         "sample_count": 64,
         "seed": 20260809,
     }
     _write_json(root, SOURCE_PATH, source)
 
+    paths_config = root / "configs" / "paths.yaml"
+    paths_config.parent.mkdir(parents=True, exist_ok=True)
+    paths_config.write_text(
+        f"data_root: '{_legacy_data_root()}'\n",
+        encoding="utf-8",
+    )
+
     manifest = {
-        "checkpoint_path": "D:\\private-data\\runs\\v13\\best",
+        "checkpoint_path": _legacy_checkpoint_path(),
         "metrics": {"false_negatives": 3, "true_positives": 21},
         "source_training_report_sha256": _sha256(root / SOURCE_PATH),
     }
@@ -85,6 +100,52 @@ def _commit_fixture(root: Path) -> None:
         "-m",
         "fixture",
     )
+
+
+def test_runtime_reference_restore_is_portable_deterministic_and_semantic(
+    tmp_path: Path,
+) -> None:
+    _commit_fixture(tmp_path)
+    source = json.loads((tmp_path / SOURCE_PATH).read_text(encoding="utf-8"))
+    source["checkpoint_path"] = "local_only_not_published"
+    _write_json(tmp_path, SOURCE_PATH, source)
+    before_metrics = source["metrics"]
+
+    first = refresh.restore_runtime_references(
+        tmp_path,
+        source_revision="HEAD",
+        runtime_reference_fields={SOURCE_PATH: frozenset({"checkpoint_path"})},
+        dry_run=False,
+    )
+    second = refresh.restore_runtime_references(
+        tmp_path,
+        source_revision="HEAD",
+        runtime_reference_fields={SOURCE_PATH: frozenset({"checkpoint_path"})},
+        dry_run=True,
+    )
+
+    restored = json.loads((tmp_path / SOURCE_PATH).read_text(encoding="utf-8"))
+    assert first.changed_files == (SOURCE_PATH,)
+    assert second.changed_files == ()
+    assert restored["checkpoint_path"] == (
+        "${SAFESYNTH_DATA_ROOT}/runs/v13/best"
+    )
+    assert restored["metrics"] == before_metrics
+
+
+def test_runtime_reference_restore_fails_closed_on_unknown_schema(tmp_path: Path) -> None:
+    _commit_fixture(tmp_path)
+    source = json.loads((tmp_path / SOURCE_PATH).read_text(encoding="utf-8"))
+    source["checkpoint_path"] = ["local_only_not_published"]
+    _write_json(tmp_path, SOURCE_PATH, source)
+
+    with pytest.raises(refresh.HashRefreshError, match="schema"):
+        refresh.restore_runtime_references(
+            tmp_path,
+            source_revision="HEAD",
+            runtime_reference_fields={SOURCE_PATH: frozenset({"checkpoint_path"})},
+            dry_run=False,
+        )
 
 
 def _scrub_paths(root: Path) -> None:

@@ -237,7 +237,7 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_failed"
   report_path: "reports/supervised_labeler_v16_training.json"
-  report_file_sha256: "60504991bf8b9fdb1b273e4c723c64d3f2b0411686c9be3a935268bf2c1beaaa"
+  report_file_sha256: "330fce1d138382710410e8a2f24d1fe4eb7b538bd3e4859b542917943df35807"
   markdown_path: "reports/supervised_labeler_v16_training.md"
   markdown_file_sha256: "b9d61ddf303d7fac16b877c7fac825ee0c8c47e58fdf98f215f29d1c9a299344"
   split_manifest_sha256: "8ff4de5dbf981a701548ecd3924b16aa594977fa7005ab610c0e3a4c638f7f3d"
@@ -271,8 +271,8 @@ numeric_audit_outcome:
 audit_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v16_audit_diagnosis.json"
-  report_file_sha256: "b234f562571cc63bb1c243ad76c760b0921551bc257f981410fee812baddca55"
-  report_sha256: "5bbb8f73bb52557eea43ff08fb78a503382a0c9541bbf5cbca30e8f08ebc467c"
+  report_file_sha256: "0823da477a9ea01924c16c68ccdf73db38f99ff4105ae58d863ffead6e0dd651"
+  report_sha256: "8c5a00c8025e8f1d38e87beeca78a80323037088c61b554737e2629534190789"
   failed_check: "audit_precision"
   cells_with_false_positives: 14
   cells_with_false_negatives: 12

@@ -98,8 +98,11 @@ def test_urls_relative_paths_and_portable_placeholders_are_not_drive_paths(
     assert scanner.scan_text("reports/evidence.json", text) == []
 
 
-def test_generic_drive_rule_is_limited_to_public_artifact_surfaces() -> None:
-    assert scanner.scan_text("tests/fixture.py", _external_drive_path()) == []
+@pytest.mark.parametrize("path", ["scripts/generator.py", "src/release/writer.py"])
+def test_generic_drive_rule_includes_scripts_and_source(path: str) -> None:
+    assert scanner.scan_text(path, _external_drive_path()) == [
+        f"{path}:1: absolute-windows-drive-path"
+    ]
 
 
 def test_ci_runner_drive_path_is_not_a_public_artifact_finding() -> None:
@@ -133,6 +136,25 @@ def test_repository_scan_reads_only_tracked_utf8_text(tmp_path: Path) -> None:
     assert result.files_scanned == 1
     assert result.skipped_binary == ("image.bin",)
     assert result.clean is False
+
+
+@pytest.mark.parametrize(
+    ("name", "content", "message"),
+    [
+        ("broken.json", b"\xff\xfe", "tracked public text is not UTF-8"),
+        ("contains_nul.py", b"safe\x00text", "tracked public text contains NUL"),
+    ],
+)
+def test_repository_scan_fails_closed_for_invalid_public_text(
+    tmp_path: Path, name: str, content: bytes, message: str
+) -> None:
+    _run_git(tmp_path, "init", "--quiet")
+    path = tmp_path / name
+    path.write_bytes(content)
+    _run_git(tmp_path, "add", name)
+
+    with pytest.raises(scanner.PublicPathScanError, match=message):
+        scanner.scan_repository(tmp_path)
 
 
 def test_scan_fails_closed_when_tracked_files_cannot_be_enumerated(tmp_path: Path) -> None:

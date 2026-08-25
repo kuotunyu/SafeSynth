@@ -9,11 +9,11 @@
     "true_positives": 107
   },
   "checkpoint_epoch": 4,
-  "checkpoint_path": "local_only_not_published",
+  "checkpoint_path": "${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v22_train20260809_split20260806/best",
   "checkpoint_sha256": "de5f4801095a0edd32c9b084cd12cb3e71ea51634e9541e8b6c0e208aebad73f",
   "experiment_id": "supervised_labeler_v22",
   "label_semantics": "class_direct_helmeted_head_region",
-  "manifest_sha256": "19d32a8c04833c5192da20a97b99e35ce16697d31ffa410d307fb0090aac0f95",
+  "manifest_sha256": "142b2761b46bb89d490d2faabe8e9ba378aa1241d60ea289d954a58860d3eb2c",
   "numeric_checks": {
     "audit_median_matched_iou": true,
     "audit_precision": true,
@@ -58,7 +58,7 @@
   "source_audit_evidence_sha256": "63bf91ce5621e262391dfac4a5ffc44238234e55668d72a1e3be71ccd1fa0721",
   "source_model_inference_images": 48,
   "source_training_report": "reports/supervised_labeler_v22_training.json",
-  "source_training_report_sha256": "f817c21e875e05a679a2ed39587017f0ddfafd3ade9a4c6067b4ea3faed85151",
+  "source_training_report_sha256": "f4ee42c1c595132b6259250370181c5b33a8539d28a11d5b4a3fc520d8cec2dd",
   "split_manifest_sha256": "f0b2c8472931ec97a3c8045051e2a084d0e7d2438e795bace16272c4ffd6065c",
   "status": "supervised_labeler_v22_model_review_pages_frozen",
   "test_images_read": 0,

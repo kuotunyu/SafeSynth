@@ -181,7 +181,7 @@ model_audit_registration:
   status: "frozen_before_v12_model_inference"
   source_experiment: "supervised_labeler_v11"
   source_training_report: "reports/supervised_labeler_v11_training.json"
-  source_training_report_sha256: "341be9f3afc8e21ab0a8beb21f2f5e34c7440f84d0740376da48d6d9f2244732"
+  source_training_report_sha256: "99dc3ca5b506061fc2fff1f8032960c87cd2502875958eb384670b242d8f600c"
   checkpoint_path: >-
     ${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v11_train20260809_split20260912/best
   checkpoint_sha256: "9b5ee6d360d3768a52ba9261f444e23b6f1da2c56f2eca682e207160604da5c4"
@@ -209,8 +209,8 @@ model_audit_registration:
 model_audit_outcome:
   status: "v12_numeric_audit_passed_owner_review_pending"
   report_path: "reports/supervised_labeler_v12_model_audit.json"
-  report_file_sha256: "df21b9670a74f94fa2fdafff779fc24c4b954d33b4e86ddf9205b22be57a9804"
-  report_sha256: "0dffe9d2e4a06f67db35afa594c12c451d1c907bf17aec1ce552d7761d39e1ce"
+  report_file_sha256: "c7ba7649e2fe60a65d5dff2a89e926be1291c6e741b2e405e282751af5393db4"
+  report_sha256: "1907921b9960f6f8d1fdf74bcd4dc13c2ebb4d0706df3b2ce6ca91ae1926938a"
   evidence_path: "reports/supervised_labeler_v12_model_audit_evidence.json"
   evidence_file_sha256: "740c47a3a4c6b85ea4c8ece3f2fb14472301b362b52db351d7b1454653d6ae60"
   evidence_sha256: "f3770008bc6b1a73ab0e643bcf1ad65141a777c2ac51086203314e9211a0d25a"
@@ -248,8 +248,8 @@ model_human_review_outcome:
   reviewed_by: "kuotunyu"
   reviewed_on: "2026-07-29"
   evidence_path: "reports/supervised_labeler_v12_model_human_review.json"
-  evidence_file_sha256: "f420294b54ed9fe43d1d490c1d1ea2a1e6f9c4990e932d7d6c589ece27607883"
-  review_sha256: "493296cf0d45602f0aa0fb5c3d2176d289fd99925a94d4334aed937509eee030"
+  evidence_file_sha256: "99efd075c2b90a4d5b581e7f3ce0d01bd844d37fac9b8146e20f3fe9d4f8f53e"
+  review_sha256: "a9b35a32ef9070beb2043b0f8a229b087de37d7ae9543f31961779ea85e49bdb"
   problem_count: 10
   problem_cells: [3, 10, 13, 20, 25, 26, 27, 29, 43, 45]
   categories:
@@ -263,8 +263,8 @@ model_human_review_outcome:
 review_diagnosis_outcome:
   status: "v12_owner_review_diagnosed"
   report_path: "reports/supervised_labeler_v12_review_diagnosis.json"
-  report_file_sha256: "4f21782930c53bb15a540514f1360bf9593a1e479888ec022b5f532ae4fb8b69"
-  diagnosis_sha256: "4554b33b88db11af78eea19b378d57eb6931f1d458746dfb438ca61216c91754"
+  report_file_sha256: "93f90681cc33b652c4b0b7976f1cb8c206b710241b97721ad34b74f5c4caa030"
+  diagnosis_sha256: "b24f1c41bede9673895f630b0113e2c90d30e1c33c6792ae5871d99e7e266aca"
   owner_gt_semantics_conflict_cells: [27, 45]
   missed_cells_below_threshold_and_removed_by_geometry: [26, 43]
   numeric_audit_disposition: >-

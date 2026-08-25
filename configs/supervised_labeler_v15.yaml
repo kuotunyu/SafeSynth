@@ -222,7 +222,7 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v15_training.json"
-  report_sha256: "ecee4be630cb1e32d815b89a8cb59c9705ca68fffe913f70aedbed01d873fb0a"
+  report_sha256: "9efb485735a8185e6c0a68a67af967faee7b5d4256db905d1afb52f25718d903"
   markdown_path: "reports/supervised_labeler_v15_training.md"
   markdown_sha256: "264bc7bc980cf30fe82de98b4942969e58c49fc3d31c9e91b5e66132aae04900"
   split_manifest_sha256: "68d95dc534d9120783bf56a406107f067e09fe953a00330474f14b7740fedca8"
@@ -257,8 +257,8 @@ model_review_registration:
   status: "supervised_labeler_v15_model_review_pages_frozen"
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v15_model_review_manifest.json"
-  manifest_file_sha256: "75af85e2928c902ab9794a659b174aefe4f11cc60b9677dbbcf40de4ff919e29"
-  manifest_sha256: "aee6f7328d3ef5420f680c2c523c208eb7b54185971c2062a02c66569222d64f"
+  manifest_file_sha256: "7fd37224ff2b7d3a75b040deda6815e3b79fcd143fa746c5eb381e0d9598ac74"
+  manifest_sha256: "94e6fd6f30f7eb8b0e3f97477e9ac68cd6404554cd2d814af6d97729027a1f0f"
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -280,8 +280,8 @@ model_review_registration:
 owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v15_model_human_review.json"
-  review_file_sha256: "257b3a78eac50a756fc8a8c637bc852cc4388ffb281ef16046c26a9943b341df"
-  review_sha256: "664172f81dc0a8180145c2ce2816e47d95e9de16b7a0d9df91b8f37f191e1ce2"
+  review_file_sha256: "54311b79d57a5095a52cc077a0ade88ca35982a230379e620f8c1e3d33c5ec42"
+  review_sha256: "97d43094393d84a3396b5625d79370de2f6f218d4621dece9659662e1f01d525"
   problem_count: 3
   confirmed_model_false_positive_cells: [11]
   model_missed_helmeted_head_cells: []
@@ -294,7 +294,7 @@ owner_model_review_outcome:
 owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v15_review_diagnosis.json"
-  report_file_sha256: "b052c33d5d408add057e2bd1df7c30f4f11b08f9bb99428270ccaf7d772230fc"
+  report_file_sha256: "ecc61ab2c4a2fdd86829e61d3b5700548c360d7c28e07f87599b09f37fd6bde8"
   confirmed_model_failure_cell: 11
   confirmed_model_false_positives: 2
   false_positive_scores: [0.05029296875, 0.048095703125]

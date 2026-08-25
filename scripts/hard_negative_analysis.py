@@ -41,6 +41,7 @@ from src.evaluation.hard_negatives import (
     mine_regions,
     render_table,
 )
+from src.release.public_paths import resolve_runtime_artifact
 
 REPORT_NAME = "hard_negative_false_positives.md"
 SHEET_NAME = "hard_negative_test_regions.png"
@@ -106,11 +107,25 @@ def render_region_sheet(
     return destination
 
 
-def load_predictions(index: Mapping[str, Mapping], arm: str, split: str):
+def load_predictions(
+    index: Mapping[str, Mapping],
+    arm: str,
+    split: str,
+    *,
+    data_root: Path | None = None,
+    artifact_override: Path | None = None,
+):
     key = f"{arm}/{split}/seed_1337"
     if key not in index:
         raise HardNegativeAnalysisError(f"{key} is not in results/predictions_index.json")
-    return json.loads(Path(index[key]["path"]).read_text(encoding="utf-8"))
+    stored = resolve_runtime_artifact(
+        index[key]["path"],
+        project_root=PROJECT_ROOT,
+        data_root=data_root,
+        artifact_override=artifact_override,
+        expected_kind="file",
+    )
+    return json.loads(stored.read_text(encoding="utf-8"))
 
 
 def _spread(results) -> int:
@@ -128,6 +143,7 @@ def parse_args() -> argparse.Namespace:
         "--sheet", type=Path, default=PROJECT_ROOT / "reports" / "figures" / SHEET_NAME
     )
     parser.add_argument("--max-sheet-cells", type=int, default=64)
+    parser.add_argument("--data-root", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -171,7 +187,9 @@ def main() -> int:
     )
     results = []
     for arm in ("real_only", "standard_aug", "unfiltered_syn", "filtered_syn"):
-        detections = load_predictions(index, arm, args.split)
+        detections = load_predictions(
+            index, arm, args.split, data_root=args.data_root or paths.data_root
+        )
         result = count_false_positives(
             detections, regions, arm=arm, score_threshold=threshold
         )

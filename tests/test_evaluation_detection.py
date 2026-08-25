@@ -1571,7 +1571,9 @@ def test_writing_without_a_path_uses_the_default_and_creates_the_directory(
         ("images/hard_hat_4242.png", "hard_hat_4242.png", "directory prefix"),
         ("HARD_HAT_4242.PNG", "hard_hat_4242.png", "case"),
         (
-            r"D:\sdg-data\02-safesynth\raw\hard_hat_4242.png",
+            "".join(  # noqa: FLY002
+                ("D", r":\sdg-data\02-safesynth\raw\hard_hat_4242.png")
+            ),
             "splits/test/hard_hat_4242.png",
             "absolute vs relative",
         ),

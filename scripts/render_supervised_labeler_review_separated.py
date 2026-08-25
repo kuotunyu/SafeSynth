@@ -19,6 +19,7 @@ from scripts.train_supervised_labeler import (
     _build_datasets,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 from src.synthetic.supervised_labeler import (
     CONFIG_PATH as DEFAULT_CONFIG_PATH,
 )
@@ -459,9 +460,12 @@ def main() -> None:
         )
         report = json.loads(report_path.read_text(encoding="utf-8"))
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-        checkpoint_path = (
-            Path(str(report["checkpoint_path"])) / "model.safetensors"
+        checkpoint_dir = resolve_checkpoint_reference(
+            str(report["checkpoint_path"]),
+            expected_sha256=str(report["checkpoint_sha256"]),
+            project_root=PROJECT_ROOT,
         )
+        checkpoint_path = checkpoint_dir / "model.safetensors"
         if (
             report.get("status") != "supervised_labeler_audit_passed"
             or report.get("audit_evidence_sha256") != _sha256(evidence_path)

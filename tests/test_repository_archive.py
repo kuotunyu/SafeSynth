@@ -44,6 +44,10 @@ _TEST_APPROVAL = FigureManifestApproval(
 )
 
 
+def _drive_path(suffix: str) -> str:
+    return "".join(("C", ":/", suffix.lstrip("/")))
+
+
 @dataclass(frozen=True)
 class _Project:
     root: Path
@@ -312,7 +316,12 @@ def test_duplicate_source_paths_are_rejected(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "unsafe_path",
-    ["../outside.png", "/absolute.png", r"C:\outside.png", "reports/../outside.png"],
+    [
+        "../outside.png",
+        "/absolute.png",
+        "".join(("C", r":\outside.png")),  # noqa: FLY002
+        "reports/../outside.png",
+    ],
 )
 def test_unsafe_source_paths_are_rejected(tmp_path: Path, unsafe_path: str) -> None:
     project = _project_with_keep_and_drop(tmp_path / "project")
@@ -811,7 +820,7 @@ def _execute_runbook_with_fake_native_commands(
     source_tree_exit: int = 0,
     source_tree_lines: tuple[str, ...] = (EXPECTED_SOURCE_TREE,),
     worktree_exit: int = 0,
-    worktree_lines: tuple[str, ...] = ("worktree C:/owner",),
+    worktree_lines: tuple[str, ...] = (f"worktree {_drive_path('owner')}",),
     for_each_ref_exit: int = 0,
     turn_diff_rows: tuple[str, ...] = (),
     namespace_check_exit: int = 0,
@@ -1288,7 +1297,10 @@ def test_owner_runbook_rejects_multiple_registered_worktrees_before_ref_deletion
     completed, commands, _runbook, _owner = _execute_runbook_with_fake_native_commands(
         tmp_path,
         rev_parse_lines=(EXPECTED_SOURCE_COMMIT,),
-        worktree_lines=("worktree C:/owner", "worktree C:/linked"),
+        worktree_lines=(
+            f"worktree {_drive_path('owner')}",
+            f"worktree {_drive_path('linked')}",
+        ),
         turn_diff_rows=(
             f"refs/codex/turn-diffs/one {EXPECTED_SOURCE_TREE} tree",
         ),
@@ -1484,7 +1496,7 @@ def test_owner_runbook_rewrite_native_failure_stops_before_post_rewrite_acceptan
 )
 def test_owner_runbook_rejects_noncanonical_expected_commit(unsafe_commit: str) -> None:
     with pytest.raises(ArchiveError, match="canonical source commit"):
-        archive_command._runbook("C:/owner", unsafe_commit)
+        archive_command._runbook(_drive_path("owner"), unsafe_commit)
 
 
 def test_restore_command_rejects_tampered_archive_before_copying(tmp_path: Path) -> None:

@@ -2529,7 +2529,7 @@
       "true_positives": 3
     }
   ],
-  "checkpoint_path": "local_only_not_published",
+  "checkpoint_path": "${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v4_train20260809_split20260812/best",
   "checkpoint_sha256": "a410c189545d151730bb0870c7f9671d552af3ef82aaa736219d4d7b6af1f520",
   "checks": {
     "audit_median_matched_iou": true,

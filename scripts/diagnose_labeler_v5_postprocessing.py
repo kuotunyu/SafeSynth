@@ -5,7 +5,6 @@ from __future__ import annotations
 import gc
 import json
 from functools import partial
-from pathlib import Path
 
 import torch
 from torch.utils.data import ConcatDataset, DataLoader
@@ -26,6 +25,7 @@ from scripts.train_supervised_labeler import (
     _sha256,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -72,7 +72,11 @@ def main() -> None:
         config_path=paths["config"],
         split_path=paths["split"],
     )
-    checkpoint = Path(training["checkpoint_path"])
+    checkpoint = resolve_checkpoint_reference(
+        training["checkpoint_path"],
+        expected_sha256=training["checkpoint_sha256"],
+        project_root=PROJECT_ROOT,
+    )
     if _sha256(checkpoint / "model.safetensors") != training["checkpoint_sha256"]:
         raise RuntimeError("v5 checkpoint changed")
 

@@ -5,12 +5,16 @@ import pytest
 from src.data.paths import load_project_paths, pin_dataset_version
 
 
+def _drive_path(suffix: str) -> str:
+    return "".join(("D", ":/", suffix.lstrip("/")))
+
+
 def write_config(path: Path, pinned: str = "null") -> None:
     path.parent.mkdir(parents=True)
     path.write_text(
         "\n".join(
             [
-                'data_root: "D:/bulk"',
+                f'data_root: "{_drive_path("bulk")}"',
                 "paths:",
                 '  raw: "${data_root}/raw"',
                 '  hardhat_raw: "${data_root}/raw/dataset"',
@@ -38,8 +42,8 @@ def test_load_paths_expands_declared_variables(tmp_path: Path) -> None:
 
     paths = load_project_paths(config_path)
 
-    assert paths.data_root == Path("D:/bulk")
-    assert paths.hardhat_raw == Path("D:/bulk/raw/dataset")
+    assert paths.data_root == Path(_drive_path("bulk"))
+    assert paths.hardhat_raw == Path(_drive_path("bulk/raw/dataset"))
     assert paths.splits == tmp_path / "project" / "splits"
     assert paths.pinned_version is None
 

@@ -28,6 +28,7 @@ from scripts.train_supervised_labeler import (
     _predict,
 )
 from src.data.paths import PROJECT_ROOT, load_project_paths
+from src.release.public_paths import resolve_checkpoint_reference
 from src.synthetic.compose import _load_context
 from src.synthetic.grounded_labeler import box_iou_xyxy
 from src.synthetic.supervised_labeler import filter_prediction_geometry
@@ -258,7 +259,11 @@ def main() -> None:
         helmet_category_id=helmet_category_id,
         input_normalization=config["input_normalization"],
     )
-    checkpoint_dir = Path(str(registration["checkpoint_path"]))
+    checkpoint_dir = resolve_checkpoint_reference(
+        str(registration["checkpoint_path"]),
+        expected_sha256=str(registration["checkpoint_sha256"]),
+        project_root=PROJECT_ROOT,
+    )
     checkpoint_path = checkpoint_dir / "model.safetensors"
     if _sha256(checkpoint_path) != registration["checkpoint_sha256"]:
         raise RuntimeError("Registered checkpoint changed before diagnosis")

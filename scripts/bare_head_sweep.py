@@ -23,6 +23,7 @@ from pathlib import Path
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
 from src.evaluation.detection import bare_head_recall, load_evaluation_config
+from src.release.public_paths import resolve_runtime_artifact
 from src.training.arms import ARMS
 from src.training.data import load_coco_samples
 from src.training.metrics import build_coco_ground_truth
@@ -47,6 +48,22 @@ def load_index(path: Path = INDEX_PATH) -> dict:
             f"{path} not found - run `uv run python -m scripts.dump_predictions` first"
         )
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_predictions(
+    entry: dict,
+    *,
+    data_root: Path | None = None,
+    artifact_override: Path | None = None,
+) -> list[dict]:
+    stored = resolve_runtime_artifact(
+        entry["path"],
+        project_root=PROJECT_ROOT,
+        data_root=data_root,
+        artifact_override=artifact_override,
+        expected_kind="file",
+    )
+    return json.loads(stored.read_text(encoding="utf-8"))
 
 
 def split_ground_truth(paths, split: str):
@@ -131,6 +148,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--split", default="test", choices=["test", "val"])
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
+    parser.add_argument("--data-root", type=Path, default=None)
     return parser.parse_args(argv)
 
 
@@ -154,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
         if entry is None:
             print(f"  {arm}: no stored predictions for {args.split}")
             continue
-        detections = json.loads(Path(entry["path"]).read_text(encoding="utf-8"))
+        detections = load_predictions(
+            entry, data_root=args.data_root or paths.data_root
+        )
         by_arm[arm] = sweep(ground_truth, detections, THRESHOLDS, config)
         at_point = next(
             row["recall"]

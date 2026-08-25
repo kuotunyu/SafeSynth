@@ -320,7 +320,7 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v19_training.json"
   report_file_sha256: >-
-    df876d56aff256ebfa9248ab0317c72268bbb5d826cfa94ae7cd422e8f1f38a9
+    d89b3e35db3b82efc4cbbc8b36cb192cf04754b0419e26d683de935bc9c3f3f8
   markdown_path: "reports/supervised_labeler_v19_training.md"
   markdown_file_sha256: >-
     3d340e1c1f65981acb6c52197224770f64b947efc268ee5db4be8f62fb329fc4
@@ -363,9 +363,9 @@ model_review_registration:
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v19_model_review_manifest.json"
   manifest_file_sha256: >-
-    71ee2019539ef9b5392db8e3f3eef88ed69275898a1ce48fa48aa8f4068b7cd5
+    558b85e3fe8194e014d2942c6c98139974737c096ff0655dcfe3d30ef465a69a
   manifest_sha256: >-
-    95ee09b1ca40c79ca7899559a0fe1945aa86a43b9b1767cc3e78e1737d6f6c06
+    b0d873566622c5c991524ba99140acec9f4a8fd0133aae52d6a3c9937703ef39
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -391,9 +391,9 @@ owner_model_review_outcome:
   status: "rejected_by_kuotunyu"
   review_path: "reports/supervised_labeler_v19_model_human_review.json"
   review_file_sha256: >-
-    bc2189492838eefe20e3268eea9e0bda5818c73535501cf0ccb5334acf6ebf73
+    b79f9e73986c44f4b8f78f4c2e1534cf562b48eb4226b231fb4c26b34adc3a68
   review_sha256: >-
-    1a8c54f865621d64fa81fc4251cc9f6f1bf2f9a6ca55af726fa40194111d1979
+    4616a7ea7c156a30d4305b1c51b5d4206d952b6abd63a345674e7ecf00f43dca
   problem_count: 7
   model_false_positive_cells: [22, 25]
   model_missed_helmeted_head_cells: [10, 14, 23, 28, 48]
@@ -406,9 +406,9 @@ owner_review_diagnosis:
   status: "complete_without_new_inference"
   report_path: "reports/supervised_labeler_v19_review_diagnosis.json"
   report_file_sha256: >-
-    1bffc3b63721f50d89ceb69452b66bb586e1a906d598e631fd9310f4c8ad2403
+    b9f3f2432ce2f7f606150464ee9a153295a5d41907d5913b888d3c61d5aa6fcf
   report_sha256: >-
-    7224d603d3509e1fd874a7cfb08fae8c8ea1b4a63e6bcf9e7164a93368ac9179
+    b3b1774b569ed6a1561aa5f910b1e9f5840b7e55d4794d5dea5ed409452c391d
   reported_cells_true_positives: 10
   reported_cells_false_positives: 5
   reported_cells_false_negatives: 7

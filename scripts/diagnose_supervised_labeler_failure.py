@@ -21,6 +21,7 @@ from scripts.train_supervised_labeler import (
     select_calibration_candidate,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 
 
 def diagnostic_thresholds() -> list[float]:
@@ -123,7 +124,11 @@ def main(experiment: str = "v1") -> None:
         config_path=paths["config"],
         split_path=paths["split"],
     )
-    checkpoint = Path(report["checkpoint_path"])
+    checkpoint = resolve_checkpoint_reference(
+        report["checkpoint_path"],
+        expected_sha256=report["checkpoint_sha256"],
+        project_root=PROJECT_ROOT,
+    )
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
         raise RuntimeError("Best checkpoint changed after the failed audit")
 

@@ -339,7 +339,7 @@ numeric_audit_outcome:
   status: "supervised_labeler_audit_failed"
   report_path: "reports/supervised_labeler_v21_training.json"
   report_file_sha256: >-
-    a107c70d6f1b207037fe799288fe3b4c4d067117e6df52f2253aaac543ac56a7
+    04cb78d7a198b20943d1e18f1cf23b17d51f372f1221174ec07f15f02a946a41
   markdown_path: "reports/supervised_labeler_v21_training.md"
   markdown_file_sha256: >-
     7b8e9e8c7b7e3780f07bd919bbc9478c28a7365f82b4dca4a8fffe31639f4df9
@@ -384,9 +384,9 @@ numeric_failure_diagnosis:
   report_path: >-
     reports/supervised_labeler_v21_numeric_failure_diagnosis.json
   report_file_sha256: >-
-    ea729816701b4a91cc9864fd6c38614b1fb5fed3c00e55528918b575ad948338
+    6aedfa2f485640341161e99f8b370855f063127282a1cc397751454524d480cf
   report_sha256: >-
-    a285abfa596f594abbbc16ab38e57446925e6847240adfa7c3a14b5e873ca759
+    4e2d30918039fe0dd7860feef05979a7b022c0fa3d0ae7e1a264a70b886f0ac2
   false_positive_type_counts:
     empty_gt_false_positive: 5
     semantic_false_positive: 6

@@ -23,6 +23,8 @@ from scripts.train_supervised_labeler import (
     _render_audit,
     _sha256,
 )
+from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 
 
 def split_review_sheet(
@@ -117,7 +119,11 @@ def main(*, split_only: bool = False) -> None:
     ) = _build_datasets()
     if len(split["untouched_audit_image_ids"]) != 48:
         raise RuntimeError("Expected exactly 48 frozen audit images")
-    checkpoint = Path(report["checkpoint_path"])
+    checkpoint = resolve_checkpoint_reference(
+        report["checkpoint_path"],
+        expected_sha256=report["checkpoint_sha256"],
+        project_root=PROJECT_ROOT,
+    )
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
         raise RuntimeError("Passed supervised checkpoint changed")
     processor = AutoImageProcessor.from_pretrained(

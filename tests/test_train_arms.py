@@ -388,6 +388,8 @@ def test_completed_runs_skip_and_checkpoint_only_runs_resume(job_inputs) -> None
         train_one=train_one,
         summary_path=summary,
         run_records_root=records,
+        project_root=job_inputs.paths.project_root,
+        data_root=job_inputs.paths.data_root,
     )
 
     assert code == 0
@@ -425,6 +427,8 @@ def test_first_training_failure_stops_later_arms_and_is_recorded(job_inputs) -> 
         train_one=fail_filtered,
         summary_path=summary,
         run_records_root=job_inputs.runs_root.parent / "run_records",
+        project_root=job_inputs.paths.project_root,
+        data_root=job_inputs.paths.data_root,
     )
 
     assert code == 1
@@ -463,6 +467,8 @@ def test_resume_archives_prior_attempt_and_keeps_preflight_provenance(job_inputs
         train_one=train_one,
         summary_path=summary,
         run_records_root=job_inputs.runs_root.parent / "records",
+        project_root=job_inputs.paths.project_root,
+        data_root=job_inputs.paths.data_root,
         provenance={
             "config_path": "configs/training_rfdetr.yaml",
             "real_train_digest": job.composition.real_train_digest,
@@ -565,18 +571,41 @@ def test_unknown_requested_arm_is_rejected(job_inputs) -> None:
 
 
 def test_dry_run_calls_no_training_and_writes_no_summary(
-    job_inputs, monkeypatch, capsys
+    job_inputs, tmp_path: Path, monkeypatch, capsys
 ) -> None:
     """Removing the dry-run return would allocate the model during preflight."""
 
     module = _module()
-    manifest = _materialize_required_inputs(job_inputs)
-    monkeypatch.setattr(module, "load_project_paths", lambda: job_inputs.paths)
-    monkeypatch.setattr(module, "load_training_config", lambda path: job_inputs.config)
+    project_root = tmp_path / "repository"
+    data_root = tmp_path / "external-data"
+    paths = SimpleNamespace(
+        **{
+            **vars(job_inputs.paths),
+            "project_root": project_root,
+            "data_root": data_root,
+            "synthetic": data_root / "synthetic",
+            "hardhat_raw": data_root / "hardhat",
+            "interim": data_root / "interim",
+            "splits": data_root / "splits",
+            "reports": project_root / "reports",
+            "runs": data_root / "runs",
+        }
+    )
+    inputs = SimpleNamespace(
+        **{
+            **vars(job_inputs),
+            "paths": paths,
+            "pool": data_root / "synthetic" / "m13_pool_1x",
+            "runs_root": data_root / "runs_rfdetr",
+        }
+    )
+    manifest = _materialize_required_inputs(inputs)
+    monkeypatch.setattr(module, "load_project_paths", lambda: inputs.paths)
+    monkeypatch.setattr(module, "load_training_config", lambda path: inputs.config)
     monkeypatch.setattr(
         module,
         "build_all_arms",
-        lambda **kwargs: job_inputs.compositions,
+        lambda **kwargs: inputs.compositions,
     )
     monkeypatch.setattr(
         module,
@@ -588,16 +617,16 @@ def test_dry_run_calls_no_training_and_writes_no_summary(
         },
     )
     calls = []
-    summary = job_inputs.paths.reports / "orchestration.json"
+    summary = inputs.paths.reports / "orchestration.json"
 
     code = module.main(
         [
             "--config",
             "configs/training_rfdetr.yaml",
             "--runs-root",
-            str(job_inputs.runs_root),
+            str(inputs.runs_root),
             "--run-records-root",
-            str(job_inputs.runs_root.parent / "records"),
+            str(inputs.runs_root.parent / "records"),
             "--summary",
             str(summary),
             "--manifest",
@@ -615,6 +644,69 @@ def test_dry_run_calls_no_training_and_writes_no_summary(
     printed = json.loads(capsys.readouterr().out)
     assert printed["arms"] == list(APPROVED)
     assert printed["synthetic_counts"]["filtered_syn"] == 3_500
+    assert printed["runs_root"] == "${SAFESYNTH_DATA_ROOT}/runs_rfdetr"
+    assert printed["run_records_root"] == "${SAFESYNTH_DATA_ROOT}/records"
+    assert printed["summary"] == "reports/orchestration.json"
+    assert str(inputs.runs_root.parent) not in json.dumps(printed)
+
+
+def test_persisted_summary_serializes_external_runtime_paths(
+    job_inputs, tmp_path: Path
+) -> None:
+    project_root = tmp_path / "repository"
+    data_root = tmp_path / "external-data"
+    project_root.mkdir()
+    data_root.mkdir()
+    paths = SimpleNamespace(
+        **{
+            **vars(job_inputs.paths),
+            "project_root": project_root,
+            "data_root": data_root,
+            "synthetic": data_root / "synthetic",
+            "hardhat_raw": data_root / "hardhat",
+            "interim": data_root / "interim",
+            "runs": data_root / "runs",
+        }
+    )
+    runs_root = data_root / "runs_rfdetr"
+    inputs = SimpleNamespace(**{**vars(job_inputs), "paths": paths, "runs_root": runs_root})
+    job = _jobs(inputs)[0]
+    _write_checkpoint(job, 10_900)
+    _module().atomic_write_json(
+        job.paths.output_dir / "run_record.json", _complete_record(job)
+    )
+    summary = project_root / "reports" / "orchestration.json"
+
+    code = _module().run_jobs(
+        (job,),
+        config=inputs.config,
+        train_one=lambda job, config: {},
+        summary_path=summary,
+        run_records_root=data_root / "run-records",
+        project_root=project_root,
+        data_root=data_root,
+        provenance={
+            "config_path": project_root / "configs" / "training_rfdetr.yaml",
+            "manifest_path": project_root / "splits" / "split_manifest.json",
+            "runs_root": runs_root,
+            "run_records_root": data_root / "run-records",
+        },
+    )
+
+    assert code == 0
+    text = summary.read_text(encoding="utf-8")
+    payload = json.loads(text)
+    assert str(project_root) not in text
+    assert str(data_root) not in text
+    assert payload["provenance"] == {
+        "config_path": "configs/training_rfdetr.yaml",
+        "manifest_path": "splits/split_manifest.json",
+        "runs_root": "${SAFESYNTH_DATA_ROOT}/runs_rfdetr",
+        "run_records_root": "${SAFESYNTH_DATA_ROOT}/run-records",
+    }
+    assert payload["arms"]["real_only"]["run_record"] == (
+        "${SAFESYNTH_DATA_ROOT}/runs_rfdetr/real_only/seed_1337/run_record.json"
+    )
 
 
 def test_production_main_enforces_startup_policy_before_orchestration(
@@ -650,7 +742,15 @@ def test_production_main_enforces_startup_policy_before_orchestration(
     )
 
     def fake_run_jobs(
-        jobs, *, config, train_one, summary_path, run_records_root, provenance
+        jobs,
+        *,
+        config,
+        train_one,
+        summary_path,
+        run_records_root,
+        project_root,
+        data_root,
+        provenance,
     ):
         observed["train_one"] = train_one
         observed["provenance"] = provenance

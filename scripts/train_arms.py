@@ -20,6 +20,11 @@ import torch
 from safetensors import safe_open
 
 from src.data.paths import load_project_paths
+from src.release.public_paths import (
+    DATA_ROOT_REFERENCE,
+    LOCAL_ONLY_NOT_PUBLISHED,
+    runtime_artifact_reference,
+)
 from src.training.arms import ArmComposition, build_all_arms, split_real_images
 from src.training.config import load_training_config
 from src.training.health import (
@@ -153,6 +158,79 @@ def atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
         stream.flush()
         os.fsync(stream.fileno())
     temporary.replace(path)
+
+
+_PUBLIC_PATH_FIELDS = frozenset(
+    {
+        "config_path",
+        "health_log",
+        "manifest_path",
+        "run_record",
+        "run_records_root",
+        "runs_root",
+        "summary",
+    }
+)
+
+
+def _portable_payload(
+    value: Any,
+    *,
+    project_root: Path,
+    data_root: Path,
+    field: str | None = None,
+) -> Any:
+    """Serialize path-valued public payload fields at the publication boundary."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _portable_payload(
+                item,
+                project_root=project_root,
+                data_root=data_root,
+                field=str(key),
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [
+            _portable_payload(
+                item,
+                project_root=project_root,
+                data_root=data_root,
+                field=field,
+            )
+            for item in value
+        ]
+    if field not in _PUBLIC_PATH_FIELDS or not isinstance(value, (str, Path)):
+        return value
+    rendered = str(value)
+    if rendered == LOCAL_ONLY_NOT_PUBLISHED or rendered == DATA_ROOT_REFERENCE:
+        return rendered
+    if rendered.startswith(DATA_ROOT_REFERENCE + "/"):
+        return rendered
+    return runtime_artifact_reference(
+        value,
+        project_root=project_root,
+        data_root=data_root,
+    )
+
+
+def _write_public_summary(
+    path: Path,
+    payload: Mapping[str, Any],
+    *,
+    project_root: Path,
+    data_root: Path,
+) -> None:
+    atomic_write_json(
+        path,
+        _portable_payload(
+            payload,
+            project_root=project_root,
+            data_root=data_root,
+        ),
+    )
 
 
 def build_jobs(
@@ -517,6 +595,8 @@ def run_jobs(
     train_one: Callable[[ArmJob, Mapping[str, Any]], Mapping[str, Any]],
     summary_path: Path,
     run_records_root: Path,
+    project_root: Path,
+    data_root: Path,
     provenance: Mapping[str, Any] | None = None,
 ) -> int:
     """Skip complete arms, resume incomplete ones, and stop on the first failure."""
@@ -546,7 +626,15 @@ def run_jobs(
         "started_at_utc": started_at,
         "updated_at_utc": started_at,
     }
-    atomic_write_json(summary_path, summary)
+    def write_summary() -> None:
+        _write_public_summary(
+            summary_path,
+            summary,
+            project_root=project_root,
+            data_root=data_root,
+        )
+
+    write_summary()
 
     for job in jobs:
         state = inspect_run(job)
@@ -557,16 +645,16 @@ def run_jobs(
             )
             summary["arms"][job.arm] = {
                 "status": "skipped_complete",
-                "run_record": str(job.paths.output_dir / "run_record.json"),
+                "run_record": job.paths.output_dir / "run_record.json",
             }
             summary["updated_at_utc"] = _utc_now()
-            atomic_write_json(summary_path, summary)
+            write_summary()
             continue
 
         started = _utc_now()
         summary["arms"][job.arm] = {"status": "running", "started_at_utc": started}
         summary["updated_at_utc"] = _utc_now()
-        atomic_write_json(summary_path, summary)
+        write_summary()
         try:
             raw_record = dict(train_one(job, config))
             returned = {
@@ -615,19 +703,19 @@ def run_jobs(
             }
             summary["updated_at_utc"] = _utc_now()
             summary["finished_at_utc"] = summary["updated_at_utc"]
-            atomic_write_json(summary_path, summary)
+            write_summary()
             return 1
 
         summary["arms"][job.arm] = {
             "status": "completed",
-            "run_record": str(record_path),
+            "run_record": record_path,
             "finished_at_utc": record["finished_at_utc"],
         }
         summary["updated_at_utc"] = _utc_now()
-        atomic_write_json(summary_path, summary)
+        write_summary()
     summary["finished_at_utc"] = _utc_now()
     summary["updated_at_utc"] = summary["finished_at_utc"]
-    atomic_write_json(summary_path, summary)
+    write_summary()
     return 0
 
 
@@ -711,17 +799,17 @@ def main(
     )
 
     if args.dry_run:
-        payload = {
+        payload = _portable_payload({
             **asdict(report),
             "model_checkpoint": str(config["model"]["checkpoint"]),
             "seed": int(config["run"]["seed"]),
             "total_steps": int(config["run"]["total_steps"]),
             "config_sha256": jobs[0].config_sha256,
-            "runs_root": str(runs_root),
-            "run_records_root": str(run_records_root),
-            "summary": str(summary_path),
+            "runs_root": runs_root,
+            "run_records_root": run_records_root,
+            "summary": summary_path,
             "run_status": {job.arm: inspect_run(job) for job in jobs},
-        }
+        }, project_root=paths.project_root, data_root=paths.data_root)
         print(json.dumps(payload, indent=2, sort_keys=True))
         return 0
 
@@ -751,16 +839,18 @@ def main(
             train_one=selected_train,
             summary_path=summary_path,
             run_records_root=run_records_root,
+            project_root=paths.project_root,
+            data_root=paths.data_root,
             provenance={
-                "config_path": str(args.config),
-                "manifest_path": str(manifest),
+                "config_path": args.config,
+                "manifest_path": manifest,
                 "pool_tag": str(args.pool_tag),
                 "real_train_digest": report.real_train_digest,
                 "synthetic_counts": dict(report.synthetic_counts),
                 "required_free_gib": report.required_free_gib,
                 "free_disk_gib_at_preflight": report.free_disk_gib,
-                "runs_root": str(runs_root),
-                "run_records_root": str(run_records_root),
+                "runs_root": runs_root,
+                "run_records_root": run_records_root,
             },
         )
 

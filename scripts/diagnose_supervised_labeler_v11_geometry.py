@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import gc
 import json
-from pathlib import Path
 from typing import Any
 
 import torch
@@ -20,6 +19,7 @@ from scripts.train_supervised_labeler import (
     _sha256,
 )
 from src.data.paths import PROJECT_ROOT
+from src.release.public_paths import resolve_checkpoint_reference
 from src.synthetic.supervised_labeler import filter_prediction_geometry
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v10.yaml"
@@ -125,7 +125,11 @@ def main() -> None:
     ) = _build_datasets(config_path=CONFIG_PATH, split_path=SPLIT_PATH)
     if set(diagnosis["owner_confirmed_gt_defect_cells"]) != {31, 41, 42}:
         raise RuntimeError("Expected owner-confirmed v10 GT defects")
-    checkpoint = Path(report["checkpoint_path"])
+    checkpoint = resolve_checkpoint_reference(
+        report["checkpoint_path"],
+        expected_sha256=report["checkpoint_sha256"],
+        project_root=PROJECT_ROOT,
+    )
     if _sha256(checkpoint / "model.safetensors") != report["checkpoint_sha256"]:
         raise RuntimeError("Passed v10 checkpoint changed")
 

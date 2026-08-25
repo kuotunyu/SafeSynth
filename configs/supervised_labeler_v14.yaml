@@ -246,7 +246,7 @@ gpu_smoke_outcome:
 numeric_audit_outcome:
   status: "supervised_labeler_audit_passed"
   report_path: "reports/supervised_labeler_v14_training.json"
-  report_file_sha256: "15370767400dcea6a5c435c103773dae22fae438b297b49d98e6acae60ff007c"
+  report_file_sha256: "d80ed6b9dc15e29079c13a41642abe34dd80836c01c60af9f4a1ea24a13b1334"
   markdown_path: "reports/supervised_labeler_v14_training.md"
   markdown_file_sha256: "048d54263d699a501277e9f14aeb9d1f3a9bfa2191d931967e0292859ffee970"
   split_manifest_sha256: "12eced89e8258a96bed028f9da5114269ceaad218fd86540a084daf07f84d57f"
@@ -281,8 +281,8 @@ model_review_registration:
   status: "supervised_labeler_v14_model_review_pages_frozen"
   owner_review_status: "rejected_by_kuotunyu"
   manifest_path: "reports/supervised_labeler_v14_model_review_manifest.json"
-  manifest_file_sha256: "d3a6803a6368561393ad3ba2493db9e9bd358eae7b4f2aa92ca8dfced47785cf"
-  manifest_sha256: "3b87260f418164038cf132a962ab70e87e79dc58f490b2554c01f183538549c7"
+  manifest_file_sha256: "65f6596c4419410c02f530043af261f306f5323afc742d097ed33e9d18b28a22"
+  manifest_sha256: "ede71e672a7deeae79ed7bcd39257f4b44e2c3e5246d878a785a2dac0fac2001"
   reviewed_images: 48
   approve_only_if_problem_count: 0
   pages:
@@ -313,8 +313,8 @@ human_review_outcome:
     model_false_positive_cells: [10]
     model_missed_helmeted_head_cells: [7, 40, 43]
   review_path: "reports/supervised_labeler_v14_model_human_review.json"
-  review_file_sha256: "28cd00fe8c8214a96a454766f7921660e7e301d9ea838281125943767cde34eb"
-  review_sha256: "a294ff666231044973b150e72c7105203f2abdbd545e96385742adce943fa803"
+  review_file_sha256: "f5edbff2c13a0a95ad93c8365b138c79c8ab20a117e1367cd7970e9d5a6ff20b"
+  review_sha256: "b69a64f3b2c9c253a7799b83364cc073fa03f911e2b3bebb612ea4b1bf920105"
   checkpoint_sha256: "03de04a6981c9893d0f38e8300fec9bfc774a789317a884bdc8176418994735c"
   score_threshold: 0.05
   generation_allowed: false
@@ -325,7 +325,7 @@ human_review_outcome:
 review_diagnosis_outcome:
   status: "v14_owner_failure_diagnosis_complete"
   report_path: "reports/supervised_labeler_v14_review_diagnosis.json"
-  report_file_sha256: "0f1bcd863be60a79223ab7147f37e04ecd2400a98a58f47a0685ce609e116ab8"
+  report_file_sha256: "026cc2a6fcf3ef72cd36e4818561101d4bab99db46d4fda65fcf3ba7fcf1d98d"
   diagnosed_cells: [7, 10, 40, 43]
   images_read: 4
   causes:

@@ -16,7 +16,8 @@ import transformers
 import yaml
 from PIL import Image
 
-from src.data.paths import PROJECT_ROOT, ProjectPaths
+from src.data.paths import PROJECT_ROOT, ProjectPaths, load_project_paths
+from src.release.public_paths import PortablePathError, resolve_checkpoint_reference
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "supervised_labeler_v11.yaml"
 SPLIT_PATH = PROJECT_ROOT / "splits" / "supervised_labeler_v11_split.json"
@@ -359,6 +360,8 @@ def require_verified_audited_checkpoint(
     registration: Mapping[str, Any],
     report: Mapping[str, Any],
     split: Mapping[str, Any],
+    data_root: Path | None = None,
+    checkpoint_override: Path | None = None,
 ) -> Path:
     """Verify the exact passed v6 audit and fine-tuned checkpoint."""
 
@@ -404,7 +407,21 @@ def require_verified_audited_checkpoint(
     ):
         raise RuntimeError("Supervised v6 audit evidence changed or is incomplete")
 
-    checkpoint_dir = Path(str(report["checkpoint_path"]))
+    runtime_data_root = data_root
+    if runtime_data_root is None and checkpoint_override is None:
+        runtime_data_root = load_project_paths().data_root
+    try:
+        checkpoint_dir = resolve_checkpoint_reference(
+            str(report["checkpoint_path"]),
+            expected_sha256=expected_checkpoint_sha,
+            project_root=PROJECT_ROOT,
+            data_root=runtime_data_root,
+            checkpoint_override=checkpoint_override,
+        )
+    except PortablePathError as error:
+        raise RuntimeError(
+            f"Supervised v6 checkpoint failed integrity verification: {error}"
+        ) from error
     checkpoint_path = checkpoint_dir / "model.safetensors"
     if (
         not checkpoint_path.is_file()

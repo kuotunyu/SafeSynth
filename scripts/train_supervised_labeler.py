@@ -25,7 +25,7 @@ from transformers import (
 )
 
 from src.data.paths import PROJECT_ROOT, load_project_paths
-from src.release.public_paths import public_artifact_path
+from src.release.public_paths import runtime_artifact_reference
 from src.synthetic.compose import (
     _load_context,
     normalize_reflected_padding,
@@ -1029,8 +1029,10 @@ def _train(
             "checks": checks,
             "epoch_records": epoch_records,
             "calibration_grid": all_calibration_rows,
-            "checkpoint_path": public_artifact_path(
-                best_dir, project_root=PROJECT_ROOT
+            "checkpoint_path": runtime_artifact_reference(
+                best_dir,
+                project_root=PROJECT_ROOT,
+                data_root=paths.data_root,
             ),
             "checkpoint_sha256": _sha256(checkpoint_path),
             "elapsed_minutes": (time.time() - started) / 60,

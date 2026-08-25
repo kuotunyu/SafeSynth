@@ -125,7 +125,7 @@
     "candidate_rejected_by_geometry_filter": 1
   },
   "frozen_inputs": {
-    "checkpoint_path": "local_only_not_published",
+    "checkpoint_path": "${SAFESYNTH_DATA_ROOT}/runs/supervised_labeler_v13_train20260809_split20260915/best",
     "checkpoint_sha256": "c6783be45f67638b96d9a075f6af8ac6f4c6b3628551edd0ef9b440f57f2ea65",
     "config_path": "configs\\supervised_labeler_v13.yaml",
     "config_sha256": "fd77bfbc0b8451637f045456b59fc92d37714cf8728407f9e166cf56d98292d9",
@@ -139,7 +139,7 @@
     "low_score_floor": 0.001,
     "match_iou": 0.5,
     "owner_review_path": "reports\\supervised_labeler_v13_model_human_review.json",
-    "owner_review_sha256": "3521d1a91bfe2e13cc44db791f4e872489a207f6a3a8fb21010f927559219d55",
+    "owner_review_sha256": "43ca6a123bb1d9e2d855e2258179637d20348e92214403d915ac067678e95a41",
     "score_threshold": 0.05,
     "split_manifest_sha256": "556801da8cdefe3975a339cd3992bbe685bff5a176685aff5e7d09af3f609a95",
     "split_path": "splits\\supervised_labeler_v13_split.json"

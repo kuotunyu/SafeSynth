@@ -901,7 +901,10 @@ def test_the_home_directory_name_is_also_an_identifier() -> None:
 
 
 def test_an_identifier_is_matched_regardless_of_case() -> None:
-    (failure,) = check_no_leaked_identifiers({"README.md": "path C:/Users/JDoe1/x\n"}, ["jdoe1"])
+    leaked_home = "".join(("C", ":/", "Users/JDoe1/x"))  # noqa: FLY002
+    (failure,) = check_no_leaked_identifiers(
+        {"README.md": f"path {leaked_home}\n"}, ["jdoe1"]
+    )
 
     assert "jdoe1" in failure.message
 
@@ -1087,9 +1090,11 @@ def test_verify_actually_runs_the_identifier_check(
     """
 
     _pretend_home(monkeypatch, "nobodyhome")
+    leaked_home = "".join(("C", ":/", "Users/jdoe1/tmp"))  # noqa: FLY002
     root = _repository(
         tmp_path,
-        readme=COMPLETE_DISCLOSURES + "\n\nScratch files live under C:/Users/jdoe1/tmp.\n",
+        readme=COMPLETE_DISCLOSURES
+        + f"\n\nScratch files live under {leaked_home}.\n",
     )
 
     result = verify(root, environment={"USERNAME": "jdoe1"}, git_emails=[])

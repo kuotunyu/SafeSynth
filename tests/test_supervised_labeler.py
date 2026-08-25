@@ -6801,6 +6801,7 @@ def test_passed_finetuned_checkpoint_is_rehashed_before_use(tmp_path) -> None:
         registration=registration,
         report=report,
         split=split,
+        checkpoint_override=checkpoint_dir,
     ) == checkpoint_dir
     checkpoint.write_bytes(b"tampered fine-tuned checkpoint")
 
@@ -6810,6 +6811,7 @@ def test_passed_finetuned_checkpoint_is_rehashed_before_use(tmp_path) -> None:
             registration=registration,
             report=report,
             split=split,
+            checkpoint_override=checkpoint_dir,
         )
 
 

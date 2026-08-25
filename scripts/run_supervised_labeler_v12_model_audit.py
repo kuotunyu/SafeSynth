@@ -26,7 +26,10 @@ from scripts.train_supervised_labeler import (
     _predict,
 )
 from src.data.paths import PROJECT_ROOT, load_project_paths
-from src.release.public_paths import public_artifact_path
+from src.release.public_paths import (
+    resolve_checkpoint_reference,
+    runtime_artifact_reference,
+)
 from src.synthetic.compose import _load_context
 from src.synthetic.whole_image import canonical_mapping_sha256
 
@@ -89,16 +92,17 @@ def _verified_registration(
     if _sha256(report_path) != registration["source_training_report_sha256"]:
         raise RuntimeError("Registered source training report changed")
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    checkpoint_dir = Path(str(registration["checkpoint_path"]))
-    checkpoint_path = checkpoint_dir / "model.safetensors"
+    checkpoint_dir = resolve_checkpoint_reference(
+        str(registration["checkpoint_path"]),
+        project_root=PROJECT_ROOT,
+        expected_sha256=str(registration["checkpoint_sha256"]),
+    )
     if (
         registration["status"] != "frozen_before_v12_model_inference"
         or registration["source_experiment"] != "supervised_labeler_v11"
         or report.get("status") != "supervised_labeler_audit_passed"
         or report.get("checkpoint_sha256")
         != registration["checkpoint_sha256"]
-        or not checkpoint_path.is_file()
-        or _sha256(checkpoint_path) != registration["checkpoint_sha256"]
         or float(report["best_calibration"]["threshold"])
         != float(registration["score_threshold"])
         or {
@@ -423,8 +427,10 @@ def main() -> None:
             registration["source_training_report_sha256"]
         ),
         "source_numeric_audit_status": str(source_report["status"]),
-        "checkpoint_path": public_artifact_path(
-            checkpoint_dir, project_root=PROJECT_ROOT
+        "checkpoint_path": runtime_artifact_reference(
+            checkpoint_dir,
+            project_root=PROJECT_ROOT,
+            data_root=paths.data_root,
         ),
         "checkpoint_sha256": str(registration["checkpoint_sha256"]),
         "audit_manifest_sha256": str(audit["manifest_sha256"]),

@@ -1,11 +1,9 @@
 """Fail when tracked UTF-8 text contains non-portable public paths.
 
 The gate enumerates files from Git rather than walking selected directories, so
-reports, notebooks, workflow files, and future tracked locations are all in
-scope for personal identifiers. Generic drive-root paths are rejected on public
-artifact surfaces, while CI setup and test implementation files stay outside
-that narrower rule. Search values are assembled at runtime so the scanner can
-scan its own source without embedding the private values.
+reports, notebooks, workflow files, source, scripts, and future tracked
+locations are all in scope. Search values are assembled at runtime so the
+scanner can scan its own source without embedding the private values.
 """
 
 from __future__ import annotations
@@ -21,19 +19,36 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 _ACCOUNT_FRAGMENTS = ("3", "Hml")
 _LOGIN_FRAGMENTS = ("tun", "2404")
+_CI_RUNNER_ROOT_FRAGMENTS = ("c", ":/", "users/", "runneradmin/", "work/")
 _DRIVE_ROOT_PATTERN = re.compile(r"(?<![a-z0-9])[a-z]:/", re.IGNORECASE)
-_PUBLIC_ARTIFACT_PREFIXES = (
-    "assets/",
-    "configs/",
-    "docs/",
-    "model_cards/",
-    "notebooks/",
-    "publishing/",
-    "reports/",
-    "results/",
-    "splits/",
+_BINARY_EXTENSIONS = frozenset(
+    {
+        ".7z",
+        ".bin",
+        ".bmp",
+        ".gif",
+        ".gz",
+        ".ico",
+        ".jpeg",
+        ".jpg",
+        ".npy",
+        ".npz",
+        ".onnx",
+        ".parquet",
+        ".pdf",
+        ".pkl",
+        ".png",
+        ".pt",
+        ".pth",
+        ".safetensors",
+        ".tar",
+        ".tiff",
+        ".webp",
+        ".woff",
+        ".woff2",
+        ".zip",
+    }
 )
-_PUBLIC_ARTIFACT_FILES = ("README.md",)
 
 
 class PublicPathScanError(RuntimeError):
@@ -54,8 +69,9 @@ class ScanResult:
 def _marker_patterns() -> tuple[tuple[str, tuple[str, ...]], ...]:
     account = "".join(_ACCOUNT_FRAGMENTS).casefold()
     login = "".join(_LOGIN_FRAGMENTS).casefold()
+    windows_users = "".join(("c", ":/", "users/"))  # noqa: FLY002
     return (
-        ("private-windows-home", (f"c:/users/{account}",)),
+        ("private-windows-home", (f"{windows_users}{account}",)),
         (
             "private-posix-home",
             (
@@ -75,10 +91,12 @@ def _normalized(text: str) -> str:
     return re.sub(r"\\+", "/", text).casefold()
 
 
-def _is_public_artifact_surface(relative_path: str) -> bool:
-    normalized_path = relative_path.replace("\\", "/")
-    return normalized_path in _PUBLIC_ARTIFACT_FILES or normalized_path.startswith(
-        _PUBLIC_ARTIFACT_PREFIXES
+def _is_narrow_ci_runner_path(relative_path: str, normalized_line: str) -> bool:
+    normalized_path = relative_path.replace("\\", "/").casefold()
+    runner_root = "".join(_CI_RUNNER_ROOT_FRAGMENTS)
+    return (
+        normalized_path.startswith(".github/workflows/")
+        and runner_root in normalized_line
     )
 
 
@@ -96,8 +114,9 @@ def scan_text(relative_path: str, text: str) -> list[str]:
                 break
         if specific_marker_found:
             continue
-        if _is_public_artifact_surface(relative_path) and _DRIVE_ROOT_PATTERN.search(
-            normalized
+        if (
+            _DRIVE_ROOT_PATTERN.search(normalized)
+            and not _is_narrow_ci_runner_path(relative_path, normalized)
         ):
             findings.append(
                 f"{relative_path}:{line_number}: absolute-windows-drive-path"
@@ -121,7 +140,7 @@ def _tracked_paths(project_root: Path) -> tuple[str, ...]:
 
 
 def scan_repository(project_root: Path | str) -> ScanResult:
-    """Scan every Git-tracked UTF-8 text file and skip binary/non-UTF-8 data."""
+    """Scan every tracked text file; only known binary extensions may be skipped."""
 
     root = Path(project_root).resolve()
     findings: list[str] = []
@@ -135,14 +154,19 @@ def scan_repository(project_root: Path | str) -> ScanResult:
             raise PublicPathScanError(
                 f"tracked file could not be read: {relative_path}"
             ) from error
-        if b"\0" in content:
+        if path.suffix.casefold() in _BINARY_EXTENSIONS:
             skipped_binary.append(relative_path)
             continue
+        if b"\0" in content:
+            raise PublicPathScanError(
+                f"tracked public text contains NUL: {relative_path}"
+            )
         try:
             text = content.decode("utf-8")
-        except UnicodeDecodeError:
-            skipped_binary.append(relative_path)
-            continue
+        except UnicodeDecodeError as error:
+            raise PublicPathScanError(
+                f"tracked public text is not UTF-8: {relative_path}"
+            ) from error
         files_scanned += 1
         findings.extend(scan_text(relative_path, text))
     return ScanResult(
@@ -155,7 +179,7 @@ def scan_repository(project_root: Path | str) -> ScanResult:
 def format_scan_lines(result: ScanResult) -> list[str]:
     lines = [
         f"tracked UTF-8 files scanned : {result.files_scanned}",
-        f"binary/non-UTF-8 skipped    : {len(result.skipped_binary)}",
+        f"known binary files skipped : {len(result.skipped_binary)}",
         f"non-portable path findings  : {len(result.findings)}",
     ]
     lines.extend(f"  {finding}" for finding in result.findings)
