@@ -24,6 +24,7 @@ hidden by publishing a synthetic arm.
 - Source and reproducibility: [github.com/kuotunyu/SafeSynth](https://github.com/kuotunyu/SafeSynth)
 - Synthetic ablation dataset: [steven0226/safesynth-hard-hat](https://huggingface.co/datasets/steven0226/safesynth-hard-hat)
 - Base checkpoint: [PekingU/rtdetr_v2_r18vd](https://huggingface.co/PekingU/rtdetr_v2_r18vd)
+- Privacy and responsible use: [SafeSynth guidance](https://github.com/kuotunyu/SafeSynth/blob/main/docs/privacy_and_responsible_use.md)
 
 ## Model details
 

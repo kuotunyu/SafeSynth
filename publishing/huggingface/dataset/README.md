@@ -34,6 +34,8 @@ each released image.
 This dataset accompanies the
 [SafeSynth source repository](https://github.com/kuotunyu/SafeSynth) and the
 [released RT-DETRv2-R18 checkpoint](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18).
+Review the [privacy and responsible-use boundary](https://github.com/kuotunyu/SafeSynth/blob/main/docs/privacy_and_responsible_use.md)
+before downloading or reusing worker imagery.
 
 ## What the labels mean
 

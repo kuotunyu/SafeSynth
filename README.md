@@ -12,7 +12,8 @@
 [Dataset](https://huggingface.co/datasets/steven0226/safesynth-hard-hat) ·
 [Model](https://huggingface.co/steven0226/safesynth-rtdetrv2-r18) ·
 [Latest Release](https://github.com/kuotunyu/SafeSynth/releases/latest) ·
-[Experiment Protocol](docs/experiment_protocol.md)
+[Experiment Protocol](docs/experiment_protocol.md) ·
+[Privacy & Responsible Use](docs/privacy_and_responsible_use.md)
 
 </div>
 
@@ -232,7 +233,7 @@ uv run python -m scripts.verify_hf_release `
 | `scripts/` | Reproducible command-line entry points and verification gates |
 | `tests/` | Unit, contract, evidence and regression tests |
 | `results/` | Machine-readable metrics used by README verification |
-| `reports/` | Scientific reports and curated figures |
+| [`reports/README.md`](reports/README.md) | Reviewer evidence index, scientific reports and curated figures |
 | `publishing/` | Release notes and Hugging Face cards |
 
 </details>
